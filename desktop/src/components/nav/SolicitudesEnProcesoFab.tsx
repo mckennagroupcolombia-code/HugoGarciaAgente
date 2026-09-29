@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPortal } from "react-dom";
 import { useAppStore } from "../../stores/app";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
@@ -512,6 +512,69 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
   );
 }
 
+type SolicitudPasada = {
+  id: number; titulo: string; estado: string;
+  creado_por: number | null; asignado_a: number | null;
+  creado_en?: string | null; actualizado_en?: string | null;
+};
+type ProcedimientoLite = { id: number; titulo: string; categoria?: string | null; pasos?: unknown[] };
+type Sugerencia = { clave: string; titulo: string; detalle: string; protocoloId?: number };
+
+function normalizar(t: string) {
+  return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Sugerencias para «¿Sobre qué es?»: primero los temas que ya se han tratado con esa
+ * persona (en cualquier sentido, más repetidos y recientes primero; las abiertas no, ya
+ * salen arriba como «Seguir»), luego los procedimientos del equipo, que al elegirse crean
+ * la solicitud con sus pasos. Al escribir se filtran por palabras.
+ */
+function sugerenciasPara(
+  personaId: number, miId: number, pasadas: SolicitudPasada[], procedimientos: ProcedimientoLite[],
+  abiertas: Conversacion[], escrito: string,
+): Sugerencia[] {
+  const abiertasN = new Set(abiertas.filter((c) => uidEq(c.contraparte_id, personaId)).map((c) => normalizar(c.titulo)));
+  const temas = new Map<string, { titulo: string; veces: number; ultima: string }>();
+  for (const t of pasadas) {
+    const conElla = (uidEq(t.creado_por, miId) && uidEq(t.asignado_a, personaId))
+      || (uidEq(t.creado_por, personaId) && uidEq(t.asignado_a, miId));
+    if (!conElla || !t.titulo?.trim()) continue;
+    const k = normalizar(t.titulo);
+    if (abiertasN.has(k)) continue;
+    const fecha = t.actualizado_en || t.creado_en || "";
+    const prev = temas.get(k);
+    if (prev) {
+      prev.veces += 1;
+      if (fecha > prev.ultima) { prev.ultima = fecha; prev.titulo = t.titulo.trim(); }
+    } else {
+      temas.set(k, { titulo: t.titulo.trim(), veces: 1, ultima: fecha });
+    }
+  }
+  const palabras = normalizar(escrito).split(" ").filter((w) => w.length > 1);
+  const coincide = (titulo: string) => {
+    const n = normalizar(titulo);
+    return palabras.every((w) => n.includes(w)) && n !== normalizar(escrito);
+  };
+  const conPersona: Sugerencia[] = [...temas.entries()]
+    .filter(([, v]) => coincide(v.titulo))
+    .sort((a, b) => b[1].veces - a[1].veces || b[1].ultima.localeCompare(a[1].ultima))
+    .slice(0, palabras.length ? 6 : 5)
+    .map(([k, v]) => ({
+      clave: `t-${k}`, titulo: v.titulo,
+      detalle: v.veces > 1 ? `${v.veces} veces` : "1 vez",
+    }));
+  const vistos = new Set(conPersona.map((x) => normalizar(x.titulo)));
+  const procs: Sugerencia[] = procedimientos
+    .filter((p) => p.titulo?.trim() && !vistos.has(normalizar(p.titulo)) && coincide(p.titulo))
+    .slice(0, palabras.length ? 5 : 3)
+    .map((p) => ({
+      clave: `p-${p.id}`, titulo: p.titulo.trim(), protocoloId: p.id,
+      detalle: p.pasos?.length ? `procedimiento · ${p.pasos.length} pasos` : "procedimiento",
+    }));
+  return [...conPersona, ...procs];
+}
+
 /** «Nuevo chat»: con quién y sobre qué. Crea una solicitud para esa persona y abre su chat. */
 function NuevoChat({
   abiertas, onAbrir, onCreada,
@@ -526,6 +589,19 @@ function NuevoChat({
   const [busqueda, setBusqueda] = useState("");
   const [personaId, setPersonaId] = useState<number | null>(null);
   const [asunto, setAsunto] = useState("");
+  // Procedimiento elegido de las sugerencias: se manda con la solicitud (trae sus pasos)
+  // mientras el asunto siga siendo su nombre.
+  const [procElegido, setProcElegido] = useState<{ id: number; titulo: string } | null>(null);
+  const { data: pasadas = [] } = useQuery<SolicitudPasada[]>({
+    queryKey: ["fab-chat-solicitudes-pasadas"],
+    queryFn: () => api.get("/api/tickets/?tipo=solicitud"),
+    staleTime: 5 * 60 * 1000,
+  });
+  const { data: procedimientos = [] } = useQuery<ProcedimientoLite[]>({
+    queryKey: ["fab-chat-procedimientos"],
+    queryFn: () => api.get("/api/tickets/protocolos"),
+    staleTime: 10 * 60 * 1000,
+  });
   const [mensaje, setMensaje] = useState("");
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState("");
@@ -539,6 +615,15 @@ function NuevoChat({
   }, [equipo, busqueda, user?.id]);
   const persona = personaId != null ? equipo.find((u) => u.id === personaId) ?? null : null;
   const conElla = persona ? abiertas.filter((c) => uidEq(c.contraparte_id, persona.id)) : [];
+  const sugerencias = persona && user
+    ? sugerenciasPara(
+      persona.id, user.id,
+      Array.isArray(pasadas) ? pasadas : [],
+      Array.isArray(procedimientos) ? procedimientos : [],
+      abiertas, asunto,
+    )
+    : [];
+  const protocoloId = procElegido && normalizar(procElegido.titulo) === normalizar(asunto) ? procElegido.id : null;
 
   async function iniciar() {
     if (!persona || !asunto.trim() || creando || !user) return;
@@ -552,6 +637,7 @@ function NuevoChat({
         prioridad: "media",
         asignado_a: persona.id,
         tipo: "solicitud",
+        ...(protocoloId ? { protocolo_id: protocoloId } : {}),
       });
       if (mensaje.trim()) {
         await api.post(`/api/tickets/${t.id}/comentarios`, { texto: mensaje.trim() });
@@ -667,6 +753,37 @@ function NuevoChat({
             className={campo}
           />
         </label>
+        {sugerencias.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+              {asunto.trim() ? "Parecidos" : `Sugerencias con ${persona.nombre.split(" ")[0]}`}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {sugerencias.map((sg) => (
+                <button
+                  key={sg.clave}
+                  type="button"
+                  onClick={() => {
+                    setAsunto(sg.titulo);
+                    setProcElegido(sg.protocoloId ? { id: sg.protocoloId, titulo: sg.titulo } : null);
+                  }}
+                  title={sg.protocoloId ? "Crea la solicitud con los pasos de este procedimiento" : "Tema que ya trataron"}
+                  className={`max-w-full rounded-full border px-2.5 py-1 text-left text-[11px] transition hover:border-accent hover:text-accent ${
+                    sg.protocoloId ? "border-accent/40 bg-accent/5 text-ink" : "border-border bg-surface-panel text-ink"
+                  }`}
+                >
+                  <span className="font-semibold">{sg.protocoloId ? "📋 " : "↺ "}{sg.titulo}</span>
+                  <span className="ml-1 text-[10px] text-muted">· {sg.detalle}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {protocoloId && (
+          <p className="rounded-lg border border-accent/30 bg-accent/5 px-2.5 py-1.5 text-[11px] text-ink">
+            📋 Se crea con los pasos del procedimiento «{procElegido?.titulo}».
+          </p>
+        )}
         <label className="block space-y-1">
           <span className="text-[12px] font-bold text-ink">Mensaje <span className="font-normal text-muted">(opcional)</span></span>
           <textarea

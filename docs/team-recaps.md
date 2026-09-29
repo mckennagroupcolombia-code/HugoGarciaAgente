@@ -4655,3 +4655,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Sin cambios en el backend.
   - **Verificado:** `npm run build`; capturas en Chrome headless con datos simulados (lista, elegir persona, aviso de chat abierto y creación completa que abre el chat nuevo), en un arnés temporal ya retirado.
 - **Archivos Modificados:** `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`
+
+### 2026-09-29 - Nuevo chat: sugerencias en «¿Sobre qué es?»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (mensajería del equipo)
+- **Qué se implementó:**
+  - Al elegir a la persona, bajo «¿Sobre qué es?» salen **sugerencias con ella**: los temas de solicitudes que ya se cruzaron (en los dos sentidos, `GET /api/tickets/?tipo=solicitud`), primero los más repetidos y recientes («2 veces», «1 vez»). Las que siguen abiertas no se repiten: ya salen arriba como «Seguir ›».
+  - Después, los **procedimientos** del equipo (`GET /api/tickets/protocolos`). Si se elige uno, la solicitud se crea con `protocolo_id` y hereda sus pasos (lo hace `crear_ticket`); se avisa «Se crea con los pasos del procedimiento…». Si luego se cambia el texto, se crea sin procedimiento.
+  - Al escribir, las sugerencias se filtran por palabras sin importar tildes («Parecidos»).
+  - Sin cambios en el backend.
+  - **Verificado:** `npm run build`; capturas en Chrome headless con historial y procedimientos simulados (sin escribir y escribiendo «etiq»), en un arnés temporal ya retirado.
+- **Archivos Modificados:** `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`
