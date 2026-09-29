@@ -223,9 +223,12 @@ entra a la conciliación de la empresa. Declarador: `/api/socios/*`, cada socio 
 Alegra, IVA a 240810, total cuadrado al peso). ⚠️ Un PUT a Alegra **reemplaza** (no es parcial). Registro de facturas
 de compra apagado (`FACTURAS_COMPRA_REGISTRO_ACTIVO`).
 
-**P · Agente de ventas v2** (`agente-ventas-v2.md`). `WA_AGENTE_V2` / `WEB_AGENTE_V2` = `off|sombra|activo` (ambas en
-sombra desde 11-sep). El bot **no cierra la venta**: arma el pedido y avisa al asesor. ⚠️ Nunca cambiar `os.environ` en
-caliente para elegir la base: `pedido.usando_modo()` (ContextVar).
+**P · Agente de ventas v2** (`agente-ventas-v2.md`). `WA_AGENTE_V2` / `WEB_AGENTE_V2` = `off|sombra|activo`. **WhatsApp
+activo desde 29-sep** (web en sombra): en horario cede al asesor y retoma a los 10 min solo si lo amerita
+(`_amerita_retomar` + `omitir_turno`), fuera de horario tiene el control; lo que escribió el asesor manda. El bot **no
+cierra la venta**: arma el pedido y avisa al asesor. Base de clientes en `clientes_wa.py`; copiloto del asesor en
+`auditor_canales.revision_asesor`. ⚠️ Nunca cambiar `os.environ` en caliente para elegir la base: `pedido.usando_modo()`
+(ContextVar). ⚠️ Un envío del bot fuera del webhook debe registrarse antes en `wa_chats.guardar(enviado_por="bot")`.
 
 **R · Ventas directas / Cotizar-Facturar** (`ventas-directas.md`). ⚠️ La lista de precios de Alegra guarda el precio
 **con IVA**: no cotizar ni facturar a mano en Alegra (duplica el IVA). Facturar marca `facturando` antes de llamar a

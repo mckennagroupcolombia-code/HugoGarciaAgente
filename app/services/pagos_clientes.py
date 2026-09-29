@@ -96,7 +96,21 @@ def decidir(numero_cliente: str, estado: str, *, autor_telefono: str = "", nota:
             (estado, uid, nombre, str(nota or "")[:300], fila["id"]),
         )
         c.commit()
-        return dict(c.execute("SELECT * FROM pagos_clientes WHERE id=?", (fila["id"],)).fetchone())
+        resultado = dict(c.execute("SELECT * FROM pagos_clientes WHERE id=?", (fila["id"],)).fetchone())
+    if estado == "confirmado":
+        # Base de clientes de la empresa: cada pago confirmado es una compra por WhatsApp.
+        try:
+            from app.services import clientes_wa
+
+            clientes_wa.registrar_compra(
+                str(numero_cliente or ""),
+                plataforma="whatsapp",
+                total=resultado.get("monto_detectado"),
+                order_id=str(resultado.get("codigo") or ""),
+            )
+        except Exception as e:
+            print(f"[pagos_clientes] clientes_wa: {e}")
+    return resultado
 
 
 def pendientes() -> list[dict]:

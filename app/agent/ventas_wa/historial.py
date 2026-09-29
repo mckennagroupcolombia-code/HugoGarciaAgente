@@ -17,7 +17,7 @@ from app.services.wa_chats import listar_mensajes
 _TZ_COL = timezone(timedelta(hours=-5))
 
 
-def mensajes(jid: str, limite: int = 60, dias: int = 14) -> list[dict]:
+def mensajes(jid: str, limite: int = 60, dias: int = 30) -> list[dict]:
     corte = time.time() - dias * 86400
     return [m for m in listar_mensajes(jid, limit=limite) if float(m.get("ts") or 0) >= corte]
 

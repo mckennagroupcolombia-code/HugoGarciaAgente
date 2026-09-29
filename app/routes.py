@@ -16119,6 +16119,44 @@ def register_routes(app):
             t["display"] = formato_display(t["jid"])
         return jsonify({"modo": modo, "turnos": turnos})
 
+    @app.route("/api/bot/clientes-wa", methods=["GET"])
+    def api_bot_clientes_wa():
+        """Base de clientes de WhatsApp (app/services/clientes_wa). ?q= filtra; ?formato=csv exporta."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import clientes_wa
+
+        q = (request.args.get("q") or "").strip()
+        limite = min(int(request.args.get("limit", 200)), 2000)
+        filas = clientes_wa.listar(limite=limite, q=q)
+        if (request.args.get("formato") or "").lower() == "csv":
+            import csv
+            import io
+
+            from flask import Response
+
+            cols = ["numero_wa", "telefono", "nombre", "documento", "tipo_documento", "correo", "direccion", "ciudad",
+                    "departamento", "productos_interes", "total_compras", "valor_total", "primera_compra", "ultima_compra", "fuentes"]
+            buf = io.StringIO()
+            w = csv.writer(buf)
+            w.writerow(cols)
+            for f in filas:
+                w.writerow([("|".join(f[c]) if isinstance(f.get(c), list) else f.get(c, "")) for c in cols])
+            return Response(buf.getvalue(), mimetype="text/csv",
+                            headers={"Content-Disposition": "attachment; filename=clientes_wa.csv"})
+        return jsonify({"clientes": filas, "total": len(filas)})
+
+    @app.route("/api/bot/clientes-wa/<path:jid>", methods=["GET"])
+    def api_bot_cliente_wa(jid: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import clientes_wa
+
+        f = clientes_wa.ficha(jid)
+        if not f:
+            return jsonify({"error": "Cliente no registrado"}), 404
+        return jsonify(f)
+
     # ── Chats WhatsApp (historial de conversaciones) ──────────────────────────
 
     @app.route("/api/bot/chats", methods=["GET"])

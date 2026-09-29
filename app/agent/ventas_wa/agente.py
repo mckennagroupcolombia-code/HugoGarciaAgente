@@ -49,7 +49,7 @@ CUÁNDO PASAR A UN ASESOR (pasar_a_asesor)
 - El cliente pide hablar con una persona.
 - La conversación se complica: reclamo, devolución, producto que llegó mal, descuento o precio por mayor, cliente molesto, o no logras entenderle después de dos intentos.
 - Algo que no puedes resolver: COA o certificados, producto fuera de la web, presentación especial, dudas técnicas que la ficha no responde, estado de un despacho de WhatsApp, propuestas de proveedores.
-- Después de pasar el caso, dile al cliente que un asesor le escribe por este mismo chat. Si el equipo está fuera de horario, dilo con claridad (lunes a viernes, 8:00 a 18:00). Prohibido prometer tiempos: nada de "en un momento", "enseguida", "ya mismo" ni "le confirmo más tarde"; y nunca digas que TÚ vas a averiguar algo después: solo puedes responder cuando el cliente escribe.
+- Después de pasar el caso, la única frase es: "un asesor sigue con usted por este mismo chat" (si el equipo está fuera de horario, añade: lunes a viernes, 8:00 a 18:00). Nunca digas "ya le avisé", "voy a avisar" ni "dejé el caso": el cliente no debe leer dos versiones de lo mismo. Prohibido prometer tiempos: nada de "en un momento", "enseguida", "ya mismo" ni "le confirmo más tarde"; y nunca digas que TÚ vas a averiguar algo después: solo puedes responder cuando el cliente escribe.
 - En resumen_para_asesor escribe solo hechos que están en la conversación o en el pedido; no supongas medios de pago, montos ni acuerdos que no aparecen.
 
 QUÉ NO HACES
@@ -57,11 +57,44 @@ QUÉ NO HACES
 - No das recomendaciones médicas ni dosis de consumo: McKenna vende materia prima. Para usos y propiedades usa ficha_producto y cita lo que diga.
 - No ves imágenes, audios ni PDF: si el cliente envió un archivo que no puedes leer, pídele que te escriba en texto qué necesita (si parece comprobante de pago, el equipo ya lo recibe).
 - Si un ASESOR (humano) ya respondió algo en la conversación, no lo contradigas ni lo repitas: continúa desde ahí.
+- Nunca des el número de WhatsApp de McKenna ni un enlace wa.me: el cliente ya está escribiendo en él.
 
 FORMATO
-- Mensajes cortos, de 1 a 5 líneas; listas solo para productos o resúmenes.
-- Formato de WhatsApp: *negrita* con un asterisco, sin encabezados ni markdown.
+- Mensajes cortos: párrafos de máximo 2 o 3 líneas, en total 1 a 5 líneas; listas solo para productos o resúmenes.
+- Formato de WhatsApp: *negrita* con UN asterisco y solo en nombre de producto y precio; nunca ** ni encabezados ni markdown.
 - Precios como "$41.053". Un solo mensaje por turno que responda todo lo que el cliente escribió; si le pasas el caso a un asesor, ese mensaje igual debe responderle al cliente lo que preguntó (por ejemplo, el resumen del pedido o qué quedó pendiente)."""
+
+
+# Cómo resuelve el equipo humano las situaciones en que el bot fallaba (minado de los
+# chats reales de sep-2026: lo que el bot respondió mal y lo que Jenniffer contestó).
+PLAYBOOK_ASESOR = """
+CÓMO LO RESUELVE EL EQUIPO (sigue estas reglas tal cual)
+- Lo que escribió un ASESOR manda: si en la conversación un asesor dio un precio, un total o una tarifa de envío, ese valor es el vigente para este cliente. Repítelo tal cual si hace falta; no lo "corrijas" con el de la web ni comentes que difiere.
+- Si el cliente cita un precio ("el de 93.510, ¿cuántos kilos es?"), búscalo con buscar_producto y responde la presentación; no digas que no lo tienes.
+- "Libra" es la presentación de 500 g: ofrécela como "la libra (500 g)"; nunca digas que no manejamos libras.
+- Un número sin unidad después de un producto es cantidad de unidades ("las 10 de azul de metileno" = 10 unidades de la presentación que hay), no un gramaje.
+- Los precios de la web son el valor final: ya incluyen IVA cuando aplica (o el producto es exento). No se suma IVA aparte.
+- Comprobante de pago: tú no confirmas pagos. Di que quedó recibido y que el equipo lo verifica; si faltan datos de despacho, pídelos en este formato, en un solo mensaje: nombre completo, cédula, dirección, ciudad, celular (correo opcional).
+- Entregas: en Bogotá el mensajero entrega el mismo día hábil en la franja de la tarde (3:30 a 9:00 pm) si el pago se confirmó a tiempo; al resto del país va por Interrapidísimo y la guía la comparte el asesor más tarde o al día siguiente. Guía, rastreo o "por dónde viene": lo ve el asesor (pasar_a_asesor tipo otro).
+- Problemas con la entrega: la transportadora es externa a McKenna; explícalo y pasa el caso al asesor.
+- Contra entrega: no manejamos pago contra entrega del producto; solo el valor del envío se puede pagar al recibir.
+- Si el cliente desconfía de pagar por transferencia, dile que también puede comprar en la tienda web o en la publicación de MercadoLibre del producto.
+- Producto que no está en la web: dilo directo y corto ("no lo manejamos en este momento"); si solo existe otra presentación, ofrécela. "Bajo pedido" solo lo ofrece el asesor.
+- Cliente recurrente con precio anterior o negociado ("me lo dejaban a 78.000", "el pedido de siempre"): no discutas el precio. En horario, pásalo de una al asesor (conversacion_dificil, "precio negociado") y díselo; fuera de horario arma el pedido con el precio de la web y aclara que el asesor revisa su precio al confirmar.
+- Descuentos por volumen o por cliente frecuente: siempre el asesor.
+- Dosis, consumo o salud: nunca respondas; McKenna vende materia prima. Pasa el caso (consulta_tecnica).
+- Si el cliente saluda a "Jenniffer" o pregunta por ella: "Jenniffer hace parte del equipo; mientras tanto le ayudo yo". Si la pide expresamente, pasar_a_asesor (cliente_pide_asesor).
+- RUT, certificación bancaria, proforma, factura: los envía el asesor por este chat; tú no adjuntas archivos.
+"""
+
+SYSTEM_PROMPT += PLAYBOOK_ASESOR
+
+INSTRUCCION_RETOMA = """
+ESTÁS RETOMANDO UN CHAT QUE ATENDÍA EL ASESOR
+- El asesor humano lleva {min} min sin responder (equipo {horario}). Continúa EXACTAMENTE desde su último mensaje: no te presentes, no saludes de nuevo, no repitas totales, llave de pago ni datos que él ya dio o pidió.
+- Interviene solo si aportas algo que puedes resolver con tus herramientas (precio, presentación, envío referencial, registrar datos, estado de un pedido web) o si el cliente pregunta si hay alguien.
+- Si lo que el cliente espera solo lo puede hacer el asesor (guía, factura, confirmar un pago, precio negociado, un reclamo que él ya llevaba) o el mensaje no necesita respuesta, usa omitir_turno: el equipo ya recibe el aviso de que el cliente espera.
+"""
 
 
 SYSTEM_PROMPT_WEB = """Eres Hugo, el asistente virtual (inteligencia artificial) de McKenna Group S.A.S., tienda virtual colombiana de materias primas cosméticas, farmacéuticas y alimentarias. Atiendes en la burbuja de chat de la página web mckennagroup.co.
@@ -104,6 +137,7 @@ class ResultadoTurno:
     acciones: list[dict] = field(default_factory=list)
     supervision: list[dict] = field(default_factory=list)
     error: str | None = None
+    omitido: str | None = None  # motivo por el que el modelo decidió no responder (retomas)
 
 
 def modelo(canal: str = "whatsapp") -> str:
@@ -128,10 +162,31 @@ def _cliente_anthropic():
     return anthropic.Anthropic(api_key=key, timeout=60.0, max_retries=2)
 
 
-def contexto_turno(jid: str, display: str, msgs: list[dict], canal: str = "whatsapp", pagina: str = "") -> str:
+def en_horario_equipo(ahora=None) -> bool:
+    ahora = ahora or hist.ahora_colombia()
+    return ahora.weekday() < 5 and HORA_ABRE <= ahora.hour < HORA_CIERRA
+
+
+def _pedidos_anteriores(jid: str) -> str:
+    try:
+        previos = ped_mod.ultimos_pedidos(jid, n=3)
+    except Exception:
+        previos = []
+    if not previos:
+        return "Pedidos anteriores de este cliente registrados por el sistema: ninguno (si dice que ya compró antes, créele y no discutas; el asesor revisa su historial)."
+    lineas = ["Pedidos anteriores de este cliente (más reciente primero):"]
+    for p in previos:
+        items = ", ".join(f"{i.nombre} x{i.cantidad}" for i in p.items)
+        lineas.append(f"- #{p.id} ({p.estado}): {items}")
+    return "\n".join(lineas)
+
+
+def contexto_turno(
+    jid: str, display: str, msgs: list[dict], canal: str = "whatsapp", pagina: str = "", retomando_min: int | None = None
+) -> str:
     ahora = hist.ahora_colombia()
     dias = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
-    en_horario = ahora.weekday() < 5 and HORA_ABRE <= ahora.hour < HORA_CIERRA
+    en_horario = en_horario_equipo(ahora)
     pendientes = hist.pendientes_del_cliente(msgs)
     pedido = ped_mod.activo(jid, crear=False)
     partes = [
@@ -142,8 +197,14 @@ def contexto_turno(jid: str, display: str, msgs: list[dict], canal: str = "whats
     ]
     if canal == "web" and pagina:
         partes.append(f"Página que está viendo el visitante: {pagina}")
+    if retomando_min is not None and canal != "web":
+        partes.append(INSTRUCCION_RETOMA.format(min=int(retomando_min), horario="EN horario" if en_horario else "FUERA de horario").strip())
     partes += [
         "Pedido actual:\n" + (pedido.resumen() if pedido else "Sin pedido todavía."),
+    ]
+    if canal != "web":
+        partes.append(_pedidos_anteriores(jid))
+    partes += [
         ("Conversación reciente en el chat de la página:\n" if canal == "web" else "Conversación reciente (lo que realmente pasó en WhatsApp):\n")
         + (hist.transcripcion(msgs) or "(vacía)"),
         "Mensajes nuevos del cliente que debes responder ahora:\n"
@@ -191,6 +252,7 @@ def ejecutar_turno(
     canal: str = "whatsapp",
     pagina: str = "",
     cliente=None,
+    retomando_min: int | None = None,
 ) -> ResultadoTurno:
     from app.agent.ventas_wa import supervisor as sup
     from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_anthropic
@@ -202,13 +264,25 @@ def ejecutar_turno(
     if cliente is None:
         res.error = "sin ANTHROPIC_API_KEY"
 
-    contexto = contexto_turno(jid, display, msgs, canal, pagina)
+    retomando = retomando_min is not None and canal != "web"
+    contexto = contexto_turno(jid, display, msgs, canal, pagina, retomando_min=retomando_min if retomando else None)
     pedido_inicial = ped_mod.activo(jid, crear=False)
-    evidencia_base = pedido_inicial.resumen() if pedido_inicial else ""
+    # Lo que escribió el asesor humano es evidencia válida: sus precios y tarifas mandan.
+    dicho_por_asesor = "\n".join(hist.texto_mensaje(m) for m in msgs if hist._rol(m) == "asesor")
+    # Lo que el cliente escribió en este turno también: repetirle su propia cifra
+    # ("los $78.000 que menciona los revisa el asesor") no es inventar un precio.
+    dicho_por_cliente = "\n".join(hist.texto_mensaje(m) for m in hist.pendientes_del_cliente(msgs))
+    evidencia_base = "\n".join(
+        x for x in [
+            pedido_inicial.resumen() if pedido_inicial else "",
+            f"ASESOR escribió:\n{dicho_por_asesor}" if dicho_por_asesor else "",
+            f"CLIENTE escribió en este turno:\n{dicho_por_cliente}" if dicho_por_cliente else "",
+        ] if x
+    )
     messages: list[dict] = [{"role": "user", "content": contexto}]
     prompt = SYSTEM_PROMPT_WEB if canal == "web" else SYSTEM_PROMPT
     system = [{"type": "text", "text": prompt, "cache_control": {"type": "ephemeral"}}]
-    herramientas = hz.definiciones(canal)
+    herramientas = hz.definiciones(canal, retomando=retomando)
     limpiar = limpiar_para_web if canal == "web" else limpiar_para_whatsapp
     effort = os.getenv("WA_V2_EFFORT", "medium").strip() or "medium"
     textos: list[str] = []
@@ -256,9 +330,15 @@ def ejecutar_turno(
                     bloque["is_error"] = True
                 resultados.append(bloque)
             messages.append({"role": "user", "content": resultados})
+            if ctx.omitido:
+                res.omitido = ctx.omitido
+                break
             continue
         if resp.stop_reason == "refusal":
             res.error = "refusal"
+            break
+        if ctx.omitido:
+            res.omitido = ctx.omitido
             break
         # El modelo a veces escribe el mensaje al cliente junto a la última
         # llamada de herramienta y cierra con una frase corta: se envía todo.
@@ -267,12 +347,12 @@ def ejecutar_turno(
             res.error = f"sin texto (stop_reason={resp.stop_reason})"
             break
 
-        # --- Supervisión: reglas siempre; IA solo si la respuesta es de riesgo ---
+        # --- Supervisión: reglas siempre; IA si la respuesta es de riesgo o si se retoma un chat del asesor ---
         pedido = ped_mod.activo(jid, crear=False)
         evidencia = "\n".join([evidencia_base, *ctx.evidencia])
         rev = sup.revisar_reglas(borrador, evidencia=evidencia, cliente=pedido.cliente if pedido else {})
-        if rev.ok and sup.es_de_riesgo(borrador, ctx.llamadas_herramientas):
-            rev, s_in, s_out = sup.revisar_ia(borrador, contexto=contexto, evidencia=evidencia, canal=canal)
+        if rev.ok and (retomando or sup.es_de_riesgo(borrador, ctx.llamadas_herramientas)):
+            rev, s_in, s_out = sup.revisar_ia(borrador, contexto=contexto, evidencia=evidencia, canal=canal, retomando=retomando)
             res.tokens_in += s_in
             res.tokens_out += s_out
         if rev.ok:
@@ -299,7 +379,12 @@ def ejecutar_turno(
             res.error = "demasiadas llamadas en el turno"
 
     res.herramientas = ctx.llamadas_herramientas
-    if res.respuesta is None:
+    if res.omitido:
+        res.respuesta = None
+    elif res.respuesta is None and retomando:
+        # Al retomar un chat del asesor, ante cualquier falla es mejor callar que mandar el respaldo.
+        res.omitido = f"sin respuesta confiable al retomar ({res.error})"
+    elif res.respuesta is None:
         res.respuesta = _respaldo(ctx, res)
     res.handoff = ctx.handoff
     res.acciones = ctx.acciones
@@ -322,6 +407,6 @@ def _respaldo(ctx: hz.ContextoTurno, res: ResultadoTurno) -> str:
             {"tipo": "otro", "resumen_para_asesor": f"El asistente IA no pudo responder ({res.error}). Revisar el chat."},
         )
     return (
-        "Veci, en este momento no puedo procesar su mensaje. Ya le avisé al equipo para que "
-        "un asesor le responda por este mismo chat. 🙏"
+        "Veci, en este momento no puedo procesar su mensaje. El equipo ya tiene su caso; "
+        "un asesor le responde por este mismo chat. 🙏"
     )

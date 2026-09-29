@@ -8,11 +8,16 @@ Cada 30 min (scripts/auditor_canales_cron.py), sin IA:
   - chats atascados en modo humano (> 24 h);
   - salud del puente WhatsApp (sesión, adjuntos no descargados, errores de lectura);
   - gasto LLM del día frente al tope;
-  - turnos del agente con error o frenados por el supervisor.
+  - turnos del agente con error o frenados por el supervisor;
+  - datos de despacho que los clientes escriben en los chats que atiende el asesor
+    → base de clientes (app/services/clientes_wa.py).
 Solo avisa al grupo de sistemas si hay algo accionable y distinto del último aviso.
 
 Una vez al día (--diario), una revisión con IA de una muestra de turnos del
-agente que PROPONE mejoras (catálogo, instrucciones); no aplica nada solo.
+agente que PROPONE mejoras (catálogo, instrucciones); no aplica nada solo. Y un
+copiloto SIN IA de las respuestas del asesor (revision_asesor): precios que
+difieren de la web, envíos que no coinciden con la tabla, cifras malformadas —
+informativo, para que el bot y el asesor digan lo mismo.
 """
 
 from __future__ import annotations
@@ -20,6 +25,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import time
@@ -173,6 +179,131 @@ def turnos_con_problemas(desde: float) -> list[dict]:
     return out
 
 
+# --- Copiloto del asesor (sin IA) --------------------------------------------------------
+
+_PAT_PAR_PRECIO = re.compile(
+    r"([A-Za-zÁÉÍÓÚÑáéíóúñ0-9][A-Za-zÁÉÍÓÚÑáéíóúñ0-9 .%/+-]{2,50}?)\s*:\s*\$?\s*(\d{1,3}(?:\.\d{3})+|\d{4,7})(?![\d.])"
+)
+_PAT_ENVIO_PALABRA = re.compile(r"env[ií]o", re.I)
+_PAT_MONTO_SEG = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d{3})+|\d{4,6})(?![\d.])")
+
+
+def _montos_de_envio(texto: str) -> list[int]:
+    """Cifras que el asesor escribió como valor de envío (la última tras cada «envío», sin «con envío» = total)."""
+    out = []
+    for m in _PAT_ENVIO_PALABRA.finditer(texto or ""):
+        if re.search(r"\bcon\s*$", texto[max(0, m.start() - 8):m.start()], re.I):
+            continue
+        seg = texto[m.end():m.end() + 120]
+        montos = [_monto(x) for x in _PAT_MONTO_SEG.findall(seg)]
+        montos = [x for x in montos if 3000 <= x <= 150000]
+        if montos:
+            out.append(montos[-1])
+    return out
+_PAT_MALFORMADA = re.compile(r"(?<![\d.])\d{1,3}\.\d{4,}(?![\d.])|(?<![\d.])\d{1,3}(?:\.\d{3}){3,}(?![\d.])")
+_STOP_PRECIO = re.compile(r"\b(total|env[ií]o|con env[ií]o|subtotal|suma|valor|abono|saldo|pago|llave|cuenta|nequi|cel|tel)\b", re.I)
+
+
+def _monto(s: str) -> int:
+    return int(re.sub(r"\D", "", s or "") or 0)
+
+
+def _ciudad_del_chat(jid: str, hasta_ts: float) -> tuple[str, str]:
+    """Última ciudad que dijo el CLIENTE en ese chat (mismo criterio que el preflight de tarifas)."""
+    try:
+        from app.core import _destino_envio_mensaje
+        from app.services.wa_chats import listar_mensajes
+
+        msgs = [
+            {"role": "user", "content": str(m.get("texto") or "")}
+            for m in listar_mensajes(jid, limit=60)
+            if m.get("direccion") == "entrada" and float(m.get("ts") or 0) <= hasta_ts + 60
+        ]
+        return _destino_envio_mensaje("", msgs)
+    except Exception:
+        return "", ""
+
+
+def revision_asesor(desde: float, *, hasta: float | None = None) -> list[dict]:
+    """Hallazgos sobre lo que escribió el asesor humano: precio vs. web, envío vs. tabla, cifras raras."""
+    from app.agent.ventas_wa import catalogo as cat_mod
+    from app.services.tarifas_envio import cotizar_envio
+    from app.services.wa_chats import _conn as _wa_conn, _lock as _wa_lock
+    from app.services.wa_jid import formato_display
+
+    hasta = hasta or time.time()
+    with _wa_lock, _wa_conn() as c:
+        filas = c.execute(
+            """SELECT jid, ts, texto FROM mensajes WHERE direccion='salida' AND enviado_por='humano'
+               AND eliminado=0 AND jid NOT LIKE '%@g.us' AND ts > ? AND ts <= ? AND texto IS NOT NULL ORDER BY ts""",
+            (float(desde), float(hasta)),
+        ).fetchall()
+    cat = cat_mod.cargar()
+    out: list[dict] = []
+    ciudades: dict[str, tuple[str, str]] = {}
+    for r in filas:
+        texto = str(r["texto"] or "")
+        jid = r["jid"]
+        display = formato_display(jid)
+        for m in _PAT_MALFORMADA.finditer(texto):
+            out.append(_hallazgo("cifra_malformada", "media", f"{display}: la cifra «{m.group(0)}» parece mal escrita.", jid=jid, texto=texto[:160]))
+        for monto in _montos_de_envio(texto):
+            if jid not in ciudades:
+                ciudades[jid] = _ciudad_del_chat(jid, float(r["ts"]))
+            ciudad, depto = ciudades[jid]
+            if not ciudad and not depto:
+                continue
+            try:
+                escalera = {int(cotizar_envio(ciudad or depto, depto, float(kg))["costo"]) for kg in (1, 2, 3, 5)}
+                base = cotizar_envio(ciudad or depto, depto, 1.0)
+            except Exception:
+                continue
+            if monto not in escalera:
+                out.append(_hallazgo(
+                    "envio_distinto", "media",
+                    f"{display}: envío {_fmt(monto)} a {(ciudad or depto).title()}; la tabla dice {_fmt(base['costo'])} (1 kg) "
+                    f"— {base['zona_nombre']}, escalera {', '.join(_fmt(x) for x in sorted(escalera))}.",
+                    jid=jid, texto=texto[:160],
+                ))
+        for m in _PAT_PAR_PRECIO.finditer(texto):
+            nombre, monto = m.group(1).strip(" .-"), _monto(m.group(2))
+            if monto < 1000 or _STOP_PRECIO.search(nombre):
+                continue
+            # "5 kilos proteina: 405.000" / "2 tarros de arginina: 36.400" son totales de línea.
+            mq = re.match(r"^\s*(\d{1,3})\s+(?:(?:kilos?|kg|libras?|tarros?|unidades?|und|frascos?|bolsas?|u)\s+(?:de\s+)?)?(.+)$", nombre, re.I)
+            if mq and int(mq.group(1)) > 1:
+                monto = round(monto / int(mq.group(1)))
+                nombre = mq.group(2).strip()
+            res = cat.buscar(nombre)
+            if not res:
+                continue
+            precios = {p.precio for p in res}
+            if any(abs(monto - p) <= 0.10 * p for p in precios):
+                continue
+            mas_cercano = min(precios, key=lambda p: abs(p - monto))
+            out.append(_hallazgo(
+                "precio_distinto", "media",
+                f"{display}: «{nombre}: {_fmt(monto)}» — en la web {res[0].nombre} vale {_fmt(mas_cercano)}"
+                + (f" (otras: {', '.join(_fmt(p) for p in sorted(precios) if p != mas_cercano)})" if len(precios) > 1 else "") + ".",
+                jid=jid, texto=texto[:160],
+            ))
+    return out
+
+
+def _fmt(n) -> str:
+    return "$" + f"{int(round(float(n or 0))):,}".replace(",", ".")
+
+
+def capturar_datos_clientes(estado: dict) -> dict:
+    """Plantillas de datos escritas por clientes en cualquier chat → base de clientes."""
+    from app.services import clientes_wa
+
+    desde = float(estado.get("clientes_capturados_hasta_ts") or (time.time() - 7 * 86400))
+    res = clientes_wa.capturar_desde_chats(desde)
+    estado["clientes_capturados_hasta_ts"] = res["hasta_ts"]
+    return res
+
+
 # --- Orquestación -------------------------------------------------------------------
 
 
@@ -180,6 +311,12 @@ def auditar(*, enviar: bool = True) -> dict:
     ahora = time.time()
     estado = _leer_estado()
     hallazgos: list[dict] = []
+    try:
+        cap = capturar_datos_clientes(estado)
+        if cap.get("guardados"):
+            hallazgos.append(_hallazgo("clientes", "baja", f"{cap['guardados']} cliente(s) con datos nuevos guardados en la base."))
+    except Exception as e:
+        hallazgos.append(_hallazgo("clientes", "baja", f"No se pudo capturar datos de clientes: {str(e)[:120]}"))
 
     sin_resp = clientes_sin_respuesta(ahora)
     if sin_resp:
@@ -276,6 +413,7 @@ def auditoria_diaria(*, enviar: bool = True, max_turnos: int = 12) -> str:
     informe = "".join(getattr(b, "text", "") for b in resp.content if getattr(b, "type", "") == "text").strip()
     estado = _leer_estado()
     estado["auditoria_diaria"] = {"fecha": datetime.now().isoformat(timespec="seconds"), "turnos": len(muestra), "informe": informe}
+    informe += "\n\n" + revision_asesor_diaria(estado, enviar=enviar)
     _guardar_estado(estado)
     if enviar and informe and os.getenv("AUDITOR_CANALES_SKIP_WA", "0") != "1":
         from app.utils import enviar_whatsapp_reporte, jid_grupo_alertas_sistemas_wa
@@ -284,6 +422,33 @@ def auditoria_diaria(*, enviar: bool = True, max_turnos: int = 12) -> str:
     return informe
 
 
+def revision_asesor_diaria(estado: dict, *, enviar: bool = True) -> str:
+    """Corre el copiloto sobre las últimas 24 h, lo guarda y le manda al asesor lo suyo por DM."""
+    try:
+        hallazgos = revision_asesor(time.time() - 86400)
+    except Exception as e:
+        return f"📋 Revisión de respuestas del equipo: no se pudo ejecutar ({str(e)[:120]})."
+    estado["revision_asesor"] = {"fecha": datetime.now().isoformat(timespec="seconds"), "hallazgos": hallazgos}
+    if not hallazgos:
+        return "📋 Revisión de respuestas del equipo (sin IA): sin diferencias con la web ni la tabla de envíos."
+    lineas = [f"📋 *Revisión de respuestas del equipo (sin IA)* — {len(hallazgos)} punto(s):"] + [
+        f"• {h['detalle']}" for h in hallazgos[:12]
+    ]
+    para_asesor = [h for h in hallazgos if h["tipo"] in ("precio_distinto", "envio_distinto")][:8]
+    if enviar and para_asesor and os.getenv("AUDITOR_CANALES_SKIP_WA", "0") != "1":
+        from app.agent.ventas_wa.herramientas import enviar_alerta_asesor
+
+        texto = (
+            "🤝 *Para que Hugo y tú digan lo mismo*\nHoy vi estas diferencias entre lo que respondiste y la web / la tabla de envíos "
+            "(tú decides el precio; esto es solo para que el bot no contradiga):\n" + "\n".join(f"• {h['detalle']}" for h in para_asesor)
+        )
+        try:
+            enviar_alerta_asesor(texto)
+        except Exception as e:
+            print(f"[auditor] DM al asesor: {e}")
+    return "\n".join(lineas)
+
+
 def ultimo_reporte() -> dict:
     e = _leer_estado()
-    return {"ultimo": e.get("ultimo"), "auditoria_diaria": e.get("auditoria_diaria")}
+    return {"ultimo": e.get("ultimo"), "auditoria_diaria": e.get("auditoria_diaria"), "revision_asesor": e.get("revision_asesor")}
