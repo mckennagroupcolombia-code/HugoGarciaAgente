@@ -1,6 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import { Icon } from "../icons";
-import { CalculadoraPad } from "./CalculadoraMagica";
 import FloatingToolWindow, { defaultFloatRect } from "./FloatingToolWindow";
 
 const CrearProductosSiigoPanel = lazy(() => import("./CrearProductosSiigoPanel"));
@@ -8,7 +7,7 @@ const ModalHerramientasRentabilidad = lazy(() =>
   import("./RentabilidadPanel").then((m) => ({ default: m.ModalHerramientasRentabilidad })),
 );
 
-type Tool = "crear" | "facturas" | "calc";
+type Tool = "crear" | "facturas";
 
 function ToolBtn({
   active,
@@ -53,6 +52,7 @@ function ToolBtn({
  * Diseño de producto, porque crear el combo en Alegra y consultar su factura son parte
  * de armar un producto, no solo de contabilidad (ver Layout.tsx).
  * Ventanas flotantes: arrastrables, redimensionables, posición recordada.
+ * La calculadora ya no va aquí: es la burbuja permanente `nav/CalculadoraFab`.
  * `ModalHerramientasRentabilidad` es una calculadora flotante independiente
  * de en qué hub vive la pestaña Rentabilidad (hoy: hub Negocio, ver
  * NegocioPanel.tsx) — no requiere que Rentabilidad esté montada.
@@ -86,7 +86,7 @@ export default function ContabilidadHerramientas({
     if (abiertas.size === 0) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      const orden: Tool[] = ["calc", "crear", "facturas"];
+      const orden: Tool[] = ["crear", "facturas"];
       for (const t of orden) {
         if (abiertas.has(t)) {
           cerrar(t);
@@ -125,14 +125,6 @@ export default function ContabilidadHerramientas({
         >
           <Icon name="receipt" size={22} weight="bold" />
         </ToolBtn>
-        <ToolBtn
-          active={open("calc")}
-          title="Calculadora"
-          tone="accent"
-          onClick={() => toggle("calc")}
-        >
-          <Icon name="calculator" size={22} weight="bold" />
-        </ToolBtn>
       </div>
 
       {open("facturas") && (
@@ -143,28 +135,6 @@ export default function ContabilidadHerramientas({
             onClose={() => cerrar("facturas")}
           />
         </Suspense>
-      )}
-
-      {open("calc") && (
-        <FloatingToolWindow
-          id="calc"
-          title="Calculadora"
-          titleExtra={
-            <>
-              <Icon name="star" size={14} weight="bold" className="text-accent" />
-              <Icon name="calculator" size={14} weight="regular" className="text-accent" />
-            </>
-          }
-          headerClassName="border-border bg-accent/10 text-accent"
-          borderClassName="border-accent/50"
-          defaultRect={defaultFloatRect("tl", 272, 420)}
-          minWidth={240}
-          minHeight={360}
-          zIndex={900}
-          onClose={() => cerrar("calc")}
-        >
-          <CalculadoraPad bare onClose={() => cerrar("calc")} />
-        </FloatingToolWindow>
       )}
 
       {open("crear") && (

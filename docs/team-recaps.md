@@ -4621,3 +4621,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - En el chat, «Pedir intervención» pasa a «Preguntar a {nombre}» (le llega un WhatsApp y la solicitud queda en pausa); se quitó el párrafo fijo que lo explicaba, ahora está en la ayuda del botón.
   - **Verificado:** `npm run build`; captura en Chrome headless con un arnés temporal (ya retirado) y datos simulados, con y sin el «⋯» abierto.
 - **Archivos Modificados:** `desktop/src/components/TicketsPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-29 - Calculadora como burbuja permanente
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - La calculadora solo estaba en el cabezote de Contabilidad y Diseño. Ahora es una burbuja flotante fija en toda la app (`nav/CalculadoraFab.tsx`), igual a la de «En proceso» y a su izquierda, en computador y celular.
+  - Abre la misma ventana flotante (`CalculadoraPad`, id `calc`: conserva la posición guardada). Esc la cierra.
+  - Se quitó el botón del cabezote (`ContabilidadHerramientas`) para no tener dos calculadoras; «Crear en Alegra» y «Consultar factura» siguen ahí.
+  - **Verificado:** `npm run build`; captura en Chrome headless (1100 px y 390 px) con las dos burbujas y con la calculadora abierta, en un arnés temporal ya retirado.
+- **Archivos Modificados:** `desktop/src/components/nav/CalculadoraFab.tsx` (nuevo), `desktop/src/components/Layout.tsx`, `desktop/src/components/ContabilidadHerramientas.tsx`, `docs/team-recaps.md`

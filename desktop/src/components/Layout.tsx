@@ -35,6 +35,7 @@ import { HUB_SECTION_ICON } from "../lib/hubNav";
 import { useUiMode } from "../stores/uiMode";
 import { PanelTransition } from "./ui/PanelTransition";
 import SolicitudesEnProcesoFab from "./nav/SolicitudesEnProcesoFab";
+import CalculadoraFab from "./nav/CalculadoraFab";
 
 export default function Layout({
   children,
@@ -117,6 +118,7 @@ export default function Layout({
   return (
     <div className="mck-app-shell flex h-dvh max-w-[100vw] overflow-hidden bg-surface">
       <SolicitudesEnProcesoFab />
+      <CalculadoraFab />
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent" data-piso={piso?.id}
             style={piso ? ({ "--mck-piso": piso.fondo, "--mck-piso-tinta": piso.tinta } as CSSProperties) : undefined}>
         {/* En Documentos técnicos y en la guía de Publicaciones el regreso va en su tarjeta: flotando tapaba la barra de acciones. */}
