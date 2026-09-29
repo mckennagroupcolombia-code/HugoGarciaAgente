@@ -63,3 +63,19 @@ No correr normalizacion destructiva sin confirmar dueño actual del puerto.
 - Tras muchos fallos en webhook: `sudo systemctl reset-failed webhook-meli` y copiar `StartLimitBurst` actualizado del repo en la unidad instalada.
 
 ---
+
+## Backup nocturno al disco MCKENNA (desde 2026-09-29)
+
+`scripts/backup_disco_externo.sh`, cron 03:30 (instalado por `scripts/instalar_cron_mcKenna.sh`), destino
+`/media/mckg/MCKENNA/backup-sistema/mi-agente-nocturno/` (disco sdb, NTFS `ntfs3`; los backups manuales
+anteriores de may/jul están en `backup-sistema/` del mismo disco).
+- `espejo/`: rsync incremental de todo el proyecto (sin `venv/`, `node_modules/`, `__pycache__/`); un solo
+  espejo que se sobrescribe. Incluye `.env` y `backups_drive/`.
+- `bases/AAAA-MM-DD/`: cada `.db`/`.sqlite3` de `app/`, `PAGINA_WEB/` y `memoria_vectorial/` copiado con
+  `sqlite3 .backup` (consistente con el servicio en marcha) y verificado con `PRAGMA integrity_check`;
+  se conservan 14 días (`BACKUP_DISCO_RETENCION_DIAS`). **Para restaurar datos usar `bases/`, no el espejo.**
+- Si el disco no está montado no escribe nada (evita llenar `/`) y avisa al grupo de sistemas; también
+  avisa si rsync falla o una base no se copia. `AGENTE_BACKUP_SKIP_WA=1` silencia el aviso.
+- NTFS no guarda permisos ni enlaces simbólicos: el espejo omite `Singleton*` de las sesiones de WhatsApp y
+  enlaces; tras restaurar, rehacer `venv` con `requirements-freeze.txt`.
+- Es independiente del backup de las 2:00 (`app/tools/backup_drive.py`, tar en `backups_drive/` + Drive).

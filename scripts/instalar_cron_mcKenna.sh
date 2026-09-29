@@ -87,6 +87,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "30 7 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/revision_facturacion_cron.py >>${LOG} 2>&1"
   echo "# Resumen semanal de horas a cada persona por WhatsApp (viernes; solo envía con RESUMEN_HORAS_WA_ACTIVO=1)"
   echo "30 17 * * 5 cd ${REPO} && ${PYTHON} ${REPO}/scripts/resumen_semanal_horas_cron.py >>${LOG} 2>&1"
+  echo "# Backup nocturno de todo el proyecto al disco MCKENNA (espejo + bases SQLite consistentes, 14 días; avisa por WhatsApp si falla)"
+  echo "30 3 * * * ${REPO}/scripts/backup_disco_externo.sh >>${LOG} 2>&1"
   echo "$MARK_E"
 } >>"$TMP"
 
