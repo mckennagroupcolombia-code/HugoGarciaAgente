@@ -124,9 +124,17 @@ fila el bot de preventa no encuentra la ficha (col. I) ni el barrido de stock ve
   todos los IDs de overrides llevan `MCO`; se quitaron 5 claves redundantes/erróneas (`C-ACEESEARBTE`,
   `C-MANNCACNAT500g`, `ACEESENLIM5mL`, `C-DIOTIT500`, `C-ELAHID30m` — esta última apuntaba a la publicación de betaína).
   Se borraron también 4 filas duplicadas del Sheet (karité, sebo, cera, neem).
-- **Siguen fuera del Sheet a propósito:** 4 SKU con una 2.ª publicación activa (`C-ACENEE60mL`, `C-COCDESHIL250g/500g`,
-  `C-MAL500g`; el stock por SKU actualiza ambas), 2 cerradas/borradas en MeLi (limón 5 mL) y 8 con SKU de MeLi distinto o
-  sin SKU (typos en overrides o artículos que no son materia prima: collares, envase de vidrio) — decidir uno por uno.
+- **Las 7 claves con «typo» (resueltas el 29-sep, una por una):** solo 4 eran typos y se renombraron
+  (`C-ACIKOJDPAL30mL`→`C-ACDKOJDPAL30mL`, `C-JABPOTLt`→`OLTKLt`, `C-COCPROBET500m`→`C-COCPROBET500mL`,
+  `FOR-GLUTAR2PmL`→`C-GLU2P500mL`, que era un ingrediente de receta y no el SKU de venta). `ALNT250` (código viejo,
+  2.ª publicación de `C-ALA250g`) se quitó. `C-ACEESEYLAYLA5mL` y `C-EMBPAT30mL` **no son typos**: son kits reales en
+  Alegra/web (el `SELLER_SKU` de MeLi es un alias o el del producto base) y se dejaron. **Regla:** el SKU de venta que
+  manda es el de Alegra + tienda web; el `SELLER_SKU` de MeLi puede ser un alias — antes de renombrar una clave de
+  overrides, buscarla en Alegra, en `cache.json` y en `alegra_sku_alias_venta.json`.
+- **Siguen fuera del Sheet a propósito (decidir):** 7 SEGUNDAS publicaciones activas de un SKU que ya tiene otra
+  (`C-ACENEE60mL`→MCO1335735933, `C-COCDESHIL250g/500g`, `C-MAL500g`, `C-ALA250g`→MCO1354834051,
+  `OLTKLt`→MCO3793586824, `C-ACEESEYLA5mL`→MCO1671238305; el stock por SKU actualiza todas), 2 cerradas/borradas en MeLi
+  (limón 5 mL) y 3 sin `SELLER_SKU` que no son materia prima (2 collares, envase de vidrio).
 - ⚠️ **Trampa al auditar con MeLi:** `GET /items?ids=a,b,c` **deduplica los IDs repetidos** y devuelve menos resultados; hacer
   `zip(ids, resultados)` desalinea todo lo que sigue (un diagnóstico de «títulos desplazados» salió de ahí y era falso).
   Pedir cada ID por separado o indexar por `body.id`. Y normalizar siempre `MCO` antes de comparar con la col. A del Sheet.

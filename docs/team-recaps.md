@@ -1,3 +1,13 @@
+### 2026-09-29 06:50 - Claves con «typo» de publicaciones_overrides.json resueltas una por una
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de datos. Sin LLM.
+- **Qué se implementó:**
+  - De las 7 claves, **solo 4 eran typos** y se renombraron a su SKU real (existe en Alegra y en la tienda): `C-ACIKOJDPAL30mL`→`C-ACDKOJDPAL30mL`, `C-JABPOTLt`→`OLTKLt`, `C-COCPROBET500m`→`C-COCPROBET500mL`, `FOR-GLUTAR2PmL`→`C-GLU2P500mL` (era un ingrediente de receta, precio 0). `ALNT250` (código viejo sin producto en Alegra; 2.ª publicación de `C-ALA250g`) se quitó. `C-ACEESEYLAYLA5mL` y `C-EMBPAT30mL` **no eran typos** (kits reales en Alegra, web y alias de venta; el `SELLER_SKU` de MeLi es un alias o el del producto base) y se dejaron.
+  - Ningún renombre colisionó con otra clave y ninguna clave tocada tenía datos propios; el `meli_id` que la tienda ya usaba coincide con el override en las claves de venta reales.
+  - Hoja 1: +2 filas (`C-ACDKOJDPAL30mL` y `C-EMBPAT30mL`), 366 en total.
+  - Queda por decidir: agregar al Sheet 7 segundas publicaciones activas de un SKU ya presente, más 2 cerradas y 3 sin SKU (no son materia prima).
+- **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `docs/agentic/modules/sync-stock.md`, `docs/team-recaps.md`. Google Sheet (respaldos en el scratchpad de la sesión).
+
 ### 2026-09-29 06:10 - Hoja 1 y overrides de publicaciones depurados (35 filas reales agregadas, IDs con prefijo MCO)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección de datos. Sin LLM.
