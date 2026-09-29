@@ -4631,3 +4631,15 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Se quitó el botón del cabezote (`ContabilidadHerramientas`) para no tener dos calculadoras; «Crear en Alegra» y «Consultar factura» siguen ahí.
   - **Verificado:** `npm run build`; captura en Chrome headless (1100 px y 390 px) con las dos burbujas y con la calculadora abierta, en un arnés temporal ya retirado.
 - **Archivos Modificados:** `desktop/src/components/nav/CalculadoraFab.tsx` (nuevo), `desktop/src/components/Layout.tsx`, `desktop/src/components/ContabilidadHerramientas.tsx`, `docs/team-recaps.md`
+
+### 2026-09-29 - La burbuja «En proceso» ahora es un chat
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - `nav/SolicitudesEnProcesoFab.tsx`: la burbuja (ícono de chat) abre una lista estilo chat con el último mensaje de cada solicitud en proceso o por finalizar, quién lo escribió («Tú:» si fuiste tú) y los no leídos. El número de la burbuja muestra los no leídos (verde, parpadea) o, si no hay, cuántas están en proceso.
+  - Al tocar una se conversa ahí mismo, sin ir al Centro de Mando: mensajes, fotos y avisos del sistema; escribir (Enter envía), adjuntar foto o PDF, o pegarla con Ctrl+V. Se marca como vista al abrirla. «‹» vuelve a la lista; «Abrir completo →» lleva al hilo en Mensajes (pasos, cronómetro, cerrar).
+  - «⤢» agranda el chat (38 rem × 82 % de alto) y lo vuelve a achicar; se recuerda por navegador.
+  - Ya no se cierra al hacer clic afuera, para poder seguir trabajando con el chat abierto; se cierra con ✕, Esc o la burbuja.
+  - Usa los hooks de `useConversaciones` (timeline, adjuntos, enviar, visto); no toca el backend.
+  - **Verificado:** `npm run build`; capturas en Chrome headless (lista, chat, chat grande y celular a 390 px) en un arnés temporal con datos simulados, ya retirado.
+- **Archivos Modificados:** `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`
