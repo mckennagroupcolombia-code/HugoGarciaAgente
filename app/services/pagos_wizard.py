@@ -418,6 +418,10 @@ def init_db() -> None:
             # tarifa de IVA está mal (las del catálogo son una sugerencia) o
             # falta un renglón.
             ("total_documento", "REAL NOT NULL DEFAULT 0"),
+            # McKenna asume la retención de renta / el ReteICA de este pago
+            # (531520): se practica pero no se le descuenta al proveedor.
+            ("renta_asumida", "INTEGER NOT NULL DEFAULT 0"),
+            ("ica_asumida", "INTEGER NOT NULL DEFAULT 0"),
         ):
             if col not in cols:
                 con.execute(f"ALTER TABLE cc_solicitudes_pago ADD COLUMN {col} {ddl}")
@@ -438,7 +442,12 @@ def init_db() -> None:
 CUENTAS_IMPUESTOS = (
     ("2368", "Impuesto de industria y comercio retenido (ICA)", "pasivo"),
     ("530595", "Otros gastos financieros — GMF 4x1000", "gasto"),
+    ("531520", "Impuestos asumidos", "gasto"),
 )
+
+# Retención que McKenna practica pero no le descuenta al proveedor (la asume).
+# Gasto no deducible (Art. 115 E.T.); en Alegra existe con el mismo código.
+CUENTA_IMPUESTOS_ASUMIDOS = "531520"
 
 # Tarifa del gravamen a los movimientos financieros: 4 por mil (Art. 872 E.T.).
 GMF_TARIFA = 0.004
@@ -808,6 +817,15 @@ def previsualizar(payload: dict) -> dict:
             f"faltan {_fmt(-dif_documento)}."
         ) + (" Revisa las tarifas de IVA de cada línea: las del catálogo son una sugerencia, "
              "el documento manda.")
+    # El documento manda al peso. La suma de renglones arrastra centavos (una base
+    # de $1.886.747,90 con su 19 % no da un total entero) mientras el panel manda
+    # el monto redondeado: debitar los renglones tal cual y acreditar el monto
+    # dejaba el asiento descuadrado por centavos y el panel decía «No cuadra — no
+    # se puede enviar» con una factura correcta (30-sep-2026, factura por
+    # $2.245.230). Si la diferencia es de redondeo (≤ $1), el asiento se ajusta
+    # al total del documento o, sin documento, al monto.
+    if items and total_documento > 0 and abs(total_items - total_documento) <= 1:
+        monto = total_documento
     if monto <= 0:
         raise ValueError("El monto debe ser mayor que cero")
     if items and abs(total_items - monto) > 1:
@@ -1088,6 +1106,49 @@ def previsualizar(payload: dict) -> dict:
                       f"= {_fmt(retencion_ica)}.")
         ret_info = {**(ret_info or {}), "motivo": (str((ret_info or {}).get("motivo", "")) + " " + motivo_ica).strip()}
 
+    # ── Impuesto asumido por McKenna, pago por pago (30-sep-2026) ─────────────
+    #
+    # Hay proveedores que facturan sin descontar la retención y no la aceptan
+    # (o un pago que se acordó «libre de ICA»): la retención se sigue
+    # PRACTICANDO —va a la 2365/2368 y se declara igual—, pero no se le
+    # descuenta a él: McKenna la paga de su bolsillo como **531520 Impuestos
+    # asumidos** (no deducible, Art. 115 E.T.) y el proveedor recibe el valor
+    # completo. Es distinto del gross-up pactado en la ficha, donde el valor
+    # escrito es el neto y la base se infla hacia atrás; acá el valor escrito
+    # sigue siendo la base (la factura manda) y lo asumido es un gasto aparte.
+    # Se decide por impuesto: renta e ICA son independientes.
+    asume_renta = bool(payload.get("asume_renta")) and retencion > 0 and not valor_es_neto
+    asume_ica = bool(payload.get("asume_ica")) and retencion_ica > 0 and not valor_es_neto
+    aviso_asumido = ""
+    if (asume_renta or asume_ica) and tercero:
+        # Con documento soporte no: el documento informa base − retenciones =
+        # girado y la DIAN lo recibe así. Para quien no factura, lo asumido se
+        # pacta en su ficha (gross-up), que sí deja el documento cuadrado.
+        try:
+            from app.services import doc_soporte_pagos as _ds
+
+            con_ds, _ = _ds.requiere(tercero)
+        except Exception:
+            con_ds = False
+        if con_ds:
+            asume_renta = asume_ica = False
+            aviso_asumido = (
+                f"A {tercero.get('nombre')} se le emite documento soporte: un impuesto asumido "
+                "pago a pago lo dejaría descuadrado ante la DIAN. Si McKenna asume sus "
+                "retenciones, márcalo en su ficha de tercero (pago libre de retención)."
+            )
+    impuesto_asumido = round((retencion if asume_renta else 0) + (retencion_ica if asume_ica else 0), 2)
+    if impuesto_asumido > 0:
+        que = " y ".join(x for x in (
+            f"la retención en la fuente ({_fmt(retencion)})" if asume_renta else "",
+            f"el ReteICA ({_fmt(retencion_ica)})" if asume_ica else "",
+        ) if x)
+        ret_info = {**(ret_info or {}), "motivo": (
+            str((ret_info or {}).get("motivo", "")) + f" McKenna asume {que}: se practica y se "
+            f"declara igual, pero no se le descuenta a {(tercero or {}).get('nombre') or 'el proveedor'} — va a 531520 "
+            "Impuestos asumidos."
+        ).strip()}
+
     with cc._conn() as con:
         id_debito = cc._cuenta_id_por_codigo(con, cuenta_debito)
         # La retención va a su subcuenta por concepto (236525 servicios,
@@ -1097,11 +1158,15 @@ def previsualizar(payload: dict) -> dict:
         id_retencion = cc._cuenta_id_por_codigo(con, cod_retencion) if retencion > 0 else None
         id_ica = cc._cuenta_id_por_codigo(con, "2368") if retencion_ica > 0 else None
         id_gmf = cc._cuenta_id_por_codigo(con, "530595") if cobra_gmf else None
+        id_asumido = cc._cuenta_id_por_codigo(con, CUENTA_IMPUESTOS_ASUMIDOS) if impuesto_asumido > 0 else None
     if not id_debito:
         raise ValueError(f"La cuenta {cuenta_debito} no existe en el plan")
+    if impuesto_asumido > 0 and not id_asumido:
+        raise ValueError(f"La cuenta {CUENTA_IMPUESTOS_ASUMIDOS} (Impuestos asumidos) no existe en el plan")
 
     nombre_tercero = (tercero or {}).get("nombre") or ""
-    girado = round(monto - retencion - retencion_ica, 2)
+    # Lo asumido por McKenna no se le descuenta: vuelve al giro.
+    girado = round(monto - retencion - retencion_ica + impuesto_asumido, 2)
 
     # ── Pago parcial ───────────────────────────────────────────────────────
     # Un salario o un servicio se causa completo (el gasto y la retención son
@@ -1189,6 +1254,13 @@ def previsualizar(payload: dict) -> dict:
                     + f" × {_fmt_precio(i['precio'])}"
                 ),
             } for i in items]
+            # Los centavos de redondeo contra el documento (ver arriba): van al
+            # IVA, que es donde nacen; sin IVA, al último renglón.
+            ajuste_redondeo = round(monto - total_items, 2)
+            if ajuste_redondeo and iva_items > 0:
+                iva_items = round(iva_items + ajuste_redondeo, 2)
+            elif ajuste_redondeo:
+                lineas[-1]["debito"] = round(lineas[-1]["debito"] + ajuste_redondeo, 2)
             if iva_items > 0:
                 with cc._conn() as con:
                     id_iva = cc._cuenta_id_por_codigo(con, "240810")
@@ -1222,6 +1294,12 @@ def previsualizar(payload: dict) -> dict:
                 "cuenta_codigo": "2368", "cuenta_id": id_ica,
                 "debito": 0, "credito": retencion_ica, "tercero_id": tercero_id,
                 "descripcion": f"Retención ICA {ica_por_mil:g} x mil — {nombre_tercero}",
+            })
+        if impuesto_asumido > 0:
+            lineas.append({
+                "cuenta_codigo": CUENTA_IMPUESTOS_ASUMIDOS, "cuenta_id": id_asumido,
+                "debito": impuesto_asumido, "credito": 0, "tercero_id": tercero_id,
+                "descripcion": f"Impuesto asumido por McKenna — {nombre_tercero}",
             })
         if gmf > 0:
             lineas.append({
@@ -1270,6 +1348,10 @@ def previsualizar(payload: dict) -> dict:
         "retencion_modo": modo,
         "retencion_motivo": ((ret_info or {}).get("motivo", "") + (" " + aviso_gross_up if aviso_gross_up else "")).strip(),
         "aviso_gross_up": aviso_gross_up,
+        "asume_renta": asume_renta,
+        "asume_ica": asume_ica,
+        "impuesto_asumido": impuesto_asumido,
+        "aviso_asumido": aviso_asumido,
         "concepto_retencion": concepto_ret or "",
         # Qué dedujo el sistema de la cuenta elegida, para mostrarlo debajo del
         # selector: la nota («Transporte de carga: 1% desde 4 UVT») y la
@@ -1546,8 +1628,8 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                   estado, notas, creada_por, items_json, factura_numero, verificacion_json,
                   es_plantilla, frecuencia, plantilla_id, periodo, origen_sistema,
                   retencion_modo, retencion_ica, ica_por_mil, gmf, pagado_ahora,
-                  total_documento)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                  total_documento, renta_asumida, ica_asumida)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 categoria, prev["concepto"], prev["monto"], prev["fecha"],
                 (prev["tercero"] or {}).get("id"), cuenta_debito,
@@ -1583,6 +1665,8 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                 (float(prev["pagado_ahora"])
                  if (prev.get("saldo_pendiente") or prev.get("anticipo")) else None),
                 float(prev.get("total_documento") or 0),
+                1 if prev.get("asume_renta") else 0,
+                1 if prev.get("asume_ica") else 0,
             ),
         )
         sid = int(cur.lastrowid)
@@ -1663,6 +1747,8 @@ def previsualizacion_de(sid: int) -> dict:
             # $21.914 en vez de $18.415), aunque el asiento real estaba bien.
             **({"items": sol["items"]} if sol.get("items") else {}),
             **({"total_documento": sol["total_documento"]} if sol.get("total_documento") else {}),
+            "asume_renta": bool(sol.get("renta_asumida")),
+            "asume_ica": bool(sol.get("ica_asumida")),
         }
     )
     # Lo que cambió desde que se guardó: es la señal de que el borrador quedó
@@ -1922,6 +2008,9 @@ def _abrir_ticket(sid: int, prev: dict, created_by: int | None) -> int | None:
             + f"\n**Monto: {_fmt(prev['monto'])}**"
             + (f" · retención {_fmt(prev['retencion'])} → **se gira {_fmt(prev['girado'])}**"
                if prev["retencion"] > 0 else "")
+            + (f"\n⚠️ **McKenna asume {_fmt(prev['impuesto_asumido'])} de impuestos** (531520, no deducible): "
+               "se practican pero no se le descuentan al proveedor."
+               if (prev.get("impuesto_asumido") or 0) > 0 else "")
             + productos + cotejo
             + "\n\n**Asiento contable que va a quedar al aprobar:**\n```\n"
             + filas + "\n```\n"
@@ -2021,8 +2110,14 @@ def obtener(sid: int) -> dict | None:
     d["icono"] = CATEGORIAS.get(d["categoria"], {}).get("icono", "📌")
     # Lo que de verdad recibe el beneficiario: el ICA también se le descuenta
     # (el GMF no — ese lo cobra el banco aparte y es gasto de McKenna).
+    # Lo que McKenna asumió (531520) no se le descuenta.
+    d["impuesto_asumido"] = round(
+        (float(d["retencion"] or 0) if d.get("renta_asumida") else 0)
+        + (float(d.get("retencion_ica") or 0) if d.get("ica_asumida") else 0), 2
+    )
     d["girado"] = round(
-        float(d["monto"] or 0) - float(d["retencion"] or 0) - float(d.get("retencion_ica") or 0), 2
+        float(d["monto"] or 0) - float(d["retencion"] or 0) - float(d.get("retencion_ica") or 0)
+        + d["impuesto_asumido"], 2
     )
     try:
         d["items"] = json.loads(d.pop("items_json", None) or "[]")
@@ -2113,6 +2208,7 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         # sola línea global y el asiento perdía el detalle por referencia —y con
         # él la réplica de la cotización, que es el punto de registrarlos.
         **({"items": s["items"]} if s.get("items") else {}),
+        **({"total_documento": s["total_documento"]} if s.get("total_documento") else {}),
         **({"pagado_ahora": s["pagado_ahora"]} if s.get("pagado_ahora") is not None else {}),
     })
     # Se conserva `cuenta_codigo` en la proyección: la reconstrucción de abajo
@@ -2149,7 +2245,7 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         # Se excluyen las que esta reconstrucción vuelve a armar abajo con los
         # impuestos tal como se aprobaron —retención, ICA, GMF— y la salida de
         # banco. Incluir el GMF acá lo contaba dos veces.
-        _rearmadas = ("2365", "2368", "530595", "1110", "2355", "2335", "133005")
+        _rearmadas = ("2365", "2368", "530595", CUENTA_IMPUESTOS_ASUMIDOS, "1110", "2355", "2335", "133005")
         medias = [
             l for l in lineas
             if l.get("debito") and not str(l.get("cuenta_codigo") or "").startswith(_rearmadas)
@@ -2162,10 +2258,21 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
             medias.append({"cuenta_id": id_ica, "debito": 0, "credito": ica,
                            "tercero_id": s["tercero_id"],
                            "descripcion": f"Retención ICA — {nombre_t}"})
+        # Lo que McKenna asumió (531520): se practicó igual, pero no se le
+        # descontó al proveedor, así que vuelve al giro.
+        asumido = round((ret if s.get("renta_asumida") else 0) + (ica if s.get("ica_asumida") else 0), 2)
+        if asumido:
+            with cc._conn() as con:
+                id_asum = cc._cuenta_id_por_codigo(con, CUENTA_IMPUESTOS_ASUMIDOS)
+            if not id_asum:
+                raise ValueError(f"La cuenta {CUENTA_IMPUESTOS_ASUMIDOS} (Impuestos asumidos) no existe en el plan")
+            medias.append({"cuenta_id": id_asum, "debito": asumido, "credito": 0,
+                           "tercero_id": s["tercero_id"],
+                           "descripcion": f"Impuesto asumido por McKenna — {nombre_t}"})
         if gmf:
             medias.append({"cuenta_id": id_gmf, "debito": gmf, "credito": 0,
                            "descripcion": "GMF 4x1000"})
-        girado = round(float(s["monto"]) - ret - ica, 2)
+        girado = round(float(s["monto"]) - ret - ica + asumido, 2)
         # Pago parcial: lo que no se gira hoy queda como cuenta por pagar. Esta
         # reconstrucción existe para fijar los impuestos tal como se aprobaron,
         # y antes se comía la línea del saldo: el asiento salía como si se

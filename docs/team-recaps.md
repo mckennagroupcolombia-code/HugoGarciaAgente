@@ -1,3 +1,13 @@
+### 2026-09-30 13:45 - Solicitudes de pago: asiento al peso, impuesto asumido por McKenna, precio con decimales y borrador local
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - **«No cuadra — no se puede enviar» con una factura correcta** ($2.245.230): los renglones traían centavos (base × 19 %) y el panel mandaba el monto redondeado. Ahora el asiento se fija al total del documento cuando la diferencia es ≤ $1 y los centavos van a la línea del IVA. Girado correcto: 2.245.230 − 47.169 (retención compras 2,5 %) = **2.198.061**.
+  - **Quién asume cada impuesto, pago por pago** («Ajustar»): retención en la fuente y ReteICA por separado, «se le descuenta al proveedor» o «la asume McKenna». Lo asumido se practica y declara igual (2365/2368) y va a **531520 Impuestos asumidos** (nueva en el PUC, existe en Alegra); el proveedor recibe completo. Se guarda en la solicitud (`renta_asumida`, `ica_asumida`) y la aprobación lo rearma igual. No aplica a terceros con documento soporte (ahí sigue siendo el pacto en la ficha).
+  - **«El monto no coincide con la suma de los productos»** (#59, pistachos): el precio unitario se guardaba redondeado a 2 decimales (51,97653 → 51,98) y al recalcular subía $150. Ahora se guarda con 6 decimales; la #59 se corrigió en la base (era la única afectada).
+  - **Borrador local del formulario**: lo diligenciado en «Nueva solicitud de pago» se guarda en el navegador por usuario y se restaura al recargar la pantalla; se borra al crear la solicitud o con «Descartar borrador».
+- **Archivos Modificados:** `app/services/pagos_wizard.py`, `app/services/pagos_proveedor.py`, `app/services/puc_colombia.py`, `desktop/src/components/PagosWizardPanel.tsx`, `docs/agentic/modules/pagos-solicitudes.md`, `docs/team-recaps.md`.
+
 ### 2026-09-29 06:50 - Claves con «typo» de publicaciones_overrides.json resueltas una por una
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección de datos. Sin LLM.

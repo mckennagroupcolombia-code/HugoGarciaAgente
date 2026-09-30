@@ -362,7 +362,12 @@ def normalizar_items(items: Any) -> list[dict]:
         subtotal = round(cantidad * precio, 2)
         iva = round(subtotal * iva_pct / 100, 2)
         out.append({
-            "sku": sku, "nombre": nombre, "cantidad": cantidad, "precio": round(precio, 2),
+            # El precio unitario NO se redondea a centavos: por gramo trae más
+            # decimales (51,97653 $/g × 36.300 g). Guardado como 51,98, al
+            # recalcular la solicitud (ver/aprobar) el subtotal subía $150 y
+            # saltaba «El monto no coincide con la suma de los productos»
+            # (solicitud #59, 30-sep-2026).
+            "sku": sku, "nombre": nombre, "cantidad": cantidad, "precio": round(precio, 6),
             "unidad": str(raw.get("unidad") or "").strip(),
             "iva_pct": iva_pct, "subtotal": subtotal, "iva": iva, "total": round(subtotal + iva, 2),
         })

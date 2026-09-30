@@ -574,6 +574,26 @@ cotización cotejada y hubo que rechazarla y anular el asiento 5856 (espejo Aleg
 Los borradores de Inter Rapidísimo recuperados del correo el 18-sep (#20, 24, 26, 29, 30, 33) están
 en «productos» con cuenta 523550: son fletes y van por «Servicios».
 
+**Impuesto asumido pago a pago + asiento al peso (30-sep-2026).** Caso: factura de $2.245.230 de un
+proveedor que no descuenta la retención de compras 2,5 %. (a) El panel manda el monto redondeado y los
+renglones traen centavos (base × 19 %): el asiento salía descuadrado por centavos y el panel decía «No
+cuadra — no se puede enviar». Ahora `previsualizar()` fija el monto al `total_documento` si la
+diferencia es ≤ $1 y el ajuste va a la línea del IVA (o al último renglón sin IVA). Girado correcto:
+2.245.230 − 47.169 = **2.198.061**. (b) En «Ajustar» se elige, por impuesto (renta / ReteICA), si se le
+descuenta al proveedor o **lo asume McKenna**: se sigue practicando (2365/2368) y lo asumido va a
+**531520 Impuestos asumidos** (no deducible, Art. 115), el proveedor recibe completo. Se guarda en
+`renta_asumida` / `ica_asumida` y `aprobar()` lo rearma igual. Es distinto del gross-up pactado en la
+ficha (`retencion_asume_mckenna`, el valor es neto). No aplica a quien lleva documento soporte (el
+documento quedaría base − retenciones ≠ girado): ahí sigue siendo por ficha.
+
+**Borrador local del wizard simple (30-sep-2026).** Lo que se diligencia en «Nueva solicitud de pago»
+se guarda en `localStorage` (`pagos-borrador-simple:<usuario>`, 400 ms después de cada cambio) y se
+restaura al recargar: el formulario se abre solo y dice «Borrador recuperado». Cerrar NO lo borra (el
+botón pasa a «Continuar solicitud en borrador»); se borra al crear la solicitud o con «Descartar
+borrador». Es solo de ese navegador — no es el estado `borrador` del servidor. Al restaurar, los efectos
+que ponen casillas desde la ficha del tercero y la cuenta se saltan una vez (`saltarProveedor`,
+`saltarConcepto`, `saltarPerfil`) para no pisar lo que el usuario había cambiado.
+
 ---
 
 ## Traído de CLAUDE.md (27-sep-2026)

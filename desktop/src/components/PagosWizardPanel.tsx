@@ -56,6 +56,9 @@ type Previsualizacion = {
   valor_es_neto?: boolean; retencion_ica?: number; ica_por_mil?: number; gmf?: number; retencion_modo?: string;
   concepto_retencion?: string;
   aviso_gross_up?: string;
+  // McKenna asume la retención / el ReteICA de este pago (531520): se practica
+  // y se declara, pero no se le descuenta al proveedor.
+  asume_renta?: boolean; asume_ica?: boolean; impuesto_asumido?: number; aviso_asumido?: string;
   aviso_documento?: string; diferencia_documento?: number; total_documento?: number;
   perfil_cuenta?: { nota?: string; advertencia?: string; cuenta_nombre?: string };
   pagado_ahora?: number; saldo_pendiente?: number; cuenta_saldo?: string; permite_parcial?: boolean;
@@ -139,6 +142,22 @@ export default function PagosWizardPanel() {
   // pero no es la puerta de entrada: se pide a propósito.
   const [avanzado, setAvanzado] = useState(false);
 
+  // Borrador local de la solicitud a medio llenar, por usuario. Si al entrar
+  // hay uno, el formulario se abre solo con lo que se llevaba.
+  const yoQ = useQuery<Yo>({
+    queryKey: ["pagos-puedo-registrar"],
+    queryFn: () => api.get("/api/pagos/puedo-registrar"),
+  });
+  const clave = claveBorrador(yoQ.data?.usuario);
+  const [nWizard, setNWizard] = useState(0);
+  const [hayBorrador, setHayBorrador] = useState(false);
+  useEffect(() => {
+    if (!yoQ.data) return;
+    const b = Boolean(leerBorrador(clave));
+    setHayBorrador(b);
+    if (b) setAbierto(true);
+  }, [clave, yoQ.data]);
+
   type Cuenta = { n: number; total: number };
   const listaQ = useQuery<{ solicitudes: Solicitud[]; resumen: { pendientes: Cuenta; aprobadas: Cuenta; por_estado?: Record<string, Cuenta> } }>({
     queryKey: ["pagos-solicitudes", filtro],
@@ -173,10 +192,14 @@ export default function PagosWizardPanel() {
           </p>
         </div>
         <button
-          type="button" onClick={() => { setAbierto((v) => !v); setAvanzado(false); }}
+          type="button"
+          onClick={() => {
+            if (abierto) setHayBorrador(Boolean(leerBorrador(clave)));
+            setAbierto((v) => !v); setAvanzado(false);
+          }}
           className="rounded-lg bg-accent px-3 py-2 text-sm font-bold text-white hover:bg-accent-hover"
         >
-          {abierto ? "Cancelar" : "+ Solicitar un pago"}
+          {abierto ? "Cerrar" : hayBorrador ? "Continuar solicitud en borrador" : "+ Solicitar un pago"}
         </button>
       </header>
 
@@ -205,7 +228,11 @@ export default function PagosWizardPanel() {
       })()}
 
       {abierto && (() => {
-        const cerrar = () => { setAbierto(false); setCatInicial(null); setAvanzado(false); };
+        // Cerrar NO borra el borrador: se retoma con «Continuar solicitud».
+        const cerrar = () => {
+          setAbierto(false); setCatInicial(null); setAvanzado(false);
+          setHayBorrador(Boolean(leerBorrador(clave)));
+        };
         const creada = (texto: string) => {
           setMsg({ tipo: "ok", texto });
           cerrar();
@@ -216,8 +243,10 @@ export default function PagosWizardPanel() {
           <Wizard categoriaInicial={catInicial} onCerrar={cerrar} onCreada={creada} onError={error} />
         ) : (
           <WizardSimple
+            key={`${clave}-${nWizard}`} clave={clave}
             onCerrar={cerrar} onCreada={creada} onError={error}
             onAvanzado={() => setAvanzado(true)}
+            onDescartar={() => { setHayBorrador(false); setNWizard((n) => n + 1); }}
           />
         );
       })()}
@@ -255,6 +284,43 @@ export default function PagosWizardPanel() {
   );
 }
 
+// ─── Borrador local del wizard simple ──────────────────────────────────────
+//
+// Lo que se está diligenciando se guarda en ESTE navegador, por usuario, para
+// que recargar la pantalla (p. ej. para ver un cambio recién publicado) no
+// borre una solicitud a medio llenar con diez renglones de cotización. Es una
+// comodidad local: no llega al servidor ni a otros equipos, y se borra al
+// crear la solicitud o al pulsar «Descartar borrador».
+
+type BorradorSimple = {
+  v: 1; guardado: string;
+  proveedor: Proveedor | null; fecha: string; medioPagoId: string;
+  concepto: "productos" | "servicios" | "saldo_por_pagar" | "impuestos";
+  retencionModo: "mckenna" | "beneficiario" | "ninguna"; cuentaDebito: string;
+  icaActivo: boolean; icaPorMil: string; gmf: boolean; ajustarImpuestos: boolean;
+  asumeRenta: boolean; asumeIca: boolean; items: ItemLinea[]; totalDocumento: string;
+  contrato: string; monto: string; detalle: string; pagaTodo: boolean; pagoAhora: string;
+};
+
+function claveBorrador(usuario: string | undefined): string {
+  return `pagos-borrador-simple:${usuario || "anonimo"}`;
+}
+
+function leerBorrador(clave: string): BorradorSimple | null {
+  try {
+    const raw = localStorage.getItem(clave);
+    if (!raw) return null;
+    const b = JSON.parse(raw) as BorradorSimple;
+    return b && b.v === 1 ? b : null;
+  } catch {
+    return null;   // modo privado o dato corrupto: se arranca en blanco
+  }
+}
+
+function borrarBorrador(clave: string) {
+  try { localStorage.removeItem(clave); } catch { /* modo privado */ }
+}
+
 // ─── El wizard simple ──────────────────────────────────────────────────────
 //
 // Lo que el operador pide casi siempre: pagarle a un proveedor por productos o
@@ -267,19 +333,29 @@ export default function PagosWizardPanel() {
 // ver contra qué cuenta va sigue siendo firmar a ciegas.
 
 function WizardSimple({
-  onCerrar, onCreada, onError, onAvanzado,
+  onCerrar, onCreada, onError, onAvanzado, clave, onDescartar,
 }: {
   onCerrar: () => void;
   onCreada: (texto: string) => void;
   onError: (texto: string) => void;
   onAvanzado: () => void;
+  clave: string;
+  onDescartar: () => void;
 }) {
-  const [proveedor, setProveedor] = useState<Proveedor | null>(null);
-  const [fecha, setFecha] = useState(hoy());
-  const [medioPagoId, setMedioPagoId] = useState("");
+  // Se lee una sola vez, al montar: es el punto de partida, no un estado vivo.
+  const [ini] = useState(() => leerBorrador(clave));
+  const [proveedor, setProveedor] = useState<Proveedor | null>(ini?.proveedor ?? null);
+  const [fecha, setFecha] = useState(ini?.fecha || hoy());
+  const [medioPagoId, setMedioPagoId] = useState(ini?.medioPagoId ?? "");
   const [concepto, setConcepto] = useState<
     "productos" | "servicios" | "saldo_por_pagar" | "impuestos"
-  >("productos");
+  >(ini?.concepto ?? "productos");
+  // Los efectos de abajo ponen las casillas desde la ficha del tercero y la
+  // cuenta. Al restaurar un borrador esa primera pasada pisaría lo que el
+  // usuario ya había cambiado, así que se salta una vez.
+  const saltarProveedor = useRef<number | null>(ini?.proveedor?.id ?? null);
+  const saltarConcepto = useRef(Boolean(ini));
+  const saltarPerfil = useRef(Boolean(ini));
   // Quién asume la retención. Lo pactado con un prestador de servicios suele
   // ser «te pago X libre de retención»: ese valor es lo que RECIBE, no la base.
   // Tomarlo como base le recorta la retención y después la reclama (pasó con
@@ -287,34 +363,61 @@ function WizardSimple({
   // Lo normal es descontarle la retención al beneficiario. El gross-up («te
   // pago libre de retención») es un acuerdo comercial y vive en la ficha del
   // tercero, no en una pregunta que haya que contestar en cada pago.
-  const [retencionModo, setRetencionModo] = useState<"mckenna" | "beneficiario" | "ninguna">("beneficiario");
+  const [retencionModo, setRetencionModo] = useState<"mckenna" | "beneficiario" | "ninguna">(ini?.retencionModo ?? "beneficiario");
   // Cuenta del PUC a la que va el gasto. Vacía = la que propone la categoría (o
   // la habitual del tercero, que el backend aplica solo).
-  const [cuentaDebito, setCuentaDebito] = useState("");
-  const [icaActivo, setIcaActivo] = useState(false);
-  const [icaPorMil, setIcaPorMil] = useState("");
-  const [gmf, setGmf] = useState(false);
+  const [cuentaDebito, setCuentaDebito] = useState(ini?.cuentaDebito ?? "");
+  const [icaActivo, setIcaActivo] = useState(ini?.icaActivo ?? false);
+  const [icaPorMil, setIcaPorMil] = useState(ini?.icaPorMil ?? "");
+  const [gmf, setGmf] = useState(ini?.gmf ?? false);
   // Los impuestos se informan; «ajustar» es la salida para lo que el PUC no
   // puede saber (un pago pactado libre de retención es un acuerdo comercial).
-  const [ajustarImpuestos, setAjustarImpuestos] = useState(false);
+  const [ajustarImpuestos, setAjustarImpuestos] = useState(ini?.ajustarImpuestos ?? false);
+  // Quién asume cada impuesto en ESTE pago. Por defecto se le descuenta al
+  // proveedor; si la factura no lo descuenta y se decide pagarla completa,
+  // McKenna lo asume (531520 Impuestos asumidos) y se sigue practicando.
+  const [asumeRenta, setAsumeRenta] = useState(ini?.asumeRenta ?? false);
+  const [asumeIca, setAsumeIca] = useState(ini?.asumeIca ?? false);
   // La cotización del proveedor, renglón por renglón. Al solicitar el pago la
   // compra queda contabilizada contra inventario con su referencia, y no hay
   // que volver a registrarla cuando llegue la factura — que es el paso doble
   // que este cambio viene a quitar.
-  const [items, setItems] = useState<ItemLinea[]>([]);
+  const [items, setItems] = useState<ItemLinea[]>(ini?.items ?? []);
   // El total que dice el documento del proveedor. Es el patrón contra el que se
   // cuadra la réplica: como total = base + IVA, si una tarifa de IVA está mal el
   // total no da. Hace falta porque el IVA que trae el catálogo de Alegra para
   // las materias primas NO es confiable (la misma sustancia está marcada 19%
   // como combo y 0% como insumo).
-  const [totalDocumento, setTotalDocumento] = useState("");
-  const [contrato, setContrato] = useState("");
-  const [monto, setMonto] = useState("");
-  const [detalle, setDetalle] = useState("");
+  const [totalDocumento, setTotalDocumento] = useState(ini?.totalDocumento ?? "");
+  const [contrato, setContrato] = useState(ini?.contrato ?? "");
+  const [monto, setMonto] = useState(ini?.monto ?? "");
+  const [detalle, setDetalle] = useState(ini?.detalle ?? "");
   // Pago parcial: un salario o servicio se causa completo aunque la caja no
   // alcance para girarlo todo; lo que falta queda como cuenta por pagar.
-  const [pagaTodo, setPagaTodo] = useState(true);
-  const [pagoAhora, setPagoAhora] = useState("");
+  const [pagaTodo, setPagaTodo] = useState(ini?.pagaTodo ?? true);
+  const [pagoAhora, setPagoAhora] = useState(ini?.pagoAhora ?? "");
+
+  // Guardar el borrador mientras se escribe (con una pausa corta para no
+  // escribir en cada tecla). Solo si ya hay algo que valga la pena conservar.
+  const [guardadoA, setGuardadoA] = useState<string>(ini?.guardado ?? "");
+  useEffect(() => {
+    const hayAlgo = Boolean(proveedor || items.length || monto || detalle || totalDocumento || contrato);
+    const t = window.setTimeout(() => {
+      if (!hayAlgo) return;
+      const b: BorradorSimple = {
+        v: 1, guardado: new Date().toISOString(), proveedor, fecha, medioPagoId, concepto,
+        retencionModo, cuentaDebito, icaActivo, icaPorMil, gmf, ajustarImpuestos, asumeRenta,
+        asumeIca, items, totalDocumento, contrato, monto, detalle, pagaTodo, pagoAhora,
+      };
+      try {
+        localStorage.setItem(clave, JSON.stringify(b));
+        setGuardadoA(b.guardado);
+      } catch { /* modo privado o sin espacio: no se guarda, el formulario sigue */ }
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [clave, proveedor, fecha, medioPagoId, concepto, retencionModo, cuentaDebito, icaActivo,
+      icaPorMil, gmf, ajustarImpuestos, asumeRenta, asumeIca, items, totalDocumento, contrato,
+      monto, detalle, pagaTodo, pagoAhora]);
 
   const catsQ = useQuery<{ categorias: Categoria[] }>({
     queryKey: ["pagos-categorias"],
@@ -368,6 +471,11 @@ function WizardSimple({
   // lo que cambie se vuelve a guardar al solicitar el pago.
   useEffect(() => {
     if (!proveedor) return;
+    if (saltarProveedor.current != null && proveedor.id === saltarProveedor.current) {
+      saltarProveedor.current = null;   // borrador restaurado: sus casillas mandan
+      return;
+    }
+    saltarProveedor.current = null;
     if (proveedor.regimen_simple) {
       setRetencionModo("ninguna");
     } else if (proveedor.retefuente_exento) {
@@ -390,6 +498,10 @@ function WizardSimple({
   // manda. Un tercero en Régimen SIMPLE no lleva ICA de ninguna clase
   // (Art. 911 E.T.), así que ahí ni se ofrece.
   useEffect(() => {
+    if (saltarPerfil.current) {
+      if (perfilCuenta) saltarPerfil.current = false;
+      return;
+    }
     if (!perfilCuenta || proveedor?.regimen_simple) {
       if (proveedor?.regimen_simple) setIcaActivo(false);
       return;
@@ -407,6 +519,7 @@ function WizardSimple({
     // backend la aplica igual, así que dejar el selector en blanco mostraba
     // «5135 — la que propone la categoría» mientras el asiento se iba a 511095.
     // Enseñar una cuenta y contabilizar otra es peor que no mostrar ninguna.
+    if (saltarConcepto.current) { saltarConcepto.current = false; return; }
     setCuentaDebito(proveedor?.cuenta_gasto_default || "");
   }, [concepto, proveedor?.cuenta_gasto_default]);
   const conceptoTexto = useMemo(() => {
@@ -450,10 +563,12 @@ function WizardSimple({
     ica_por_mil: icaActivo ? num(icaPorMil) : 0,
     cuenta_debito: cuentaDebito,
     gmf,
+    asume_renta: asumeRenta,
+    asume_ica: asumeIca,
     ...(permiteParcial && !pagaTodo ? { pagado_ahora: num(pagoAhora) } : {}),
   }), [concepto, valor, conceptoTexto, fecha, proveedor, medioPagoId, esPublico, contrato,
        llevaRetencion, retencionModo, icaActivo, icaPorMil, cuentaDebito, gmf, permiteParcial,
-       pagaTodo, pagoAhora, hayItems, items, totProd.total, totalDocumento]);
+       pagaTodo, pagoAhora, hayItems, items, totProd.total, totalDocumento, asumeRenta, asumeIca]);
 
   const faltaProveedor = Boolean(cat?.requiere_tercero) && !proveedor?.id;
   // La solicitud de una compra es copia fiel de la cotización o proforma (24-sep-2026):
@@ -478,11 +593,33 @@ function WizardSimple({
     mutationFn: () => api.post<Solicitud & { error?: string }>("/api/pagos/solicitudes", cuerpo),
     onSuccess: (s) => {
       if (s.error) return onError(s.error);
+      borrarBorrador(clave);
       onCreada(`Solicitud #${s.id} creada — ${cop(s.monto)}. Ya le llegó el ticket al aprobador.`);
     },
     onError: (e) => onError((e as Error).message),
   });
   const ocupado = crearMut.isPending;
+
+  const avisoBorrador = guardadoA ? (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-muted">
+      <span>
+        {ini && ini.guardado === guardadoA ? "Borrador recuperado" : "Borrador guardado en este equipo"}
+        {" · "}{new Date(guardadoA).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+        {" — puedes recargar la pantalla sin perder lo diligenciado."}
+      </span>
+      <button
+        type="button"
+        onClick={() => {
+          if (!window.confirm("¿Descartar lo que llevas diligenciado en esta solicitud?")) return;
+          borrarBorrador(clave);
+          onDescartar();
+        }}
+        className="ml-auto font-bold text-accent underline"
+      >
+        Descartar borrador
+      </button>
+    </div>
+  ) : null;
 
   const selectorConcepto = (
       <div>
@@ -518,6 +655,7 @@ function WizardSimple({
           <p className="text-sm font-bold text-accent">Nueva solicitud de pago · impuestos</p>
           <button type="button" onClick={onCerrar} className="text-sm text-muted">✕</button>
         </div>
+        {avisoBorrador}
         {selectorConcepto}
         <PagoImpuestos
           medios={medios} medioPagoId={medioPagoId} setMedioPagoId={setMedioPagoId}
@@ -533,6 +671,7 @@ function WizardSimple({
         <p className="text-sm font-bold text-accent">Nueva solicitud de pago</p>
         <button type="button" onClick={onCerrar} className="text-sm text-muted">✕</button>
       </div>
+      {avisoBorrador}
 
       <div>
         <p className="mb-1 text-xs font-bold uppercase text-muted">
@@ -696,6 +835,12 @@ function WizardSimple({
           </p>
         )}
 
+        {prevQ.data?.aviso_asumido && (
+          <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+            <Ico e="⚠️" /> {prevQ.data.aviso_asumido}
+          </p>
+        )}
+
         {prevQ.data?.aviso_gross_up && (
           <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
             <Ico e="⚠️" /> {prevQ.data.aviso_gross_up}
@@ -721,25 +866,43 @@ function WizardSimple({
                 $28.657 de más cada quincena. El backend lo rechaza igual
                 aunque alguien llame la API a mano: esconder un radio no es un
                 control, es una sugerencia. */}
-            {llevaRetencion && (
+            {proveedor?.retencion_asume_mckenna && !hayItems ? (
               <div className="space-y-1 rounded-lg border border-border bg-surface px-3 py-2">
                 <p className="text-sm font-bold text-ink">Quién asume la retención</p>
-                {proveedor?.retencion_asume_mckenna ? (
-                  <p className="text-sm text-ink">
-                    <span className="font-bold text-accent">La asume McKenna.</span> Con{" "}
-                    {proveedor.nombre} se pactó pago libre de retención, así que recibe el valor
-                    completo y la retención se suma al gasto.
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted">
-                    Se le descuenta a <span className="font-bold text-ink">{proveedor?.nombre || "el beneficiario"}</span>,
-                    que es lo normal: el valor de arriba es el total facturado y recibe menos la retención.
-                  </p>
-                )}
-                <p className="text-xs text-muted">
-                  Para cambiarlo hace falta un acuerdo con esa persona, y se marca en su ficha de
-                  tercero (Libro Mayor → Configurar → Terceros). No se decide pago por pago.
+                <p className="text-sm text-ink">
+                  <span className="font-bold text-accent">La asume McKenna.</span> Con{" "}
+                  {proveedor.nombre} se pactó pago libre de retención (ficha del tercero), así que
+                  el valor de arriba es lo que recibe y la retención se suma al gasto.
                 </p>
+              </div>
+            ) : (
+              <div className="space-y-2 rounded-lg border border-border bg-surface px-3 py-2">
+                <p className="text-sm font-bold text-ink">Quién asume cada impuesto en este pago</p>
+                <p className="text-xs text-muted">
+                  Lo normal es descontárselo a {proveedor?.nombre || "el proveedor"}. Si su factura no lo
+                  descuenta y se le paga completa, lo asume McKenna: se practica y se declara igual,
+                  pero sale del bolsillo de McKenna como <b>531520 Impuestos asumidos</b> (no deducible).
+                </p>
+                {([
+                  ["Retención en la fuente", asumeRenta, setAsumeRenta, (prevQ.data?.retencion ?? 0) > 0],
+                  ["ReteICA", asumeIca, setAsumeIca, (prevQ.data?.retencion_ica ?? 0) > 0],
+                ] as const).map(([etiqueta, asume, setAsume, aplica]) => (
+                  <div key={etiqueta} className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="w-44 font-bold text-ink">{etiqueta}</span>
+                    {aplica ? (
+                      <>
+                        <button type="button" onClick={() => setAsume(false)}
+                          className={`rounded-lg px-2.5 py-1 text-xs font-bold ${!asume ? "bg-accent text-white" : "border border-border text-ink hover:border-accent"}`}>
+                          Se le descuenta al proveedor
+                        </button>
+                        <button type="button" onClick={() => setAsume(true)}
+                          className={`rounded-lg px-2.5 py-1 text-xs font-bold ${asume ? "bg-accent text-white" : "border border-border text-ink hover:border-accent"}`}>
+                          La asume McKenna
+                        </button>
+                      </>
+                    ) : <span className="text-xs text-muted">no aplica en este pago</span>}
+                  </div>
+                ))}
               </div>
             )}
             <label className="flex items-center gap-2 text-sm">
@@ -827,7 +990,9 @@ function WizardSimple({
               {(prevQ.data.retencion_ica ?? 0) > 0 ? ` · ICA ${cop(prevQ.data.retencion_ica)}` : ""}
               {prevQ.data.valor_es_neto
                 ? " que asume McKenna (el beneficiario recibe completo lo solicitado)"
-                : " descontadas al beneficiario"}
+                : (prevQ.data.impuesto_asumido ?? 0) > 0
+                  ? ` · McKenna asume ${cop(prevQ.data.impuesto_asumido ?? 0)} (531520)`
+                  : " descontadas al beneficiario"}
               {" · base "}{cop(prevQ.data.monto)}
             </span>
           ) : <span className="text-muted"> · sin retención</span>}
@@ -2095,6 +2260,7 @@ function AsientoPreview({ p }: { p: Previsualizacion }) {
         <Mini label="Monto" valor={cop(p.monto)} />
         {p.retencion > 0 && <Mini label="Retención" valor={`− ${cop(p.retencion)}`} />}
         {(p.retencion_ica ?? 0) > 0 && <Mini label="ICA" valor={`− ${cop(p.retencion_ica ?? 0)}`} />}
+        {(p.impuesto_asumido ?? 0) > 0 && <Mini label="Asume McKenna (531520)" valor={`+ ${cop(p.impuesto_asumido ?? 0)}`} />}
         <Mini label="Se gira" valor={cop(p.girado)} acento />
         {(p.anticipo ?? 0) > 0 && <Mini label="Anticipo a favor" valor={cop(p.anticipo ?? 0)} />}
       </div>

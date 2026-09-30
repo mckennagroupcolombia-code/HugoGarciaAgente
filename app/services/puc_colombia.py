@@ -156,6 +156,8 @@ PUC_MCKENNA: tuple[tuple[str, str, str], ...] = (
     ("530515", "Comisiones (financieras)", "gasto"),
     ("530520", "Intereses", "gasto"),
     ("530595", "Financieros — otros", "gasto"),
+    ("5315", "Gastos extraordinarios", "gasto"),
+    ("531520", "Impuestos asumidos", "gasto"),
     # ── 6 Costos de ventas ──
     ("6135", "Comercio al por mayor y al por menor", "costo"),
     ("6205", "De mercancías", "costo"),
@@ -351,6 +353,11 @@ DESCRIPCIONES: dict[str, str] = {
     "530595": "GMF 4x1000. Lo cobra el banco sobre lo que sale y es gasto de McKenna: no se le "
               "descuenta a nadie. Bancolombia lo cobra en una línea diaria, no pegado a cada "
               "transferencia.",
+    "5315": "Gastos extraordinarios.",
+    "531520": "Retención (renta o ICA) que McKenna practica y declara pero NO le descuenta al "
+              "proveedor porque decidió asumirla en ese pago (p. ej. factura que no descuenta la "
+              "retención). No es deducible en renta (Art. 115 E.T.). Distinto del pago pactado "
+              "libre de retención en la ficha del tercero, que infla la base (gross-up).",
     # ── 6 Costos ──
     "6135": "Costo de la mercancía vendida: lo que salió de 1435 al venderse.",
     "6205": "Costo de la materia prima transformada.",
