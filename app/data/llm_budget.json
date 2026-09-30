@@ -1,13 +1,13 @@
 {
  "fecha": "2026-09-29",
- "gasto_usd": 1.193385,
- "llamadas": 185,
+ "gasto_usd": 1.227952,
+ "llamadas": 187,
  "por_modelo": {
   "claude-sonnet-5": 0.965164,
   "claude-haiku-4-5": 0.122337,
   "claude-sonnet-4-6": 0.007749,
-  "gemini-2.5-flash": 0.055175,
-  "gemini-2.5-pro": 0.04296
+  "gemini-2.5-flash": 0.057832,
+  "gemini-2.5-pro": 0.07487
  },
  "por_contexto": {
   "wa_ventas_v2": 0.811076,
@@ -18,8 +18,8 @@
   "ft_scan_tablas": 0.01123,
   "ft_scan_un_paso": 0.004731,
   "ft_scan_estructurar": 0.020515,
-  "documentos_sugerir_campo": 0.014232,
-  "documentos_sugerir_sds": 0.04296
+  "documentos_sugerir_campo": 0.016889,
+  "documentos_sugerir_sds": 0.07487
  },
  "alerta_enviada": false,
  "historial": [
