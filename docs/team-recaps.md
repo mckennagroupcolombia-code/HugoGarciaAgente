@@ -1,3 +1,11 @@
+### 2026-09-30 17:55 - Cotizar/Facturar envía la cotización por correo y cierra la solicitud web; Gmail reconectado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Sin LLM.
+- **Qué se implementó:**
+  - **Solicitud de cotización sin respuesta por correo** (Lisa Meneses, #2 y #3 de mckennagroup.co/cotizar): Jerry cotizó en Cotizar/Facturar (COT-20260930-003, $51.120) pero ese flujo solo enviaba por WhatsApp; la web le había prometido respuesta por correo y las solicitudes seguían «nueva». Ahora `cotizar()` adjunta el PDF al correo del cliente (SMTP de `web_pedidos`) y marca «enviada» las solicitudes web abiertas del mismo correo con la nota de qué cotización las respondió. Si el correo falla queda como aviso, no frena la cotización. A Lisa se le envió el correo y #2/#3 quedaron «enviada».
+  - **Gmail «sin token»**: el token venció (app OAuth en modo Prueba, 7 días) y el botón del panel ahora da «Error 400: invalid_request — doesn't comply with Google's OAuth 2.0 policy» (Google exige dominio verificado/autorizado para el redirect `bot.mckennagroup.co`). Se reconectó con `scripts/reautorizar_gmail.py` (redirect localhost, abierto en Firefox con `BROWSER=firefox`); la copia de abonos Bancolombia a Jenniffer volvió a salir. Pendiente: verificar `mckennagroup.co` en Search Console, página de privacidad y publicar la app.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/services/proveedores_db.py`, `tests/test_ventas_directas.py`, `docs/agentic/modules/ventas-directas.md`, `docs/team-recaps.md`.
+
 ### 2026-09-30 13:45 - Solicitudes de pago: asiento al peso, impuesto asumido por McKenna, precio con decimales y borrador local
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección + nueva funcionalidad. Sin LLM.

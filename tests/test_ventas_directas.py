@@ -530,3 +530,32 @@ def test_soporte_despues_de_facturar_se_adjunta_una_vez(monkeypatch, tmp_path):
         V.guardar_soporte(v["id"], b"otro", "otro.png", "image/png")
     assert not V.eliminar_soporte(v["id"])
     assert V.obtener(v["id"])["soporte_path"] == r["soporte_path"]
+
+
+def test_cotizar_envia_pdf_por_correo_y_cierra_solicitud_web(tmp_path, monkeypatch):
+    """30-sep-2026 (Lisa Meneses): la cotización salió solo por WhatsApp y las
+    solicitudes de /cotizar quedaron «nueva» aunque el operador ya había cotizado."""
+    from pathlib import Path
+
+    from app.services import proveedores_db as P
+    import app.tools.web_pedidos as W
+
+    monkeypatch.setattr(P, "_DB_PATH", Path(tmp_path / "proveedores.db"))
+    P.init_db()
+    abierta = P.crear_solicitud_cotizacion({"nombre": "Lisa", "email": "Lisa@Uni.edu.co", "producto": "Árbol de té"})
+    otra = P.crear_solicitud_cotizacion({"nombre": "Otro", "email": "otro@x.co", "producto": "Árbol de té"})
+
+    enviados = []
+    monkeypatch.setattr(W, "_send_smtp_with_attachments",
+                        lambda to, subj, txt, html, adj: enviados.append((to, subj, adj[0][0])) or True)
+    monkeypatch.setattr(V, "asegurar_tercero_cliente", lambda v: None)
+    monkeypatch.setattr("app.tools.cotizacion_pdf.CARPETA", str(tmp_path))
+
+    v = _venta(telefono="", cliente={"nombre": "Lisa", "identificacion": "1", "correo": "lisa@uni.edu.co"})
+    r = V.cotizar(v["id"], registrar_en_alegra=False)
+
+    assert r["ok"] and r["enviado_correo"] and not r["enviado_whatsapp"]
+    assert enviados == [("lisa@uni.edu.co", f"Cotización {v['numero']} — McKenna Group", f"{v['numero']}.pdf")]
+    estados = {s["id"]: s for s in P.listar_solicitudes_cotizacion()}
+    assert estados[abierta["id"]]["estado"] == "enviada" and v["numero"] in estados[abierta["id"]]["respuesta"]
+    assert estados[otra["id"]]["estado"] == "nueva"

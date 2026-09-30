@@ -69,3 +69,11 @@ timbrar» con el botón **«Timbrar FE…»**: volver a facturar corrige el cont
 caso: FE910 timbrada, FE711-716 y FE908 anuladas junto con sus pagos (TKT-2026-1566). Además los
 contactos con NIT de empresa (9 dígitos, empieza por 8/9) se crean como `LEGAL_ENTITY`
 (`_tipo_persona_contacto`); antes todos salían persona natural («RED» / «CHOCOLATE SAS»).
+
+**Cotizar también envía el correo y cierra la solicitud web (30-sep-2026, Lisa Meneses):** la
+cotización salía solo por WhatsApp. Quien la pidió en mckennagroup.co/cotizar había recibido «le
+enviaremos por este medio…» y el correo nunca llegó. Además sus solicitudes (#2, #3) seguían en «nueva»
+aunque Jerry ya había cotizado (COT-20260930-003). Ahora `cotizar()` manda el PDF adjunto al correo del
+cliente (`_enviar_cotizacion_correo`, SMTP de `web_pedidos`) y marca `enviada` las solicitudes abiertas
+de ese mismo correo (`proveedores_db.responder_solicitudes_por_correo`). Si el correo falla, queda como
+aviso en la venta; no frena la cotización.

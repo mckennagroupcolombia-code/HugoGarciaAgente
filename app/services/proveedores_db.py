@@ -2082,6 +2082,31 @@ def actualizar_solicitud_cotizacion(sid: int, datos: dict) -> dict | None:
             con.close()
 
 
+def responder_solicitudes_por_correo(email: str, respuesta: str) -> list[int]:
+    """Marca como enviadas las solicitudes web abiertas (nueva/en_proceso) de ese correo.
+
+    Lo llama Cotizar/Facturar al cotizar: el operador suele responder la solicitud de
+    mckennagroup.co/cotizar armando la cotización allá, no desde Proveedores → Cotizaciones,
+    y la solicitud quedaba «nueva» para siempre (30-sep-2026, Lisa Meneses #2/#3)."""
+    email = (email or "").strip().lower()
+    if "@" not in email:
+        return []
+    with _lock:
+        con = _conn()
+        try:
+            ids = [r[0] for r in con.execute(
+                "SELECT id FROM solicitudes_cotizacion WHERE lower(trim(email))=? AND estado IN ('nueva','en_proceso')",
+                (email,)).fetchall()]
+            if ids:
+                con.executemany(
+                    "UPDATE solicitudes_cotizacion SET estado='enviada', respuesta=?, respondido_at=? WHERE id=?",
+                    [(str(respuesta or "")[:4000], _ahora(), i) for i in ids])
+                con.commit()
+            return ids
+        finally:
+            con.close()
+
+
 def cargar_oferta_web() -> dict:
     """Lectura pública (website.py) del JSON publicado; vacío si no existe."""
     try:

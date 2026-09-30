@@ -1083,11 +1083,82 @@ def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra:
         if not enviado:
             avisos.append("El PDF no se pudo enviar por WhatsApp — compártelo a mano.")
 
+    enviado_correo = _enviar_cotizacion_correo(venta, doc, ruta, avisos)
+    if enviado or enviado_correo:
+        _cerrar_solicitudes_web(venta, doc, enviado, enviado_correo, avisos)
+
     campos.update(estado="cotizada", cotizado=_ahora(), enviado_whatsapp=int(enviado),
                   avisos=(venta.get("avisos") or []) + avisos)
     _actualizar(venta_id, **campos)
     return {"ok": True, "venta": obtener(venta_id), "pdf_path": ruta, "avisos": avisos,
-            "enviado_whatsapp": enviado}
+            "enviado_whatsapp": enviado, "enviado_correo": enviado_correo}
+
+
+def _enviar_cotizacion_correo(venta: dict, doc: dict, ruta: str, avisos: list[str]) -> bool:
+    """Envía el PDF de la cotización al correo del cliente (si lo tiene).
+
+    Hasta el 30-sep-2026 la cotización solo salía por WhatsApp: quien pidió
+    cotización por mckennagroup.co/cotizar recibía «le enviaremos por este medio
+    precio…» y el correo nunca llegaba."""
+    email = (doc["cliente"].get("correo") or "").strip()
+    if not email or "@" not in email:
+        return False
+    try:
+        from app.tools.web_pedidos import _send_smtp_with_attachments
+
+        with open(ruta, "rb") as fh:
+            pdf = fh.read()
+    except Exception as e:  # noqa: BLE001 — el correo no frena la cotización
+        avisos.append(f"No se pudo preparar el correo: {e}")
+        return False
+    numero = venta["numero"]
+    nombre = doc["cliente"]["nombre"]
+    renglones = [f"- {p['nombre']} × {p['cantidad']:g}: ${p['subtotal']:,.0f}" for p in doc["productos"]]
+    texto = (
+        f"Hola {nombre},\n\n"
+        f"Gracias por su solicitud. Adjuntamos la cotización {numero}:\n\n"
+        + "\n".join(renglones)
+        + f"\n\nTotal: ${venta['total']:,.0f} COP (IVA incluido).\n"
+        f"Vigencia: {VIGENCIA_DIAS} días.\n\n"
+        "Para confirmar el pedido, responda este correo o escríbanos por WhatsApp con el "
+        "comprobante de pago; con él emitimos la factura electrónica y despachamos.\n\n"
+        "McKenna Group S.A.S. · Bogotá, Colombia · mckennagroup.co"
+    )
+    from html import escape
+
+    html = (
+        f"<p>Hola {escape(nombre)},</p><p>Gracias por su solicitud. Adjuntamos la cotización "
+        f"<strong>{escape(numero)}</strong>:</p><ul>"
+        + "".join(f"<li>{escape(r[2:])}</li>" for r in renglones)
+        + f"</ul><p><strong>Total: ${venta['total']:,.0f} COP</strong> (IVA incluido).<br>"
+        f"Vigencia: {VIGENCIA_DIAS} días.</p><p>Para confirmar el pedido, responda este correo o "
+        "escríbanos por WhatsApp con el comprobante de pago; con él emitimos la factura electrónica "
+        "y despachamos.</p><p>McKenna Group S.A.S. · Bogotá, Colombia · mckennagroup.co</p>"
+    )
+    ok = _send_smtp_with_attachments(email, f"Cotización {numero} — McKenna Group", texto, html,
+                                     [(f"{numero}.pdf", "application/pdf", pdf)])
+    if not ok:
+        avisos.append(f"El PDF no se pudo enviar por correo a {email} — reenvíalo a mano.")
+    return bool(ok)
+
+
+def _cerrar_solicitudes_web(venta: dict, doc: dict, por_whatsapp: bool, por_correo: bool,
+                            avisos: list[str]) -> None:
+    """Las solicitudes de mckennagroup.co/cotizar del mismo correo quedan respondidas."""
+    try:
+        from app.services.proveedores_db import responder_solicitudes_por_correo
+
+        canales = " y ".join(c for c, si in (("correo", por_correo), ("WhatsApp", por_whatsapp)) if si)
+        ids = responder_solicitudes_por_correo(
+            doc["cliente"].get("correo") or "",
+            f"Respondida con la cotización {venta['numero']} (Cotizar/Facturar) por {canales}: "
+            f"total ${venta['total']:,.0f} COP IVA incluido.",
+        )
+    except Exception as e:  # noqa: BLE001
+        avisos.append(f"No se pudieron cerrar las solicitudes web del cliente: {e}")
+        return
+    if ids:
+        avisos.append("Solicitudes web respondidas: " + ", ".join(f"#{i}" for i in ids))
 
 
 def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_whatsapp: bool = True) -> dict:
