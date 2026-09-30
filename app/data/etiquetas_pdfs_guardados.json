@@ -1,6 +1,293 @@
 {
   "archivos": [
     {
+      "nombre": "PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20260929_141012.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20260929_141012.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20260929_141012.pdf",
+      "subido_at": "2026-09-29T14:10:12",
+      "bytes": 325080
+    },
+    {
+      "nombre": "PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG.pdf",
+      "subido_at": "2026-09-29T14:09:54",
+      "bytes": 325080
+    },
+    {
+      "nombre": "ACEITE_GIRASOL_500mL_20260929_112611.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE_GIRASOL_500mL_20260929_112611.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_GIRASOL_500mL_20260929_112611.pdf",
+      "subido_at": "2026-09-29T11:26:11",
+      "bytes": 355181
+    },
+    {
+      "nombre": "ACEITE_GIRASOL_500mL_20260929_112137.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE_GIRASOL_500mL_20260929_112137.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_GIRASOL_500mL_20260929_112137.pdf",
+      "subido_at": "2026-09-29T11:21:37",
+      "bytes": 355181
+    },
+    {
+      "nombre": "ACEITE_GIRASOL_500mL.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE_GIRASOL_500mL.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_GIRASOL_500mL.pdf",
+      "subido_at": "2026-09-29T11:21:14",
+      "bytes": 355181
+    },
+    {
+      "nombre": "LACTATO_CALCIO_250g_20260929_095304.pdf",
+      "ruta": "Etiquetas McKenna/LACTATO_CALCIO_250g_20260929_095304.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_CALCIO_250g_20260929_095304.pdf",
+      "subido_at": "2026-09-29T09:53:05",
+      "bytes": 316352
+    },
+    {
+      "nombre": "LACTATO_CALCIO_250g_20260929_095246.pdf",
+      "ruta": "Etiquetas McKenna/LACTATO_CALCIO_250g_20260929_095246.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_CALCIO_250g_20260929_095246.pdf",
+      "subido_at": "2026-09-29T09:52:46",
+      "bytes": 316352
+    },
+    {
+      "nombre": "LACTATO_CALCIO_250g.pdf",
+      "ruta": "Etiquetas McKenna/LACTATO_CALCIO_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_CALCIO_250g.pdf",
+      "subido_at": "2026-09-29T09:52:33",
+      "bytes": 316352
+    },
+    {
+      "nombre": "BAYAS_DE_GOJI_BERRY_500g_20260929_095024.pdf",
+      "ruta": "Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_500g_20260929_095024.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_500g_20260929_095024.pdf",
+      "subido_at": "2026-09-29T09:50:25",
+      "bytes": 174714
+    },
+    {
+      "nombre": "BAYAS_DE_GOJI_BERRY_500g.pdf",
+      "ruta": "Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_500g.pdf",
+      "subido_at": "2026-09-29T09:50:11",
+      "bytes": 174714
+    },
+    {
+      "nombre": "PROTEINA_AISLADA_SOYA_500g_2_20260929_094737.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094737.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094737.pdf",
+      "subido_at": "2026-09-29T09:47:37",
+      "bytes": 310352
+    },
+    {
+      "nombre": "PROTEINA_AISLADA_SOYA_500g_2_20260929_094716.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094716.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094716.pdf",
+      "subido_at": "2026-09-29T09:47:16",
+      "bytes": 310352
+    },
+    {
+      "nombre": "PROTEINA_AISLADA_SOYA_500g_2_20260929_094038.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094038.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094038.pdf",
+      "subido_at": "2026-09-29T09:40:38",
+      "bytes": 310352
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_20260929_093115.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_20260929_093115.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_20260929_093115.pdf",
+      "subido_at": "2026-09-29T09:31:15",
+      "bytes": 181893
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g.pdf",
+      "subido_at": "2026-09-29T09:30:58",
+      "bytes": 181893
+    },
+    {
+      "nombre": "NUEZ_DEL_BRASIL_500g_20260929_092610.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_20260929_092610.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_20260929_092610.pdf",
+      "subido_at": "2026-09-29T09:26:10",
+      "bytes": 162054
+    },
+    {
+      "nombre": "NUEZ_DEL_BRASIL_500g.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_500g.pdf",
+      "subido_at": "2026-09-29T09:25:59",
+      "bytes": 162054
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_20260929_092355.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_20260929_092355.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_20260929_092355.pdf",
+      "subido_at": "2026-09-29T09:23:55",
+      "bytes": 185528
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_20260929_092144.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_20260929_092144.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_20260929_092144.pdf",
+      "subido_at": "2026-09-29T09:21:45",
+      "bytes": 185528
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g.pdf",
+      "subido_at": "2026-09-29T09:18:27",
+      "bytes": 185528
+    },
+    {
+      "nombre": "PSYLLIUM_EN_ESCAMAS_250g_20260929_091602.pdf",
+      "ruta": "Etiquetas McKenna/PSYLLIUM_EN_ESCAMAS_250g_20260929_091602.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PSYLLIUM_EN_ESCAMAS_250g_20260929_091602.pdf",
+      "subido_at": "2026-09-29T09:16:02",
+      "bytes": 172354
+    },
+    {
+      "nombre": "PSYLLIUM_EN_ESCAMAS_250g.pdf",
+      "ruta": "Etiquetas McKenna/PSYLLIUM_EN_ESCAMAS_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PSYLLIUM_EN_ESCAMAS_250g.pdf",
+      "subido_at": "2026-09-29T09:15:48",
+      "bytes": 172354
+    },
+    {
+      "nombre": "PSYLLIUM_EN_ESCAMAS_500g_20260929_091409.pdf",
+      "ruta": "Etiquetas McKenna/PSYLLIUM_EN_ESCAMAS_500g_20260929_091409.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PSYLLIUM_EN_ESCAMAS_500g_20260929_091409.pdf",
+      "subido_at": "2026-09-29T09:14:09",
+      "bytes": 172903
+    },
+    {
+      "nombre": "PSYLLIUM_EN_ESCAMAS_500g.pdf",
+      "ruta": "Etiquetas McKenna/PSYLLIUM_EN_ESCAMAS_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PSYLLIUM_EN_ESCAMAS_500g.pdf",
+      "subido_at": "2026-09-29T09:13:53",
+      "bytes": 172903
+    },
+    {
+      "nombre": "SEMILLA_DE_QUINUA_ROJA_250g_20260929_091021.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_QUINUA_ROJA_250g_20260929_091021.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_QUINUA_ROJA_250g_20260929_091021.pdf",
+      "subido_at": "2026-09-29T09:10:21",
+      "bytes": 179754
+    },
+    {
+      "nombre": "SEMILLA_DE_QUINUA_ROJA_250g.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_QUINUA_ROJA_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_QUINUA_ROJA_250g.pdf",
+      "subido_at": "2026-09-29T09:10:07",
+      "bytes": 179754
+    },
+    {
+      "nombre": "SEMILLA_DE_QUINUA_ROJA_500g_20260929_090838.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_QUINUA_ROJA_500g_20260929_090838.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_QUINUA_ROJA_500g_20260929_090838.pdf",
+      "subido_at": "2026-09-29T09:08:38",
+      "bytes": 179728
+    },
+    {
+      "nombre": "SEMILLA_DE_QUINUA_ROJA_500g.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_QUINUA_ROJA_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_QUINUA_ROJA_500g.pdf",
+      "subido_at": "2026-09-29T09:08:18",
+      "bytes": 179728
+    },
+    {
+      "nombre": "SEMILLA_DE_CHIA_250g_20260929_090134.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CHIA_250g_20260929_090134.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CHIA_250g_20260929_090134.pdf",
+      "subido_at": "2026-09-29T09:01:34",
+      "bytes": 177801
+    },
+    {
+      "nombre": "SEMILLA_DE_CHIA_250g.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CHIA_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CHIA_250g.pdf",
+      "subido_at": "2026-09-29T09:01:19",
+      "bytes": 177801
+    },
+    {
+      "nombre": "SEMILLA_DE_CHIA_500g_20260929_085941.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CHIA_500g_20260929_085941.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CHIA_500g_20260929_085941.pdf",
+      "subido_at": "2026-09-29T08:59:42",
+      "bytes": 178143
+    },
+    {
+      "nombre": "SEMILLA_DE_CHIA_500g.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CHIA_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CHIA_500g.pdf",
+      "subido_at": "2026-09-29T08:59:18",
+      "bytes": 178143
+    },
+    {
+      "nombre": "SEMILLA_DE_AMAPOLA_250g_20260929_085223.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_AMAPOLA_250g_20260929_085223.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_AMAPOLA_250g_20260929_085223.pdf",
+      "subido_at": "2026-09-29T08:52:23",
+      "bytes": 188933
+    },
+    {
+      "nombre": "SEMILLA_DE_AMAPOLA_250g.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_AMAPOLA_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_AMAPOLA_250g.pdf",
+      "subido_at": "2026-09-29T08:52:08",
+      "bytes": 188933
+    },
+    {
+      "nombre": "SEMILLA_DE_AMAPOLA_500g_20260929_085010.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_AMAPOLA_500g_20260929_085010.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_AMAPOLA_500g_20260929_085010.pdf",
+      "subido_at": "2026-09-29T08:50:10",
+      "bytes": 191958
+    },
+    {
+      "nombre": "SEMILLA_DE_AMAPOLA_500g.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_AMAPOLA_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_AMAPOLA_500g.pdf",
+      "subido_at": "2026-09-29T08:49:48",
+      "bytes": 191958
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_250g_20260929_084656.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_250g_20260929_084656.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_250g_20260929_084656.pdf",
+      "subido_at": "2026-09-29T08:46:56",
+      "bytes": 197728
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_250g.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_250g.pdf",
+      "subido_at": "2026-09-29T08:46:11",
+      "bytes": 197728
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_250g_20260929_084336.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_250g_20260929_084336.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_250g_20260929_084336.pdf",
+      "subido_at": "2026-09-29T08:43:36",
+      "bytes": 205393
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_250g_20260929_084210.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_250g_20260929_084210.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_250g_20260929_084210.pdf",
+      "subido_at": "2026-09-29T08:42:10",
+      "bytes": 205393
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_500g.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_500g.pdf",
+      "subido_at": "2026-09-29T08:40:01",
+      "bytes": 204864
+    },
+    {
       "nombre": "GLICERINA_VEGETAL_500mL_20260928_150816.pdf",
       "ruta": "Etiquetas McKenna/GLICERINA_VEGETAL_500mL_20260928_150816.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/GLICERINA_VEGETAL_500mL_20260928_150816.pdf",
@@ -1112,293 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115407.pdf",
       "subido_at": "2026-09-01T11:54:07",
       "bytes": 372853
-    },
-    {
-      "nombre": "ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115339.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115339.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115339.pdf",
-      "subido_at": "2026-09-01T11:53:39",
-      "bytes": 372853
-    },
-    {
-      "nombre": "ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115308.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115308.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115308.pdf",
-      "subido_at": "2026-09-01T11:53:08",
-      "bytes": 372853
-    },
-    {
-      "nombre": "ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115252.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115252.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115252.pdf",
-      "subido_at": "2026-09-01T11:52:52",
-      "bytes": 372853
-    },
-    {
-      "nombre": "ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x.pdf",
-      "subido_at": "2026-09-01T11:52:24",
-      "bytes": 372853
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_115039.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_115039.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_115039.pdf",
-      "subido_at": "2026-09-01T11:50:39",
-      "bytes": 392878
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114949.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114949.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114949.pdf",
-      "subido_at": "2026-09-01T11:49:49",
-      "bytes": 392878
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114913.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114913.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114913.pdf",
-      "subido_at": "2026-09-01T11:49:13",
-      "bytes": 392878
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114844.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114844.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114844.pdf",
-      "subido_at": "2026-09-01T11:48:45",
-      "bytes": 392878
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114815.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114815.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114815.pdf",
-      "subido_at": "2026-09-01T11:48:15",
-      "bytes": 392878
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114720.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114720.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114720.pdf",
-      "subido_at": "2026-09-01T11:47:20",
-      "bytes": 392878
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114701.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114701.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114701.pdf",
-      "subido_at": "2026-09-01T11:47:01",
-      "bytes": 392878
-    },
-    {
-      "nombre": "ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114508.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114508.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114508.pdf",
-      "subido_at": "2026-09-01T11:45:08",
-      "bytes": 372853
-    },
-    {
-      "nombre": "ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114410.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114410.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114410.pdf",
-      "subido_at": "2026-09-01T11:44:10",
-      "bytes": 372853
-    },
-    {
-      "nombre": "ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114345.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114345.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114345.pdf",
-      "subido_at": "2026-09-01T11:43:45",
-      "bytes": 372853
-    },
-    {
-      "nombre": "ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x.pdf",
-      "subido_at": "2026-09-01T11:43:12",
-      "bytes": 372853
-    },
-    {
-      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_20260901_111829.pdf",
-      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_20260901_111829.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_20260901_111829.pdf",
-      "subido_at": "2026-09-01T11:18:29",
-      "bytes": 534101
-    },
-    {
-      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x.pdf",
-      "subido_at": "2026-09-01T11:17:56",
-      "bytes": 534101
-    },
-    {
-      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112605.pdf",
-      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112605.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112605.pdf",
-      "subido_at": "2026-08-28T11:26:05",
-      "bytes": 304782
-    },
-    {
-      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112545.pdf",
-      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112545.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112545.pdf",
-      "subido_at": "2026-08-28T11:25:45",
-      "bytes": 304782
-    },
-    {
-      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_4.pdf",
-      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4.pdf",
-      "subido_at": "2026-08-28T11:23:56",
-      "bytes": 304782
-    },
-    {
-      "nombre": "CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111604.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111604.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111604.pdf",
-      "subido_at": "2026-08-28T11:16:04",
-      "bytes": 114163
-    },
-    {
-      "nombre": "CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111551.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111551.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111551.pdf",
-      "subido_at": "2026-08-28T11:15:51",
-      "bytes": 114163
-    },
-    {
-      "nombre": "CAPSULAS_TRANSPARENTES_0_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x.pdf",
-      "subido_at": "2026-08-28T11:15:39",
-      "bytes": 114163
-    },
-    {
-      "nombre": "CAPSULAS_VERDE_BLANCO_0_6.25x_20260828_111406.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_VERDE_BLANCO_0_6.25x_20260828_111406.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_VERDE_BLANCO_0_6.25x_20260828_111406.pdf",
-      "subido_at": "2026-08-28T11:14:06",
-      "bytes": 115138
-    },
-    {
-      "nombre": "CAPSULAS_VERDE_BLANCO_0_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_VERDE_BLANCO_0_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_VERDE_BLANCO_0_6.25x.pdf",
-      "subido_at": "2026-08-28T11:13:53",
-      "bytes": 115138
-    },
-    {
-      "nombre": "CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111253.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111253.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111253.pdf",
-      "subido_at": "2026-08-28T11:12:53",
-      "bytes": 114802
-    },
-    {
-      "nombre": "CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111229.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111229.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111229.pdf",
-      "subido_at": "2026-08-28T11:12:29",
-      "bytes": 114802
-    },
-    {
-      "nombre": "CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111216.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111216.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111216.pdf",
-      "subido_at": "2026-08-28T11:12:16",
-      "bytes": 114802
-    },
-    {
-      "nombre": "CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111202.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111202.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111202.pdf",
-      "subido_at": "2026-08-28T11:12:02",
-      "bytes": 114802
-    },
-    {
-      "nombre": "CAPSULAS_AZUL_BLANCO_0_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x.pdf",
-      "subido_at": "2026-08-28T11:11:43",
-      "bytes": 114802
-    },
-    {
-      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110957.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110957.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110957.pdf",
-      "subido_at": "2026-08-28T11:09:57",
-      "bytes": 121548
-    },
-    {
-      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110650.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110650.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110650.pdf",
-      "subido_at": "2026-08-28T11:06:50",
-      "bytes": 121548
-    },
-    {
-      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110632.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110632.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110632.pdf",
-      "subido_at": "2026-08-28T11:06:32",
-      "bytes": 121548
-    },
-    {
-      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105703.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105703.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105703.pdf",
-      "subido_at": "2026-08-28T10:57:03",
-      "bytes": 121548
-    },
-    {
-      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105459.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105459.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105459.pdf",
-      "subido_at": "2026-08-28T10:54:59",
-      "bytes": 121548
-    },
-    {
-      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105420.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105420.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105420.pdf",
-      "subido_at": "2026-08-28T10:54:20",
-      "bytes": 121548
-    },
-    {
-      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x.pdf",
-      "subido_at": "2026-08-28T10:54:00",
-      "bytes": 121548
-    },
-    {
-      "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115942.pdf",
-      "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115942.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115942.pdf",
-      "subido_at": "2026-08-25T11:59:43",
-      "bytes": 678100
-    },
-    {
-      "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115844.pdf",
-      "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115844.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115844.pdf",
-      "subido_at": "2026-08-25T11:58:45",
-      "bytes": 678100
-    },
-    {
-      "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115801.pdf",
-      "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115801.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115801.pdf",
-      "subido_at": "2026-08-25T11:58:01",
-      "bytes": 678100
-    },
-    {
-      "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115712.pdf",
-      "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115712.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115712.pdf",
-      "subido_at": "2026-08-25T11:57:12",
-      "bytes": 678100
     }
   ]
 }

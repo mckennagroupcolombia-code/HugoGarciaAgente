@@ -11,8 +11,8 @@ Estado en ``app/data/despliegue_ventas.json``. Mientras ``"activo": true``:
   - MeLi: la sincronización de stock no reactiva publicaciones fuera de la lista
     (`meli.meli_item_reactivable`). Reactivar a mano desde el panel sigue igual.
   - Web: la tienda solo muestra combos de la lista (website.py lee el archivo).
-  - Cotizar/Facturar (ventas directas por WhatsApp): solo se cotizan SKUs de la lista
-    (salvo la venta MeLi con RUT, que factura algo ya vendido).
+  - Cotizar/Facturar (ventas directas por WhatsApp) NO se restringe desde el 29-sep-2026:
+    se vende cualquier SKU activo en Alegra, también combos sin publicación en MeLi.
   - Diseño de producto (Árbol del producto): cada combo dice si está desplegado.
 
 Ampliar el despliegue = volver a correr ``scripts/desplegar_ventas_facturables.py``

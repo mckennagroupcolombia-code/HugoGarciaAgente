@@ -1915,12 +1915,12 @@
       "barcode": "7700675002639",
       "impresion": {
         "nombre": "ETIQUETAS STUDIO/Aceites & Grasas/ACEITE_NEEM_500mL.png",
-        "aprobado_at": "2026-09-27T22:58:02",
+        "aprobado_at": "2026-09-29T10:14:22",
         "por": "@cynthia"
       },
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Aceites & Grasas/ACEITE_NEEM_500mL_digital.png",
-        "aprobado_at": "2026-09-27T22:58:04",
+        "aprobado_at": "2026-09-29T10:14:22",
         "por": "@cynthia"
       }
     },
@@ -1980,12 +1980,12 @@
       "barcode": "7701725002647",
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_500g_digital.png",
-        "aprobado_at": "2026-09-28T02:41:01",
+        "aprobado_at": "2026-09-29T10:30:22",
         "por": "@cynthia"
       },
       "impresion": {
         "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_500g.png",
-        "aprobado_at": "2026-09-28T02:41:01",
+        "aprobado_at": "2026-09-29T10:30:22",
         "por": "@cynthia"
       }
     },
@@ -2077,6 +2077,19 @@
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Gelificantes & Espesantes & Emulsificantes/ALGINATO_DE_SODIO_500g_digital.png",
         "aprobado_at": "2026-09-28T16:45:29",
+        "por": "@cynthia"
+      }
+    },
+    "19967ed455f7": {
+      "barcode": "7700625002634",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aceites & Grasas/ACEITE_GIRASOL_500mL.png",
+        "aprobado_at": "2026-09-29T10:15:23",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aceites & Grasas/ACEITE_GIRASOL_500mL_digital.png",
+        "aprobado_at": "2026-09-29T10:15:23",
         "por": "@cynthia"
       }
     }

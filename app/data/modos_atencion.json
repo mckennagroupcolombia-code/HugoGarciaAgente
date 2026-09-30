@@ -1,51 +1,8 @@
 {
   "numeros_en_humano": [
-    "116054462361830@lid",
-    "573183954547@c.us",
-    "61109012840604@lid",
-    "573003945052@c.us",
-    "103684889403577@lid",
-    "573124055615@c.us",
-    "573212158090@c.us",
-    "69148990259320@lid",
-    "573115713149@c.us",
-    "54821012902003@lid",
-    "173619909017622@lid",
-    "573164935659@c.us",
-    "39230852067497@lid",
-    "573128485865@c.us",
-    "112000482979882@lid",
-    "573053106833@c.us",
-    "260653159858336@lid",
-    "573217423374@c.us",
-    "573134001072@c.us",
-    "47085743263960@lid",
-    "197624514801720@lid",
-    "573103240849@c.us",
-    "573052963042@c.us",
-    "70407466017017@lid",
     "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe",
-    "69136222834737@lid",
-    "573123669765@c.us",
-    "573011487739@c.us",
-    "56466169974985@lid",
-    "7421820989667@lid",
-    "573208299760@c.us",
-    "240879080087649@lid",
-    "573137965709@c.us",
-    "573187462545@c.us",
-    "180496738828390@lid",
     "85500551516276@lid",
     "573019229626@c.us",
-    "573166915910@c.us",
-    "238916330352765@lid",
-    "57861950460055@lid",
-    "573155951959@c.us",
-    "573185222595@c.us",
-    "196185650384914@lid",
-    "573182432463@c.us",
-    "73031707820119@lid",
-    "50968460828882@lid",
     "573192247757@c.us",
     "16080508592159@lid",
     "256058081677329@lid",
@@ -58,56 +15,36 @@
     "119026881671318@lid",
     "573175195817@c.us",
     "120363023555909043@g.us",
-    "35567010074856@lid"
+    "35567010074856@lid",
+    "2367030300735@lid",
+    "573014433084@c.us",
+    "120363393955474672@g.us",
+    "233706501468198@lid",
+    "573175764579@c.us",
+    "279529390088428@lid",
+    "573016708239@c.us",
+    "573248699507@c.us",
+    "69884067238048@lid",
+    "233276971216936@lid",
+    "573205031961@c.us",
+    "56466169974985@lid",
+    "573011487739@c.us",
+    "573015675107@c.us",
+    "246291007328392@lid",
+    "121530763731073@lid",
+    "573208299760@c.us",
+    "7421820989667@lid",
+    "573168330664@c.us",
+    "171068597776517@lid",
+    "94700505694256@lid",
+    "573024381676@c.us",
+    "251290466701322@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
-    "116054462361830@lid": 1789135765.493789,
-    "573183954547@c.us": 1789135765.493789,
-    "61109012840604@lid": 1789147239.6056125,
-    "573003945052@c.us": 1789147239.6056125,
-    "103684889403577@lid": 1789149585.807416,
-    "573124055615@c.us": 1789149585.807416,
-    "573212158090@c.us": 1789152462.147829,
-    "69148990259320@lid": 1789152462.147829,
-    "573115713149@c.us": 1789152462.147829,
-    "54821012902003@lid": 1789152462.147829,
-    "173619909017622@lid": 1789152462.147829,
-    "573164935659@c.us": 1789152462.147829,
-    "39230852067497@lid": 1789152462.147829,
-    "573128485865@c.us": 1789152462.147829,
-    "112000482979882@lid": 1789152462.147829,
-    "573053106833@c.us": 1789152462.147829,
-    "260653159858336@lid": 1789152462.147829,
-    "573217423374@c.us": 1789152462.147829,
-    "573134001072@c.us": 1789470797.381823,
-    "47085743263960@lid": 1789470797.381823,
-    "197624514801720@lid": 1789757047.7673705,
-    "573103240849@c.us": 1789757047.7673705,
-    "573052963042@c.us": 1789879280.0414886,
-    "70407466017017@lid": 1789879280.0414886,
     "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe": 1790178747.8837469,
-    "69136222834737@lid": 1790183234.9087076,
-    "573123669765@c.us": 1790183234.9087076,
-    "573011487739@c.us": 1790363598.481627,
-    "56466169974985@lid": 1790363598.481627,
-    "7421820989667@lid": 1790363602.4146016,
-    "573208299760@c.us": 1790363602.4146016,
-    "240879080087649@lid": 1790363607.065462,
-    "573137965709@c.us": 1790363607.065462,
-    "573187462545@c.us": 1790363614.6181743,
-    "180496738828390@lid": 1790363614.6181743,
-    "85500551516276@lid": 1790629049.881851,
-    "573019229626@c.us": 1790629049.881851,
-    "573166915910@c.us": 1790363620.704598,
-    "238916330352765@lid": 1790363620.704598,
-    "57861950460055@lid": 1790363622.568399,
-    "573155951959@c.us": 1790363622.568399,
-    "573185222595@c.us": 1790363624.8210156,
-    "196185650384914@lid": 1790363624.8210156,
-    "573182432463@c.us": 1790363632.975737,
-    "73031707820119@lid": 1790363632.975737,
-    "50968460828882@lid": 1790364625.4704494,
+    "85500551516276@lid": 1790717602.359398,
+    "573019229626@c.us": 1790717602.359398,
     "573192247757@c.us": 1790605714.6285589,
     "16080508592159@lid": 1790605714.6285589,
     "256058081677329@lid": 1790606269.6630688,
@@ -120,237 +57,45 @@
     "119026881671318@lid": 1790621270.8016381,
     "573175195817@c.us": 1790621270.8016381,
     "120363023555909043@g.us": 1790621282.216532,
-    "35567010074856@lid": 1790629475.3355436
+    "35567010074856@lid": 1790629475.3355436,
+    "2367030300735@lid": 1790687486.759396,
+    "573014433084@c.us": 1790687486.759396,
+    "120363393955474672@g.us": 1790687490.7516515,
+    "233706501468198@lid": 1790687494.875017,
+    "573175764579@c.us": 1790687494.875017,
+    "279529390088428@lid": 1790692346.4918094,
+    "573016708239@c.us": 1790692346.4918094,
+    "573248699507@c.us": 1790692348.9461899,
+    "69884067238048@lid": 1790692348.9461899,
+    "233276971216936@lid": 1790693217.4421027,
+    "573205031961@c.us": 1790693217.4421027,
+    "56466169974985@lid": 1790694656.988616,
+    "573011487739@c.us": 1790694656.988616,
+    "573015675107@c.us": 1790700667.1354527,
+    "246291007328392@lid": 1790700667.1354527,
+    "121530763731073@lid": 1790707954.6172817,
+    "573208299760@c.us": 1790717536.10684,
+    "7421820989667@lid": 1790717536.10684,
+    "573168330664@c.us": 1790720457.178922,
+    "171068597776517@lid": 1790720457.178922,
+    "94700505694256@lid": 1790721582.974034,
+    "573024381676@c.us": 1790721582.974034,
+    "251290466701322@lid": 1790724056.6071713
   },
   "bot_auto_pausados": {
-    "116054462361830@lid": {
-      "timestamp": 1789135765.493789,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573183954547@c.us": {
-      "timestamp": 1789135765.493789,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "61109012840604@lid": {
-      "timestamp": 1789147239.6056125,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573003945052@c.us": {
-      "timestamp": 1789147239.6056125,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "103684889403577@lid": {
-      "timestamp": 1789149585.807416,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573124055615@c.us": {
-      "timestamp": 1789149585.807416,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573212158090@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "69148990259320@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573115713149@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "54821012902003@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "173619909017622@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573164935659@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "39230852067497@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573128485865@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "112000482979882@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573053106833@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "260653159858336@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573217423374@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573134001072@c.us": {
-      "timestamp": 1789470797.381823,
-      "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "47085743263960@lid": {
-      "timestamp": 1789470797.381823,
-      "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "197624514801720@lid": {
-      "timestamp": 1789757047.7673705,
-      "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573103240849@c.us": {
-      "timestamp": 1789757047.7673705,
-      "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573052963042@c.us": {
-      "timestamp": 1789879280.0414886,
-      "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "70407466017017@lid": {
-      "timestamp": 1789879280.0414886,
-      "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
     "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe": {
       "timestamp": 1790178747.883747,
       "razon": "web_pago_pedido",
       "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
     },
-    "69136222834737@lid": {
-      "timestamp": 1790183234.9087076,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573123669765@c.us": {
-      "timestamp": 1790183234.9087076,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573011487739@c.us": {
-      "timestamp": 1790363598.481627,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "56466169974985@lid": {
-      "timestamp": 1790363598.481627,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "7421820989667@lid": {
-      "timestamp": 1790363602.4146016,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573208299760@c.us": {
-      "timestamp": 1790363602.4146016,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "240879080087649@lid": {
-      "timestamp": 1790363607.065462,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573137965709@c.us": {
-      "timestamp": 1790363607.065462,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573187462545@c.us": {
-      "timestamp": 1790363614.6181743,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "180496738828390@lid": {
-      "timestamp": 1790363614.6181743,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
     "85500551516276@lid": {
-      "timestamp": 1790629049.881851,
+      "timestamp": 1790717602.359398,
       "razon": "mensaje repetido por posible bot",
       "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
     },
     "573019229626@c.us": {
-      "timestamp": 1790629049.881851,
+      "timestamp": 1790717602.359398,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573166915910@c.us": {
-      "timestamp": 1790363620.704598,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "238916330352765@lid": {
-      "timestamp": 1790363620.704598,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "57861950460055@lid": {
-      "timestamp": 1790363622.568399,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573155951959@c.us": {
-      "timestamp": 1790363622.568399,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573185222595@c.us": {
-      "timestamp": 1790363624.8210156,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "196185650384914@lid": {
-      "timestamp": 1790363624.8210156,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "573182432463@c.us": {
-      "timestamp": 1790363632.975737,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "73031707820119@lid": {
-      "timestamp": 1790363632.975737,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    "50968460828882@lid": {
-      "timestamp": 1790364625.4704494,
-      "razon": "operador desde panel de chats",
       "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
     },
     "573192247757@c.us": {
@@ -415,6 +160,121 @@
     },
     "35567010074856@lid": {
       "timestamp": 1790629475.3355436,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "2367030300735@lid": {
+      "timestamp": 1790687486.759396,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "573014433084@c.us": {
+      "timestamp": 1790687486.759396,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "120363393955474672@g.us": {
+      "timestamp": 1790687490.7516515,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "233706501468198@lid": {
+      "timestamp": 1790687494.875017,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "573175764579@c.us": {
+      "timestamp": 1790687494.875017,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "279529390088428@lid": {
+      "timestamp": 1790692346.4918094,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "573016708239@c.us": {
+      "timestamp": 1790692346.4918094,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "573248699507@c.us": {
+      "timestamp": 1790692348.9461899,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "69884067238048@lid": {
+      "timestamp": 1790692348.9461899,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "233276971216936@lid": {
+      "timestamp": 1790693217.4421027,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "573205031961@c.us": {
+      "timestamp": 1790693217.4421027,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "56466169974985@lid": {
+      "timestamp": 1790694656.988616,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "573011487739@c.us": {
+      "timestamp": 1790694656.988616,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "573015675107@c.us": {
+      "timestamp": 1790700667.1354527,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "246291007328392@lid": {
+      "timestamp": 1790700667.1354527,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "121530763731073@lid": {
+      "timestamp": 1790707954.6172817,
+      "razon": "r\u00e1faga de 10 mensajes en 120s",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "573208299760@c.us": {
+      "timestamp": 1790717536.10684,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "7421820989667@lid": {
+      "timestamp": 1790717536.10684,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u00a1Hola! Admitimos tus env\u00edos exitosamente. Si encuentras alg\u00fan dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
+    },
+    "573168330664@c.us": {
+      "timestamp": 1790720457.178922,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "171068597776517@lid": {
+      "timestamp": 1790720457.178922,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "94700505694256@lid": {
+      "timestamp": 1790721582.974034,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573024381676@c.us": {
+      "timestamp": 1790721582.974034,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "251290466701322@lid": {
+      "timestamp": 1790724056.6071713,
       "razon": "operador desde panel de chats",
       "ultimo_mensaje": ""
     }

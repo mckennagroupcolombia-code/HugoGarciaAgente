@@ -3359,6 +3359,17 @@
       "bimestre": 4,
       "codigo": "7703011002645",
       "creado_at": "2026-09-28T23:17:58"
+    },
+    {
+      "id": "85f1db8e719f",
+      "sku": "C-ACESEMUVA120mL-COPIA",
+      "nombre_producto": "ACEITE SEMILLA DE UVA 120mL",
+      "numero_producto": 302,
+      "presentacion": "120",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7703021202646",
+      "creado_at": "2026-09-29T15:33:29"
     }
   ]
 }

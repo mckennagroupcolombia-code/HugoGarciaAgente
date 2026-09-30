@@ -3145,7 +3145,7 @@
     },
     "C-PROCONSUE80PKG": {
       "ref": "C-PROCONSUE80PKG",
-      "nombre": "PROTEÍNA CONCENTRADA DE SUERO DE LECHE",
+      "nombre": "PROTEINA DE SUERO DE  LECHE",
       "lotes": [
         {
           "lote_numero": "XKK342",
@@ -3158,11 +3158,25 @@
           "codigo_verificacion": "NNT24M",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "PROBL20260408",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives.",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "abril 08, 2026",
+          "fecha_vencimiento": "abril 07, 2028",
+          "fecha_recepcion": "2026-09-29",
+          "codigo_verificacion": "372ME9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-29T19:09:09+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-29T19:09:09+00:00"
     },
     "C-SABCARAHU100G": {
       "ref": "C-SABCARAHU100G",
@@ -6516,6 +6530,27 @@
         }
       ],
       "updated_at": "2026-09-28T21:44:25+00:00"
+    },
+    "C-NUEBRA500G": {
+      "ref": "C-NUEBRA500G",
+      "nombre": "Cacahuete runner brasileño, partido y tostado",
+      "lotes": [
+        {
+          "lote_numero": "CP5241-26",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "Perú",
+          "fecha_fabricacion": "2026-05-21",
+          "fecha_vencimiento": "2028-05-21",
+          "fecha_recepcion": "2026-09-29",
+          "codigo_verificacion": "FF7CY7",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-29T14:25:33+00:00"
+        }
+      ],
+      "updated_at": "2026-09-29T14:25:33+00:00"
     }
   }
 }
