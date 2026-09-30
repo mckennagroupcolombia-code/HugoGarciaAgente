@@ -38,7 +38,15 @@
     "171068597776517@lid",
     "94700505694256@lid",
     "573024381676@c.us",
-    "251290466701322@lid"
+    "251290466701322@lid",
+    "249730957316313@lid",
+    "573217953421@c.us",
+    "573004054394@c.us",
+    "123394527903825@lid",
+    "258519064379559@lid",
+    "573042673171@c.us",
+    "573218851807@c.us",
+    "4707519078573@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -80,7 +88,15 @@
     "171068597776517@lid": 1790720457.178922,
     "94700505694256@lid": 1790721582.974034,
     "573024381676@c.us": 1790721582.974034,
-    "251290466701322@lid": 1790724056.6071713
+    "251290466701322@lid": 1790724056.6071713,
+    "249730957316313@lid": 1790769085.355793,
+    "573217953421@c.us": 1790769085.355793,
+    "573004054394@c.us": 1790782759.8800378,
+    "123394527903825@lid": 1790782759.8800378,
+    "258519064379559@lid": 1790785398.3682761,
+    "573042673171@c.us": 1790785398.3682761,
+    "573218851807@c.us": 1790789766.5253491,
+    "4707519078573@lid": 1790789766.5253491
   },
   "bot_auto_pausados": {
     "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe": {
@@ -275,6 +291,46 @@
     },
     "251290466701322@lid": {
       "timestamp": 1790724056.6071713,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "249730957316313@lid": {
+      "timestamp": 1790769085.355793,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573217953421@c.us": {
+      "timestamp": 1790769085.355793,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573004054394@c.us": {
+      "timestamp": 1790782759.8800378,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "123394527903825@lid": {
+      "timestamp": 1790782759.8800378,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "258519064379559@lid": {
+      "timestamp": 1790785398.3682761,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573042673171@c.us": {
+      "timestamp": 1790785398.3682761,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573218851807@c.us": {
+      "timestamp": 1790789766.5253491,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "4707519078573@lid": {
+      "timestamp": 1790789766.5253491,
       "razon": "operador desde panel de chats",
       "ultimo_mensaje": ""
     }
