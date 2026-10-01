@@ -56,7 +56,7 @@ interface Props {
 }
 
 /**
- * Etiqueta circular 53 × 53 mm — Ceras y mantecas.
+ * Etiqueta circular 53 × 53 mm (y redonda 70 × 70) — Ceras y mantecas.
  *
  *            ╭────── MANTECA KARITÉ ──────╮
  *          ╱        logo · lema            ╲

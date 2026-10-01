@@ -251,7 +251,7 @@ function ProductLabelFormInner({
   /** 66 × 22 mm ("5 mL"): los tres paneles del 30 mL, reducidos a dos filas
    *  (frascos de Aceites Esenciales). */
   const es5ml = esFormato5ml(tipoNombre, tipo);
-  /** 53 × 53 mm: etiqueta redonda de ceras y mantecas (composición radial). */
+  /** 53 × 53 mm o redonda de 70 × 70: etiqueta de ceras y mantecas (composición radial). */
   const esCircular = esFormatoCircular(tipoNombre, tipo);
   const esVertical = esFormatoVertical(tipoNombre, tipo);
   const guardarTipos = useGuardarTiposEtiqueta();
@@ -3140,8 +3140,8 @@ function ElegirTamanoPlantilla({
           </select>
           {esFormatoCircular(tamano) && (
             <span className="mt-1 block text-[11px] text-accent">
-              53 × 53 mm usa la etiqueta redonda de ceras y mantecas (nombre y datos sobre arcos;
-              descripción, aplicaciones con viñeta, código de barras y peso en el centro).
+              La redonda (53 × 53 o 70 × 70 mm) usa el diseño de ceras y mantecas (nombre y datos sobre arcos;
+              logo, rejilla 2 × 2 de íconos, código de barras y peso en el centro).
             </span>
           )}
           {esFormatoSimple(tamano) && (

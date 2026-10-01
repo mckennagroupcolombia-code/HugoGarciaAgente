@@ -4713,3 +4713,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Sin cambios en el backend.
   - **Verificado:** `npm run build`; capturas en Chrome headless con historial y procedimientos simulados (sin escribir y escribiendo «etiq»), en un arnés temporal ya retirado.
 - **Archivos Modificados:** `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`
+
+### 2026-10-01 - Redonda 70 × 70 con el diseño de la Circular 53 (karité)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Studio de etiquetas)
+- **Qué se implementó:**
+  - `esFormatoCircular` reconoce también «Circular 70» (y cualquier formato redondo por nombre de 70 × 70 mm): se dibuja con la composición radial de la de karité —arcos, logo, rejilla 2 × 2 de íconos, código de barras y peso—, escalada; ⌀ de impresión, PNG y «Exportar SVG» salen a 70 mm.
+  - «125 g» mide 70 × 70 pero es cuadrada: a esa medida se exige que el nombre sea redondo, así que sigue con la ficha normal.
+  - Texto de ayuda del selector de tamaño actualizado (ya no menciona aplicaciones con viñeta).
+  - **Verificado:** `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-circular/etiquetaCircularTypes.ts`, `desktop/src/components/etiqueta-circular/EtiquetaCircular.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`

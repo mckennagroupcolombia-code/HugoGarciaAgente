@@ -1,5 +1,6 @@
 /**
- * Formato circular 53 × 53 mm — etiqueta redonda para Ceras y mantecas.
+ * Formato circular 53 × 53 mm (y la redonda de 70 × 70) — etiqueta redonda
+ * para Ceras y mantecas.
  *
  * A diferencia de los demás formatos, la composición es radial: el nombre y
  * los datos del perímetro van sobre arcos (SVG `textPath`) y el bloque
@@ -19,15 +20,23 @@ import { mezclarHex, sonMedidas } from "../etiqueta-30ml/etiqueta30mlTypes";
 export const MEDIDAS_CIRCULAR_POR_DEFECTO = { ancho_mm: 53, alto_mm: 53 } as const;
 export const NOMBRE_FORMATO_CIRCULAR = "Circular 53";
 
+/** Troquel redondo de 70 × 70 mm («Circular 70»): mismo diseño radial que el
+ *  de 53, escalado. Ojo: «125 g» mide igual pero es cuadrada, por eso a esta
+ *  medida se exige además que el formato sea redondo por su nombre. */
+export const MEDIDAS_CIRCULAR_70 = { ancho_mm: 70, alto_mm: 70 } as const;
+
 /** ¿El formato elegido usa la etiqueta circular? Por el nombre o, si se lo
- *  renombró (los formatos se muestran por tamaño), por sus medidas. Ojo: ya
- *  existen «Circular» (55 × 55) y «Circular 70», que son otros diseños. */
+ *  renombró (los formatos se muestran por tamaño), por sus medidas. Vale para
+ *  la de 53 × 53 y la redonda de 70 × 70; «Circular» (55 × 55) y «Circular 50»
+ *  siguen siendo otros diseños. */
 export function esFormatoCircular(
   tipoNombre?: string | null,
   medidas?: { ancho_mm?: number; alto_mm?: number } | null,
 ): boolean {
-  if (/^circular\s*53$/i.test((tipoNombre || "").trim())) return true;
-  return sonMedidas(medidas, MEDIDAS_CIRCULAR_POR_DEFECTO);
+  const nombre = (tipoNombre || "").trim();
+  if (/^circular\s*(53|70)$/i.test(nombre)) return true;
+  if (sonMedidas(medidas, MEDIDAS_CIRCULAR_POR_DEFECTO)) return true;
+  return /circ(?:ular|le)/i.test(nombre) && sonMedidas(medidas, MEDIDAS_CIRCULAR_70);
 }
 
 /** Diámetro de diseño en px — es también el tamaño al que se dibuja en
