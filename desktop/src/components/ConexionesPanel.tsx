@@ -26,7 +26,7 @@ type Conexion = {
   ms?: number;
   qr?: boolean;
   que_se_cae: string[];
-  reconexion: { tipo: "qr" | "oauth_gmail" | "oauth_meli" | "guia"; qr_api?: string };
+  reconexion: { tipo: "qr" | "oauth_gmail" | "oauth_meli" | "token_mp" | "guia"; qr_api?: string; url?: string };
   pasos: string[];
 };
 
@@ -162,6 +162,84 @@ function QrWhatsapp({ ruta, onVinculado }: { ruta: string; onVinculado: () => vo
   );
 }
 
+/** Mercado Pago no tiene OAuth para la cuenta propia: el Access Token de producción
+ *  se copia del portal y se pega aquí. El backend lo prueba (/users/me), rechaza los
+ *  TEST- y los de otra cuenta (salvo confirmación) y lo deja en uso sin reiniciar. */
+function TokenMercadoPago({ url, onGuardado }: { url?: string; onGuardado: () => void }) {
+  const [token, setToken] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [res, setRes] = useState<{ ok: boolean; error?: string; cuenta?: string; otra_cuenta?: boolean } | null>(null);
+  const [confirmarOtra, setConfirmarOtra] = useState(false);
+
+  async function guardar() {
+    setEnviando(true);
+    setRes(null);
+    try {
+      const r = await api.post<{ ok: boolean; error?: string; cuenta?: string; otra_cuenta?: boolean }>(
+        "/api/conexiones/mercadopago/token",
+        { token: token.trim(), aceptar_otra_cuenta: confirmarOtra },
+      );
+      setRes(r);
+      if (r.ok) {
+        setToken("");
+        setConfirmarOtra(false);
+        onGuardado();
+      }
+    } catch (e) {
+      setRes({ ok: false, error: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-border bg-surface p-3">
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-lg border-2 border-border px-3 py-1.5 text-xs font-semibold text-ink hover:border-accent"
+        >
+          <Icon name="link" size={13} /> Abrir credenciales de Mercado Pago
+        </a>
+      )}
+      <label className="block text-[11px] font-bold uppercase tracking-wide text-muted" htmlFor="mp-token">
+        Access Token de producción
+      </label>
+      <input
+        id="mp-token"
+        type="password"
+        autoComplete="off"
+        spellCheck={false}
+        value={token}
+        onChange={(e) => setToken(e.target.value)}
+        placeholder="APP_USR-…"
+        className="w-full rounded-lg border border-border bg-surface-panel px-3 py-2 font-mono text-xs text-ink focus:border-accent focus:outline-none"
+      />
+      {res?.otra_cuenta && (
+        <label className="flex items-start gap-2 text-xs text-ink">
+          <input type="checkbox" checked={confirmarOtra} onChange={(e) => setConfirmarOtra(e.target.checked)} className="mt-0.5" />
+          Sí, la cuenta de cobro de la tienda cambió: usar este token.
+        </label>
+      )}
+      <button
+        type="button"
+        onClick={guardar}
+        disabled={enviando || !token.trim() || (res?.otra_cuenta === true && !confirmarOtra)}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+      >
+        {enviando ? "Probando…" : "Probar y guardar"}
+      </button>
+      {res && (
+        <p className={`text-xs ${res.ok ? "text-emerald-600" : "text-danger"}`}>
+          {res.ok ? `Listo: conectado a ${res.cuenta}. Ya está en uso (panel, cron y tienda web).` : res.error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function Tarjeta({
   c,
   abierta,
@@ -221,6 +299,7 @@ function Tarjeta({
               <GmailOAuthPanel embebido />
             </Suspense>
           )}
+          {c.reconexion.tipo === "token_mp" && <TokenMercadoPago url={c.reconexion.url} onGuardado={onProbar} />}
           {c.reconexion.tipo === "oauth_meli" && (
             <Suspense fallback={<p className="text-xs text-muted">Cargando asistente…</p>}>
               <MeliOAuthPanel embebido />

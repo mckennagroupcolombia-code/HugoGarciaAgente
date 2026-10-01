@@ -1,3 +1,12 @@
+### 2026-10-01 11:30 - Conexiones: reconectar Mercado Pago pegando el token desde el panel
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Sistemas → Conexiones → Mercado Pago ya no es solo una guía para editar `.env` en el servidor y reiniciar dos servicios. Ahora tiene un botón «Abrir credenciales de Mercado Pago» y un campo para pegar el Access Token. «Probar y guardar» lo verifica contra `/users/me`, rechaza `TEST-…` y la Public Key, y pide confirmación si el token es de otra cuenta. Si pasa, lo escribe en `.env` (atómico, sin comillas por systemd) y lo deja en uso en el proceso.
+  - La tienda web (`website.py`) relee el token de `.env` cuando el archivo cambia (`_mp_token()`), así no hay que reiniciarla. El cuándo/quién/cuenta (nunca el token) queda en `app/data/mp_token_meta.json` y se muestra en la tarjeta.
+  - Endpoint `POST /api/conexiones/mercadopago/token` (solo admin, igual que el resto de Conexiones).
+- **Archivos Modificados:** `app/services/conexiones.py`, `app/routes_conexiones.py`, `PAGINA_WEB/site/website.py`, `desktop/src/components/ConexionesPanel.tsx`, `tests/test_conexiones.py`, `tests/test_conexiones_mercadopago_token.py`, `docs/team-recaps.md`.
+
 ### 2026-10-01 10:50 - Libro Mayor: ventas de carritos MeLi, comisiones MeLi y canceladas; retiro MP del 29-sep causado
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección + datos contables. Sin LLM.

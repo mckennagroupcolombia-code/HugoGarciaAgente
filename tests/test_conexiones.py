@@ -44,4 +44,4 @@ def test_cache_y_forzar_una_sola(monkeypatch):
 
 def test_catalogo_completo():
     for c in C.CONEXIONES:
-        assert c["pasos"] and c["que_se_cae"] and c["reconexion"]["tipo"] in ("qr", "oauth_gmail", "oauth_meli", "guia")
+        assert c["pasos"] and c["que_se_cae"] and c["reconexion"]["tipo"] in ("qr", "oauth_gmail", "oauth_meli", "token_mp", "guia")

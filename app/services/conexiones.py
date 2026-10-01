@@ -221,7 +221,96 @@ def _check_mercadopago() -> dict:
     if r.status_code != 200:
         return _r("caido", f"Mercado Pago → {_http_error(r)}")
     d = r.json()
-    return _r("ok", f"Cuenta {d.get('nickname') or d.get('email') or d.get('id')}.", cuenta=d.get("nickname"))
+    meta = _leer_json(MP_META)
+    cuando = f" Token cambiado el {meta['conectado_en'][:16].replace('T', ' ')}." if meta.get("conectado_en") else ""
+    return _r("ok", f"Cuenta {d.get('nickname') or d.get('email') or d.get('id')}.{cuando}", cuenta=d.get("nickname"))
+
+
+MP_META = REPO / "app" / "data" / "mp_token_meta.json"
+ENV_PATH = REPO / ".env"
+
+
+def _escribir_env(nombre: str, valor: str) -> None:
+    """Reemplaza (o agrega) `nombre=valor` en .env sin tocar las demás líneas.
+
+    Sin comillas y sin comentario al final: systemd lee este archivo como
+    EnvironmentFile y no quita ninguno de los dos. Se escribe a un temporal y se
+    renombra, así un corte a mitad de camino no deja el .env a medias.
+    """
+    lineas = ENV_PATH.read_text(encoding="utf-8").splitlines(keepends=True) if ENV_PATH.exists() else []
+    nueva = f"{nombre}={valor}\n"
+    hecho = False
+    for i, ln in enumerate(lineas):
+        if ln.split("=", 1)[0].strip() == nombre and not ln.lstrip().startswith("#"):
+            lineas[i] = nueva
+            hecho = True
+    if not hecho:
+        if lineas and not lineas[-1].endswith("\n"):
+            lineas[-1] += "\n"
+        lineas.append(nueva)
+    tmp = ENV_PATH.with_suffix(".env.tmp")
+    tmp.write_text("".join(lineas), encoding="utf-8")
+    if ENV_PATH.exists():
+        os.chmod(tmp, ENV_PATH.stat().st_mode & 0o777)
+    os.replace(tmp, ENV_PATH)
+
+
+def _cuenta_mp(token: str) -> tuple[dict | None, str]:
+    r = requests.get("https://api.mercadopago.com/users/me", headers={"Authorization": f"Bearer {token}"},
+                     timeout=TIMEOUT_S)
+    if r.status_code != 200:
+        return None, _http_error(r)
+    return r.json(), ""
+
+
+def reconectar_mercadopago(token: str, *, usuario: str = "", aceptar_otra_cuenta: bool = False) -> dict:
+    """Prueba un Access Token de Mercado Pago y, si sirve, lo deja en uso.
+
+    El token de producción (APP_USR-…) no vence solo: se cambia cuando alguien lo
+    regenera en el portal de desarrolladores o la app pierde permisos. Antes había
+    que entrar al servidor a editar .env y reiniciar dos servicios; ahora se pega
+    en el panel. Se guarda en .env (lo leen los cron y, al arrancar, los
+    servicios) y en el entorno de este proceso; la tienda web lo relee de .env.
+
+    Un token que pertenece a OTRA cuenta de Mercado Pago se rechaza salvo que se
+    confirme: cobrar a la cuenta equivocada no se nota hasta conciliar.
+    """
+    token = (token or "").strip()
+    if not token:
+        return {"ok": False, "error": "Pega el Access Token."}
+    if token.startswith("TEST-"):
+        return {"ok": False, "error": "Ese es un token de PRUEBA (TEST-…). Copia el de «Credenciales de producción» (APP_USR-…)."}
+    if not token.startswith("APP_USR-"):
+        return {"ok": False, "error": "El Access Token de producción empieza por APP_USR-. Revisa que no sea la Public Key."}
+    nueva, err = _cuenta_mp(token)
+    if not nueva:
+        return {"ok": False, "error": f"Mercado Pago rechazó el token: {err}"}
+    actual = None
+    previo = _env("MP_ACCESS_TOKEN")
+    if previo and previo != token:
+        actual, _ = _cuenta_mp(previo)
+    meta_previa = _leer_json(MP_META)
+    id_conocido = (actual or {}).get("id") or meta_previa.get("user_id")
+    if id_conocido and str(id_conocido) != str(nueva.get("id")) and not aceptar_otra_cuenta:
+        return {
+            "ok": False, "otra_cuenta": True,
+            "error": (f"El token es de la cuenta {nueva.get('nickname') or nueva.get('id')}, no de "
+                      f"{(actual or {}).get('nickname') or meta_previa.get('cuenta') or id_conocido}. "
+                      "Si de verdad cambió la cuenta de cobro, confírmalo."),
+        }
+    _escribir_env("MP_ACCESS_TOKEN", token)
+    os.environ["MP_ACCESS_TOKEN"] = token
+    meta = {
+        "user_id": nueva.get("id"),
+        "cuenta": nueva.get("nickname") or nueva.get("email"),
+        "conectado_en": datetime.now().isoformat(timespec="seconds"),
+        "conectado_por": usuario,
+        "termina_en": token[-4:],
+    }
+    MP_META.write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+    with _lock:
+        _cache.pop("mercadopago", None)
+    return {"ok": True, "cuenta": meta["cuenta"], "user_id": meta["user_id"]}
 
 
 def _check_smtp() -> dict:
@@ -352,12 +441,12 @@ CONEXIONES: list[dict[str, Any]] = [
         "id": "mercadopago", "nombre": "Mercado Pago", "grupo": "Ventas",
         "check": _check_mercadopago,
         "que_se_cae": ["Pagos de la tienda web", "Liberaciones y reembolsos"],
-        "reconexion": {"tipo": "guia"},
+        "reconexion": {"tipo": "token_mp", "url": "https://www.mercadopago.com.co/developers/panel/app"},
         "pasos": [
-            "mercadopago.com.co/developers → Tus integraciones → la app de McKenna → Credenciales de producción.",
-            "Copia el Access Token (APP_USR-…).",
-            "En el servidor: reemplaza MP_ACCESS_TOKEN en .env.",
-            "`sudo systemctl restart agente-pro mckenna-website` y pulsa «Probar de nuevo».",
+            "Pulsa «Abrir credenciales de Mercado Pago» y entra con la cuenta de McKenna.",
+            "Abre la app de McKenna → Credenciales de producción.",
+            "Copia el Access Token (empieza por APP_USR-…), pégalo abajo y pulsa «Probar y guardar».",
+            "Si Mercado Pago lo acepta queda en uso de inmediato (panel, cron y tienda web): no hay que reiniciar nada.",
         ],
     },
     {

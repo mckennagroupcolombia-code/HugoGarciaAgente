@@ -150,7 +150,26 @@ def cotizar_envio_web(ciudad: str, depto: str, cart: dict) -> dict:
     return _cotizar_envio_ir(ciudad, depto, peso_kg=peso_carrito_kg(cart))
 
 # ── MercadoPago Colombia ─────────────────────────────────
-MP_ACCESS_TOKEN   = os.getenv("MP_ACCESS_TOKEN", "")       # APP_USR-...
+# El token se puede cambiar desde /app → Sistemas → Conexiones, que lo escribe en
+# .env: se relee de ahí (solo cuando el archivo cambia) para no tener que
+# reiniciar la tienda. Si .env no lo trae, vale el del entorno del servicio.
+_mp_token_cache = {"mtime": None, "token": ""}
+
+
+def _mp_token() -> str:
+    env = ROOT / ".env"
+    try:
+        mtime = env.stat().st_mtime
+    except OSError:
+        return os.getenv("MP_ACCESS_TOKEN", "")
+    if _mp_token_cache["mtime"] != mtime:
+        from dotenv import dotenv_values
+
+        _mp_token_cache["token"] = (dotenv_values(env).get("MP_ACCESS_TOKEN") or "").strip()
+        _mp_token_cache["mtime"] = mtime
+    return _mp_token_cache["token"] or os.getenv("MP_ACCESS_TOKEN", "")
+
+
 MP_API            = "https://api.mercadopago.com"
 
 # ── DB órdenes ───────────────────────────────────────────
@@ -3452,7 +3471,7 @@ def mp_crear_preferencia(ref: str, cart: dict, total: float, shipping: float = 0
             f"{MP_API}/checkout/preferences",
             json=payload,
             headers={
-                "Authorization": f"Bearer {MP_ACCESS_TOKEN}",
+                "Authorization": f"Bearer {_mp_token()}",
                 "Content-Type": "application/json",
                 "X-Idempotency-Key": ref,
             },
@@ -6039,7 +6058,7 @@ def checkout_pagar():
     except Exception as e:
         log.warning(f"checkout_pagar DB: {e}")
 
-    if not MP_ACCESS_TOKEN:
+    if not _mp_token():
         # Sin token configurado: mostrar página de confirmación manual
         return render_template("checkout_sin_mp.html",
             ref=ref, total=total,
@@ -6057,12 +6076,12 @@ def checkout_pagar():
 
 def _mp_consultar_pago(payment_id: str) -> dict:
     """GET /v1/payments/{id}. Retorna dict vacío si falla."""
-    if not payment_id or not MP_ACCESS_TOKEN:
+    if not payment_id or not _mp_token():
         return {}
     try:
         res = requests.get(
             f"{MP_API}/v1/payments/{payment_id}",
-            headers={"Authorization": f"Bearer {MP_ACCESS_TOKEN}"},
+            headers={"Authorization": f"Bearer {_mp_token()}"},
             timeout=10,
         )
         if res.status_code == 200:
