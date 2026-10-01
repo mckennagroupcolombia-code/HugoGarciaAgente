@@ -4762,3 +4762,12 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Si después se cambian ingredientes o cantidad, el listado pide volver a generarse. Una fórmula nueva arranca sin cantidad (`formulas_db.guardar` ya no pone 1000 g por defecto).
   - **Verificado:** `npm run build`; captura en Chrome headless del flujo con datos simulados (2.500 g), en un arnés temporal ya retirado; reinicio de `agente-pro`.
 - **Archivos Modificados:** `desktop/src/components/formulas/FormulasPanel.tsx`, `desktop/src/lib/panelInfo.ts`, `app/services/formulas_db.py`, `docs/team-recaps.md`
+
+### 2026-10-01 - Fórmulas: cantidad a preparar en gramos o mililitros
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Diseño de producto → Fórmulas)
+- **Qué se implementó:**
+  - «¿Qué cantidad vamos a preparar?» se elige en gramos (g) o mililitros (mL) —ya no en kilos—; el listado, el total y la hoja impresa salen en esa unidad.
+  - La unidad se guarda con la fórmula (`unidad`: `g` | `mL` en `formulas_db.guardar`).
+  - **Verificado:** `npm run build`; curl: guardar con 500 mL y leerla de vuelta (fórmula de prueba borrada); reinicio de `agente-pro`.
+- **Archivos Modificados:** `desktop/src/components/formulas/FormulasPanel.tsx`, `desktop/src/lib/panelInfo.ts`, `app/services/formulas_db.py`, `docs/team-recaps.md`

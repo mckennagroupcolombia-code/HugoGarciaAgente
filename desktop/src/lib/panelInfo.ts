@@ -294,7 +294,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Fórmulas de producto: ingredientes y porcentajes, la cantidad a preparar y el listado de cantidades de cada ingrediente (para imprimir).",
     tips: [
       "Busca la materia prima por nombre o código: queda enlazada al catálogo de Alegra. También puedes escribir un ingrediente libre.",
-      "Después de los porcentajes, escribe cuánto vas a preparar (g o kg) y pulsa «Generar listado de cantidades».",
+      "Después de los porcentajes, escribe cuánto vas a preparar (en gramos o mililitros) y pulsa «Generar listado de cantidades».",
       "El total debe sumar 100 %: si no, se avisa cuánto falta o sobra.",
     ],
     tier: "standard",

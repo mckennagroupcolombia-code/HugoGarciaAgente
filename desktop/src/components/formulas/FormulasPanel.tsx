@@ -17,13 +17,18 @@ interface Ingrediente {
   funcion: string;
 }
 
+/** La cantidad a preparar va en gramos o en mililitros; el listado sale en la misma unidad. */
+type Unidad = "g" | "mL";
+
 interface Formula {
   id?: string;
   nombre: string;
   categoria: string;
   descripcion: string;
   ingredientes: Ingrediente[];
+  /** Cantidad a preparar, en la unidad de `unidad` (el nombre del campo es histórico). */
   lote_g: number;
+  unidad?: Unidad;
   procedimiento: string;
   notas: string;
   actualizado?: string;
@@ -36,6 +41,7 @@ const VACIA: Formula = {
   descripcion: "",
   ingredientes: [],
   lote_g: 0,
+  unidad: "g",
   procedimiento: "",
   notas: "",
 };
@@ -219,19 +225,16 @@ function EditorFormula({
   const total = ingredientes.reduce((s, i) => s + (Number(i.porcentaje) || 0), 0);
   const cuadra = Math.abs(total - 100) < 0.005;
   const cantidad = Number(formula.lote_g) || 0;
-  const [unidad, setUnidad] = useState<"g" | "kg">(cantidad >= 1000 && cantidad % 1000 === 0 ? "kg" : "g");
-  const factor = unidad === "kg" ? 1000 : 1;
+  const unidad: Unidad = formula.unidad === "mL" ? "mL" : "g";
   /** Listado generado: guarda con qué fórmula y cantidad se hizo, para avisar
    *  si después se cambia algo y hay que volver a generarlo. */
-  const huella = JSON.stringify([conNombre.map((i) => [i.nombre, i.porcentaje]), cantidad]);
+  const huella = JSON.stringify([conNombre.map((i) => [i.nombre, i.porcentaje]), cantidad, unidad]);
   const [generado, setGenerado] = useState<string | null>(null);
   const listoParaGenerar = conNombre.length > 0 && cuadra && cantidad > 0;
 
   // Al abrir otra fórmula, el listado se vuelve a pedir (guardar no lo borra).
   useEffect(() => {
     setGenerado(null);
-    setUnidad(cantidad >= 1000 && cantidad % 1000 === 0 ? "kg" : "g");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apertura]);
 
   function cambiarFila(idx: number, patch: Partial<Ingrediente>) {
@@ -248,7 +251,7 @@ function EditorFormula({
       .map(
         (f, k) =>
           `<tr><td>${k + 1}</td><td>${esc(f.nombre)}${f.fase ? ` <small>(fase ${esc(f.fase)})</small>` : ""}</td>` +
-          `<td class="n">${num(f.porcentaje, 4)} %</td><td class="n"><b>${num(f.gramos)} g</b></td><td class="c">☐</td></tr>`,
+          `<td class="n">${num(f.porcentaje, 4)} %</td><td class="n"><b>${num(f.gramos)} ${unidad}</b></td><td class="c">☐</td></tr>`,
       )
       .join("");
     w.document.write(
@@ -257,10 +260,10 @@ function EditorFormula({
         `table{width:100%;border-collapse:collapse;font-size:14px}th,td{border-bottom:1px solid #ccc;padding:6px 8px;text-align:left}` +
         `.n{text-align:right;font-variant-numeric:tabular-nums}.c{text-align:center}tfoot td{font-weight:700;border-top:2px solid #111}</style></head><body>` +
         `<h1>${esc(formula.nombre || "Fórmula")}</h1>` +
-        `<p>Cantidad a preparar: <b>${num(cantidad / factor, 3)} ${unidad}</b> · ${new Date().toLocaleDateString("es-CO")}</p>` +
+        `<p>Cantidad a preparar: <b>${num(cantidad)} ${unidad}</b> · ${new Date().toLocaleDateString("es-CO")}</p>` +
         `<table><thead><tr><th>#</th><th>Ingrediente</th><th class="n">%</th><th class="n">Cantidad</th><th class="c">Pesado</th></tr></thead>` +
         `<tbody>${cuerpo}</tbody><tfoot><tr><td></td><td>Total</td><td class="n">${num(total)} %</td>` +
-        `<td class="n">${num(cantidad)} g</td><td></td></tr></tfoot></table></body></html>`,
+        `<td class="n">${num(cantidad)} ${unidad}</td><td></td></tr></tfoot></table></body></html>`,
     );
     w.document.close();
     w.focus();
@@ -388,8 +391,8 @@ function EditorFormula({
               type="number"
               min={0}
               step="any"
-              value={cantidad ? Math.round((cantidad / factor) * 1000) / 1000 : ""}
-              onChange={(e) => onChange({ lote_g: (Number(e.target.value) || 0) * factor })}
+              value={cantidad || ""}
+              onChange={(e) => onChange({ lote_g: Number(e.target.value) || 0 })}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && listoParaGenerar) setGenerado(huella);
               }}
@@ -399,11 +402,11 @@ function EditorFormula({
           </span>
           <select
             value={unidad}
-            onChange={(e) => setUnidad(e.target.value as "g" | "kg")}
+            onChange={(e) => onChange({ unidad: e.target.value as Unidad })}
             className="mck-field-lg rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm text-ink"
           >
-            <option value="g">gramos</option>
-            <option value="kg">kilos</option>
+            <option value="g">gramos (g)</option>
+            <option value="mL">mililitros (mL)</option>
           </select>
           <button type="button" className={BOTON} disabled={!listoParaGenerar} onClick={() => setGenerado(huella)}>
             Generar listado de cantidades
@@ -426,7 +429,7 @@ function EditorFormula({
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-ink">
               <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] text-white">3</span>
-              Listado de cantidades · {num(cantidad / factor, 3)} {unidad}
+              Listado de cantidades · {num(cantidad)} {unidad}
             </h3>
             <button type="button" className={BOTON_SUAVE} onClick={imprimir} disabled={generado !== huella}>
               Imprimir listado
@@ -455,7 +458,7 @@ function EditorFormula({
                       {f.fase && <span className="ml-1 text-[11px] text-muted">fase {f.fase}</span>}
                     </td>
                     <td className="px-1 py-1.5 text-right tabular-nums text-muted">{num(f.porcentaje, 4)} %</td>
-                    <td className="px-1 py-1.5 text-right font-semibold tabular-nums text-ink">{num(f.gramos)} g</td>
+                    <td className="px-1 py-1.5 text-right font-semibold tabular-nums text-ink">{num(f.gramos)} {unidad}</td>
                   </tr>
                 ))}
               </tbody>
@@ -464,7 +467,7 @@ function EditorFormula({
                   <td />
                   <td className="px-1 py-1.5 text-ink">Total</td>
                   <td className="px-1 py-1.5 text-right tabular-nums">{num(total)} %</td>
-                  <td className="px-1 py-1.5 text-right tabular-nums text-ink">{num(cantidad)} g</td>
+                  <td className="px-1 py-1.5 text-right tabular-nums text-ink">{num(cantidad)} {unidad}</td>
                 </tr>
               </tfoot>
             </table>

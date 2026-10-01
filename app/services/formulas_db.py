@@ -105,6 +105,8 @@ def guardar(body: dict, autor: str = "") -> dict:
             "descripcion": _texto(body.get("descripcion"), 1000),
             "ingredientes": ingredientes,
             "lote_g": lote,
+        # La cantidad a preparar va en gramos o mililitros (el listado sale en la misma unidad).
+        "unidad": "mL" if str(body.get("unidad") or "").strip().lower() == "ml" else "g",
             "procedimiento": _texto(body.get("procedimiento"), 8000),
             "notas": _texto(body.get("notas"), 4000),
             "creado": (existente or {}).get("creado") or _now(),
