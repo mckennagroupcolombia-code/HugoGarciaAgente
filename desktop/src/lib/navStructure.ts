@@ -88,6 +88,8 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     items: [
       { panel: "etiquetas", tier: "core" },
       { panel: "fichas", tier: "standard" },
+      // Fórmulas de producto (1-oct-2026): receta de elaboración, con permiso propio.
+      { panel: "formulas", tier: "standard" },
     ],
   },
   {

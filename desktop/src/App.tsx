@@ -21,6 +21,7 @@ const PreventaPanel = lazy(() => import("./components/PreventaPanel"));
 const PostventaPanel = lazy(() => import("./components/PostventaPanel"));
 const VentasEmailPanel = lazy(() => import("./components/VentasEmailPanel"));
 const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"));
+const FormulasPanel = lazy(() => import("./components/formulas/FormulasPanel"));
 const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
 const EmpaquePanel = lazy(() => import("./components/EmpaquePanel"));
 const GuiasEnvioPanel = lazy(() => import("./components/GuiasEnvioPanel"));
@@ -157,6 +158,8 @@ function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
       return <FacturacionPanel />;
     case "fichas":
       return <FichasTecnicasPanel />;
+    case "formulas":
+      return <FormulasPanel />;
     case "pedidos":
       return <PedidosWebPanel />;
     case "empaque":

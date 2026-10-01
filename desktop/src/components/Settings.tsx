@@ -686,6 +686,7 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "webchat",    label: "Chat web" },
   { id: "etiquetas",  label: "Diseño (etiquetas)" },
   { id: "fichas",     label: "Diseño (documentos técnicos)" },
+  { id: "formulas",   label: "Diseño (fórmulas)" },
   { id: "stock",      label: "Stock (en Contabilidad)" },
   { id: "control-inventario", label: "Inventario" },
   { id: "publicaciones", label: "Publicaciones" },

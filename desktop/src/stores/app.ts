@@ -20,6 +20,7 @@ export type Panel =
   | "stock"
   | "control-inventario"
   | "fichas"
+  | "formulas"
   | "pedidos"
   | "empaque"
   | "guias-envio"

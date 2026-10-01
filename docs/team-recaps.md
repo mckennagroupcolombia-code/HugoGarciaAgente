@@ -4742,3 +4742,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Se corrigió la guardada «VASELINA BLANCA 900g» («Conservar el envase bien cerrado…»).
   - **Verificado:** `npm run build`; prueba de `_con_recipiente` con «Circular 70» y «125 g»; reinicio de `agente-pro`.
 - **Archivos Modificados:** `app/tools/etiquetas_fichas.py`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+### 2026-10-01 - Diseño de producto → Fórmulas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Diseño de producto)
+- **Qué se implementó:**
+  - Pestaña «Fórmulas» en el cabezote de Diseño de producto (panel `formulas`, ícono matraz), junto a Documentos técnicos.
+  - Cada fórmula: nombre, categoría, descripción, ingredientes (fase, ingrediente, función, %), procedimiento y notas. El ingrediente se busca en el catálogo local de Alegra sin combos (queda con su código) o se escribe libre. Se guarda en %; la columna Gramos se calcula para el lote escrito. Avisa si el total no suma 100 %.
+  - Permiso propio `formulas` (Ajustes → «Diseño (fórmulas)»); los administradores la ven siempre. El servidor lo exige con `acceso_paneles.puede_ver_panel`.
+  - Backend: `app/routes_formulas.py` (`GET/POST /api/formulas`, `DELETE /api/formulas/<id>`, `GET /api/formulas/materias?q=`), datos en `app/data/formulas.json` con candado (`app/services/formulas_db.py`). Registrado en `agente_pro.py`.
+  - **Verificado:** `npm run build`; curl contra localhost:8080 (crear, listar, buscar materia prima, borrar; la fórmula de prueba se eliminó); capturas en Chrome headless de escritorio y móvil con datos simulados, en un arnés temporal ya retirado.
+- **Archivos Modificados:** `app/routes_formulas.py`, `app/services/formulas_db.py`, `agente_pro.py`, `desktop/src/components/formulas/FormulasPanel.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/navStructure.ts`, `desktop/src/lib/panelInfo.ts`, `desktop/src/components/nav/DisenoNavTabs.tsx`, `desktop/src/components/Settings.tsx`, `desktop/src/icons/mck/paths/panels.tsx`, `docs/team-recaps.md`
