@@ -518,6 +518,27 @@ def recortar_a_palabras(texto: str, maximo: int = MAX_PALABRAS_CONSERVACION) -> 
     return out.rstrip(" ,;")
 
 
+#: "Conservar en envase bien cerrado" esta mal construido: falta el articulo.
+#: Con "(bien) cerrado" va "Conservar el envase bien cerrado"; con cualquier
+#: otro complemento, "Conservar en el envase hermetico". Igual en
+#: `desktop/src/lib/fichaTecnicaCampos.ts` (corregirRedaccionConservacion).
+_RE_VERBO_EN_ENVASE_CERRADO = re.compile(
+    r"\b(conservar|almacenar|guardar|mantener) en (envase|empaque|recipiente)( bien)? cerrad",
+    re.IGNORECASE,
+)
+_RE_VERBO_EN_ENVASE = re.compile(
+    r"\b(conservar|almacenar|guardar|mantener) en (envase|empaque|recipiente)\b",
+    re.IGNORECASE,
+)
+
+
+def corregir_redaccion_conservacion(texto: str) -> str:
+    t = _RE_VERBO_EN_ENVASE_CERRADO.sub(
+        lambda m: f"{m.group(1)} el {m.group(2)}{m.group(3) or ''} cerrad", texto or ""
+    )
+    return _RE_VERBO_EN_ENVASE.sub(lambda m: f"{m.group(1)} en el {m.group(2)}", t)
+
+
 _CAMPOS_ORACION_CORTA = {
     "descripcion", "apariencia", "olor", "sabor", "solubilidad",
     "modo_uso", "alergenos", "conservacion",
@@ -870,7 +891,7 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
     if campo == "conservacion":
         # La casilla de la etiqueta es una sintesis: el tope de 15 palabras se
         # impone aqui aunque el modelo devuelva un parrafo.
-        valor = recortar_a_palabras(valor)
+        valor = recortar_a_palabras(corregir_redaccion_conservacion(valor))
     if campo in _CAMPOS_ORACION_CORTA:
         valor = _asegurar_punto_final(valor)
     elif campo == "aplicaciones":

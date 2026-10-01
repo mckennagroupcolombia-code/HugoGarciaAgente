@@ -77,7 +77,7 @@
  },
  "C-ACEESELIM5ML": {
   "familia": "ACEESELIMmL",
-  "nombre": "ACEITE ESENCIAL DE LIMÓN"
+  "nombre": "ACEITE DE LIMÓN"
  },
  "C-ACEESEMAN5ML": {
   "familia": "ACEESEMANZmL",
@@ -349,7 +349,7 @@
  },
  "C-AMILARG100G": {
   "familia": "AMILARGBASg",
-  "nombre": "L-ARGININA BASE"
+  "nombre": "L-ARGININA"
  },
  "C-AMILCAR100G": {
   "familia": "AMITEAg",
@@ -449,7 +449,7 @@
  },
  "C-CARMAG500G": {
   "familia": "CARMAGg",
-  "nombre": "CARBONATO DE MAGNESIO"
+  "nombre": "CARBONATO DE CALCIO"
  },
  "C-CELMIC101500G": {
   "familia": "CELMIC101g",
@@ -649,7 +649,7 @@
  },
  "C-EXTTEMATVER100G": {
   "familia": "EXTTEMATVERg",
-  "nombre": "EXTRACTO DE TÉ VERDE MATCHA EN POLVO"
+  "nombre": "EXTRACTO DE TÉ VERDE"
  },
  "C-FLOSECLAV100G": {
   "familia": "FLOSECLAVg",

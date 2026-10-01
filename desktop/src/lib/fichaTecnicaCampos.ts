@@ -256,7 +256,7 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     // almacenamiento" (si el resumen sale vacío se respeta su texto tal cual).
     almacenamiento:
       (conservacionFicha
-        ? sintetizarConservacion(conservacionFicha) || conservacionFicha
+        ? sintetizarConservacion(conservacionFicha) || corregirRedaccionConservacion(conservacionFicha)
         : "")
       || (almacenamientoRaw ? sintetizarConservacion(almacenamientoRaw) : "")
       || FICHA_SIN_DATO,
@@ -405,6 +405,22 @@ function limpiarFrase(f: string): string {
   return sin.charAt(0).toUpperCase() + sin.slice(1);
 }
 
+/** "Conservar en envase bien cerrado" está mal construido: falta el artículo.
+ *  Con "(bien) cerrado" va "Conservar el envase bien cerrado"; con cualquier
+ *  otro complemento, "Conservar en el envase hermético". Igual en
+ *  `app/services/documento_cientifico.py` (corregir_redaccion_conservacion). */
+export function corregirRedaccionConservacion(texto: string): string {
+  return (texto || "")
+    .replace(
+      /\b(conservar|almacenar|guardar|mantener) en (envase|empaque|recipiente)( bien)? cerrad/gi,
+      (_m, verbo, envase, bien) => `${verbo} el ${envase}${bien || ""} cerrad`,
+    )
+    .replace(
+      /\b(conservar|almacenar|guardar|mantener) en (envase|empaque|recipiente)\b/gi,
+      (_m, verbo, envase) => `${verbo} en el ${envase}`,
+    );
+}
+
 /** Resume el texto de almacenamiento de la ficha técnica a lo esencial de
  *  CÓMO conservar el producto — ambiente, humedad, temperatura, luz,
  *  envase — en una síntesis concreta de máximo 15 palabras (regla del
@@ -418,7 +434,7 @@ export function sintetizarConservacion(
   maxPalabras = MAX_PALABRAS_CONSERVACION,
   maxChars = MAX_CARACTERES_CONSERVACION,
 ): string {
-  const limpio = (texto || "").replace(/\s+/g, " ").trim();
+  const limpio = corregirRedaccionConservacion((texto || "").replace(/\s+/g, " ").trim());
   if (!limpio) return "";
   const frases = limpio
     .split(/(?<=[.;])\s+/)
