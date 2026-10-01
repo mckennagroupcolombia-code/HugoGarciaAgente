@@ -4723,3 +4723,12 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Texto de ayuda del selector de tamaño actualizado (ya no menciona aplicaciones con viñeta).
   - **Verificado:** `npm run build`.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-circular/etiquetaCircularTypes.ts`, `desktop/src/components/etiqueta-circular/EtiquetaCircular.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+### 2026-10-01 - Etiqueta redonda: el aviso de control de calidad ya crece
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Studio de etiquetas)
+- **Qué se implementó:**
+  - El aviso de control de calidad llenaba su arco en un solo renglón, así que al subir el Tamaño en el popover el ajuste automático lo volvía a encoger y no cambiaba nada.
+  - Ahora, si se elige un tamaño y el texto no cabe en un renglón, se reparte por palabras en dos arcos concéntricos dentro del anillo (el de afuera lleva el comienzo) y se respeta el tamaño; solo se encoge si ni en dos cabe. Sin tamaño elegido se ve igual que antes. Medición con canvas (`repartirEnDosArcos` en `EtiquetaCircular.tsx`); el SVG de impresión exporta los dos arcos sin cambios.
+  - **Verificado:** `npm run build`; capturas en Chrome headless de la etiqueta «Circular 70» de vaselina con y sin tamaño 14, en un arnés temporal ya retirado.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-circular/EtiquetaCircular.tsx`, `docs/team-recaps.md`

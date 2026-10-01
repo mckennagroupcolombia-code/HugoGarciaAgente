@@ -153,6 +153,8 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           editable={editable}
           editMode={editMode}
           multilinea
+          dosRenglones
+          centro={centro}
           onChange={cambio("controlCalidad")}
         />
         <TextoCurvo
@@ -416,6 +418,62 @@ interface PinturaCurva {
 
 const FUENTE_SVG = "Montserrat, system-ui, -apple-system, Segoe UI, sans-serif";
 
+/** Distancia de cada renglón al eje del arco, en fracción del tamaño de
+ *  letra: los dos renglones quedan a 1,2 em entre sí, dentro del anillo. */
+const SEP_RENGLON = 0.6;
+
+let lienzoMedida: CanvasRenderingContext2D | null = null;
+
+/** Ancho de un texto con la fuente, el peso y el espaciado (en em) dados. */
+function anchoTexto(texto: string, f: number, fuente: string, pintura: PinturaCurva): number {
+  if (!lienzoMedida) lienzoMedida = document.createElement("canvas").getContext("2d");
+  if (!lienzoMedida) return 0;
+  lienzoMedida.font = `${pintura.peso} ${f}px ${fuente}`;
+  const em = parseFloat(pintura.espaciado) || 0;
+  return lienzoMedida.measureText(texto).width + texto.length * em * f;
+}
+
+/** Largo útil de un arco (con el mismo respiro en las puntas que el de un renglón). */
+function largoUtil(r: number, desde: number, hasta: number): number {
+  return (r * Math.abs(hasta - desde) * Math.PI) / 180 * 0.96;
+}
+
+/**
+ * Busca, desde el tamaño elegido hacia abajo, el mayor tamaño al que el texto
+ * cabe: primero en un renglón y, si no, partido por palabras en dos arcos
+ * concéntricos (el de afuera, más largo, lleva el comienzo). Así el tamaño
+ * que se elige en el popover se respeta en vez de encogerse para caber en uno.
+ */
+function repartirEnDosArcos(
+  texto: string,
+  arco: { r: number; desde: number; hasta: number },
+  max: number,
+  min: number,
+  fuente: string,
+  pintura: PinturaCurva,
+): { f: number; dos: boolean; a: string; b: string; cabe: boolean } {
+  const palabras = texto.trim().split(/\s+/);
+  for (let f = max; ; f = Math.max(min, f - 0.5)) {
+    if (anchoTexto(texto, f, fuente, pintura) <= largoUtil(arco.r, arco.desde, arco.hasta)) {
+      return { f, dos: false, a: texto, b: "", cabe: true };
+    }
+    const sep = f * SEP_RENGLON;
+    const largoA = largoUtil(arco.r + sep, arco.desde, arco.hasta);
+    const largoB = largoUtil(arco.r - sep, arco.desde, arco.hasta);
+    let mejor: { a: string; b: string; peor: number } | null = null;
+    for (let i = 1; i < palabras.length; i++) {
+      const a = palabras.slice(0, i).join(" ");
+      const b = palabras.slice(i).join(" ");
+      const ra = anchoTexto(a, f, fuente, pintura) / largoA;
+      const rb = anchoTexto(b, f, fuente, pintura) / largoB;
+      const peor = Math.max(ra, rb);
+      if (peor <= 1 && (!mejor || peor < mejor.peor)) mejor = { a, b, peor };
+    }
+    if (mejor) return { f, dos: true, a: mejor.a, b: mejor.b, cabe: true };
+    if (f <= min) return { f, dos: false, a: texto, b: "", cabe: false };
+  }
+}
+
 function TextoCurvo({
   idPath,
   arco,
@@ -429,10 +487,12 @@ function TextoCurvo({
   editable,
   editMode,
   multilinea = false,
+  dosRenglones = false,
+  centro,
   onChange,
 }: {
   idPath: string;
-  arco: { r: number; desde: number; hasta: number };
+  arco: { r: number; desde: number; hasta: number; haciaAfuera?: boolean };
   valor: string;
   ejemplo: string;
   tam: readonly [number, number];
@@ -445,6 +505,11 @@ function TextoCurvo({
   editable: boolean;
   editMode: boolean;
   multilinea?: boolean;
+  /** Si al tamaño elegido no cabe en su arco, pasa a dos renglones en arcos
+   *  concéntricos (uno por fuera y otro por dentro del eje) antes de
+   *  encogerse. Necesita `centro` para trazar esos arcos. */
+  dosRenglones?: boolean;
+  centro?: number;
   onChange?: (v: string) => void;
 }) {
   const textoRef = useRef<SVGTextElement>(null);
@@ -458,6 +523,7 @@ function TextoCurvo({
   const max = override?.fontSize ?? tam[0];
   const min = Math.min(tam[1], max);
   const fuente = override?.fontFamily || FUENTE_SVG;
+  const elegido = override?.fontSize != null;
 
   const vacio = !valor.trim();
   const crudo = vacio ? (editMode ? ejemplo : "") : valor;
@@ -465,12 +531,30 @@ function TextoCurvo({
   // Largo del arco disponible, menos un respiro en las dos puntas.
   const largoArco = (arco.r * Math.abs(arco.hasta - arco.desde) * Math.PI) / 180 * 0.96;
 
+  // Reparto en dos renglones (solo con `dosRenglones`): tamaño final y texto
+  // de cada arco. `null` = cabe en uno, sobre el arco de siempre.
+  const [renglones, setRenglones] = useState<{ f: number; a: string; b: string } | null>(null);
+  const sep = renglones ? renglones.f * SEP_RENGLON : 0;
+
   useLayoutEffect(() => {
     const el = textoRef.current;
     if (!el || !visible) {
       setDesborda(false);
+      setRenglones(null);
       return;
     }
+    // Sin tamaño elegido se queda en un renglón y se encoge como siempre; al
+    // subirlo en el popover, en vez de encogerse de vuelta pasa a dos.
+    if (dosRenglones && elegido) {
+      // Medido en un canvas (misma fuente, peso y espaciado): así se prueban
+      // los cortes sin tocar el DOM que pinta React.
+      const reparto = repartirEnDosArcos(visible, arco, max, min, fuente, pintura);
+      setRenglones(reparto.dos ? { f: reparto.f, a: reparto.a, b: reparto.b } : null);
+      el.style.fontSize = `${reparto.f}px`;
+      setDesborda(!reparto.cabe);
+      return;
+    }
+    setRenglones(null);
     let f = max;
     el.style.fontSize = `${f}px`;
     const cabe = () => el.getComputedTextLength() <= largoArco;
@@ -479,10 +563,16 @@ function TextoCurvo({
       el.style.fontSize = `${f}px`;
     }
     setDesborda(!cabe());
-  }, [visible, max, min, fuente, largoArco, versionFuentes]);
+  }, [visible, max, min, fuente, largoArco, versionFuentes, dosRenglones, elegido, arco.r, arco.desde, arco.hasta, pintura.peso, pintura.espaciado]);
 
   return (
     <>
+      {renglones && centro !== undefined && (
+        <defs>
+          <path id={`${idPath}-1`} fill="none" d={arcoTexto(centro, arco.r + sep, arco.desde, arco.hasta, arco.haciaAfuera ?? true)} />
+          <path id={`${idPath}-2`} fill="none" d={arcoTexto(centro, arco.r - sep, arco.desde, arco.hasta, arco.haciaAfuera ?? true)} />
+        </defs>
+      )}
       <text
         ref={textoRef}
         className={`${clase}${vacio ? " ec-curvo-ejemplo" : ""}`}
@@ -500,9 +590,20 @@ function TextoCurvo({
         <title>
           {desborda && !vacio ? `${rotulo}: no cabe completo en su arco, acórtalo` : rotulo}
         </title>
-        <textPath href={`#${idPath}`} startOffset="50%" textAnchor="middle">
-          {visible}
-        </textPath>
+        {renglones && centro !== undefined ? (
+          <>
+            <textPath href={`#${idPath}-1`} startOffset="50%" textAnchor="middle">
+              {renglones.a}
+            </textPath>
+            <textPath href={`#${idPath}-2`} startOffset="50%" textAnchor="middle">
+              {renglones.b}
+            </textPath>
+          </>
+        ) : (
+          <textPath href={`#${idPath}`} startOffset="50%" textAnchor="middle">
+            {visible}
+          </textPath>
+        )}
       </text>
       {editable && (
         <CasillaCurva
@@ -516,6 +617,7 @@ function TextoCurvo({
           ejemplo={ejemplo}
           multilinea={multilinea}
           desborda={desborda}
+          dosRenglones={dosRenglones}
           onChange={onChange}
         />
       )}
@@ -535,6 +637,7 @@ function CasillaCurva({
   ejemplo,
   multilinea,
   desborda,
+  dosRenglones,
   onChange,
 }: {
   anchorRef: RefObject<SVGTextElement | null>;
@@ -547,6 +650,7 @@ function CasillaCurva({
   ejemplo: string;
   multilinea: boolean;
   desborda: boolean;
+  dosRenglones: boolean;
   onChange?: (v: string) => void;
 }) {
   const { estilos, setEstilo } = useTextStyleCtx();
@@ -618,7 +722,9 @@ function CasillaCurva({
       <p className={`mt-1 text-[11px] ${desborda ? "text-red-600" : "text-muted"}`}>
         {desborda
           ? "No cabe completo en su arco ni al tamaño mínimo: acórtalo o baja el tamaño."
-          : "Va sobre el arco; si el tamaño elegido no cabe, se encoge solo hasta que quepa."}
+          : dosRenglones
+            ? "Va sobre el arco; si el tamaño elegido no cabe en un renglón, pasa a dos."
+            : "Va sobre el arco; si el tamaño elegido no cabe, se encoge solo hasta que quepa."}
       </p>
     </PopoverFlotante>
   );
