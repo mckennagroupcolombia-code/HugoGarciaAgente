@@ -7309,6 +7309,8 @@ def register_routes(app):
         nombre = (body.get("nombre") or body.get("nombre_producto") or body.get("titulo") or "").strip()
         if not campo or not nombre:
             return jsonify({"error": "Se requiere 'campo' y 'nombre' del producto"}), 400
+        # Grado del COA: si es solo cosmético, el modo de uso es de uso externo.
+        grado = (body.get("grado") or "").strip()
         from app.services.documento_cientifico import sugerir_campo_ficha
 
         if body.get("en_segundo_plano"):
@@ -7316,10 +7318,10 @@ def register_routes(app):
             from app.services.coa_scan_jobs import iniciar_job
             from app.services.documento_cientifico import sugerir_campo_ficha_en_segundo_plano
 
-            job_id = iniciar_job(sugerir_campo_ficha_en_segundo_plano, campo, nombre)
+            job_id = iniciar_job(sugerir_campo_ficha_en_segundo_plano, campo, nombre, grado)
             return jsonify({"ok": True, "status": "pending", "job_id": job_id}), 202
         try:
-            return jsonify(sugerir_campo_ficha(campo, nombre))
+            return jsonify(sugerir_campo_ficha(campo, nombre, grado))
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
         except Exception as exc:
@@ -7359,7 +7361,7 @@ def register_routes(app):
         try:
             from app.services.documento_cientifico import sugerir_multiples_campos
 
-            resultados = sugerir_multiples_campos(nombre, campos)
+            resultados = sugerir_multiples_campos(nombre, campos, (body.get("grado") or "").strip())
             return jsonify({"ok": True, "resultados": resultados})
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500

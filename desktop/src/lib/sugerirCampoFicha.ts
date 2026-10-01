@@ -3,10 +3,15 @@ import { esperarJobScan } from "./scanJobPoll";
 
 /** Sugerencia de IA para una casilla del documento técnico. Va en segundo plano:
  *  la IA tarda 30-60 s y el túnel de Cloudflare corta a ~100 s con HTTP 504. */
-export async function sugerirCampoFicha(campo: string, nombre: string): Promise<{ valor: string }> {
+export async function sugerirCampoFicha(
+  campo: string,
+  nombre: string,
+  /** Grado del COA: si es solo cosmético, el modo de uso sale de uso externo. */
+  grado = "",
+): Promise<{ valor: string }> {
   const r = await api.post<{ job_id?: string; error?: string }>(
     "/api/fichas/sugerir-campo",
-    { campo, nombre, en_segundo_plano: true },
+    { campo, nombre, grado, en_segundo_plano: true },
     { timeoutMs: 30000 },
   );
   if (!r.job_id) throw new Error(r.error || "La IA no respondió");

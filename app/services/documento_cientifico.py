@@ -8,6 +8,7 @@ import contextvars
 import json
 import os
 import re
+import unicodedata
 from datetime import datetime
 from typing import Any
 
@@ -341,11 +342,11 @@ def completar_datos_documento(
 _LIMITE_GEMINI_S: contextvars.ContextVar[int] = contextvars.ContextVar("limite_gemini_s", default=30)
 
 
-def sugerir_campo_ficha_en_segundo_plano(campo: str, nombre: str) -> dict[str, Any]:
+def sugerir_campo_ficha_en_segundo_plano(campo: str, nombre: str, grado: str = "") -> dict[str, Any]:
     """`sugerir_campo_ficha` para un job en hilo: sin corte del proxy, espera hasta 120 s."""
     token = _LIMITE_GEMINI_S.set(120)
     try:
-        return sugerir_campo_ficha(campo, nombre)
+        return sugerir_campo_ficha(campo, nombre, grado)
     finally:
         _LIMITE_GEMINI_S.reset(token)
 
@@ -539,6 +540,36 @@ def corregir_redaccion_conservacion(texto: str) -> str:
     return _RE_VERBO_EN_ENVASE.sub(lambda m: f"{m.group(1)} en el {m.group(2)}", t)
 
 
+def es_solo_cosmetico(grado: str) -> bool:
+    """El grado del COA dice Cosmético y ningún grado de consumo (alimentos,
+    farmacéutico): la materia prima es solo de uso externo."""
+    g = unicodedata.normalize("NFD", grado or "").encode("ascii", "ignore").decode().lower()
+    return "cosmet" in g and not re.search(r"aliment|farma|\busp\b|\bbp\b|\bfcc\b|\bins\b", g)
+
+
+#: Frases que sugieren ingerir el producto: no van en una materia prima cosmética.
+#: «al día» o «dosis» solos no cuentan: «aplicar una vez al día» es uso tópico.
+_RE_INGESTA = re.compile(
+    r"\b(inger\w*|ingest\w*|ingier\w*|tom(ar|e|ese|ado|as?)\b|t[oó]mese|v[ií]a oral|oral(mente)?\b|"
+    r"consumo interno|consumir\w*|beb(er|a|ida)\w*|con (las |los )?(comidas|alimentos)|"
+    r"c[aá]psula\w*|tableta\w*|suplement\w*)",
+    re.IGNORECASE,
+)
+#: Advertencias que niegan la ingesta («No ingerir.»): esas sí se quedan.
+_RE_NO_INGERIR = re.compile(r"\bno (ingerir|tomar|beber|consumir)\b", re.IGNORECASE)
+USO_EXTERNO = "Solo para uso externo."
+
+
+def modo_uso_cosmetico(texto: str) -> str:
+    """Quita del modo de uso las oraciones que hablen de ingerir o tomar el
+    producto y, si el texto no lo dice ya, cierra con «Solo para uso externo.»."""
+    oraciones = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", (texto or "").strip()))
+    quedan = [o for o in oraciones if o and not _RE_INGESTA.search(_RE_NO_INGERIR.sub("", o))]
+    if not re.search(r"uso (externo|t[oó]pico)", " ".join(quedan), re.IGNORECASE):
+        quedan.append(USO_EXTERNO)
+    return " ".join(quedan).strip()
+
+
 _CAMPOS_ORACION_CORTA = {
     "descripcion", "apariencia", "olor", "sabor", "solubilidad",
     "modo_uso", "alergenos", "conservacion",
@@ -643,9 +674,10 @@ def _asegurar_punto_final_lineas(texto: str) -> str:
     return "\n".join(_asegurar_punto_final(ln) if ln.strip() else ln for ln in lineas)
 
 
-def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
+def sugerir_campo_ficha(campo: str, nombre: str, grado: str = "") -> dict[str, Any]:
     """Sugerencia IA para cualquier campo del formulario de ficha técnica.
-    Usa PubChem PUG REST/View como fuente primaria; Gemini como síntesis."""
+    Usa PubChem PUG REST/View como fuente primaria; Gemini como síntesis.
+    `grado` (el del COA) decide el modo de uso: si es solo cosmético, uso externo."""
     nombre = (nombre or "").strip()
     if not nombre:
         raise ValueError("Se requiere nombre del producto")
@@ -790,13 +822,27 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Responde en 1-2 líneas técnicas. Sin markdown."
         ),
         "modo_uso": (
-            f'Redacta el modo de uso recomendado de "{nombre}" para un adulto sano promedio.\n'
-            f"EVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "OBLIGATORIO: indica una dosis diaria sugerida en mg o g (elige la unidad más adecuada "
-            "al rango típico del ingrediente), expresada para un adulto sano promedio "
-            "(ej. «500 mg al día», «1–3 g al día», «2 g/día divididos en dos tomas»).\n"
-            "Si aplica, menciona forma de consumo o incorporación breve (con alimentos, en solución, etc.).\n"
-            "2-4 oraciones técnicas, en español. Sin markdown, sin advertencias legales largas."
+            (
+                f'Redacta el modo de uso de "{nombre}" como materia prima COSMÉTICA, '
+                "exclusivamente de USO EXTERNO (piel, cabello, uñas).\n"
+                f"EVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+                "OBLIGATORIO: indica la concentración típica de uso en la formulación (porcentaje, "
+                "ej. «0,5–2 %») y en qué tipo de producto o fase se incorpora (cremas, lociones, "
+                "champús, jabones, fase oleosa o acuosa…).\n"
+                "PROHIBIDO: sugerir ingerirlo, tomarlo, beberlo, dosis diarias en mg o g, vía oral, "
+                "cápsulas o uso con alimentos.\n"
+                "2-3 oraciones técnicas, en español. Sin markdown, sin advertencias legales largas."
+            )
+            if es_solo_cosmetico(grado)
+            else (
+                f'Redacta el modo de uso recomendado de "{nombre}" para un adulto sano promedio.\n'
+                f"EVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+                "OBLIGATORIO: indica una dosis diaria sugerida en mg o g (elige la unidad más adecuada "
+                "al rango típico del ingrediente), expresada para un adulto sano promedio "
+                "(ej. «500 mg al día», «1–3 g al día», «2 g/día divididos en dos tomas»).\n"
+                "Si aplica, menciona forma de consumo o incorporación breve (con alimentos, en solución, etc.).\n"
+                "2-4 oraciones técnicas, en español. Sin markdown, sin advertencias legales largas."
+            )
         ),
         "propiedades_lista": (
             f'Lista los principales beneficios de "{nombre}" como materia prima para formulaciones farmacéuticas y cosméticas.\n'
@@ -892,6 +938,9 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
         # La casilla de la etiqueta es una sintesis: el tope de 15 palabras se
         # impone aqui aunque el modelo devuelva un parrafo.
         valor = recortar_a_palabras(corregir_redaccion_conservacion(valor))
+    if campo == "modo_uso" and es_solo_cosmetico(grado):
+        # Aunque el modelo desobedezca, una materia cosmética nunca se ingiere.
+        valor = modo_uso_cosmetico(valor)
     if campo in _CAMPOS_ORACION_CORTA:
         valor = _asegurar_punto_final(valor)
     elif campo == "aplicaciones":
@@ -899,7 +948,7 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
     return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
 
 
-def sugerir_multiples_campos(nombre: str, campos: list[str]) -> dict[str, str | None]:
+def sugerir_multiples_campos(nombre: str, campos: list[str], grado: str = "") -> dict[str, str | None]:
     """Sugiere varios campos en paralelo (PubChem + Gemini).
 
     Retorna {campo: valor_sugerido | None si falló}.
@@ -915,7 +964,7 @@ def sugerir_multiples_campos(nombre: str, campos: list[str]) -> dict[str, str | 
 
     def _sugerir(campo: str) -> tuple[str, str | None]:
         try:
-            r = sugerir_campo_ficha(campo, nombre)
+            r = sugerir_campo_ficha(campo, nombre, grado)
             return (campo, r.get("valor") or None)
         except Exception:
             return (campo, None)

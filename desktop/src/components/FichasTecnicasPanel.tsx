@@ -1945,7 +1945,7 @@ function DocumentoCompletoTabContent({
     mutationFn: (campo: string) => {
       const n = nombre.trim();
       if (!n) throw new Error("Indique el nombre del producto primero");
-      return sugerirCampoFicha(campo, n);
+      return sugerirCampoFicha(campo, n, coaGrado);
     },
     onSuccess: (r, campo) => {
       const v = r.valor || "";
@@ -2616,7 +2616,7 @@ function DocumentoCompletoTabContent({
                   const res = await fetch(url, {
                     method: "POST",
                     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                    body: JSON.stringify({ nombre: nombre.trim(), campos: camposVaciosEscan }),
+                    body: JSON.stringify({ nombre: nombre.trim(), campos: camposVaciosEscan, grado: coaGrado }),
                     signal: AbortSignal.timeout(120000),
                   });
                   const json = await res.json();
@@ -2654,6 +2654,7 @@ function DocumentoCompletoTabContent({
         externalColorAcento={colorAcento}
         hideRecomendaciones
         formulaBloqueada={casillas.formula}
+        externalGrado={coaGrado}
       />
 
       {/* ─── COA: solo campos exclusivos ─── */}

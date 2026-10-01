@@ -404,6 +404,7 @@ export default function FichaTecnicaForm({
   hideRecomendaciones = true,
   onAutoCompletarRef,
   formulaBloqueada,
+  externalGrado = "",
 }: {
   productoRef?: string;
   productoNombre?: string;
@@ -419,6 +420,8 @@ export default function FichaTecnicaForm({
   onAutoCompletarRef?: (fn: (resultados: Record<string, string>) => void) => void;
   /** Motivo por el que la fórmula molecular no aplica (clasificación del insumo). */
   formulaBloqueada?: string | null;
+  /** Grado del COA: si es solo cosmético, la IA sugiere el modo de uso de uso externo. */
+  externalGrado?: string;
 }) {
   const [state, setState] = useState<FichaTecnicaFormState>(() => ({
     ...formularioDesdeDatos({}),
@@ -595,7 +598,7 @@ export default function FichaTecnicaForm({
     mutationFn: (campo: string) => {
       const nombre = state.nombreProducto.trim();
       if (!nombre) throw new Error("Indique el nombre del producto primero");
-      return sugerirCampoFicha(campo, nombre);
+      return sugerirCampoFicha(campo, nombre, externalGrado);
     },
     onSuccess: (r, campo) => {
       const v = r.valor || "";
