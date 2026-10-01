@@ -941,6 +941,14 @@ def _meli_ordenes_rango(
                     fee += float(pay.get("marketplace_fee") or 0)
                 if fee <= 0:
                     fee = float(o.get("marketplace_fee") or 0)
+                if fee <= 0:
+                    # Con `x-version: 2` el search trae marketplace_fee en None y la
+                    # comisión llega por renglón: `sale_fee` es POR UNIDAD (verificado
+                    # el 1-oct-2026: × quantity da exacto el marketplace_fee de
+                    # /orders/{id}). Sin esto septiembre quedó sin una sola comisión.
+                    for it in o.get("order_items") or []:
+                        if isinstance(it, dict):
+                            fee += float(it.get("sale_fee") or 0) * float(it.get("quantity") or 1)
                 if fee > 0:
                     egresos.append(
                         _row(

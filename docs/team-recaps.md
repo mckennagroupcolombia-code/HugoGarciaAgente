@@ -1,3 +1,14 @@
+### 2026-10-01 10:50 - Libro Mayor: ventas de carritos MeLi, comisiones MeLi y canceladas; retiro MP del 29-sep causado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + datos contables. Sin LLM.
+- **Qué se implementó:**
+  - **Retiro «PAGO INTERBANC MERCADOPAGO SA» 29-sep ($11.792.301)** causado como traslado Débito 1110 / Crédito 130505 (#6131), con su lote de MercadoPago. Las 4 ventas de WhatsApp de ese día se vincularon a sus facturas (FE913-FE916), sin asientos nuevos.
+  - **Carritos MeLi**: desde el 22-sep el autopost solo posteaba la primera orden de cada carrito (deduplicaba por pack). Ahora en `meli_venta`/`meli_cobro` deduplica por `order_id`. Se postearon 129 ventas omitidas ($3.229.388).
+  - **Comisiones MeLi**: `orders/search` con `x-version: 2` trae `marketplace_fee` vacío; se lee `sale_fee × quantity`. Septiembre no tenía ni una comisión: se postearon 1.593 ($9.341.591, 529505 / 130505).
+  - **Canceladas**: 8 ventas MeLi canceladas sin factura anuladas ($181.488) y ajuste del reembolso parcial de FE448 ($14.365). Las facturadas quedan para el motor RA (nota crédito); FE797 no tiene expediente todavía.
+  - Respaldos en `backups_drive/contabilidad_antes_{ventas_carrito,comisiones_meli,anular_canceladas}_2026-10-01.db`.
+- **Archivos Modificados:** `app/services/contabilidad_autopost.py`, `app/services/contabilidad_ledger.py`, `tests/test_autopost_meli_carrito.py`, `app/data/_anulacion_meli_canceladas_2026-10-01.json`, `docs/agentic/modules/contabilidad.md`, `docs/team-recaps.md`.
+
 ### 2026-10-01 02:20 - Documentos técnicos: «Conservar el envase bien cerrado» y modo de uso de uso externo para materias cosméticas
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección + regla nueva. Ajuste de prompt (Gemini).

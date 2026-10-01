@@ -402,6 +402,19 @@ compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras
   la referencia del recibo (`dian:490:<n>` / `sdh:<n>`, así el recibo queda «registrado») y el tercero (DIAN id 75,
   NIT 800.197.268-4; Secretaría Distrital de Hacienda id 76, NIT 899.999.061-9). Sin recibo: «revisar», sin cuenta.
   `extracto_bancario.vincular()` adjunta el PDF del recibo al asiento que lo cita (`adjuntar_soporte_recibo`).
+- **Carritos MeLi (1-oct-2026):** desde el 22-sep el cerrojo `_ya_posteado_documento` comparaba el **pack** y solo
+  posteaba la primera orden de cada carrito. Ahora en `meli_venta`/`meli_cobro` el documento es `extra.order_id`
+  (`_ya_posteado_fila`, test `tests/test_autopost_meli_carrito.py`). Se postearon las 129 ventas omitidas del 22 al 30-sep
+  ($3.229.388, asientos #6132–#6260; respaldo `backups_drive/contabilidad_antes_ventas_carrito_2026-10-01.db`).
+- **Comisiones MeLi (1-oct-2026):** con `x-version: 2`, `orders/search` trae `marketplace_fee = None`; la comisión viene
+  en `order_items[].sale_fee`, **por unidad** (× `quantity` = `marketplace_fee` de `/orders/{id}`, verificado en 21 órdenes).
+  `_meli_ordenes_rango` ya la lee. Septiembre no tenía ni un `auto_meli_cobro`: se postearon 1.593 ($9.341.591, Débito 529505 /
+  Crédito 130505, #6261–#7853; respaldo `backups_drive/contabilidad_antes_comisiones_meli_2026-10-01.db`).
+  ⚠️ El autopost **no reversa** ventas MeLi canceladas después de postearse. Sep-2026: las 8 sin factura se anularon
+  (#545, 1622-1625, 1715, 1864, 5533 = $181.488) y el reembolso parcial de la orden 2000018509202610 (FE448 salió por el
+  neto) se ajustó con #7854 (Débito 4135 / Crédito 130505, $14.365). Las **facturadas no se tocan a mano**: su reversa la postea el
+  motor RA al emitir la nota crédito (FE51 RA-0007, FE608 RA-0151, FE374 RA-0022, FE403 RA-0020; FE797 aún sin expediente).
+  Registro: `app/data/_anulacion_meli_canceladas_2026-10-01.json`.
 - **4x1000 e intereses se causan solos** al cargar el extracto de la empresa (`causar_automaticos`, 530595 GMF y
   421005 intereses); `EXTRACTO_CAUSAR_AUTOMATICO=0` lo apaga.
 

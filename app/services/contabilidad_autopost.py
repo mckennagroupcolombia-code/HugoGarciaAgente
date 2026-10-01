@@ -381,7 +381,23 @@ def _lineas_para_fila(row: dict[str, Any], cuentas_por_codigo: dict[str, int]) -
     ]
 
 
-def _ya_posteado_documento(fuente: str, referencia_doc: str) -> bool:
+# En MeLi la `referencia` es el pack (el carrito) y un carrito trae varias
+# órdenes, cada una con su venta y su comisión. Cerrar por pack posteaba solo la
+# primera orden del carrito y omitía las demás en silencio (22→30-sep-2026: 21
+# ventas de un solo retiro de MercadoPago sin asiento). Ahí el documento es la orden.
+_DOCUMENTO_POR_ORDEN = {"meli_venta", "meli_cobro"}
+
+
+def _ya_posteado_fila(row: dict[str, Any]) -> bool:
+    """El segundo cerrojo de `postear_fila` / `auto_postear_periodo` para una fila."""
+    fuente = row.get("fuente") or ""
+    if fuente in _DOCUMENTO_POR_ORDEN:
+        order_id = str((row.get("extra") or {}).get("order_id") or "")
+        return _ya_posteado_documento(fuente, order_id, campo="$.extra.order_id")
+    return _ya_posteado_documento(fuente, str(row.get("referencia") or ""))
+
+
+def _ya_posteado_documento(fuente: str, referencia_doc: str, *, campo: str = "$.referencia") -> bool:
     """¿Ya hay asiento de esta fuente para este documento (factura, pedido)?
 
     El dedup por hash exige que la fila sea idéntica campo a campo. Cuando la
@@ -396,9 +412,9 @@ def _ya_posteado_documento(fuente: str, referencia_doc: str) -> bool:
         return con.execute(
             """SELECT 1 FROM cc_movimientos
                 WHERE tipo_origen = ? AND estado <> 'anulado'
-                  AND json_extract(plantilla_datos_json, '$.referencia') = ?
+                  AND json_extract(plantilla_datos_json, ?) = ?
                 LIMIT 1""",
-            (f"auto_{fuente}", referencia_doc),
+            (f"auto_{fuente}", campo, referencia_doc),
         ).fetchone() is not None
 
 
@@ -432,7 +448,7 @@ def postear_fila(row: dict[str, Any], *, cuentas_por_codigo: dict[str, int] | No
         raise ValueError(f"Fuente sin mapeo contable: {fuente}")
     if float(row.get("monto") or 0) <= 0:
         return {"creado": False, "omitido": True, "movimiento_id": None, "referencia": referencia}
-    if _ya_posteado(referencia) or _ya_posteado_documento(fuente, str(row.get("referencia") or "")):
+    if _ya_posteado(referencia) or _ya_posteado_fila(row):
         return {"creado": False, "omitido": True, "movimiento_id": None, "referencia": referencia}
     if cc.antes_del_corte(str(row.get("fecha") or "")):
         raise ValueError(cc.motivo_corte(str(row.get("fecha") or "")))
@@ -572,7 +588,7 @@ def auto_postear_periodo(
             continue
 
         referencia = f"auto:{id_movimiento_ledger(row)}"
-        if _ya_posteado(referencia) or _ya_posteado_documento(fuente, str(row.get("referencia") or "")):
+        if _ya_posteado(referencia) or _ya_posteado_fila(row):
             omitidos += 1
             continue
         if dry_run:

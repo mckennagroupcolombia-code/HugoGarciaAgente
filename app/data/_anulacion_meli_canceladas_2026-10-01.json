@@ -1,0 +1,80 @@
+{
+ "fecha": "2026-10-01",
+ "respaldo": "backups_drive/contabilidad_antes_anular_canceladas_2026-10-01.db",
+ "cuentas": [
+  "4135",
+  "130505"
+ ],
+ "pendientes_ra": {
+  "FE51": "RA-2026-0007",
+  "FE608": "RA-2026-0151",
+  "FE374": "RA-2026-0022",
+  "FE403": "RA-2026-0020",
+  "FE797": "sin expediente (órdenes 2000018494805022, 2000018494803032)"
+ },
+ "hechos": [
+  {
+   "movimiento_id": 545,
+   "fecha": "2026-09-01",
+   "order_id": "2000018237497884",
+   "monto": 20489.0,
+   "motivo": "orden MeLi cancelada y reembolsada completa, sin factura"
+  },
+  {
+   "movimiento_id": 1622,
+   "fecha": "2026-09-12",
+   "order_id": "2000018427786184",
+   "monto": 24800.0,
+   "motivo": "orden MeLi cancelada y reembolsada completa, sin factura"
+  },
+  {
+   "movimiento_id": 1623,
+   "fecha": "2026-09-12",
+   "order_id": "2000018427786188",
+   "monto": 21930.0,
+   "motivo": "orden MeLi cancelada y reembolsada completa, sin factura"
+  },
+  {
+   "movimiento_id": 1624,
+   "fecha": "2026-09-12",
+   "order_id": "2000018427786186",
+   "monto": 7650.0,
+   "motivo": "orden MeLi cancelada y reembolsada completa, sin factura"
+  },
+  {
+   "movimiento_id": 1625,
+   "fecha": "2026-09-12",
+   "order_id": "2000018427781518",
+   "monto": 7915.0,
+   "motivo": "orden MeLi cancelada y reembolsada completa, sin factura"
+  },
+  {
+   "movimiento_id": 1715,
+   "fecha": "2026-09-14",
+   "order_id": "2000018454395410",
+   "monto": 14173.0,
+   "motivo": "orden MeLi cancelada y reembolsada completa, sin factura"
+  },
+  {
+   "movimiento_id": 1864,
+   "fecha": "2026-09-16",
+   "order_id": "2000018490150446",
+   "monto": 67915.0,
+   "motivo": "orden MeLi cancelada y reembolsada completa, sin factura"
+  },
+  {
+   "movimiento_id": 5533,
+   "fecha": "2026-09-19",
+   "order_id": "2000018542382526",
+   "monto": 16616.0,
+   "motivo": "orden MeLi cancelada y reembolsada completa, sin factura"
+  },
+  {
+   "movimiento_id": 7854,
+   "ajusta": 1944,
+   "order_id": "2000018509202610",
+   "monto": 14365,
+   "motivo": "reembolso parcial; FE448 facturó solo el neto"
+  }
+ ]
+}
