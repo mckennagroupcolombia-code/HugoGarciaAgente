@@ -4753,3 +4753,12 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Backend: `app/routes_formulas.py` (`GET/POST /api/formulas`, `DELETE /api/formulas/<id>`, `GET /api/formulas/materias?q=`), datos en `app/data/formulas.json` con candado (`app/services/formulas_db.py`). Registrado en `agente_pro.py`.
   - **Verificado:** `npm run build`; curl contra localhost:8080 (crear, listar, buscar materia prima, borrar; la fórmula de prueba se eliminó); capturas en Chrome headless de escritorio y móvil con datos simulados, en un arnés temporal ya retirado.
 - **Archivos Modificados:** `app/routes_formulas.py`, `app/services/formulas_db.py`, `agente_pro.py`, `desktop/src/components/formulas/FormulasPanel.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/navStructure.ts`, `desktop/src/lib/panelInfo.ts`, `desktop/src/components/nav/DisenoNavTabs.tsx`, `desktop/src/components/Settings.tsx`, `desktop/src/icons/mck/paths/panels.tsx`, `docs/team-recaps.md`
+
+### 2026-10-01 - Fórmulas: ingredientes → cantidad a preparar → listado de cantidades
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Diseño de producto → Fórmulas)
+- **Qué se implementó:**
+  - El editor va en tres pasos: (1) ingredientes y porcentajes (fase opcional; la función ya no se pide), (2) «¿Qué cantidad vamos a preparar?» en gramos o kilos con el botón «Generar listado de cantidades» (solo si los % suman 100), (3) listado con la cantidad de cada ingrediente y el total, con «Imprimir listado» (hoja con casilla «Pesado»).
+  - Si después se cambian ingredientes o cantidad, el listado pide volver a generarse. Una fórmula nueva arranca sin cantidad (`formulas_db.guardar` ya no pone 1000 g por defecto).
+  - **Verificado:** `npm run build`; captura en Chrome headless del flujo con datos simulados (2.500 g), en un arnés temporal ya retirado; reinicio de `agente-pro`.
+- **Archivos Modificados:** `desktop/src/components/formulas/FormulasPanel.tsx`, `desktop/src/lib/panelInfo.ts`, `app/services/formulas_db.py`, `docs/team-recaps.md`

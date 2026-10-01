@@ -291,10 +291,10 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   formulas: {
     emoji: "🧪",
     label: "Fórmulas",
-    description: "Fórmulas de producto: ingredientes en porcentaje (materias primas del catálogo), fase, función, procedimiento y notas; gramos calculados por lote.",
+    description: "Fórmulas de producto: ingredientes y porcentajes, la cantidad a preparar y el listado de cantidades de cada ingrediente (para imprimir).",
     tips: [
       "Busca la materia prima por nombre o código: queda enlazada al catálogo de Alegra. También puedes escribir un ingrediente libre.",
-      "Escribe el tamaño del lote y la columna Gramos se recalcula sola; la fórmula se guarda en porcentajes.",
+      "Después de los porcentajes, escribe cuánto vas a preparar (g o kg) y pulsa «Generar listado de cantidades».",
       "El total debe sumar 100 %: si no, se avisa cuánto falta o sobra.",
     ],
     tier: "standard",

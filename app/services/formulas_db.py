@@ -93,7 +93,7 @@ def guardar(body: dict, autor: str = "") -> dict:
     if not nombre:
         raise ValueError("La fórmula necesita un nombre")
     ingredientes = [i for i in map(_ingrediente, body.get("ingredientes") or []) if i]
-    lote = _numero(body.get("lote_g")) or 1000.0
+    lote = _numero(body.get("lote_g"))
     formula_id = _texto(body.get("id"), 40)
     with _candado():
         todas = _load()
