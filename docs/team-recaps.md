@@ -1,3 +1,12 @@
+### 2026-10-01 02:20 - Documentos técnicos: «Conservar el envase bien cerrado» y modo de uso de uso externo para materias cosméticas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + regla nueva. Ajuste de prompt (Gemini).
+- **Qué se implementó:**
+  - **Conservación mal construida** («Conservar en envase bien cerrado, en lugar fresco y seco.»): falta el artículo. Ahora con «(bien) cerrado» queda «Conservar el envase bien cerrado…» y con otro complemento «Conservar en el envase hermético…» (también Almacenar/Guardar/Mantener y empaque/recipiente; los plurales no se tocan). Lo aplican `corregir_redaccion_conservacion` (sugerencia IA, antes del tope de 15 palabras) y `corregirRedaccionConservacion` (síntesis de la casilla en el front). Se corrigieron los datos: 236 archivos entre `fichas_word/datos/*.yaml` y `app/data/etiquetas_fichas.json` (fuera de git; respaldo en `/tmp/respaldo_conservacion_20261001.tgz`). Los PNG ya aprobados conservan la frase vieja hasta re-aprobarlos. El código entró en el auto-commit 8f5fb7ab.
+  - **Modo de uso de materias cosméticas**: si el grado del COA es solo Cosmético (sin Alimentos/Farmacéutico/USP), la IA ya no pide dosis diaria en mg/g sino % en la formulación y tipo de producto, prohíbe ingerir/tomar/vía oral, y un filtro (`modo_uso_cosmetico`) quita las oraciones de ingesta que se cuelen (conserva «No ingerir.») y cierra con «Solo para uso externo.». El grado (`coaGrado`) viaja como `grado` en `/api/fichas/sugerir-campo` y `/api/fichas/sugerir-multiples` (prop `externalGrado` de `FichaTecnicaForm`).
+  - Pendiente de decidir: fichas guardadas de grado cosmético con instrucciones de consumo (aceite esencial de naranja «consumo interno», embrión de pato).
+- **Archivos Modificados:** `app/services/documento_cientifico.py`, `app/routes.py`, `desktop/src/lib/fichaTecnicaCampos.ts`, `desktop/src/lib/sugerirCampoFicha.ts`, `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`.
+
 ### 2026-09-30 17:55 - Cotizar/Facturar envía la cotización por correo y cierra la solicitud web; Gmail reconectado
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección. Sin LLM.
