@@ -4732,3 +4732,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Ahora, si se elige un tamaño y el texto no cabe en un renglón, se reparte por palabras en dos arcos concéntricos dentro del anillo (el de afuera lleva el comienzo) y se respeta el tamaño; solo se encoge si ni en dos cabe. Sin tamaño elegido se ve igual que antes. Medición con canvas (`repartirEnDosArcos` en `EtiquetaCircular.tsx`); el SVG de impresión exporta los dos arcos sin cambios.
   - **Verificado:** `npm run build`; capturas en Chrome headless de la etiqueta «Circular 70» de vaselina con y sin tamaño 14, en un arnés temporal ya retirado.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-circular/EtiquetaCircular.tsx`, `docs/team-recaps.md`
+
+### 2026-10-01 - Etiquetas redondas: siempre «envase», nunca «empaque»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Studio de etiquetas)
+- **Qué se implementó:**
+  - Las etiquetas redondas (formatos Circular…/CIRCLE) son para envases (potes, tarros), no para bolsas: la Conservación dice siempre «envase», sin consultar el combo, y también en las plantillas de categoría.
+  - Servidor: `_es_troquel_redondo` y `_con_recipiente(..., tipo_nombre)` en `app/tools/etiquetas_fichas.py` (al guardar y al actualizar desde el documento técnico). Pantalla: `ProductLabelForm.tsx`.
+  - Se corrigió la guardada «VASELINA BLANCA 900g» («Conservar el envase bien cerrado…»).
+  - **Verificado:** `npm run build`; prueba de `_con_recipiente` con «Circular 70» y «125 g»; reinicio de `agente-pro`.
+- **Archivos Modificados:** `app/tools/etiquetas_fichas.py`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`

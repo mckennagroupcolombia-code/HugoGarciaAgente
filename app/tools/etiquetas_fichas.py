@@ -16,6 +16,7 @@ import copy
 import fcntl
 import json
 import os
+import re
 import shutil
 import threading
 import time
@@ -161,14 +162,25 @@ def guardar_ficha(body: dict) -> dict:
         return _guardar_ficha_bajo_candado(body, ficha_id, nombre, data)
 
 
-def _con_recipiente(ficha_id: str, data: dict) -> dict:
+_RE_TROQUEL_REDONDO = re.compile(r"circ(?:ular|le)", re.IGNORECASE)
+
+
+def _es_troquel_redondo(tipo_nombre: str | None) -> bool:
+    """Las etiquetas redondas (Circular…, CIRCLE) van en envases —potes, tarros—, nunca en bolsa."""
+    return bool(_RE_TROQUEL_REDONDO.search(tipo_nombre or ""))
+
+
+def _con_recipiente(ficha_id: str, data: dict, tipo_nombre: str | None = None) -> dict:
     """La CONSERVACIÓN dice «envase» o «empaque» según la receta del combo de la etiqueta
-    (frasco → envase, bolsa → empaque; ver `mapa_producto.recipientes`). Si no se puede saber,
-    o falla la lectura del catálogo, el texto queda como vino: guardar nunca se bloquea."""
+    (frasco → envase, bolsa → empaque; ver `mapa_producto.recipientes`). Una etiqueta redonda
+    dice siempre «envase». Si no se puede saber, o falla la lectura del catálogo, el texto
+    queda como vino: guardar nunca se bloquea."""
     try:
         from app.services import mapa_producto as M
 
-        r = M.recipiente_etiqueta(ficha_id, str(data.get("barcode") or ""))
+        r = "envase" if _es_troquel_redondo(tipo_nombre) else M.recipiente_etiqueta(
+            ficha_id, str(data.get("barcode") or "")
+        )
         if not r:
             return data
         out = dict(data)
@@ -190,9 +202,13 @@ def _guardar_ficha_bajo_candado(body: dict, ficha_id: str, nombre: str, data: di
         body = {**body, "plantilla_id": body.get("plantilla_id") or ficha_id}
         ficha_id = uuid.uuid4().hex[:12]
         existente = None
-    # Una plantilla de categoría no es de ningún combo (su código de barras es de muestra).
-    if not (body.get("es_plantilla_categoria") or (existente or {}).get("es_plantilla_categoria")):
-        data = _con_recipiente(ficha_id, data)
+    # Una plantilla de categoría no es de ningún combo (su código de barras es de muestra),
+    # salvo la redonda: esa va siempre en envase, sea plantilla o etiqueta.
+    tipo_guardado = (body.get("tipo_nombre") or (existente or {}).get("tipo_nombre") or "").strip()
+    if _es_troquel_redondo(tipo_guardado) or not (
+        body.get("es_plantilla_categoria") or (existente or {}).get("es_plantilla_categoria")
+    ):
+        data = _con_recipiente(ficha_id, data, tipo_guardado)
     now = _now()
 
     entry: dict[str, Any] = {
@@ -345,7 +361,8 @@ def sincronizar_etiquetas_con_ficha_tecnica(ids_ficha: list[str], foto: dict) ->
                 continue
             # «envase»/«empaque» de la conservación según el recipiente, como al guardar.
             f["data"] = _con_recipiente(
-                f["id"], {**data, **cambios, "fichaTecnicaBase": foto, "fichaTecnicaId": lista[0]}
+                f["id"], {**data, **cambios, "fichaTecnicaBase": foto, "fichaTecnicaId": lista[0]},
+                f.get("tipo_nombre"),
             )
             f["actualizado"] = now
             if cambios:

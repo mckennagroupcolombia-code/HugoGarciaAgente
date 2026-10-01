@@ -1038,7 +1038,12 @@ function ProductLabelFormInner({
 
   // CONSERVACIÓN: «envase» si el combo de esta etiqueta va en frasco, «empaque» si va en
   // bolsa (lib/recipienteEtiqueta). Una plantilla no es de ningún combo: se deja como está.
-  const recipiente = esPlantillaDeCategoria ? "" : recipientePara(recipientes, data.barcode, fichaId);
+  // La redonda va siempre en envase (pote, tarro), también como plantilla.
+  const recipiente = esCircular || esTipoEtiquetaCircular(tipoNombre)
+    ? "envase"
+    : esPlantillaDeCategoria
+      ? ""
+      : recipientePara(recipientes, data.barcode, fichaId);
   useEffect(() => {
     if (!recipiente) return;
     setData((d) => {
