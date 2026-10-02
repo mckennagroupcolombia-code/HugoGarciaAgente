@@ -4780,3 +4780,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Se muestra con el mismo permiso que en Contabilidad (`productos-siigo`, o facturas/sync/facturación; administradores siempre); las dos ya lo tienen.
   - **Verificado:** `npm run build`.
 - **Archivos Modificados:** `desktop/src/components/CotizarFacturarPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-10-01 - Calculadora con historial
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (calculadora flotante)
+- **Qué se implementó:**
+  - La calculadora (`CalculadoraPad`, burbuja `nav/CalculadoraFab`) no guardaba nada: cada cuenta se perdía. Ahora cada cuenta terminada con «=» queda en un Historial bajo el teclado (las últimas 50, la más reciente arriba), guardado por usuario en el navegador (`localStorage`, `mck-calc-historial:<id>`): sobrevive a cerrar la ventana y a recargar.
+  - Sobre el visor se ve la cuenta en curso («12 + 5 ×»). Tocar una línea del historial trae su resultado al visor; «Borrar» lo vacía.
+  - La ventana flotante abre más alta (600 px) para que quepa el historial.
+  - **Verificado:** `npm run build`; captura en Chrome headless con dos cuentas tecleadas y la calculadora desmontada y vuelta a montar (el historial sigue), en un arnés temporal ya retirado.
+- **Archivos Modificados:** `desktop/src/components/CalculadoraMagica.tsx`, `desktop/src/components/nav/CalculadoraFab.tsx`, `docs/team-recaps.md`

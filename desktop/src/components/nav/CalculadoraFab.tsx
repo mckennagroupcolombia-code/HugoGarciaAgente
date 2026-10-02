@@ -57,7 +57,7 @@ export default function CalculadoraFab() {
           titleExtra={<Icon name="calculator" size={14} weight="regular" className="text-accent" />}
           headerClassName="border-border bg-accent/10 text-accent"
           borderClassName="border-accent/50"
-          defaultRect={defaultFloatRect("tr", 272, 420)}
+          defaultRect={defaultFloatRect("tr", 272, 600)}
           minWidth={240}
           minHeight={360}
           zIndex={900}

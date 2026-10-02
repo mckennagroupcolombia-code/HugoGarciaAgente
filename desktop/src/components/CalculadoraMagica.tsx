@@ -1,8 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../icons";
+import { useTicketsAuth } from "../stores/ticketsAuth";
 
 type Op = "+" | "-" | "×" | "÷";
+
+/** Una cuenta terminada con «=»: la operación completa y su resultado. */
+interface EntradaHistorial {
+  operacion: string;
+  resultado: string;
+}
+
+/** Historial de la calculadora: las últimas cuentas, por usuario y en este navegador
+ *  (localStorage), para que no se pierdan al cerrar la ventana o recargar. */
+const MAX_HISTORIAL = 50;
+
+function claveHistorial(userId?: number | string | null): string {
+  return `mck-calc-historial:${userId ?? "anon"}`;
+}
+
+function leerHistorial(clave: string): EntradaHistorial[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(clave) || "[]");
+    return Array.isArray(v) ? v.filter((e) => e && typeof e.operacion === "string" && typeof e.resultado === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function guardarHistorial(clave: string, h: EntradaHistorial[]) {
+  try {
+    localStorage.setItem(clave, JSON.stringify(h.slice(0, MAX_HISTORIAL)));
+  } catch {
+    /* navegador sin almacenamiento: el historial dura lo que la ventana */
+  }
+}
 
 function fmtNum(n: number): string {
   if (!Number.isFinite(n)) return "Error";
@@ -49,13 +81,38 @@ export function CalculadoraPad({
   const [pendingOp, setPendingOp] = useState<Op | null>(null);
   const [fresh, setFresh] = useState(true);
   const [copiado, setCopiado] = useState(false);
+  /** La cuenta en curso («12 + 5 ×»), que se ve sobre el visor y va al historial. */
+  const [cadena, setCadena] = useState("");
+  const userId = useTicketsAuth((st) => st.user?.id);
+  const clave = claveHistorial(userId);
+  const [historial, setHistorial] = useState<EntradaHistorial[]>(() => leerHistorial(clave));
+  useEffect(() => {
+    setHistorial(leerHistorial(clave));
+  }, [clave]);
   const padRef = useRef<HTMLDivElement>(null);
+
+  const anotar = useCallback(
+    (entrada: EntradaHistorial) => {
+      setHistorial((prev) => {
+        const next = [entrada, ...prev].slice(0, MAX_HISTORIAL);
+        guardarHistorial(clave, next);
+        return next;
+      });
+    },
+    [clave],
+  );
+
+  const borrarHistorial = useCallback(() => {
+    setHistorial([]);
+    guardarHistorial(clave, []);
+  }, [clave]);
 
   const reset = useCallback(() => {
     setDisplay("0");
     setAccumulator(null);
     setPendingOp(null);
     setFresh(true);
+    setCadena("");
   }, []);
 
   const current = useCallback((): number | null => {
@@ -71,6 +128,7 @@ export function CalculadoraPad({
         setAccumulator(null);
         setPendingOp(null);
         setFresh(false);
+        setCadena("");
         return;
       }
       setDisplay((prev) => {
@@ -106,12 +164,18 @@ export function CalculadoraPad({
           setAccumulator(null);
           setPendingOp(null);
           setFresh(true);
+          setCadena("");
           return;
         }
         setAccumulator(result);
         setDisplay(fmtNum(result));
+        setCadena((c) => `${c}${fmtNum(input)} ${op} `);
+      } else if (accumulator != null && pendingOp != null) {
+        // Cambió de operación sin escribir otro número: se reemplaza la última.
+        setCadena((c) => `${c.slice(0, -2)}${op} `);
       } else {
         setAccumulator(input);
+        setCadena(`${fmtNum(input)} ${op} `);
       }
 
       setPendingOp(op);
@@ -131,6 +195,7 @@ export function CalculadoraPad({
       setAccumulator(null);
       setPendingOp(null);
       setFresh(true);
+      setCadena("");
       return;
     }
 
@@ -138,7 +203,16 @@ export function CalculadoraPad({
     setAccumulator(null);
     setPendingOp(null);
     setFresh(true);
-  }, [accumulator, current, display, pendingOp]);
+    anotar({ operacion: `${cadena}${fmtNum(input)}`, resultado: fmtNum(result) });
+    setCadena("");
+  }, [accumulator, anotar, cadena, current, display, pendingOp]);
+
+  /** Trae un resultado del historial al visor, como si se hubiera escrito. */
+  const usarDelHistorial = useCallback((resultado: string) => {
+    setDisplay(resultado);
+    setFresh(false);
+    padRef.current?.focus();
+  }, []);
 
   const copiar = useCallback(async () => {
     const n = current();
@@ -241,10 +315,11 @@ export function CalculadoraPad({
   const body = (
     <div className="p-2.5">
       <div
-        className="mb-2 overflow-hidden rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-right font-mono text-xl font-bold text-ink"
+        className="mb-2 overflow-hidden rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-right font-mono text-ink"
         aria-live="polite"
       >
-        {display}
+        <div className="h-4 truncate text-[11px] font-medium text-muted">{cadena}</div>
+        <div className="text-xl font-bold">{display}</div>
       </div>
 
       <div className="grid grid-cols-4 gap-1">
@@ -295,6 +370,36 @@ export function CalculadoraPad({
       <p className="mt-1.5 text-center text-[9px] text-muted">
         Teclado: 0-9 · + − * / · Enter · ⌫ · Esc
       </p>
+
+      <div className="mt-2 border-t border-border pt-1.5">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Historial</span>
+          {historial.length > 0 && (
+            <button type="button" onClick={borrarHistorial} className="text-[10px] text-muted underline hover:text-red-600">
+              Borrar
+            </button>
+          )}
+        </div>
+        {historial.length === 0 ? (
+          <p className="text-[10px] text-muted">Las cuentas que termines con «=» quedan aquí.</p>
+        ) : (
+          <ul className="max-h-36 space-y-0.5 overflow-y-auto">
+            {historial.map((h, k) => (
+              <li key={k}>
+                <button
+                  type="button"
+                  onClick={() => usarDelHistorial(h.resultado)}
+                  title="Usar este resultado"
+                  className="w-full rounded px-1.5 py-0.5 text-right font-mono hover:bg-surface-hover"
+                >
+                  <span className="block truncate text-[10px] text-muted">{h.operacion} =</span>
+                  <span className="block text-xs font-bold text-ink">{h.resultado}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 
