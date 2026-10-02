@@ -20,6 +20,7 @@ import {
 } from "./ticketsFormat";
 import { sonarRevisado } from "../combos/sonidoMoneda";
 import VisorFotos, { type FotoVisor } from "./VisorFotos";
+import RevisionEmpaqueEnSolicitud from "../revisionEmpaque/RevisionEmpaque";
 import "./hiloPixel.css";
 
 /** La solicitud/acción que la persona está atendiendo (la bandeja la ofrece como «Seguir con…»). */
@@ -609,6 +610,9 @@ export default function HiloConversacion({
             <p className="truncate px-3 py-2 text-[16px] font-bold text-ink">{ticket.titulo}</p>
           )}
         </section>
+
+        {/* Revisión de pesos y empaques: el avance y el botón que abre su propio wizard. */}
+        <RevisionEmpaqueEnSolicitud ticket={ticket} />
 
         {/* ── Wizard: cuatro casillas y la barra ── */}
         <section className="hp-caja space-y-1.5 p-1.5 lg:space-y-2 lg:p-2.5">

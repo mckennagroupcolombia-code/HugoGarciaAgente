@@ -1,3 +1,13 @@
+### 2026-10-02 06:30 - Revisión global de pesos, medidas y empaques: solicitud con wizard para Jenniffer
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Solicitudes · Producto). Sin LLM.
+- **Qué se implementó:**
+  - Solicitud nueva `subtipo = revision_empaque`: en la tarjeta, el detalle y el hilo aparece el avance y «Continuar revisión», que abre una ventana con 4 pasos. **1 Pesar** cada uno de los 304 combos activos listo para despachar, confirmando su empaque y caja según la receta (absorbe el TKT-2026-1638). **2 Medir** una vez cada tipo de empaque: 94 mediciones (envase rígido igual para cualquier contenido; bolsa separada por presentación; sin envase → se mide solo). **3 Entregar**: queda esperando que la finalice quien la pidió. **4 Aprobar** (creador o admin): verificado vs. MeLi y «Aplicar en MeLi» en lotes; relee cada publicación antes de escribir y no toca cerradas ni las de otro SKU.
+  - Creada la **TKT-2026-1639** (Armando → Jenniffer, revisión 1: 304 combos, 229 con publicación en MeLi). TKT-2026-1638 cerrada remitiendo a la nueva.
+  - Es la primera fuente de verdad de peso y medidas por SKU (antes la web los adivinaba por el nombre). Base `app/data/revision_empaque.db` (gitignored).
+  - **Verificado:** `pytest tests/test_revision_empaque.py tests/test_smoke.py` (9 nuevos + humo); `tsc`; `npm run build`; `qa:alegra-nombre`, `qa:behavior`, `qa:panel-access` (el `qa:smoke` falla antes de este cambio: busca `Sidebar.tsx`, borrado en `4e45f3af`); recorrido con clics reales en Chrome headless sobre el banco `/app/dev/revision.html` en 390 px y 1280 px; reinicio de `agente-pro`.
+- **Archivos Modificados:** `app/services/revision_empaque.py`, `app/routes_revision_empaque.py`, `agente_pro.py`, `desktop/src/components/revisionEmpaque/RevisionEmpaque.tsx`, `desktop/src/components/TicketsPanel.tsx`, `desktop/src/components/tickets/HiloConversacion.tsx`, `desktop/dev/revision.{html,tsx}`, `tests/test_revision_empaque.py`, `.gitignore`, `docs/agentic/modules/operacion-equipo.md`, `docs/agentic/ENDPOINTS.md`, `CLAUDE.md`, `docs/team-recaps.md`
+
 ### 2026-10-02 05:15 - MeLi: maltodextrina «Dulce» queda como principal, la espesante nueva se pausa
 - **Autor:** Armando García
 - **Tipo de Cambio:** Decisión operativa en MeLi + referencias internas. Sin LLM, sin código.

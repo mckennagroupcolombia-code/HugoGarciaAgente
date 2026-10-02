@@ -119,3 +119,27 @@ quedó suelta en un grupo de WhatsApp, sin producto ni lugar. Abastecer → Rece
   filtros Me toca · Pedí yo · Todo · Por persona, solicitudes y acciones juntas, y el **historial de hechas plegado**.
 - Estilo en `tickets/hiloPixel.css` (forma pixel, letra Montserrat grande: 16–19 px). Banco sin backend:
   `/app/dev/solicitudes.html?abrir=1650[&estado=pendiente]`.
+
+### AG. Revisión global de pesos, medidas y empaques (2-oct-2026)
+
+Problema: nada guardaba el peso ni las medidas reales de lo que se despacha; solo lo declarado en MeLi, y la
+auditoría del 2-oct encontró 54 publicaciones con errores claros (2.900 g de relleno, 500 g en goteros de 30 mL,
+pesos menores al contenido). MeLi cobra el flete por ese peso. La revisión crea la fuente de verdad.
+- **Solicitud con wizard** (`subtipo = "revision_empaque"`, primera: TKT-2026-1639 de Armando a Jenniffer, que absorbió
+  el TKT-2026-1638 de cajas). `RevisionEmpaqueEnSolicitud` (`desktop/src/components/revisionEmpaque/`) se dibuja en
+  `TicketDetailView`, `SolicitudCard` y el hilo (`HiloConversacion.tsx`, bajo «Lo que te piden»): avance + botón que
+  abre la ventana emergente con 4 pasos. Lógica en `app/services/revision_empaque.py`, rutas `/api/revision-empaque/*`.
+- **1 Pesar** cada combo activo de Alegra (304) listo para despachar; confirma el empaque de la receta (solo envase,
+  bolsa, caja y kits se preguntan) y la caja (`BOX11X4X4`, `BOX12X8X4`, `BOX17X11X4`, `CAJCAR5mL` u «otra»).
+  «No lo puedo pesar» exige motivo. **2 Medir** una vez por **tipo de empaque**: envase rígido (casilla `envase` de
+  `mapa_producto._casilla`) mide igual con cualquier contenido; una bolsa sin envase ni caja se separa por
+  presentación; sin envase en la receta → `solo:<sku>`. 94 mediciones en vez de 304. Un producto puede corregir sus
+  medidas. La presentación sale de la cantidad de materia prima de la receta, no del SKU («C-BTMS50125g» = 125 g).
+- **3 Entregar**: comentario con el resumen; la solicitud queda `esperando_aprobacion` (la finaliza quien la pidió).
+- **4 Aprobar** (`puede_aprobar`: quien la creó o admin): verificado contra MeLi («difiere» = peso > 5 % o 10 g, o
+  medidas distintas tras subir al cm); aplica en lotes de 10 desde el panel (máx. 15 por llamada). **Antes de escribir
+  relee cada publicación**: no toca cerradas ni las que ya tienen otro SKU. Medidas hacia arriba al cm; peso al gramo.
+- Publicaciones por SKU: activas y pausadas de la cuenta, por `SELLER_SKU` (o `seller_custom_field`), en mayúsculas;
+  se fotografían al crear y con «Releer MeLi». Base `app/data/revision_empaque.db` (gitignored). Sin LLM.
+- Banco sin backend: `/app/dev/revision.html` (Jenniffer) y `?admin=1` (Armando). Tests: `tests/test_revision_empaque.py`.
+- Crear otra revisión: `revision_empaque.crear_con_solicitud(creador_id, asignado_id)` (lee MeLi, ~20 llamadas).

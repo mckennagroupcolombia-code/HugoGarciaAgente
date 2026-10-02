@@ -292,6 +292,10 @@ app/data/insumos.db-*
 fotos_insumos/
 app/data/facturar_ahora_bloqueos.json
 
+# Revisión global de pesos, medidas y empaques (base runtime)
+app/data/revision_empaque.db
+app/data/revision_empaque.db-*
+
 # Ubicación de bultos (fotos y base runtime)
 app/data/bultos.db
 app/data/bultos.db-*

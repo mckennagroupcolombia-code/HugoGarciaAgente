@@ -247,6 +247,10 @@ bultos AE, solicitudes como misión AF). Cese global: `python3 scripts/cese_acti
 ⚠️ Desde el 27-sep el cese se levantó con **despliegue gradual** (`despliegue_ventas.json`): MeLi, web y Cotizar/Facturar
 solo venden SKUs que se facturan; ampliar con `scripts/desplegar_ventas_facturables.py --ampliar`.
 
+**Revisión de pesos, medidas y empaques** (`operacion-equipo.md`, AG). Solicitud `subtipo=revision_empaque` con wizard
+(pesar cada combo → medir cada tipo de empaque → entregar → el admin aprueba y aplica en MeLi). Es la fuente de verdad
+de peso/medidas por SKU; nada se escribe en MeLi sin aprobar y antes se relee la publicación.
+
 **RRHH y horas** (`rrhh-horas.md`). ⚠️ **Nunca** poner horario de entrada/salida (convierte honorarios en contrato
 laboral). Tiempos solo cronometrados (≥5 muestras) o huella real, nunca estimados a mano. Salarios fuera de git.
 
@@ -435,7 +439,7 @@ viven en el repo (nivel 2) mientras que los PNG derivados para imprimir viven fu
 | Agente de ventas v2 (P) | `docs/agentic/modules/agente-ventas-v2.md` |
 | Ventas directas (R) | `docs/agentic/modules/ventas-directas.md` |
 | Mapa, combos, EAN, canales, árbol del producto (U, W, X, Z, AD) | `docs/agentic/modules/producto-cadena.md` |
-| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión (Y, AA, AB, AC, AE, AF) | `docs/agentic/modules/operacion-equipo.md` |
+| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión, revisión de empaques (Y, AA, AB, AC, AE, AF, AG) | `docs/agentic/modules/operacion-equipo.md` |
 | Rendimiento, mapa de funciones, control de horas | `docs/agentic/modules/rrhh-horas.md` |
 | Colaboradores | `docs/agentic/modules/colaboradores.md` |
 | Panel React, iconografía, grabar pantalla (V, S) | `docs/agentic/modules/desktop-panel.md` |

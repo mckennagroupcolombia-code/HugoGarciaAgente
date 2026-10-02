@@ -88,6 +88,7 @@ import { api } from "../api/client";
 import { esAdminVistaEquipo } from "../lib/adminAccess";
 import InboxConversaciones from "./tickets/InboxConversaciones";
 import DondeEsta from "./bultos/DondeEsta";
+import RevisionEmpaqueEnSolicitud from "./revisionEmpaque/RevisionEmpaque";
 
 // ── API helper ────────────────────────────────────────────────────────────────
 
@@ -5835,6 +5836,7 @@ export function TicketDetailView({
           <p className="whitespace-pre-wrap text-sm text-ink border-t border-border pt-3">{ticket.descripcion}</p>
         )}
         <DondeEsta texto={`${ticket.titulo}\n${ticket.descripcion ?? ""}`} />
+        <RevisionEmpaqueEnSolicitud ticket={ticket} />
         {ticket.soporte_archivo && (
           <a href={`/api/tickets/uploads/${ticket.soporte_archivo}?token=${token}`}
             target="_blank" rel="noreferrer"
@@ -15206,6 +15208,7 @@ function SolicitudCard({
             <p className="text-sm leading-relaxed text-muted/80 whitespace-pre-wrap">{ticket.descripcion}</p>
           )}
           <DondeEsta texto={`${ticket.titulo}\n${ticket.descripcion ?? ""}`} />
+          <RevisionEmpaqueEnSolicitud ticket={ticket} />
           {/* De quién → para quién */}
           <div className="flex items-center gap-2 text-xs lg:text-sm text-muted flex-wrap">
             <span className="inline-flex items-center gap-1.5 font-medium text-ink/70">
