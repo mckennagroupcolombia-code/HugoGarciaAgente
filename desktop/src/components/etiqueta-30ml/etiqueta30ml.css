@@ -139,6 +139,18 @@
   grid-template-rows: repeat(3, minmax(0, 1fr)) var(--e30-franja);
 }
 
+/* Plantillas con `modoUsoMasAlto` (Activos cosméticos): la fila del medio
+   —Modo de uso, a la derecha— 10 % más alta; arriba y abajo ceden 5 % cada
+   una. Igual en los dos paneles laterales y en la fila del logo, para que
+   las líneas horizontales sigan cayendo a la misma altura. */
+.e30-uso-alto .e30-panel-izq,
+.e30-uso-alto .e30-panel-der {
+  grid-template-rows: minmax(0, 0.95fr) minmax(0, 1.1fr) minmax(0, 0.95fr) var(--e30-franja);
+}
+.e30-uso-alto .e30-panel-centro {
+  grid-template-rows: calc(var(--e30-fila) * 0.95) minmax(0, 1fr) var(--e30-neto);
+}
+
 .e30-panel > * {
   min-width: 0;
   min-height: 0;

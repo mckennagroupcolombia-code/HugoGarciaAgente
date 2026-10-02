@@ -1,8 +1,10 @@
 /**
  * Diseño de producto → Fórmulas: la receta de elaboración de cada producto
  * propio (crema, bálsamo, jabón…). Ingredientes en porcentaje —materias primas
- * del catálogo de Alegra o texto libre—, fase y función; los gramos se calculan
- * para el tamaño de lote que se escriba. Se guarda la fórmula en %, que no
+ * del catálogo de Alegra o texto libre—; la pantalla pide solo nombre,
+ * ingredientes y porcentajes (fase, función, categoría y notas viejas se
+ * conservan al guardar, pero ya no se muestran). Los gramos se calculan
+ * para la cantidad que se escriba. Se guarda la fórmula en %, que no
  * cambia con el lote (API: app/routes_formulas.py).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -71,8 +73,6 @@ export default function FormulasPanel() {
   const [cambios, setCambios] = useState(false);
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
-  /** Sube cada vez que se abre una fórmula: el editor vuelve a pedir el listado. */
-  const [apertura, setApertura] = useState(0);
 
   const visibles = useMemo(() => {
     const q = buscar.trim().toLowerCase();
@@ -111,7 +111,6 @@ export default function FormulasPanel() {
     setCambios(false);
     setAviso(null);
     setConfirmarBorrado(false);
-    setApertura((n) => n + 1);
   }
 
   function cambiar(patch: Partial<Formula>) {
@@ -158,7 +157,7 @@ export default function FormulasPanel() {
                 >
                   <span className="block truncate text-sm font-medium text-ink">{f.nombre}</span>
                   <span className="block truncate text-[11px] text-muted">
-                    {[f.categoria, `${f.ingredientes.length} ingredientes`].filter(Boolean).join(" · ")}
+                    {f.ingredientes.length} ingredientes
                   </span>
                 </button>
               </li>
@@ -171,8 +170,8 @@ export default function FormulasPanel() {
       <section className="min-w-0 flex-1">
         {editando ? (
           <EditorFormula
+            key={editando.id ?? "nueva"}
             formula={editando}
-            apertura={apertura}
             onChange={cambiar}
             guardando={guardar.isPending}
             onGuardar={() => editando && guardar.mutate(editando)}
@@ -186,7 +185,7 @@ export default function FormulasPanel() {
         ) : (
           <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted">
             Elige una fórmula de la lista o crea una nueva: primero ingresas los ingredientes con su porcentaje,
-            luego la cantidad que vas a preparar, y se genera el listado de cantidades de cada ingrediente.
+            luego la cantidad que vas a preparar, y las cantidades de cada ingrediente se calculan al instante.
             {aviso && <p className={`mt-2 text-xs ${aviso.ok ? "text-green-700" : "text-red-600"}`}>{aviso.texto}</p>}
           </div>
         )}
@@ -195,9 +194,15 @@ export default function FormulasPanel() {
   );
 }
 
+/** Un color por ingrediente: el mismo en la barra de composición, la tabla y el listado. */
+const COLORES = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#0ea5e9", "#a855f7", "#84cc16", "#ec4899", "#14b8a6", "#f97316"];
+const color = (k: number) => COLORES[k % COLORES.length];
+
+/** Cantidades frecuentes para la calculadora, en la unidad elegida. */
+const RAPIDAS = [100, 250, 500, 1000];
+
 function EditorFormula({
   formula,
-  apertura,
   onChange,
   guardando,
   onGuardar,
@@ -209,7 +214,6 @@ function EditorFormula({
   onEliminar,
 }: {
   formula: Formula;
-  apertura: number;
   onChange: (patch: Partial<Formula>) => void;
   guardando: boolean;
   onGuardar: () => void;
@@ -226,22 +230,34 @@ function EditorFormula({
   const cuadra = Math.abs(total - 100) < 0.005;
   const cantidad = Number(formula.lote_g) || 0;
   const unidad: Unidad = formula.unidad === "mL" ? "mL" : "g";
-  /** Listado generado: guarda con qué fórmula y cantidad se hizo, para avisar
-   *  si después se cambia algo y hay que volver a generarlo. */
-  const huella = JSON.stringify([conNombre.map((i) => [i.nombre, i.porcentaje]), cantidad, unidad]);
-  const [generado, setGenerado] = useState<string | null>(null);
-  const listoParaGenerar = conNombre.length > 0 && cuadra && cantidad > 0;
-
-  // Al abrir otra fórmula, el listado se vuelve a pedir (guardar no lo borra).
-  useEffect(() => {
-    setGenerado(null);
-  }, [apertura]);
+  const listo = conNombre.length > 0 && cuadra && cantidad > 0;
+  /** Fila recién agregada: su buscador toma el foco al aparecer. */
+  const [nueva, setNueva] = useState<number | null>(null);
+  /** Fila resaltada al pasar el mouse por la barra o por la tabla. */
+  const [resaltada, setResaltada] = useState<number | null>(null);
 
   function cambiarFila(idx: number, patch: Partial<Ingrediente>) {
     onChange({ ingredientes: ingredientes.map((i, k) => (k === idx ? { ...i, ...patch } : i)) });
   }
 
-  const filas = conNombre.map((i) => ({ ...i, gramos: (cantidad * (Number(i.porcentaje) || 0)) / 100 }));
+  function agregarFila() {
+    setNueva(ingredientes.length);
+    onChange({ ingredientes: [...ingredientes, { ...FILA_VACIA }] });
+  }
+
+  /** Lo que falta (o sobra) para 100 % se le suma a la fila indicada. */
+  function completar(idx: number) {
+    const actual = Number(ingredientes[idx]?.porcentaje) || 0;
+    const nuevo = Math.max(0, Math.round((actual + 100 - total) * 10000) / 10000);
+    cambiarFila(idx, { porcentaje: nuevo });
+  }
+  /** Se completa con el último ingrediente que tenga nombre (suele ser el agua o la base). */
+  const ultimaConNombre = ingredientes.reduce((u, i, k) => (i.nombre.trim() ? k : u), -1);
+  const filaCompletar = ultimaConNombre >= 0 ? ultimaConNombre : ingredientes.length - 1;
+
+  const filas = ingredientes
+    .map((i, k) => ({ ...i, k, gramos: (cantidad * (Number(i.porcentaje) || 0)) / 100 }))
+    .filter((i) => i.nombre.trim());
 
   function imprimir() {
     const w = window.open("", "_blank", "width=800,height=900");
@@ -250,7 +266,7 @@ function EditorFormula({
     const cuerpo = filas
       .map(
         (f, k) =>
-          `<tr><td>${k + 1}</td><td>${esc(f.nombre)}${f.fase ? ` <small>(fase ${esc(f.fase)})</small>` : ""}</td>` +
+          `<tr><td>${k + 1}</td><td>${esc(f.nombre)}</td>` +
           `<td class="n">${num(f.porcentaje, 4)} %</td><td class="n"><b>${num(f.gramos)} ${unidad}</b></td><td class="c">☐</td></tr>`,
       )
       .join("");
@@ -270,53 +286,91 @@ function EditorFormula({
     w.print();
   }
 
+  const numeroPaso = (n: number, hecho: boolean) => (
+    <span
+      className={`mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] text-white transition-colors ${
+        hecho ? "bg-green-600" : "bg-accent"
+      }`}
+    >
+      {hecho ? "✓" : n}
+    </span>
+  );
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
-        <label className="flex flex-col gap-1 text-xs text-muted">
-          Nombre de la fórmula
-          <input
-            value={formula.nombre}
-            onChange={(e) => onChange({ nombre: e.target.value })}
-            placeholder="p. ej. Crema corporal de karité"
-            className={CAMPO}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">
-          Categoría
-          <input
-            value={formula.categoria}
-            onChange={(e) => onChange({ categoria: e.target.value })}
-            placeholder="p. ej. Cremas"
-            className={CAMPO}
-          />
-        </label>
-      </div>
+      <label className="flex flex-col gap-1 text-xs text-muted">
+        Nombre de la fórmula
+        <input
+          value={formula.nombre}
+          onChange={(e) => onChange({ nombre: e.target.value })}
+          placeholder="p. ej. Crema corporal de karité"
+          className={CAMPO}
+        />
+      </label>
 
       {/* ── Paso 1: ingredientes y porcentajes ── */}
       <div className="rounded-xl border border-border bg-surface p-3">
-        <h3 className="mb-2 text-sm font-semibold text-ink">
-          <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] text-white">1</span>
-          Ingredientes y porcentajes
-        </h3>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-ink">
+            {numeroPaso(1, conNombre.length > 0 && cuadra)}
+            Ingredientes y porcentajes
+          </h3>
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums transition-colors ${
+              cuadra ? "bg-green-600/15 text-green-700" : total > 100 ? "bg-red-600/15 text-red-600" : "bg-amber-500/15 text-amber-600"
+            }`}
+          >
+            {num(total)} % {cuadra ? "✓" : ""}
+          </span>
+        </div>
+
+        {/* Barra de composición: cada ingrediente ocupa su porcentaje. */}
+        <div className="mb-3 flex h-3 w-full overflow-hidden rounded-full bg-border/50" title="Composición de la fórmula">
+          {ingredientes.map((ing, k) => {
+            const p = Number(ing.porcentaje) || 0;
+            if (p <= 0) return null;
+            return (
+              <div
+                key={k}
+                onMouseEnter={() => setResaltada(k)}
+                onMouseLeave={() => setResaltada(null)}
+                title={`${ing.nombre || "Sin nombre"} · ${num(p, 4)} %`}
+                className="h-full transition-all duration-300"
+                style={{
+                  width: `${(p / Math.max(100, total)) * 100}%`,
+                  background: color(k),
+                  opacity: resaltada === null || resaltada === k ? 1 : 0.35,
+                }}
+              />
+            );
+          })}
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[420px] border-collapse text-xs">
+          <table className="w-full min-w-[320px] border-collapse text-xs">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wide text-muted">
+                <th className="w-4" />
                 <th className="px-1 py-1 font-medium">Ingrediente</th>
                 <th className="w-24 px-1 py-1 text-right font-medium">%</th>
-                <th className="w-16 px-1 py-1 font-medium" title="Opcional: fase en que se agrega (A, B, C…)">
-                  Fase
-                </th>
                 <th className="w-8" />
               </tr>
             </thead>
             <tbody>
               {ingredientes.map((ing, idx) => (
-                <tr key={idx} className="border-t border-border/60 align-top">
+                <tr
+                  key={idx}
+                  onMouseEnter={() => setResaltada(idx)}
+                  onMouseLeave={() => setResaltada(null)}
+                  className={`border-t border-border/60 align-top transition-colors ${resaltada === idx ? "bg-accent/5" : ""}`}
+                >
+                  <td className="py-2 pl-1">
+                    <span className="block h-2.5 w-2.5 rounded-full" style={{ background: color(idx) }} />
+                  </td>
                   <td className="px-1 py-1">
                     <BuscadorIngrediente
                       valor={ing}
+                      autoFocus={idx === nueva}
                       onElegir={(codigo, nombre) => cambiarFila(idx, { codigo, nombre })}
                     />
                   </td>
@@ -327,23 +381,21 @@ function EditorFormula({
                       step="any"
                       value={ing.porcentaje || ""}
                       onChange={(e) => cambiarFila(idx, { porcentaje: Number(e.target.value) || 0 })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && idx === ingredientes.length - 1) agregarFila();
+                      }}
                       placeholder="0"
                       className={`${CAMPO_TABLA} text-right`}
-                    />
-                  </td>
-                  <td className="px-1 py-1">
-                    <input
-                      value={ing.fase}
-                      onChange={(e) => cambiarFila(idx, { fase: e.target.value })}
-                      placeholder="—"
-                      className={CAMPO_TABLA}
                     />
                   </td>
                   <td className="px-1 py-1 text-center">
                     <button
                       type="button"
                       title="Quitar ingrediente"
-                      onClick={() => onChange({ ingredientes: ingredientes.filter((_, k) => k !== idx) })}
+                      onClick={() => {
+                        setNueva(null);
+                        onChange({ ingredientes: ingredientes.filter((_, k) => k !== idx) });
+                      }}
                       className="text-muted hover:text-red-600"
                     >
                       ✕
@@ -352,113 +404,105 @@ function EditorFormula({
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr className="border-t border-border font-semibold">
-                <td className="px-1 py-1.5">
-                  <button
-                    type="button"
-                    className={BOTON_SUAVE}
-                    onClick={() => onChange({ ingredientes: [...ingredientes, { ...FILA_VACIA }] })}
-                  >
-                    + Agregar ingrediente
-                  </button>
-                </td>
-                <td className={`px-1 py-1.5 text-right tabular-nums ${cuadra ? "text-green-700" : "text-amber-600"}`}>
-                  {num(total)} %
-                </td>
-                <td colSpan={2} />
-              </tr>
-            </tfoot>
           </table>
         </div>
-        {!cuadra && ingredientes.length > 0 && (
-          <p className="mt-1 text-[11px] text-amber-600">
-            Los porcentajes suman {num(total)} %: {total < 100 ? `faltan ${num(100 - total)}` : `sobran ${num(total - 100)}`} %
-            para llegar a 100 %.
-          </p>
-        )}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button type="button" className={BOTON_SUAVE} onClick={agregarFila}>
+            + Agregar ingrediente
+          </button>
+          {!cuadra && ingredientes.length > 0 && filaCompletar >= 0 && (
+            <>
+              <span className={`text-[11px] ${total > 100 ? "text-red-600" : "text-amber-600"}`}>
+                {total < 100 ? `Faltan ${num(100 - total)} %` : `Sobran ${num(total - 100)} %`}
+              </span>
+              {(Number(ingredientes[filaCompletar]?.porcentaje) || 0) + 100 - total >= 0 && (
+                <button
+                  type="button"
+                  className={BOTON_SUAVE}
+                  onClick={() => completar(filaCompletar)}
+                  title="Ajusta el porcentaje de ese ingrediente para que el total sea 100 %"
+                >
+                  Completar a 100 % con «{ingredientes[filaCompletar]?.nombre.trim() || "la última fila"}»
+                </button>
+              )}
+            </>
+          )}
+        </div>
+        <p className="mt-1.5 text-[10px] text-muted">Enter en el % de la última fila agrega otro ingrediente.</p>
       </div>
 
-      {/* ── Paso 2: cantidad a preparar ── */}
+      {/* ── Paso 2: calculadora de cantidades ── */}
       <div className="rounded-xl border border-border bg-surface p-3">
         <h3 className="mb-2 text-sm font-semibold text-ink">
-          <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] text-white">2</span>
-          ¿Qué cantidad vamos a preparar?
+          {numeroPaso(2, listo)}
+          Calculadora de cantidades
         </h3>
         <div className="flex flex-wrap items-center gap-2">
-          <span>
-            <input
-              type="number"
-              min={0}
-              step="any"
-              value={cantidad || ""}
-              onChange={(e) => onChange({ lote_g: Number(e.target.value) || 0 })}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && listoParaGenerar) setGenerado(huella);
-              }}
-              placeholder="0"
-              className="mck-field-lg w-32 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-right text-sm text-ink"
-            />
-          </span>
-          <select
-            value={unidad}
-            onChange={(e) => onChange({ unidad: e.target.value as Unidad })}
-            className="mck-field-lg rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm text-ink"
-          >
-            <option value="g">gramos (g)</option>
-            <option value="mL">mililitros (mL)</option>
-          </select>
-          <button type="button" className={BOTON} disabled={!listoParaGenerar} onClick={() => setGenerado(huella)}>
-            Generar listado de cantidades
-          </button>
-        </div>
-        {!listoParaGenerar && (
-          <p className="mt-1.5 text-[11px] text-muted">
-            {conNombre.length === 0
-              ? "Primero ingresa los ingredientes con su porcentaje."
-              : !cuadra
-                ? "Los porcentajes deben sumar 100 % para generar el listado."
-                : "Escribe la cantidad que vas a preparar."}
-          </p>
-        )}
-      </div>
-
-      {/* ── Paso 3: listado de cantidades ── */}
-      {generado && (
-        <div className="rounded-xl border border-accent/40 bg-accent/5 p-3">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-ink">
-              <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] text-white">3</span>
-              Listado de cantidades · {num(cantidad)} {unidad}
-            </h3>
-            <button type="button" className={BOTON_SUAVE} onClick={imprimir} disabled={generado !== huella}>
-              Imprimir listado
-            </button>
+          <input
+            type="number"
+            min={0}
+            step="any"
+            value={cantidad || ""}
+            onChange={(e) => onChange({ lote_g: Number(e.target.value) || 0 })}
+            placeholder="0"
+            className="mck-field-lg w-32 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-right text-sm text-ink"
+          />
+          <div className="flex overflow-hidden rounded-lg border border-border">
+            {(["g", "mL"] as Unidad[]).map((u) => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => onChange({ unidad: u })}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  unidad === u ? "bg-accent text-white" : "bg-surface-input text-ink hover:bg-accent/10"
+                }`}
+              >
+                {u === "g" ? "gramos" : "mililitros"}
+              </button>
+            ))}
           </div>
-          {generado !== huella ? (
-            <p className="text-xs text-amber-600">
-              Cambiaste los ingredientes o la cantidad: vuelve a pulsar «Generar listado de cantidades».
-            </p>
-          ) : (
+          <span className="text-[11px] text-muted">Rápido:</span>
+          {RAPIDAS.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onChange({ lote_g: n })}
+              className={`rounded-full border px-2.5 py-1 text-xs tabular-nums transition-colors ${
+                cantidad === n ? "border-accent bg-accent text-white" : "border-border text-ink hover:border-accent/60"
+              }`}
+            >
+              {num(n)} {unidad}
+            </button>
+          ))}
+        </div>
+
+        {listo ? (
+          <div className="mt-3 rounded-lg border border-accent/30 bg-accent/5 p-2.5">
+            <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-ink">
+                Para {num(cantidad)} {unidad} necesitas:
+              </span>
+              <button type="button" className={BOTON_SUAVE} onClick={imprimir}>
+                Imprimir listado
+              </button>
+            </div>
             <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-muted">
-                  <th className="w-8 px-1 py-1 font-medium">#</th>
-                  <th className="px-1 py-1 font-medium">Ingrediente</th>
-                  <th className="w-20 px-1 py-1 text-right font-medium">%</th>
-                  <th className="w-32 px-1 py-1 text-right font-medium">Cantidad</th>
-                </tr>
-              </thead>
               <tbody>
-                {filas.map((f, k) => (
-                  <tr key={k} className="border-t border-border/60">
-                    <td className="px-1 py-1.5 text-muted">{k + 1}</td>
-                    <td className="px-1 py-1.5 text-ink">
-                      {f.nombre}
-                      {f.fase && <span className="ml-1 text-[11px] text-muted">fase {f.fase}</span>}
+                {filas.map((f) => (
+                  <tr
+                    key={f.k}
+                    onMouseEnter={() => setResaltada(f.k)}
+                    onMouseLeave={() => setResaltada(null)}
+                    className={`border-t border-border/60 transition-colors ${resaltada === f.k ? "bg-accent/10" : ""}`}
+                  >
+                    <td className="w-4 py-1.5 pl-1">
+                      <span className="block h-2.5 w-2.5 rounded-full" style={{ background: color(f.k) }} />
                     </td>
-                    <td className="px-1 py-1.5 text-right tabular-nums text-muted">{num(f.porcentaje, 4)} %</td>
-                    <td className="px-1 py-1.5 text-right font-semibold tabular-nums text-ink">{num(f.gramos)} {unidad}</td>
+                    <td className="px-1 py-1.5 text-ink">{f.nombre}</td>
+                    <td className="w-20 px-1 py-1.5 text-right text-xs tabular-nums text-muted">{num(f.porcentaje, 4)} %</td>
+                    <td className="w-32 px-1 py-1.5 text-right text-base font-semibold tabular-nums text-ink">
+                      {num(f.gramos)} {unidad}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -466,46 +510,24 @@ function EditorFormula({
                 <tr className="border-t-2 border-ink/40 font-semibold">
                   <td />
                   <td className="px-1 py-1.5 text-ink">Total</td>
-                  <td className="px-1 py-1.5 text-right tabular-nums">{num(total)} %</td>
-                  <td className="px-1 py-1.5 text-right tabular-nums text-ink">{num(cantidad)} {unidad}</td>
+                  <td className="px-1 py-1.5 text-right text-xs tabular-nums">{num(total)} %</td>
+                  <td className="px-1 py-1.5 text-right tabular-nums text-ink">
+                    {num(cantidad)} {unidad}
+                  </td>
                 </tr>
               </tfoot>
             </table>
-          )}
-        </div>
-      )}
-
-      {/* ── Más datos de la fórmula ── */}
-      <label className="flex flex-col gap-1 text-xs text-muted">
-        Descripción
-        <textarea
-          rows={2}
-          value={formula.descripcion}
-          onChange={(e) => onChange({ descripcion: e.target.value })}
-          placeholder="Para qué es, textura, tipo de envase…"
-          className={`${CAMPO} resize-y`}
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-muted">
-        Procedimiento
-        <textarea
-          rows={5}
-          value={formula.procedimiento}
-          onChange={(e) => onChange({ procedimiento: e.target.value })}
-          placeholder={"1. Calentar la fase A a 75 °C…\n2. …"}
-          className={`${CAMPO} resize-y`}
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-muted">
-        Notas
-        <textarea
-          rows={3}
-          value={formula.notas}
-          onChange={(e) => onChange({ notas: e.target.value })}
-          placeholder="pH final, viscosidad, pruebas de estabilidad, proveedores…"
-          className={`${CAMPO} resize-y`}
-        />
-      </label>
+          </div>
+        ) : (
+          <p className="mt-2 text-[11px] text-muted">
+            {conNombre.length === 0
+              ? "Primero ingresa los ingredientes con su porcentaje."
+              : !cuadra
+                ? "Cuando los porcentajes sumen 100 % aquí aparecen las cantidades."
+                : "Escribe la cantidad o elige una rápida: las cantidades se calculan al instante."}
+          </p>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <button
@@ -554,9 +576,11 @@ function EditorFormula({
  *  Alegra (sin combos). Elegida, guarda su código; si se reescribe, vuelve a texto libre. */
 function BuscadorIngrediente({
   valor,
+  autoFocus,
   onElegir,
 }: {
   valor: Ingrediente;
+  autoFocus?: boolean;
   onElegir: (codigo: string, nombre: string) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
@@ -594,6 +618,7 @@ function BuscadorIngrediente({
           setAbierto(true);
         }}
         onFocus={() => setAbierto(true)}
+        autoFocus={autoFocus}
         placeholder="Buscar materia prima o escribir…"
         className={CAMPO_TABLA}
       />

@@ -1,3 +1,41 @@
 {
-  "formulas": []
+  "formulas": [
+    {
+      "id": "33cc5c37a968",
+      "nombre": "VITAMINA C  SUSPENCION",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "VITCACIASCg",
+          "nombre": "VITAMINA C ACIDO ASCORBICO G",
+          "fase": "",
+          "porcentaje": 20.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "AGUDESmL",
+          "nombre": "AGUA DESTILADA ML",
+          "fase": "",
+          "porcentaje": 20.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "DIPGLImL",
+          "nombre": "DIPROPILENGICOL USP DPG mL",
+          "fase": "",
+          "porcentaje": 60.0,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1000.0,
+      "unidad": "mL",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-01T23:54:53",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-02T00:04:14",
+      "actualizado_por": "Cynthia Ruiz"
+    }
+  ]
 }

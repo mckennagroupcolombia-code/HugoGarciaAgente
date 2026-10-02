@@ -2131,6 +2131,19 @@
         "aprobado_at": "2026-10-01T14:52:27",
         "por": "@cynthia"
       }
+    },
+    "f984cae9fe57": {
+      "barcode": "7703030302641",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/ACEITE_SQUALANO_30mL.png",
+        "aprobado_at": "2026-10-02T00:27:47",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/ACEITE_SQUALANO_30mL_digital.png",
+        "aprobado_at": "2026-10-02T00:27:47",
+        "por": "@cynthia"
+      }
     }
   }
 }

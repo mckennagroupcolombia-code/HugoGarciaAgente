@@ -3370,6 +3370,17 @@
       "bimestre": 4,
       "codigo": "7703021202646",
       "creado_at": "2026-09-29T15:33:29"
+    },
+    {
+      "id": "b45dfc9c5659",
+      "sku": "C-ACESQU30mL",
+      "nombre_producto": "ACEITE SQUALANO 30mL",
+      "numero_producto": 303,
+      "presentacion": "030",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7703030302641",
+      "creado_at": "2026-10-02T00:10:40"
     }
   ]
 }

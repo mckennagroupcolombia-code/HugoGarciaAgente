@@ -33,7 +33,7 @@ const LabelPreview = forwardRef<HTMLDivElement, Props>(function LabelPreview(
     <div
       ref={ref}
       lang="es"
-      className={`e30-etiqueta${guias ? " e30-guias" : ""}${editMode ? " e30-editando" : ""}`}
+      className={`e30-etiqueta${data.modoUsoMasAlto ? " e30-uso-alto" : ""}${guias ? " e30-guias" : ""}${editMode ? " e30-editando" : ""}`}
       style={{ width: reticula.ancho, height: reticula.alto, ...variables30ml(reticula, data.accentColor) }}
     >
       <LeftTechnicalPanel

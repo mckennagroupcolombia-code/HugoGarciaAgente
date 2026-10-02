@@ -77,6 +77,10 @@ export interface ProductLabelData {
    *  tabla ocupa ese alto. El timbre físico sigue teniendo su zona junto al
    *  código de barras. Dato de plantilla. */
   sinTimbreCentro?: boolean;
+  /** Formato 30 mL: la fila del medio (Modo de uso) 10 % más alta en los dos
+   *  paneles laterales; las filas de arriba y abajo ceden 5 % cada una, así las
+   *  líneas siguen alineadas. Dato de plantilla (Activos cosméticos). */
+  modoUsoMasAlto?: boolean;
   /** Formato 69 × 51 mm (alimentos): línea de alérgenos ("Contiene: frutos
    *  secos…"). Dato de plantilla: toda etiqueta de la familia la hereda y se
    *  ajusta por producto. */
@@ -258,6 +262,7 @@ export const CAMPOS_PLANTILLA = [
   "ordenCeldas",
   "storageSugerido",
   "sinTimbreCentro",
+  "modoUsoMasAlto",
   "alergenos",
   "capsulasSubtitulo",
   "aplicacionesTitulo",

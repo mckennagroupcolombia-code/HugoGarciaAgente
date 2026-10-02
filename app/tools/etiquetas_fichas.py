@@ -391,6 +391,7 @@ _CAMPOS_DISENO_PROPAGABLES = (
     "ordenCeldas",
     "storageSugerido",
     "sinTimbreCentro",
+    "modoUsoMasAlto",
     "clasificacionTitulo",
 )
 
