@@ -63,6 +63,8 @@ type Previsualizacion = {
   perfil_cuenta?: { nota?: string; advertencia?: string; cuenta_nombre?: string };
   pagado_ahora?: number; saldo_pendiente?: number; cuenta_saldo?: string; permite_parcial?: boolean;
   anticipo?: number; cuenta_anticipo?: string;
+  /** Saldos cruzados con el proveedor en este pago: anticipo 133005 y deuda 2205. */
+  cruce_anticipo?: number; cruce_cxp?: number;
   // Solo en el recálculo de una solicitud guardada: avisa si el origen cambió.
   difiere_de_lo_guardado?: boolean; monto_guardado?: number;
 };
@@ -73,7 +75,11 @@ type Solicitud = {
   fecha: string; estado: string; referencia: string; notas: string;
   tercero: { id: number; nombre: string; identificacion: string } | null;
   movimiento_id: number | null; alegra_journal_id: string; ticket_id: number | null;
-  items?: Array<{ sku: string; nombre: string; cantidad: number; precio: number; total?: number }>;
+  items?: Array<{ sku: string; nombre: string; cantidad: number; precio: number; total?: number; iva_pct?: number; unidad?: string }>;
+  // Lo que hace falta para reabrir un borrador en el formulario.
+  medio_pago_id?: number | null; cuenta_debito?: string; ica_por_mil?: number;
+  renta_asumida?: number; ica_asumida?: number; total_documento?: number;
+  pagado_ahora?: number | null; cruce_anticipo?: number; cruce_cxp?: number;
   factura_numero?: string; factura_nombre?: string; factura_archivo?: string;
   verificacion?: { fiel?: boolean; advertencias?: string[]; motivo_diferencia?: string; numero_documento?: string };
   es_plantilla?: number; frecuencia?: string; plantilla_id?: number | null;
@@ -141,6 +147,8 @@ export default function PagosWizardPanel() {
   // El recorrido largo (productos con SKU + factura cotejada) sigue existiendo,
   // pero no es la puerta de entrada: se pide a propósito.
   const [avanzado, setAvanzado] = useState(false);
+  // El borrador del servidor que se está corrigiendo en el formulario.
+  const [editando, setEditando] = useState<Solicitud | null>(null);
 
   // Borrador local de la solicitud a medio llenar, por usuario. Si al entrar
   // hay uno, el formulario se abre solo con lo que se llevaba.
@@ -239,6 +247,16 @@ export default function PagosWizardPanel() {
           void qc.invalidateQueries({ queryKey: ["pagos-solicitudes"] });
         };
         const error = (texto: string) => setMsg({ tipo: "error", texto });
+        if (editando) {
+          return (
+            <EditarBorrador
+              key={editando.id} s={editando} clave={clave}
+              onCerrar={() => { setEditando(null); cerrar(); }}
+              onCreada={(t) => { setEditando(null); creada(t); }}
+              onError={error}
+            />
+          );
+        }
         return avanzado || catInicial ? (
           <Wizard categoriaInicial={catInicial} onCerrar={cerrar} onCreada={creada} onError={error} />
         ) : (
@@ -275,7 +293,13 @@ export default function PagosWizardPanel() {
 
           <div className="space-y-2">
             {solicitudes.map((s) => (
-              <FichaSolicitud key={s.id} s={s} onMensaje={setMsg} />
+              <FichaSolicitud
+                key={s.id} s={s} onMensaje={setMsg}
+                onEditar={(sol) => {
+                  setEditando(sol ?? s); setAvanzado(false); setCatInicial(null); setAbierto(true);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
             ))}
           </div>
         </>
@@ -300,6 +324,10 @@ type BorradorSimple = {
   icaActivo: boolean; icaPorMil: string; gmf: boolean; ajustarImpuestos: boolean;
   asumeRenta: boolean; asumeIca: boolean; items: ItemLinea[]; totalDocumento: string;
   contrato: string; monto: string; detalle: string; pagaTodo: boolean; pagoAhora: string;
+  /** Cruzar en este pago el anticipo a favor (133005) y/o lo que se le debe (2205),
+   *  cada uno por separado y por el valor que se escriba (2-oct-2026). */
+  cruzar?: boolean;
+  cruceAnticipo?: string; cruceCxp?: string;
 };
 
 function claveBorrador(usuario: string | undefined): string {
@@ -333,7 +361,7 @@ function borrarBorrador(clave: string) {
 // ver contra qué cuenta va sigue siendo firmar a ciegas.
 
 function WizardSimple({
-  onCerrar, onCreada, onError, onAvanzado, clave, onDescartar,
+  onCerrar, onCreada, onError, onAvanzado, clave, onDescartar, inicial, editarId,
 }: {
   onCerrar: () => void;
   onCreada: (texto: string) => void;
@@ -341,9 +369,13 @@ function WizardSimple({
   onAvanzado: () => void;
   clave: string;
   onDescartar: () => void;
+  /** Con qué arranca el formulario al corregir un borrador guardado en el servidor. */
+  inicial?: BorradorSimple;
+  /** El borrador que se corrige: guardar lo actualiza en vez de crear otra solicitud. */
+  editarId?: number;
 }) {
   // Se lee una sola vez, al montar: es el punto de partida, no un estado vivo.
-  const [ini] = useState(() => leerBorrador(clave));
+  const [ini] = useState(() => inicial ?? leerBorrador(clave));
   const [proveedor, setProveedor] = useState<Proveedor | null>(ini?.proveedor ?? null);
   const [fecha, setFecha] = useState(ini?.fecha || hoy());
   const [medioPagoId, setMedioPagoId] = useState(ini?.medioPagoId ?? "");
@@ -396,6 +428,12 @@ function WizardSimple({
   // alcance para girarlo todo; lo que falta queda como cuenta por pagar.
   const [pagaTodo, setPagaTodo] = useState(ini?.pagaTodo ?? true);
   const [pagoAhora, setPagoAhora] = useState(ini?.pagoAhora ?? "");
+  // Cada saldo se cruza por separado y por un valor que se puede escribir: el
+  // libro no siempre tiene el saldo real del proveedor (2205 de Factores decía
+  // $10,8 M por pagar con un estado de cuenta a favor), y cruzarlo entero a
+  // ciegas subía el giro. Vacío = no se cruza.
+  const [cruceAnticipo, setCruceAnticipo] = useState(ini?.cruceAnticipo ?? "");
+  const [cruceCxp, setCruceCxp] = useState(ini?.cruceCxp ?? "");
 
   // Guardar el borrador mientras se escribe (con una pausa corta para no
   // escribir en cada tecla). Solo si ya hay algo que valga la pena conservar.
@@ -403,11 +441,13 @@ function WizardSimple({
   useEffect(() => {
     const hayAlgo = Boolean(proveedor || items.length || monto || detalle || totalDocumento || contrato);
     const t = window.setTimeout(() => {
-      if (!hayAlgo) return;
+      // Corrigiendo un borrador del servidor: lo guardado vive allá, no en este equipo.
+      if (!hayAlgo || editarId) return;
       const b: BorradorSimple = {
         v: 1, guardado: new Date().toISOString(), proveedor, fecha, medioPagoId, concepto,
         retencionModo, cuentaDebito, icaActivo, icaPorMil, gmf, ajustarImpuestos, asumeRenta,
         asumeIca, items, totalDocumento, contrato, monto, detalle, pagaTodo, pagoAhora,
+        cruceAnticipo, cruceCxp,
       };
       try {
         localStorage.setItem(clave, JSON.stringify(b));
@@ -417,7 +457,7 @@ function WizardSimple({
     return () => window.clearTimeout(t);
   }, [clave, proveedor, fecha, medioPagoId, concepto, retencionModo, cuentaDebito, icaActivo,
       icaPorMil, gmf, ajustarImpuestos, asumeRenta, asumeIca, items, totalDocumento, contrato,
-      monto, detalle, pagaTodo, pagoAhora]);
+      monto, detalle, pagaTodo, pagoAhora, cruceAnticipo, cruceCxp, editarId]);
 
   const catsQ = useQuery<{ categorias: Categoria[] }>({
     queryKey: ["pagos-categorias"],
@@ -541,6 +581,16 @@ function WizardSimple({
     const iva = items.reduce((a, it) => a + num(it.cantidad) * num(it.precio) * (num(it.iva_pct) / 100), 0);
     return { subtotal, iva, total: subtotal + iva };
   }, [items]);
+  // Saldos con el proveedor que se pueden cruzar en este pago: plata a favor
+  // (133005, se le giró de más) y lo que se le sigue debiendo (2205).
+  const saldosQ = useQuery<{ anticipo: number; por_pagar: number }>({
+    queryKey: ["pagos-saldos-cruce", proveedor?.id],
+    queryFn: () => api.get(`/api/pagos/terceros/${proveedor?.id}/saldos-cruce`),
+    enabled: Boolean(proveedor?.id),
+  });
+  const saldoAnticipo = saldosQ.data?.anticipo ?? 0;
+  const saldoPorPagar = saldosQ.data?.por_pagar ?? 0;
+  const hayCruce = saldoAnticipo > 0 || saldoPorPagar > 0;
   const conProductosSimple = concepto === "productos";
   const hayItems = conProductosSimple && items.length > 0;
 
@@ -566,9 +616,12 @@ function WizardSimple({
     asume_renta: asumeRenta,
     asume_ica: asumeIca,
     ...(permiteParcial && !pagaTodo ? { pagado_ahora: num(pagoAhora) } : {}),
+    ...(num(cruceAnticipo) > 0 ? { cruce_anticipo: num(cruceAnticipo) } : {}),
+    ...(num(cruceCxp) > 0 ? { cruce_cxp: num(cruceCxp) } : {}),
   }), [concepto, valor, conceptoTexto, fecha, proveedor, medioPagoId, esPublico, contrato,
        llevaRetencion, retencionModo, icaActivo, icaPorMil, cuentaDebito, gmf, permiteParcial,
-       pagaTodo, pagoAhora, hayItems, items, totProd.total, totalDocumento, asumeRenta, asumeIca]);
+       pagaTodo, pagoAhora, hayItems, items, totProd.total, totalDocumento, asumeRenta, asumeIca,
+       cruceAnticipo, cruceCxp]);
 
   const faltaProveedor = Boolean(cat?.requiere_tercero) && !proveedor?.id;
   // La solicitud de una compra es copia fiel de la cotización o proforma (24-sep-2026):
@@ -590,9 +643,14 @@ function WizardSimple({
   });
 
   const crearMut = useMutation({
-    mutationFn: () => api.post<Solicitud & { error?: string }>("/api/pagos/solicitudes", cuerpo),
+    mutationFn: () => editarId
+      ? api.put<Solicitud & { error?: string }>(`/api/pagos/solicitudes/${editarId}`, cuerpo)
+      : api.post<Solicitud & { error?: string }>("/api/pagos/solicitudes", cuerpo),
     onSuccess: (s) => {
       if (s.error) return onError(s.error);
+      if (editarId) {
+        return onCreada(`Borrador #${s.id} guardado — ${cop(s.monto)}. Revísalo y pulsa «Verificado — enviar a aprobación».`);
+      }
       borrarBorrador(clave);
       onCreada(`Solicitud #${s.id} creada — ${cop(s.monto)}. Ya le llegó el ticket al aprobador.`);
     },
@@ -600,7 +658,7 @@ function WizardSimple({
   });
   const ocupado = crearMut.isPending;
 
-  const avisoBorrador = guardadoA ? (
+  const avisoBorrador = guardadoA && !editarId ? (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-muted">
       <span>
         {ini && ini.guardado === guardadoA ? "Borrador recuperado" : "Borrador guardado en este equipo"}
@@ -668,7 +726,9 @@ function WizardSimple({
   return (
     <div className="space-y-5 rounded-2xl border-2 border-accent/40 bg-surface-panel p-5">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-bold text-accent">Nueva solicitud de pago</p>
+        <p className="text-sm font-bold text-accent">
+          {editarId ? `Corregir borrador #${editarId}` : "Nueva solicitud de pago"}
+        </p>
         <button type="button" onClick={onCerrar} className="text-sm text-muted">✕</button>
       </div>
       {avisoBorrador}
@@ -974,6 +1034,38 @@ function WizardSimple({
         </div>
       )}
 
+      {/* Cruce de saldos. Va antes del resumen porque cambia la cifra que se gira. */}
+      {(hayCruce || num(cruceAnticipo) > 0 || num(cruceCxp) > 0) && concepto !== "saldo_por_pagar" && (
+        <div className="space-y-2 rounded-lg border-2 border-border bg-surface-panel px-3 py-2.5">
+          <p className="text-xs font-bold text-ink">Saldos con {proveedor?.nombre || "el proveedor"}</p>
+          <p className="text-[11px] text-muted">
+            Lo que dice el libro. Cruza solo lo que confirme el estado de cuenta del proveedor: el valor se
+            puede cambiar, y el anticipo baja el giro mientras que lo que se le debe lo sube.
+          </p>
+          {([
+            ["A favor de McKenna (133005)", "baja el giro", saldoAnticipo, cruceAnticipo, setCruceAnticipo],
+            ["Se le debe al proveedor (2205)", "sube el giro", saldoPorPagar, cruceCxp, setCruceCxp],
+          ] as const).map(([etiqueta, efecto, saldo, valorCruce, setValor]) => (saldo > 0 || num(valorCruce) > 0) && (
+            <div key={etiqueta} className="flex flex-wrap items-center gap-2 text-sm">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input type="checkbox" checked={num(valorCruce) > 0}
+                       onChange={(e) => setValor(e.target.checked ? String(Math.round(saldo)) : "")} />
+                <span className="font-bold text-ink">{etiqueta}</span>
+              </label>
+              <span className="text-xs text-muted">en el libro {cop(saldo)}</span>
+              {num(valorCruce) > 0 && (
+                <label className="flex items-center gap-1.5 text-xs text-ink">
+                  cruzar
+                  <input className="w-32 rounded-lg border-2 border-border bg-surface px-2 py-1 text-right text-sm text-ink outline-none focus:border-accent"
+                         value={valorCruce} onChange={(e) => setValor(e.target.value)} inputMode="numeric" />
+                  <span className="text-muted">({efecto})</span>
+                </label>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Lo que de verdad le llega al beneficiario, en grande y antes del asiento:
           es la cifra por la que reclama si no cuadra. */}
       {prevQ.data && (
@@ -1020,13 +1112,79 @@ function WizardSimple({
                 disabled={!prevQ.data?.cuadra || ocupado || Boolean(faltaCompra)}
                 title={faltaCompra || undefined}
                 className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-40">
-          {crearMut.isPending ? "Enviando…" : "Solicitar"}
+          {crearMut.isPending ? "Enviando…" : editarId ? "Guardar borrador" : "Solicitar"}
         </button>
-        <button type="button" onClick={onAvanzado} className="ml-auto text-sm text-muted underline hover:text-accent">
-          Compra con productos y factura cotejada
-        </button>
+        {!editarId && (
+          <button type="button" onClick={onAvanzado} className="ml-auto text-sm text-muted underline hover:text-accent">
+            Compra con productos y factura cotejada
+          </button>
+        )}
       </div>
     </div>
+  );
+}
+
+// ─── Corregir un borrador guardado ─────────────────────────────────────────
+//
+// Un borrador del servidor (lo monta un cron o se pidió solo con el valor) se
+// abre en el mismo formulario con que se crea: ahí se le agregan los productos
+// de la proforma, se ajusta y se guarda con el mismo número. Antes no había
+// cómo, y «enviar a aprobación» lo rechazaba por no tener productos.
+
+const CONCEPTOS_SIMPLES = ["productos", "servicios", "saldo_por_pagar"] as const;
+
+function EditarBorrador({
+  s, clave, onCerrar, onCreada, onError,
+}: {
+  s: Solicitud; clave: string;
+  onCerrar: () => void; onCreada: (texto: string) => void; onError: (texto: string) => void;
+}) {
+  // El formulario necesita la ficha completa del proveedor (régimen, ICA, cuenta habitual).
+  const provQ = useQuery<{ proveedores: Proveedor[] }>({
+    queryKey: ["pagos-proveedores", s.tercero?.nombre ?? ""],
+    queryFn: () => api.get(`/api/pagos/proveedores?q=${encodeURIComponent(s.tercero?.nombre ?? "")}`),
+    enabled: Boolean(s.tercero),
+  });
+  const concepto = (CONCEPTOS_SIMPLES as readonly string[]).includes(s.categoria)
+    ? (s.categoria as BorradorSimple["concepto"]) : null;
+  if (!concepto) {
+    return (
+      <div className="rounded-2xl border-2 border-amber-500/40 bg-surface-panel p-5 text-sm">
+        <p className="font-bold text-ink">El borrador #{s.id} es de «{s.categoria_label}» y este formulario no lo abre.</p>
+        <button type="button" onClick={onCerrar} className="mt-2 font-bold text-accent underline">Cerrar</button>
+      </div>
+    );
+  }
+  if (s.tercero && provQ.isLoading) return <p className="text-sm text-muted">Abriendo el borrador #{s.id}…</p>;
+  const prov = (provQ.data?.proveedores ?? []).find((p) => p.id === s.tercero?.id)
+    ?? (s.tercero ? { id: s.tercero.id, nombre: s.tercero.nombre, identificacion: s.tercero.identificacion,
+                      saldo_2205: 0, en_libro: true, alegra_id: null } : null);
+  // El detalle que se escribió va después del « · » en el concepto guardado.
+  const detalle = s.concepto.includes(" · ") ? s.concepto.slice(s.concepto.lastIndexOf(" · ") + 3) : "";
+  const inicial: BorradorSimple = {
+    v: 1, guardado: new Date().toISOString(), proveedor: prov, fecha: s.fecha,
+    medioPagoId: s.medio_pago_id ? String(s.medio_pago_id) : "", concepto,
+    retencionModo: (["mckenna", "beneficiario", "ninguna"] as const).find((m) => m === s.retencion_modo) ?? "beneficiario",
+    cuentaDebito: s.cuenta_debito ?? "",
+    icaActivo: (s.ica_por_mil ?? 0) > 0, icaPorMil: (s.ica_por_mil ?? 0) > 0 ? String(s.ica_por_mil) : "",
+    gmf: (s.gmf ?? 0) > 0, ajustarImpuestos: false,
+    asumeRenta: Boolean(s.renta_asumida), asumeIca: Boolean(s.ica_asumida),
+    items: (s.items ?? []).map((it) => ({
+      sku: it.sku, nombre: it.nombre, cantidad: String(it.cantidad), precio: String(it.precio),
+      iva_pct: String(it.iva_pct ?? 0), unidad: it.unidad,
+    })),
+    totalDocumento: (s.total_documento ?? 0) > 0 ? String(s.total_documento) : "",
+    contrato: "", monto: String(s.monto), detalle,
+    pagaTodo: s.pagado_ahora == null, pagoAhora: s.pagado_ahora == null ? "" : String(s.pagado_ahora),
+    cruceAnticipo: (s.cruce_anticipo ?? 0) > 0 ? String(s.cruce_anticipo) : "",
+    cruceCxp: (s.cruce_cxp ?? 0) > 0 ? String(s.cruce_cxp) : "",
+  };
+  return (
+    <WizardSimple
+      clave={clave} inicial={inicial} editarId={s.id}
+      onCerrar={onCerrar} onCreada={onCreada} onError={onError}
+      onAvanzado={() => {}} onDescartar={() => {}}
+    />
   );
 }
 
@@ -2327,10 +2485,10 @@ function AsientoPreview({ p }: { p: Previsualizacion }) {
 // ─── Ficha de cada solicitud ───────────────────────────────────────────────
 
 function FichaSolicitud({
-  s, onMensaje,
-}: { s: Solicitud; onMensaje: (m: { tipo: "ok" | "error"; texto: string }) => void }) {
+  s, onMensaje, onEditar,
+}: { s: Solicitud; onMensaje: (m: { tipo: "ok" | "error"; texto: string }) => void; onEditar?: (sol?: Solicitud) => void }) {
   const qc = useQueryClient();
-  const [ocupado, setOcupado] = useState<"aprobar" | "rechazar" | "enviar" | null>(null);
+  const [ocupado, setOcupado] = useState<"aprobar" | "rechazar" | "enviar" | "corregir" | "borrar" | null>(null);
   const [verAsiento, setVerAsiento] = useState(false);
   // Aprobar y contabilizar es de administración: quien solicita ve su solicitud
   // pero no el botón que la firma.
@@ -2358,6 +2516,58 @@ function FichaSolicitud({
     }
   }
   const badge = ESTADO_BADGE[s.estado] ?? { label: s.estado, cls: "bg-surface text-muted" };
+
+  // Un borrador que no se va a pagar se descarta: queda «anulado» con el motivo
+  // (no se elimina, para que el cron no vuelva a montarlo) y sale de la bandeja.
+  async function borrar() {
+    const motivo = window.prompt(
+      `Borrar el borrador #${s.id} — ${s.concepto} (${cop(s.monto)}).\n\n` +
+      "No tiene asiento: solo sale de la bandeja (queda en «Todas» como anulado).\n\n¿Por qué se borra?",
+    );
+    if (motivo === null) return;
+    setOcupado("borrar");
+    try {
+      const r = await api.post<{ error?: string }>(`/api/pagos/solicitudes/${s.id}/borrar`, { motivo });
+      if (r.error) onMensaje({ tipo: "error", texto: r.error });
+      else onMensaje({ tipo: "ok", texto: `Borrador #${s.id} borrado.` });
+      void qc.invalidateQueries({ queryKey: ["pagos-solicitudes"] });
+    } catch (e) {
+      onMensaje({ tipo: "error", texto: (e as Error).message });
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  // «Corregir» una solicitud ya enviada, aprobada o montada en el banco: el
+  // backend anula el asiento (y su comprobante en Alegra) y la deja en borrador
+  // con el mismo número; aquí se abre de una vez el formulario para corregirla.
+  async function corregir() {
+    const conAsiento = s.estado === "aprobada" || s.estado === "en_banco";
+    const motivo = window.prompt(
+      `Corregir la solicitud #${s.id} — ${s.concepto}.\n\n` +
+      (conAsiento ? `Se anula el asiento #${s.movimiento_id} y vuelve a borrador para corregirla y enviarla otra vez.\n` : "Vuelve a borrador para corregirla y enviarla otra vez.\n") +
+      (s.estado === "en_banco" ? "⚠️ Está montada en la Sucursal Virtual: recházala también allá.\n" : "") +
+      "\n¿Qué hay que corregir?",
+    );
+    if (motivo === null) return;
+    setOcupado("corregir");
+    try {
+      const r = await api.post<Solicitud & { error?: string; aviso_banco?: string }>(
+        `/api/pagos/solicitudes/${s.id}/corregir`, { motivo },
+      );
+      if (r.error) {
+        onMensaje({ tipo: "error", texto: r.error });
+      } else {
+        onMensaje({ tipo: "ok", texto: `Solicitud #${s.id} devuelta a borrador. ${r.aviso_banco || ""}`.trim() });
+        onEditar?.(r);
+      }
+      void qc.invalidateQueries({ queryKey: ["pagos-solicitudes"] });
+    } catch (e) {
+      onMensaje({ tipo: "error", texto: (e as Error).message });
+    } finally {
+      setOcupado(null);
+    }
+  }
 
   async function accion(tipo: "aprobar" | "rechazar") {
     if (tipo === "aprobar" && !window.confirm(
@@ -2470,6 +2680,16 @@ function FichaSolicitud({
                     className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent">
               {verAsiento ? "Ocultar asiento" : "Ver asiento"}
             </button>
+            <button type="button" onClick={() => void borrar()} disabled={!!ocupado}
+                    className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-red-500 hover:text-red-500 disabled:opacity-40">
+              {ocupado === "borrar" ? "…" : "Borrar"}
+            </button>
+            {onEditar && (
+              <button type="button" onClick={() => onEditar()}
+                      className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent">
+                Corregir borrador
+              </button>
+            )}
             <button type="button" onClick={() => void enviarAprobacion()} disabled={!!ocupado}
                     className="rounded-lg bg-accent px-2.5 py-1 text-xs font-bold text-white disabled:opacity-40">
               {ocupado === "enviar" ? "…" : "Verificado — enviar a aprobación"}
@@ -2481,6 +2701,13 @@ function FichaSolicitud({
           <button type="button" onClick={() => setVerAsiento((v) => !v)}
                   className={`rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent ${NECESITA_ACCION.has(s.estado) ? "" : "ml-auto"}`}>
             {verAsiento ? "Ocultar asiento" : "Ver asiento"}
+          </button>
+        )}
+        {(NECESITA_ACCION.has(s.estado) || EN_GIRO.has(s.estado)) && puedeFirmar && !s.es_plantilla && (
+          <button type="button" onClick={() => void corregir()} disabled={!!ocupado}
+                  title="Anula el asiento y la devuelve a borrador para corregirla"
+                  className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-amber-500 hover:text-amber-600 disabled:opacity-40">
+            {ocupado === "corregir" ? "…" : "Corregir"}
           </button>
         )}
 

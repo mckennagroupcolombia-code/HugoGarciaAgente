@@ -239,6 +239,10 @@
   "familia": "AGAAGA",
   "nombre": "AGAR AGAR"
  },
+ "C-AGTMGNPLN": {
+  "familia": "AGTMGNPLN",
+  "nombre": "AGITADOR MAGNÉTICO CON PLANCHA CALEFACTORA"
+ },
  "C-AGUDES250ML": {
   "familia": "AGUDESmL",
   "nombre": "AGUA DESTILADA"
@@ -919,6 +923,10 @@
   "familia": "PISTOSSALg",
   "nombre": "PISTACHOS TOSTADOS"
  },
+ "C-PLVSLCPH": {
+  "familia": "PLVSLCpH",
+  "nombre": "SOBRES DE SOLUCIÓN PARA CALIBRACIÓN DE PH X 6 UN"
+ },
  "C-POLTWE20P250ML": {
   "familia": "POLTWE20Pg",
   "nombre": "POLISORBATO 20"
@@ -1098,6 +1106,10 @@
  "C-TAU250G": {
   "familia": "TAUg",
   "nombre": "TAURINA"
+ },
+ "C-TDSEHPHTEM": {
+  "familia": "TDSEHPHTEMP",
+  "nombre": "MEDIDOR DE PH 4 EN 1"
  },
  "C-TEGBET250ML": {
   "familia": "TEGBETg",

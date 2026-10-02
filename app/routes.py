@@ -12708,6 +12708,80 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    # Corregir un borrador con el mismo formulario con que se crea (1-oct-2026):
+    # un borrador sin productos quedaba atascado. Ver pagos_wizard.actualizar_borrador.
+    @app.route("/api/pagos/solicitudes/<int:sid>", methods=["PUT"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>", methods=["PUT"])
+    def api_pagos_actualizar_borrador(sid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import actualizar_borrador
+
+            return jsonify(actualizar_borrador(sid, request.get_json(silent=True) or {}, por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # Lo que se puede cruzar con el proveedor: anticipo a favor (133005) y lo que
+    # se le sigue debiendo (2205). Ver pagos_wizard.saldos_cruce.
+    @app.route("/api/pagos/terceros/<int:tid>/saldos-cruce", methods=["GET"])
+    @app.route("/app/api/pagos/terceros/<int:tid>/saldos-cruce", methods=["GET"])
+    def api_pagos_saldos_cruce(tid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import saldos_cruce
+
+            return jsonify(saldos_cruce(tid))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # «Corregir» una solicitud aprobada o montada en el banco (2-oct-2026): anula
+    # el asiento y la devuelve a borrador. Ver pagos_wizard.devolver_a_borrador.
+    @app.route("/api/pagos/solicitudes/<int:sid>/corregir", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/corregir", methods=["POST"])
+    def api_pagos_devolver_a_borrador(sid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import devolver_a_borrador, puede_registrar_directo
+
+            # Deshace un asiento aprobado: es de administración, como aprobar.
+            u = _panel_tickets_usuario()
+            if u and not puede_registrar_directo(u):
+                return jsonify({"error": "Solo Administración puede reabrir un pago aprobado"}), 403
+            d = request.get_json(silent=True) or {}
+            return jsonify(devolver_a_borrador(sid, str(d.get("motivo") or ""), por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # Borrar un borrador (2-oct-2026): queda «anulada» con el motivo; no tiene
+    # asiento. Ver pagos_wizard.borrar_borrador.
+    @app.route("/api/pagos/solicitudes/<int:sid>/borrar", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/borrar", methods=["POST"])
+    def api_pagos_borrar_borrador(sid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import borrar_borrador
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(borrar_borrador(sid, str(d.get("motivo") or ""), por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/pagos/plantillas", methods=["GET"])
     @app.route("/app/api/pagos/plantillas", methods=["GET"])
     def api_pagos_plantillas():
@@ -23161,6 +23235,24 @@ def register_routes(app):
         if request.method == "GET":
             q = (request.args.get("q") or "").strip()
             items = listar_fichas(q=q)
+            if (request.args.get("logos_aparte") or "").strip() == "1":
+                # El logo va incrustado (data URL de ~150 KB) en cada etiqueta: 321
+                # etiquetas eran 45 de 47 MB con solo 13 logos distintos. Cada logo
+                # viaja una vez en `logos` y la etiqueta lleva `logo:<clave>`; el
+                # panel lo vuelve a poner (lib/etiquetasFichas.ts).
+                import hashlib
+
+                logos: dict[str, str] = {}
+                livianas = []
+                for f in items:
+                    data = f.get("data") if isinstance(f.get("data"), dict) else None
+                    logo = (data or {}).get("logoUrl")
+                    if isinstance(logo, str) and logo.startswith("data:") and len(logo) > 2000:
+                        clave = hashlib.sha1(logo.encode("utf-8")).hexdigest()[:16]
+                        logos[clave] = logo
+                        f = {**f, "data": {**data, "logoUrl": f"logo:{clave}"}}
+                    livianas.append(f)
+                return jsonify({"fichas": livianas, "total": len(livianas), "logos": logos})
             return jsonify({"fichas": items, "total": len(items)})
 
         body = request.get_json(silent=True) or {}
@@ -23877,11 +23969,20 @@ REGLAS:
                 out[key] = round(val, 4) if key != "escala" else round(val, 2)
         return out
 
-    def _meta_formato_png_de_indice(ruta: str, nombre: str = "") -> dict:
-        """Recupera formato guardado; si falta, infiere desde nombre/píxeles."""
+    def _meta_formato_png_de_indice(
+        ruta: str,
+        nombre: str = "",
+        *,
+        contexto: dict | None = None,
+        buscar_en_indice: bool = True,
+    ) -> dict:
+        """Recupera formato guardado; si falta, infiere desde nombre/píxeles.
+
+        `contexto` (de `contexto_formato_png`) evita releer los índices por cada
+        PNG; `buscar_en_indice=False` cuando quien llama ya miró el índice."""
         ruta_real = os.path.realpath(ruta or "")
         base = os.path.basename(nombre or ruta_real)
-        for it in _load_png_recursos_etiquetas():
+        for it in _load_png_recursos_etiquetas() if buscar_en_indice else ():
             if os.path.realpath(it.get("ruta_completa") or "") == ruta_real:
                 meta = {
                     k: it[k]
@@ -23898,7 +23999,7 @@ REGLAS:
                 rel = os.path.relpath(ruta_real, carpeta).replace("\\", "/")
             else:
                 rel = base
-            enr = enriquecer_recurso_png(rel)
+            enr = enriquecer_recurso_png(rel, **(contexto or {}))
             return {
                 k: enr[k]
                 for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi")
@@ -24122,6 +24223,9 @@ REGLAS:
                     if e.is_file() and _extension_imagen_recurso_ok(e.name)
                 ]
             archivos = []
+            # Índices para inferir el formato: se leen una vez, al primer PNG que
+            # lo necesite (antes, una vez por PNG: 40 s y 504 con ETIQUETAS STUDIO).
+            contexto_formato: dict | None = None
             for ruta_abs, nombre_base in candidatos:
                 registrado = indice.get(ruta_abs)
                 if registrado:
@@ -24148,7 +24252,14 @@ REGLAS:
                     }
                 # Completa formato (mm) si falta en el índice.
                 if not (item.get("ancho_mm") and item.get("alto_mm")):
-                    meta_inf = _meta_formato_png_de_indice(ruta_abs, nombre_base)
+                    if contexto_formato is None:
+                        from app.tools.etiquetas_studio import contexto_formato_png
+
+                        contexto_formato = contexto_formato_png()
+                    # El índice ya se miró arriba (`registrado`).
+                    meta_inf = _meta_formato_png_de_indice(
+                        ruta_abs, nombre_base, contexto=contexto_formato, buscar_en_indice=False
+                    )
                     for k, v in meta_inf.items():
                         item.setdefault(k, v)
                 archivos.append(item)

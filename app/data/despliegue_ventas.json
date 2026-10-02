@@ -260,15 +260,6 @@
     "MCO833393509"
    ]
   },
-  "AGTMGNPLN": {
-   "nombre": "AGITADOR MAGNÉTICO CON PLANCHA CALEFACTORA",
-   "titulo_meli": "Agitador Magnético Con Plancha Calefactora Laboratorio",
-   "tipo": "product",
-   "alias_destino": "",
-   "meli_ids": [
-    "MCO833223216"
-   ]
-  },
   "C-VITC30P30ML": {
    "nombre": "VITAMINA C 30% 30mL",
    "titulo_meli": "Vitamina C Solución 30% 30 Ml   Todo Tipo De Piel",
@@ -1000,15 +991,6 @@
     "MCO1262287931"
    ]
   },
-  "OILBMBVC": {
-   "nombre": "ACEITE PARA BOMBA DE VACIO PREMIUM",
-   "titulo_meli": "Aceite Para Bomba De Vacío Premium",
-   "tipo": "product",
-   "alias_destino": "",
-   "meli_ids": [
-    "MCO1266002627"
-   ]
-  },
   "CCHMZCPLS30UN": {
    "nombre": "CUCHARA COLORES",
    "titulo_meli": "Cuchara Mezcladora Plástico 30 Un",
@@ -1595,15 +1577,6 @@
     "MCO1469778015"
    ]
   },
-  "PLVSLCPH": {
-   "nombre": "SOBRES DE SOLUCIÓN PARA CALIBRACIÓN DE PH X 6 UN",
-   "titulo_meli": "Sobres Solución Calibración Ph Polvo Prueba Test Phmetro",
-   "tipo": "product",
-   "alias_destino": "",
-   "meli_ids": [
-    "MCO1486579375"
-   ]
-  },
   "KTEXTART18PZS": {
    "nombre": "REPUESTOS EXTRUSOR COMPATIBLE ARTILLERY SIDEWINDER GENIUS",
    "titulo_meli": "Repuestos Extrusor Compatible Artillery Sidewinder Genius",
@@ -1819,15 +1792,6 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO2604821524"
-   ]
-  },
-  "TDS/EH/PH/TEMP": {
-   "nombre": "MEDIDOR DE PH 4 EN 1",
-   "titulo_meli": "Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
-   "tipo": "product",
-   "alias_destino": "",
-   "meli_ids": [
-    "MCO2623998486"
    ]
   },
   "FRSCRBTNGX10UN": {
@@ -2342,6 +2306,42 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO4488258886"
+   ]
+  },
+  "C-AGTMGNPLN": {
+   "nombre": "AGITADOR MAGNÉTICO CON PLANCHA CALEFACTORA",
+   "titulo_meli": "Agitador Magnético Con Plancha Calefactora Laboratorio",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO833223216"
+   ]
+  },
+  "C-TDSEHPHTEM": {
+   "nombre": "MEDIDOR DE PH 4 EN 1",
+   "titulo_meli": "Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2623998486"
+   ]
+  },
+  "C-ACEBOMVAC": {
+   "nombre": "ACEITE PARA BOMBA DE VACIO PREMIUM",
+   "titulo_meli": "Aceite Para Bomba De Vacío Premium",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1266002627"
+   ]
+  },
+  "C-PLVSLCPH": {
+   "nombre": "SOBRES DE SOLUCIÓN PARA CALIBRACIÓN DE PH X 6 UN",
+   "titulo_meli": "Sobres Solución Calibración Ph Polvo Prueba Test Phmetro",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1486579375"
    ]
   }
  },

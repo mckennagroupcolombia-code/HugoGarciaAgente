@@ -99,7 +99,7 @@ export default function RightDocumentationPanel({
         </div>
       </div>
 
-      <div className="e30-clasif e30-linea-inf">
+      <div className={`e30-clasif e30-linea-inf${esTituloDeUso ? " e30-clasif-uso" : ""}`}>
         <div className="e30-clasif-icono">
           <button
             type="button"
@@ -157,7 +157,9 @@ export default function RightDocumentationPanel({
                   : CLASIFICACION_NO_PELIGROSO
             }
             tam={TAM_30ML.clasificacion}
-            maxLineas={3}
+            // El modo de uso es texto corrido: lo limita el alto del bloque, no
+            // un número de renglones (con 3 no crecía la letra aunque sobrara alto).
+            maxLineas={esTituloDeUso ? undefined : 3}
             cajaRef={clasifRef}
             multilinea
             className="e30-clasif-valor"

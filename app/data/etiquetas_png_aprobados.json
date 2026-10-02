@@ -1174,12 +1174,12 @@
       "barcode": "7700192502636",
       "impresion": {
         "nombre": "ETIQUETAS STUDIO/Solventes/AGUA_DESTILADA_250mL.png",
-        "aprobado_at": "2026-09-26T23:21:04",
+        "aprobado_at": "2026-10-01T15:27:55",
         "por": "@cynthia"
       },
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Solventes/AGUA_DESTILADA_250mL_digital.png",
-        "aprobado_at": "2026-09-26T23:21:04",
+        "aprobado_at": "2026-10-01T15:27:55",
         "por": "@cynthia"
       }
     },
@@ -2090,6 +2090,45 @@
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Aceites & Grasas/ACEITE_GIRASOL_500mL_digital.png",
         "aprobado_at": "2026-09-29T10:15:23",
+        "por": "@cynthia"
+      }
+    },
+    "26cd5b1d231b": {
+      "barcode": "7700779002634",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Mantecas & Ceras/VASELINA_BLANCA_900g.png",
+        "aprobado_at": "2026-10-01T11:06:20",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Mantecas & Ceras/VASELINA_BLANCA_900g_digital.png",
+        "aprobado_at": "2026-10-01T11:06:21",
+        "por": "@cynthia"
+      }
+    },
+    "ffab2776747b": {
+      "barcode": "7700324002638",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Mantecas & Ceras/VASELINA_400g.png",
+        "aprobado_at": "2026-10-01T12:26:45",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Mantecas & Ceras/VASELINA_400g_digital.png",
+        "aprobado_at": "2026-10-01T12:26:45",
+        "por": "@cynthia"
+      }
+    },
+    "30c6895dd75c": {
+      "barcode": "7700450502637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/LACTATO_DE_CALCIO_50g.png",
+        "aprobado_at": "2026-10-01T14:52:27",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/LACTATO_DE_CALCIO_50g_digital.png",
+        "aprobado_at": "2026-10-01T14:52:27",
         "por": "@cynthia"
       }
     }

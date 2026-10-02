@@ -629,6 +629,12 @@
   overflow: hidden;
 }
 
+/* Modo de uso / Sugerencia: el texto es más largo que la clasificación SGA,
+   así que el círculo cede ancho. */
+.e30-clasif-uso {
+  grid-template-columns: 24% 76%;
+}
+
 .e30-clasif-icono {
   display: flex;
   align-items: center;

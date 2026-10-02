@@ -422,6 +422,13 @@ def init_db() -> None:
             # (531520): se practica pero no se le descuenta al proveedor.
             ("renta_asumida", "INTEGER NOT NULL DEFAULT 0"),
             ("ica_asumida", "INTEGER NOT NULL DEFAULT 0"),
+            # Saldos que se cruzan con este pago (1-oct-2026): el anticipo a
+            # favor en 133005 se descuenta del giro y lo que se le seguía
+            # debiendo en 2205 se suma. Se guardan aparte porque al aprobar el
+            # asiento se rearma desde lo guardado y una línea añadida a mano se
+            # perdía.
+            ("cruce_anticipo", "REAL NOT NULL DEFAULT 0"),
+            ("cruce_cxp", "REAL NOT NULL DEFAULT 0"),
         ):
             if col not in cols:
                 con.execute(f"ALTER TABLE cc_solicitudes_pago ADD COLUMN {col} {ddl}")
@@ -1213,6 +1220,38 @@ def previsualizar(payload: dict) -> dict:
             saldo_pendiente = 0.0
 
     # El 4x1000 no se le descuenta a nadie: lo cobra el banco sobre lo que sale.
+    # ── Cruce de saldos con el proveedor ───────────────────────────────────
+    # Si hay un anticipo a favor (133005) o una factura vieja sin terminar de
+    # pagar (2205), se cruzan en este pago en vez de girar la factura completa:
+    # el anticipo se acredita y baja el giro, la deuda se debita y lo sube. Se
+    # valida contra el saldo real del tercero para no cruzar plata que no existe.
+    cruce_anticipo = round(float(payload.get("cruce_anticipo") or 0), 2)
+    cruce_cxp = round(float(payload.get("cruce_cxp") or 0), 2)
+    if cruce_anticipo < 0 or cruce_cxp < 0:
+        raise ValueError("Los valores a cruzar no pueden ser negativos")
+    # Ya contabilizada, el cruce está dentro de su propio asiento: el saldo ya lo
+    # descontó, y validarlo otra vez daba «tiene $0 de anticipo» al abrir «Ver
+    # asiento» de una solicitud aprobada (2-oct-2026, #62 y #65). Se salta solo la
+    # validación; el cruce se sigue aplicando al giro.
+    if cruce_anticipo or cruce_cxp:
+        if not tercero_id:
+            raise ValueError("Para cruzar saldos hace falta el tercero")
+        if not payload.get("_cruce_contabilizado"):
+            saldos = {c["codigo"]: float(c["saldo"]) for c in cc.saldo_tercero(tercero_id).get("cuentas", [])}
+            if cruce_anticipo > round(saldos.get(CUENTA_ANTICIPO, 0), 2) + 0.01:
+                raise ValueError(
+                    f"{nombre_tercero} tiene {_fmt(saldos.get(CUENTA_ANTICIPO, 0))} de anticipo en "
+                    f"{CUENTA_ANTICIPO}: no se pueden cruzar {_fmt(cruce_anticipo)}"
+                )
+            if cruce_cxp > round(saldos.get("2205", 0), 2) + 0.01:
+                raise ValueError(
+                    f"A {nombre_tercero} se le deben {_fmt(saldos.get('2205', 0))} en 2205: "
+                    f"no se pueden cruzar {_fmt(cruce_cxp)}"
+                )
+        pagado_ahora = round(pagado_ahora - cruce_anticipo + cruce_cxp, 2)
+        if pagado_ahora < 0:
+            raise ValueError("El anticipo cruzado es mayor que lo que se paga: cruza menos")
+
     gmf = round(pagado_ahora * GMF_TARIFA, 2) if cobra_gmf else 0.0
 
     # Una cuota de préstamo no es un gasto contra una sola cuenta: separa
@@ -1324,6 +1363,20 @@ def previsualizar(payload: dict) -> dict:
                 "debito": 0, "credito": saldo_pendiente, "tercero_id": tercero_id,
                 "descripcion": f"Queda por pagar a {nombre_tercero} — se gira después",
             })
+        if cruce_cxp > 0:
+            with cc._conn() as con:
+                id_cxp = cc._cuenta_id_por_codigo(con, "2205")
+            lineas.append({
+                "cuenta_codigo": "2205", "cuenta_id": id_cxp,
+                "debito": cruce_cxp, "credito": 0, "tercero_id": tercero_id,
+                "descripcion": f"Saldo que se le debía a {nombre_tercero} — se paga en este giro",
+            })
+        if cruce_anticipo > 0:
+            lineas.append({
+                "cuenta_codigo": CUENTA_ANTICIPO, "cuenta_id": _asegurar_cuenta_anticipos(),
+                "debito": 0, "credito": cruce_anticipo, "tercero_id": tercero_id,
+                "descripcion": f"Anticipo a favor con {nombre_tercero} — se descuenta de este giro",
+            })
         if pagado_ahora > 0 or gmf > 0:
             lineas.append({
                 "cuenta_codigo": "1110", "cuenta_id": medio["cuenta_id"],
@@ -1365,6 +1418,8 @@ def previsualizar(payload: dict) -> dict:
         "cuenta_saldo": cuenta_saldo,
         "anticipo": anticipo,
         "cuenta_anticipo": CUENTA_ANTICIPO if anticipo > 0 else "",
+        "cruce_anticipo": cruce_anticipo,
+        "cruce_cxp": cruce_cxp,
         "permite_parcial": bool(cat.get("permite_parcial")),
         "tercero": {"id": tercero_id, "nombre": nombre_tercero} if tercero_id else None,
         "medio_pago": medio["nombre"],
@@ -1628,8 +1683,8 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                   estado, notas, creada_por, items_json, factura_numero, verificacion_json,
                   es_plantilla, frecuencia, plantilla_id, periodo, origen_sistema,
                   retencion_modo, retencion_ica, ica_por_mil, gmf, pagado_ahora,
-                  total_documento, renta_asumida, ica_asumida)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                  total_documento, renta_asumida, ica_asumida, cruce_anticipo, cruce_cxp)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 categoria, prev["concepto"], prev["monto"], prev["fecha"],
                 (prev["tercero"] or {}).get("id"), cuenta_debito,
@@ -1662,11 +1717,14 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                 # «girado» teórico y el asiento sacaba del banco menos de lo que
                 # salió (caso: $876.554 girados a Comercializadora Internacional
                 # contra una cotización con retención de $18.415).
-                (float(prev["pagado_ahora"])
+                # Sin el cruce: `previsualizar` lo vuelve a aplicar al releerla.
+                (round(float(prev["pagado_ahora"]) + prev["cruce_anticipo"] - prev["cruce_cxp"], 2)
                  if (prev.get("saldo_pendiente") or prev.get("anticipo")) else None),
                 float(prev.get("total_documento") or 0),
                 1 if prev.get("asume_renta") else 0,
                 1 if prev.get("asume_ica") else 0,
+                prev["cruce_anticipo"],
+                prev["cruce_cxp"],
             ),
         )
         sid = int(cur.lastrowid)
@@ -1749,6 +1807,9 @@ def previsualizacion_de(sid: int) -> dict:
             **({"total_documento": sol["total_documento"]} if sol.get("total_documento") else {}),
             "asume_renta": bool(sol.get("renta_asumida")),
             "asume_ica": bool(sol.get("ica_asumida")),
+            "cruce_anticipo": sol.get("cruce_anticipo") or 0,
+            "cruce_cxp": sol.get("cruce_cxp") or 0,
+            "_cruce_contabilizado": bool(sol.get("movimiento_id")),
         }
     )
     # Lo que cambió desde que se guardó: es la señal de que el borrador quedó
@@ -1759,6 +1820,73 @@ def previsualizacion_de(sid: int) -> dict:
     )
     prev["monto_guardado"] = sol["monto"]
     return prev
+
+
+def saldos_cruce(tercero_id: int) -> dict:
+    """Lo que se puede cruzar con un tercero en su próximo pago.
+
+    `anticipo`: plata a favor de McKenna en 133005 (se giró de más).
+    `por_pagar`: lo que se le sigue debiendo en 2205 (una factura sin terminar de
+    pagar). El panel lo ofrece al elegir el proveedor para que el saldo no se
+    quede olvidado en el libro mientras se le gira la siguiente factura completa.
+    """
+    import app.services.contabilidad_core as cc
+
+    saldos = {c["codigo"]: float(c["saldo"]) for c in cc.saldo_tercero(int(tercero_id)).get("cuentas", [])}
+    return {
+        "anticipo": max(round(saldos.get("133005", 0), 2), 0.0),
+        "por_pagar": max(round(saldos.get("2205", 0), 2), 0.0),
+    }
+
+
+def actualizar_borrador(sid: int, payload: dict, por: int | None = None) -> dict:
+    """Corrige un borrador con el mismo formulario con que se crea, sin cambiarle el número.
+
+    Hasta el 1-oct-2026 un borrador guardado no se podía tocar: el panel solo
+    ofrecía «enviar a aprobación», que exige los productos, y un borrador que
+    nació sin ellos (lo monta un cron o se pidió solo con el valor) quedaba
+    atascado. Se revalida todo con `previsualizar`, igual que al crear; las
+    exigencias de la compra siguen corriendo al enviarlo.
+    """
+    _ensure()
+    sol = obtener(sid)
+    if not sol:
+        raise ValueError("Solicitud no encontrada")
+    if sol["estado"] != "borrador" or sol.get("es_plantilla"):
+        raise ValueError(f"Solo se corrige un borrador; esta solicitud está «{sol['estado']}»")
+    prev = previsualizar(payload)
+    _recordar_perfil_tributario(payload, prev)
+    with _conn() as con:
+        con.execute(
+            """UPDATE cc_solicitudes_pago SET
+                 categoria=?, concepto=?, monto=?, fecha=?, tercero_id=?, cuenta_debito=?,
+                 medio_pago_id=?, referencia=?, retencion=?, retencion_concepto=?, items_json=?,
+                 retencion_modo=?, retencion_ica=?, ica_por_mil=?, gmf=?, pagado_ahora=?,
+                 total_documento=?, renta_asumida=?, ica_asumida=?, cruce_anticipo=?, cruce_cxp=?
+               WHERE id=?""",
+            (
+                prev["categoria"], prev["concepto"], prev["monto"], prev["fecha"],
+                (prev["tercero"] or {}).get("id"), prev["lineas"][0]["cuenta_codigo"],
+                int(payload.get("medio_pago_id") or 0) or None,
+                str(payload.get("referencia") or sol.get("referencia") or ""),
+                prev["retencion"],
+                str(prev.get("concepto_retencion") or (CATEGORIAS[prev["categoria"]]).get("concepto_retencion") or ""),
+                json.dumps(prev["items"], ensure_ascii=False),
+                prev.get("retencion_modo") or "",
+                float(prev.get("retencion_ica") or 0),
+                float(prev.get("ica_por_mil") or 0),
+                float(prev.get("gmf") or 0),
+                # Igual que en crear_solicitud: sin el cruce, que se reaplica al releerla.
+                (round(float(prev["pagado_ahora"]) + prev["cruce_anticipo"] - prev["cruce_cxp"], 2)
+                 if (prev.get("saldo_pendiente") or prev.get("anticipo")) else None),
+                float(prev.get("total_documento") or 0),
+                1 if prev.get("asume_renta") else 0,
+                1 if prev.get("asume_ica") else 0,
+                prev["cruce_anticipo"], prev["cruce_cxp"],
+                int(sid),
+            ),
+        )
+    return {**obtener(sid), "previsualizacion": prev}
 
 
 def enviar_a_aprobacion(sid: int, payload: dict | None = None, por: int | None = None) -> dict:
@@ -2117,7 +2245,8 @@ def obtener(sid: int) -> dict | None:
     )
     d["girado"] = round(
         float(d["monto"] or 0) - float(d["retencion"] or 0) - float(d.get("retencion_ica") or 0)
-        + d["impuesto_asumido"], 2
+        + d["impuesto_asumido"]
+        - float(d.get("cruce_anticipo") or 0) + float(d.get("cruce_cxp") or 0), 2
     )
     try:
         d["items"] = json.loads(d.pop("items_json", None) or "[]")
@@ -2210,6 +2339,8 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         **({"items": s["items"]} if s.get("items") else {}),
         **({"total_documento": s["total_documento"]} if s.get("total_documento") else {}),
         **({"pagado_ahora": s["pagado_ahora"]} if s.get("pagado_ahora") is not None else {}),
+        "cruce_anticipo": s.get("cruce_anticipo") or 0,
+        "cruce_cxp": s.get("cruce_cxp") or 0,
     })
     # Se conserva `cuenta_codigo` en la proyección: la reconstrucción de abajo
     # necesita distinguir las líneas del gasto de las que ella misma rearma con
@@ -2300,6 +2431,14 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
             medias.append({"cuenta_id": _asegurar_cuenta_anticipos(), "debito": round(-saldo, 2),
                            "credito": 0, "tercero_id": s["tercero_id"],
                            "descripcion": f"Anticipo a favor con {nombre_t} — se descuenta en la próxima factura"})
+        # El cruce de saldos: la línea de 2205 (débito) ya viene en `medias`; la
+        # de 133005 es un crédito y se rearma acá, igual que su efecto en el giro.
+        cruce_ant = round(float(s.get("cruce_anticipo") or 0), 2)
+        if cruce_ant:
+            medias.append({"cuenta_id": _asegurar_cuenta_anticipos(), "debito": 0, "credito": cruce_ant,
+                           "tercero_id": s["tercero_id"],
+                           "descripcion": f"Anticipo a favor con {nombre_t} — se descuenta de este giro"})
+        pagado = round(pagado - cruce_ant + float(s.get("cruce_cxp") or 0), 2)
         lineas = medias + ([{**lineas[-1], "credito": round(pagado + gmf, 2)}] if (pagado > 0 or gmf) else [])
 
     mov = cc.crear_movimiento(
@@ -2731,8 +2870,11 @@ def rechazar(sid: int, motivo: str = "", por: int | None = None) -> dict:
     s = obtener(sid)
     if not s:
         raise ValueError(f"Solicitud {sid} no encontrada")
-    if s["estado"] == "aprobada":
-        raise ValueError("Ya está aprobada: para revertirla hay que anular el asiento en el Libro Mayor")
+    if s["estado"] in ("aprobada", "en_banco", "pagada") or s.get("movimiento_id"):
+        # «en_banco» también tiene asiento: rechazarla lo dejaba vivo en el libro
+        # con la solicitud diciendo «no quedó ningún asiento». Para eso está
+        # `devolver_a_borrador`, que lo anula.
+        raise ValueError("Ya está aprobada y contabilizada: usa «Corregir», que anula el asiento")
     with _conn() as con:
         con.execute(
             "UPDATE cc_solicitudes_pago SET estado='rechazada',"
@@ -2747,6 +2889,127 @@ def rechazar(sid: int, motivo: str = "", por: int | None = None) -> dict:
     _resolver_ticket(s.get("ticket_id"), por)
     _avisar_solicitante(s.get("ticket_id"), por, "terminado",
                         f"La rechazó: {motivo or 'sin motivo'}. No se pagó nada.")
+    return obtener(sid)
+
+
+def devolver_a_borrador(sid: int, motivo: str = "", por: int | None = None) -> dict:
+    """Reabre una solicitud ya aprobada (o montada en el banco) para corregirla.
+
+    Hasta el 2-oct-2026 una solicitud aprobada con un error solo se arreglaba
+    anulando a mano el asiento en el Libro Mayor, borrando el comprobante en
+    Alegra y montando otra solicitud desde cero. Aquí se hace en un paso:
+
+    - el asiento se **anula** (queda en el histórico, sale del mayor);
+    - el comprobante espejo en Alegra, si lo hay, se borra;
+    - el documento soporte en BORRADOR se descarta (al reaprobar nace otro);
+    - la solicitud vuelve a «borrador», con el mismo número, para corregirla
+      con el formulario y enviarla otra vez a aprobación.
+
+    No se reabre lo que ya no tiene vuelta atrás: una solicitud **pagada** (la
+    plata salió) ni una cuyo documento soporte ya se transmitió a la DIAN.
+    Lo montado en la Sucursal Virtual hay que rechazarlo allá: el sistema no
+    tiene cómo quitarlo del banco.
+    """
+    _ensure()
+    import app.services.contabilidad_core as cc
+
+    s = obtener(sid)
+    if not s:
+        raise ValueError(f"Solicitud {sid} no encontrada")
+    if s.get("es_plantilla"):
+        raise ValueError("Es una plantilla recurrente: se edita desde Recurrentes")
+    if s["estado"] == "pagada":
+        raise ValueError("Ya está girada y con comprobante: la plata salió. Corrígelo con un ajuste en el Libro Mayor")
+    if s["estado"] not in ("pendiente", "aprobada", "en_banco"):
+        raise ValueError(f"La solicitud está «{s['estado']}»: no hay nada que reabrir")
+
+    # El documento soporte: transmitido no se borra; en borrador se descarta.
+    from app.services import doc_soporte_pagos as _ds
+
+    _ds._ensure()
+    with cc._conn() as con:
+        doc = con.execute("SELECT * FROM cc_doc_soporte WHERE solicitud_id=?", (int(sid),)).fetchone()
+        incluye = con.execute("SELECT solicitud_id FROM cc_doc_soporte WHERE incluido_en=?", (int(sid),)).fetchone()
+    if doc and (doc["estado"] == "success" or doc["alegra_id"] or doc["numero"]):
+        raise ValueError(
+            f"Su documento soporte {doc['numero'] or ''} ya se emitió a la DIAN: no se puede reabrir. "
+            "Corrígelo con una nota de ajuste al documento soporte"
+        )
+    if (doc and doc["estado"] == "incluido") or incluye:
+        raise ValueError("Su documento soporte está agrupado con el de otra solicitud: sepáralo antes de reabrirla")
+
+    mid = s.get("movimiento_id")
+    espejo = {"status": "sin_espejo"}
+    if mid:
+        cc.anular_movimiento(int(mid))
+        if s.get("alegra_journal_id"):
+            try:
+                from app.services.alegra_espejo import anular_espejo
+
+                espejo = anular_espejo(int(mid))
+            except Exception as e:
+                espejo = {"status": "error", "message": str(e)}
+            if espejo.get("status") not in ("success", "sin_espejo"):
+                # Sin borrar el comprobante de Alegra el contador seguiría viendo
+                # un pago que ya no existe en el libro: se deshace la anulación.
+                with cc._conn() as con:
+                    con.execute("UPDATE cc_movimientos SET estado='confirmado' WHERE id=?", (int(mid),))
+                raise ValueError(
+                    f"No se pudo borrar el comprobante #{s['alegra_journal_id']} en Alegra "
+                    f"({espejo.get('message') or espejo.get('status')}): no se reabrió nada"
+                )
+    if doc:
+        with cc._conn() as con:
+            con.execute("DELETE FROM cc_doc_soporte WHERE solicitud_id=? AND estado='borrador'", (int(sid),))
+
+    nota = (f"Devuelta a borrador para corregir: {motivo or 'sin motivo'}"
+            + (f" · asiento #{mid} anulado" if mid else "")
+            + (f" · comprobante Alegra #{s['alegra_journal_id']} borrado" if espejo.get("status") == "success" else ""))
+    with _conn() as con:
+        con.execute(
+            """UPDATE cc_solicitudes_pago SET estado='borrador', movimiento_id=NULL,
+                 alegra_journal_id='', aprobada_por=NULL, aprobada_at='',
+                 montado_por=NULL, montado_at='', montado_ref='', ticket_id=NULL,
+                 notas = TRIM(notas || ' | ' || ?)
+               WHERE id=?""",
+            (nota, int(sid)),
+        )
+    aviso_banco = (" Estaba montada en la Sucursal Virtual: recházala allá antes de que alguien"
+                   " le dé el segundo token." if s["estado"] == "en_banco" else "")
+    # El ticket viejo se cierra: al enviarla otra vez a aprobación nace uno nuevo
+    # con el asiento corregido.
+    _comentar_ticket(s.get("ticket_id"), por,
+                     f"↩️ Solicitud #{sid} devuelta a borrador para corregirla: {motivo or 'sin motivo'}."
+                     + (f" El asiento #{mid} quedó anulado." if mid else "") + aviso_banco
+                     + " Al enviarla otra vez llega un ticket nuevo.")
+    _resolver_ticket(s.get("ticket_id"), por)
+    return {**obtener(sid), "aviso_banco": aviso_banco.strip()}
+
+
+def borrar_borrador(sid: int, motivo: str = "", por: int | None = None) -> dict:
+    """Descarta un borrador que no se va a pagar (2-oct-2026).
+
+    No se elimina la fila: queda «anulada» con el motivo. Los borradores del
+    sistema (cuotas, nómina, contador) son idempotentes por `origen_ref`; si se
+    borraran de verdad, el cron los volvería a montar al día siguiente. Un
+    borrador no tiene asiento ni documento soporte, así que no hay nada contable
+    que deshacer.
+    """
+    _ensure()
+    s = obtener(sid)
+    if not s:
+        raise ValueError(f"Solicitud {sid} no encontrada")
+    if s["estado"] != "borrador" or s.get("movimiento_id"):
+        raise ValueError(f"Solo se borra un borrador; esta solicitud está «{s['estado']}»")
+    if s.get("es_plantilla"):
+        raise ValueError("Es una plantilla recurrente: se quita desde Recurrentes")
+    quien = _nombre_usuario(por) if por else ""
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_solicitudes_pago SET estado='anulada',"
+            " notas = TRIM(notas || ' | ' || ?) WHERE id=? AND estado='borrador'",
+            (f"Borrador descartado{(' por ' + quien) if quien else ''}: {motivo or 'sin motivo'}", int(sid)),
+        )
     return obtener(sid)
 
 

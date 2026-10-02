@@ -576,6 +576,18 @@ def _formatos_png_aprobados(tipos: list[tuple[str, float, float]]) -> dict[str, 
     return out
 
 
+def contexto_formato_png() -> dict[str, Any]:
+    """Lo que `enriquecer_recurso_png` lee de disco, leído una sola vez: para
+    enriquecer muchos PNG seguidos. `_formatos_png_aprobados` abre
+    etiquetas_fichas.json (~47 MB); por cada PNG eran 40 s en un listado de 200."""
+    tipos = _tipos_etiqueta_mm()
+    return {
+        "index": _load_png_index_entries(),
+        "tipos": tipos,
+        "aprobados": _formatos_png_aprobados(tipos),
+    }
+
+
 def enriquecer_recurso_png(
     rel: str,
     *,

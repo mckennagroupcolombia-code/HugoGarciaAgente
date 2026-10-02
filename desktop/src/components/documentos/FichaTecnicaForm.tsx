@@ -851,7 +851,7 @@ export default function FichaTecnicaForm({
           label="Modo de uso"
           value={state.modoUso}
           onChange={(v) => patch({ modoUso: v })}
-          rows={3}
+          rows={5}
           placeholder="Concentración típica, forma de incorporación, temperatura, orden de adición…"
           actions={<IaBtn label="IA" {...ia("modo_uso")} />}
         />

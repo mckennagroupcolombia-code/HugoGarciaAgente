@@ -1352,3 +1352,177 @@ def test_la_vista_de_una_compra_guardada_respeta_sus_productos(mods):
     assert por["240810"] == (139_954, 0)
     assert p["retencion"] == 18_415
     assert p["difiere_de_lo_guardado"] is False
+
+
+# ─── 1-oct-2026: cruce de saldos con el proveedor y corrección de borradores ──
+
+def _proveedor_con_saldos(cc, w, t, m):
+    """Deja al proveedor con $18.415 a favor (133005) y $4.800 por pagar (2205),
+    como Comercializadora Internacional el 1-oct-2026."""
+    a = w.crear_solicitud({
+        "categoria": "productos", "concepto": "Bolsas", "fecha": "2026-09-24",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0,
+        "retencion_modo": "beneficiario", "total_documento": 876_554,
+        "items": [{"sku": "BOLTRA15X21ZIP", "nombre": "BOLSA", "cantidad": 2900,
+                   "precio": 254, "iva_pct": 19}],
+        "pagado_ahora": 876_554,
+    })
+    w.aprobar(a["id"], espejar=False)
+    b = w.crear_solicitud({
+        "categoria": "productos", "concepto": "Bolsas 10x17", "fecha": "2026-09-02",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0,
+        "retencion_modo": "beneficiario", "total_documento": 1_190_000,
+        "items": [{"sku": "BOLTRA10X17ZIP", "nombre": "BOLSA", "cantidad": 1000,
+                   "precio": 1000, "iva_pct": 19}],
+        "pagado_ahora": 1_160_200,
+    })
+    w.aprobar(b["id"], espejar=False)
+    assert w.saldos_cruce(t["id"]) == {"anticipo": 18_415, "por_pagar": 4_800}
+
+
+@pytest.mark.parametrize("base, retencion", [
+    # La proforma de Comercializadora: base $453.000 < 10 UVT, no lleva retención
+    # aunque el total con IVA ($539.070) sí pase el tope.
+    (453_000, 0),
+    # Con retención: el asiento se rearma al aprobar y el cruce tiene que sobrevivir.
+    (900_000, 22_500),
+])
+def test_el_cruce_neto_baja_el_giro_y_deja_los_saldos_en_cero(mods, base, retencion):
+    cc, w, t, m, _ = mods
+    _proveedor_con_saldos(cc, w, t, m)
+    borr = w.crear_solicitud({
+        "categoria": "productos", "concepto": "Pago", "fecha": "2026-10-01",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 539_070,
+        "retencion_modo": "beneficiario", "estado": "borrador",
+        "cruce_anticipo": 18_415, "cruce_cxp": 4_800,
+    })
+    assert borr["girado"] == borr["monto"] - borr["retencion"] - 18_415 + 4_800
+    # Se corrige con los productos de la proforma: mismo número, retención sobre la base sin IVA.
+    total = round(base * 1.19)
+    sol = w.actualizar_borrador(borr["id"], {
+        "categoria": "productos", "concepto": "Pago", "fecha": "2026-10-01",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0,
+        "retencion_modo": "beneficiario", "total_documento": total,
+        "items": [{"sku": "BOLTRA15X21ZIP", "nombre": "BOLSA", "cantidad": 1,
+                   "precio": base, "iva_pct": 19}],
+        "cruce_anticipo": 18_415, "cruce_cxp": 4_800,
+    })
+    assert sol["id"] == borr["id"] and sol["estado"] == "borrador"
+    assert sol["retencion"] == retencion
+    giro = total - retencion - 18_415 + 4_800
+    assert sol["girado"] == giro
+    w.enviar_a_aprobacion(sol["id"])
+    mov = cc.obtener_movimiento(w.aprobar(sol["id"], espejar=False)["movimiento_id"])
+    por = {}
+    for l in mov["lineas"]:
+        d, c = por.get(l["cuenta_codigo"], (0, 0))
+        por[l["cuenta_codigo"]] = (d + l["debito"], c + l["credito"])
+    assert por["1110"] == (0, giro)
+    assert por["133005"] == (0, 18_415)
+    assert por["2205"] == (4_800, 0)
+    assert cc.balance_comprobacion()["cuadra"]
+    assert w.saldos_cruce(t["id"]) == {"anticipo": 0, "por_pagar": 0}
+
+
+def test_no_se_cruza_mas_anticipo_del_que_hay(mods):
+    cc, w, t, m, _ = mods
+    _proveedor_con_saldos(cc, w, t, m)
+    with pytest.raises(ValueError, match="anticipo"):
+        w.previsualizar({
+            "categoria": "productos", "concepto": "Pago", "fecha": "2026-10-01",
+            "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 539_070,
+            "retencion_modo": "beneficiario", "cruce_anticipo": 20_000,
+        })
+
+
+def test_solo_se_corrige_un_borrador(mods):
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m))
+    with pytest.raises(ValueError, match="borrador"):
+        w.actualizar_borrador(s["id"], _pago(t, m, monto=900_000))
+
+
+# ─── 2-oct-2026: «Corregir» una solicitud aprobada o montada en el banco ─────
+
+def test_corregir_una_montada_anula_el_asiento_y_la_deja_en_borrador(mods):
+    cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m))
+    w.aprobar(s["id"], espejar=False)
+    w.montar_en_banco(s["id"], por=1)
+    viejo = w.obtener(s["id"])["movimiento_id"]
+    r = w.devolver_a_borrador(s["id"], "valor equivocado", por=1)
+    assert r["estado"] == "borrador" and r["movimiento_id"] is None
+    assert "Sucursal Virtual" in r["aviso_banco"]
+    assert cc.obtener_movimiento(viejo)["estado"] == "anulado"
+    # Se corrige con el formulario y se vuelve a aprobar: un solo asiento vivo, el bueno.
+    w.actualizar_borrador(s["id"], _pago(t, m, monto=900_000))
+    w.enviar_a_aprobacion(s["id"])
+    nuevo = w.aprobar(s["id"], espejar=False)["movimiento_id"]
+    assert nuevo != viejo
+    with cc._conn() as con:
+        vivos = con.execute("SELECT COUNT(*) FROM cc_movimientos WHERE estado!='anulado'").fetchone()[0]
+    assert vivos == 1
+    lineas = cc.obtener_movimiento(nuevo)["lineas"]
+    assert sum(l["debito"] for l in lineas if l["cuenta_codigo"] == "513550") == 900_000
+    assert cc.balance_comprobacion()["cuadra"]
+
+
+def test_no_se_reabre_si_el_documento_soporte_ya_fue_a_la_dian(mods):
+    cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m))
+    w.aprobar(s["id"], espejar=False)
+    from app.services import doc_soporte_pagos as ds
+
+    ds._ensure()
+    with cc._conn() as con:
+        con.execute("INSERT OR REPLACE INTO cc_doc_soporte (solicitud_id, tercero_id, fecha, valor, estado, numero)"
+                    " VALUES (?,?,?,?,?,?)", (s["id"], t["id"], "2026-09-10", 850_000, "success", "DSMG9"))
+    with pytest.raises(ValueError, match="DIAN"):
+        w.devolver_a_borrador(s["id"], "x")
+    assert w.obtener(s["id"])["estado"] == "aprobada"
+
+
+def test_rechazar_una_montada_ya_no_deja_el_asiento_vivo(mods):
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m))
+    w.aprobar(s["id"], espejar=False)
+    w.montar_en_banco(s["id"], por=1)
+    with pytest.raises(ValueError, match="Corregir"):
+        w.rechazar(s["id"], "x")
+
+
+# ─── 2-oct-2026: borrar un borrador ───────────────────────────────────────────
+
+def test_borrar_un_borrador_lo_anula_sin_eliminarlo(mods):
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m, estado="borrador"))
+    r = w.borrar_borrador(s["id"], "duplicada")
+    assert r["estado"] == "anulada" and "duplicada" in r["notas"]
+    assert all(x["id"] != s["id"] for x in w.listar("borrador"))
+
+
+def test_no_se_borra_lo_que_ya_no_es_borrador(mods):
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m))
+    with pytest.raises(ValueError, match="borrador"):
+        w.borrar_borrador(s["id"], "x")
+
+
+def test_ver_el_asiento_de_una_aprobada_con_cruce(mods):
+    """Aprobada, el anticipo ya está consumido por su propio asiento: la vista no
+    puede volver a exigirlo (2-oct-2026, #62 y #65 daban «tiene $0 de anticipo»)."""
+    cc, w, t, m, _ = mods
+    _proveedor_con_saldos(cc, w, t, m)
+    s = w.crear_solicitud({
+        "categoria": "productos", "concepto": "Pago", "fecha": "2026-10-01",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0,
+        "retencion_modo": "beneficiario", "total_documento": 539_070,
+        "items": [{"sku": "BOLTRA15X21ZIP", "nombre": "BOLSA", "cantidad": 1,
+                   "precio": 453_000, "iva_pct": 19}],
+        "cruce_anticipo": 18_415,
+    })
+    w.aprobar(s["id"], espejar=False)
+    prev = w.previsualizacion_de(s["id"])
+    lineas = [(l["cuenta_codigo"], l["debito"], l["credito"]) for l in prev["lineas"]]
+    assert prev["cuadra"], lineas
+    assert prev["pagado_ahora"] == 539_070 - 18_415, (prev["pagado_ahora"], lineas)

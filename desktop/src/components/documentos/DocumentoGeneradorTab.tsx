@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { formatearFormulaMolecular } from "../../lib/formulaMolecular";
@@ -939,6 +939,32 @@ export default function DocumentoGeneradorTab({
   );
 }
 
+/** Textarea que crece con su contenido: `rows` es solo el alto mínimo. La altura
+ *  va inline con `important` porque index.css fija `height: auto !important` a
+ *  todos los textarea del panel. */
+function TextareaCreciente({
+  value,
+  rows,
+  ...rest
+}: React.ComponentProps<typeof ProseTextarea> & { value: string; rows: number }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const ajustar = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.setProperty("min-height", `calc(${rows * 1.35}em + 0.7rem)`, "important");
+    el.style.setProperty("height", "0px", "important");
+    const borde = el.offsetHeight - el.clientHeight;
+    el.style.setProperty("height", `${el.scrollHeight + borde}px`, "important");
+  }, [rows]);
+  useLayoutEffect(ajustar, [ajustar, value]);
+  // Zoom o ventana más angosta: el texto ocupa más renglones.
+  useEffect(() => {
+    window.addEventListener("resize", ajustar);
+    return () => window.removeEventListener("resize", ajustar);
+  }, [ajustar]);
+  return <ProseTextarea ref={ref} value={value} rows={rows} {...rest} style={{ overflowY: "auto", resize: "none" }} />;
+}
+
 export function Field({
   label,
   value,
@@ -1025,7 +1051,7 @@ export function Field({
     return (
       <div>
         {header}
-        <ProseTextarea
+        <TextareaCreciente
           value={shown}
           onChange={(e) => emit(e.target.value)}
           rows={rows}
