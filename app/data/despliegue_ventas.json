@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-09-28T23:53:48",
+ "actualizado": "2026-10-02T04:44:45",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias).",
  "skus": {
@@ -405,7 +405,7 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO648703323",
-    "MCO2863490568"
+    "MCO2251559085"
    ]
   },
   "C-CAF100G": {
@@ -589,7 +589,7 @@
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
-    "MCO908318006",
+    "MCO2251546355",
     "MCO1235520034"
    ]
   },
@@ -1511,7 +1511,7 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO616763099",
-    "MCO1578762435"
+    "MCO2251559089"
    ]
   },
   "C-VAS400G": {
@@ -1854,7 +1854,7 @@
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
-    "MCO3022724080"
+    "MCO2251545783"
    ]
   },
   "C-AZUMMET30ML": {

@@ -1,3 +1,14 @@
+### 2026-10-02 04:40 - MeLi: albúmina, maltodextrina, goma guar y sorbitol pasan a Mercado Envíos; pesos de 54 publicaciones corregidos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de datos en MeLi + referencias internas. Sin LLM, sin código.
+- **Qué se implementó:**
+  - Venta 2000018750778516 salió «envío a acordar» porque la albúmina estaba en `MCO410861` (Repostería > Otros), que solo admite `not_specified`/`custom`. MeLi no deja cambiar `category_id` con ventas (`item.category_id.not_modifiable`), así que se crearon publicaciones nuevas con `me2`: albúmina `MCO2251545783` y maltodextrina `MCO2251559085`, goma guar `MCO2251559089` (todas en `MCO455503`) y sorbitol `MCO2251546355` (`MCO413215`). Las viejas quedaron **pausadas con stock 0** (no cerradas): `MCO3022724080`, `MCO2863490568`, `MCO1578762435`, `MCO908318006`.
+  - ⚠️ Cuenta multi-bodega: el producto de usuario nuevo no tiene bodega; el stock se escribe con `PUT /user-products/{id}/stock/type/seller_warehouse`, `x-version: 0`, **con `store_id` y `network_node_id` juntos**. Tras escribirlo MeLi tarda unos segundos en dejar activar.
+  - Pesos y medidas: 54 publicaciones con error claro corregidas (2.900 g de relleno, 500/1000 g en frascos de 5 y 30 mL, pesos menores al contenido). Criterio: contenido + empaque por tamaño (500 g = 630 g, ref. Goma xantana). Quedan 20 «verificar con balanza» y 36 sin criterio (no son envasados por McKenna).
+  - `publicaciones_overrides.json` y `despliegue_ventas.json` apuntan a las nuevas; `C-SOR500mL` apuntaba por error a la publicación del sorbitol en polvo. Hoja 1: filas nuevas con la ficha (col. I/J) copiada y borradas las 3 viejas.
+  - Pendiente: SKU de `MCO1235520034` (sorbitol polvo, 353 ventas) es `C-SOR500mL`; el correcto sería `C-SORPOLKg` pero la publicación dice Kg y declara 500 g, y `C-SORPOLKg` apunta en overrides a la maltodextrina `MCO648703323`. Decidir contenido real antes de tocar. TKT-2026-1638 (Jenniffer): cajas de empaque faltantes en recetas de goteros y kits.
+- **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `app/data/despliegue_ventas.json`, `docs/team-recaps.md`
+
 ### 2026-10-01 11:30 - Conexiones: reconectar Mercado Pago pegando el token desde el panel
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

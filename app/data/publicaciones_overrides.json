@@ -117,8 +117,8 @@
     "updated_at": "2026-06-12T01:23:56.397576"
   },
   "C-MAL500g": {
-    "meli_item_id": "MCO2863490568",
-    "updated_at": "2026-08-14T12:40:01.063188"
+    "meli_item_id": "MCO2251559085",
+    "updated_at": "2026-10-02T04:32:56.645891"
   },
   "C-SORPOLKg": {
     "meli_item_id": "MCO648703323",
@@ -189,8 +189,8 @@
     "updated_at": "2026-09-04T11:14:53.681831"
   },
   "C-SOR500mL": {
-    "meli_item_id": "MCO1235520034",
-    "updated_at": "2026-06-12T01:49:10.389695"
+    "meli_item_id": "MCO2251546355",
+    "updated_at": "2026-10-02T04:44:45.517018"
   },
   "C-ACIAZE10g": {
     "meli_item_id": "MCO1609304141",
@@ -647,8 +647,8 @@
     "updated_at": "2026-09-15T10:17:40.631499"
   },
   "C-ALBHUE500g": {
-    "meli_item_id": "MCO3022724080",
-    "updated_at": "2026-08-04T17:33:53.369075"
+    "meli_item_id": "MCO2251545783",
+    "updated_at": "2026-10-02T04:29:34.366429"
   },
   "C-INU500g": {
     "meli_item_id": "MCO991717213",
@@ -741,5 +741,9 @@
   "C-GLU2P500mL": {
     "meli_item_id": "MCO908856272",
     "updated_at": "2026-06-12T01:07:40.195895"
+  },
+  "C-GOMGUA500g": {
+    "meli_item_id": "MCO2251559089",
+    "updated_at": "2026-10-02T04:32:56.645891"
   }
 }
