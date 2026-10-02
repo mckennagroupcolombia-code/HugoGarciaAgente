@@ -1,3 +1,12 @@
+### 2026-10-02 05:05 - MeLi: sorbitol en polvo corregido a 1 kg y SKU `C-SORPOLKg`
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de datos en MeLi + referencias internas. Sin LLM, sin código.
+- **Qué se implementó:**
+  - `MCO1235520034` («Sorbitol polvo puro Kg», 353 ventas) declaraba 500 g (`QUANTITY`/`NET_WEIGHT`) y tenía el SKU del líquido `C-SOR500mL`. Confirmado que vende 1 kg: contenido a 1000 g / 1 kg y SKU a `C-SORPOLKg` (consume 1.000 g de `SORPOLg`); la hoja (col. B) también. Las ventas anteriores ya se facturaron con el SKU viejo.
+  - `publicaciones_overrides.json`: `C-SORPOLKg` apuntaba por error a la maltodextrina `MCO648703323`; ahora apunta a esta publicación. `despliegue_ventas.json`: entrada propia `C-SORPOLKG`, fuera de la lista del sorbitol líquido.
+  - Queda sin override la maltodextrina «Dulce» `MCO648703323` (activa, 1.010 ventas): decidir cuál de las dos maltodextrinas manda para `C-MAL500g`.
+- **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `app/data/despliegue_ventas.json`, `docs/team-recaps.md`
+
 ### 2026-10-02 04:40 - MeLi: albúmina, maltodextrina, goma guar y sorbitol pasan a Mercado Envíos; pesos de 54 publicaciones corregidos
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección de datos en MeLi + referencias internas. Sin LLM, sin código.

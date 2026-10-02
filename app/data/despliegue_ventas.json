@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-02T04:44:45",
+ "actualizado": "2026-10-02T05:03:48",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias).",
  "skus": {
@@ -589,8 +589,7 @@
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
-    "MCO2251546355",
-    "MCO1235520034"
+    "MCO2251546355"
    ]
   },
   "C-ACISAL100G": {
@@ -2342,6 +2341,15 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO1486579375"
+   ]
+  },
+  "C-SORPOLKG": {
+   "nombre": "SORBITOL POLVO KG",
+   "titulo_meli": "Sorbitol Polvo  Puro Kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1235520034"
    ]
   }
  },
