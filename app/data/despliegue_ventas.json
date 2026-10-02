@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-02T05:03:48",
+ "actualizado": "2026-10-02T05:10:53",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias).",
  "skus": {
@@ -405,7 +405,7 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO648703323",
-    "MCO2251559085"
+    "MCO648703323"
    ]
   },
   "C-CAF100G": {

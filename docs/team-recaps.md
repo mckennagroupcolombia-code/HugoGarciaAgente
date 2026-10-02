@@ -1,3 +1,11 @@
+### 2026-10-02 05:15 - MeLi: maltodextrina «Dulce» queda como principal, la espesante nueva se pausa
+- **Autor:** Armando García
+- **Tipo de Cambio:** Decisión operativa en MeLi + referencias internas. Sin LLM, sin código.
+- **Qué se implementó:**
+  - Se eligió `MCO648703323` (Maltodextrina «Dulce», `MCO8830`, `me2`, 1.010 ventas) como publicación principal de `C-MAL500g`; la espesante nueva `MCO2251559085` quedó **pausada** (conserva sus 20 unidades de stock). `publicaciones_overrides.json` y `despliegue_ventas.json` apuntan a la «Dulce».
+  - Pendiente: confirmar el stock físico real (2 en la «Dulce» + 20 en la pausada) y pasarlo a la principal; la fila 368 de la hoja (publicación pausada) sigue contando ese stock en el barrido.
+- **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `app/data/despliegue_ventas.json`, `docs/team-recaps.md`
+
 ### 2026-10-02 05:05 - MeLi: sorbitol en polvo corregido a 1 kg y SKU `C-SORPOLKg`
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección de datos en MeLi + referencias internas. Sin LLM, sin código.
