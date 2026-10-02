@@ -4771,3 +4771,12 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - La unidad se guarda con la fórmula (`unidad`: `g` | `mL` en `formulas_db.guardar`).
   - **Verificado:** `npm run build`; curl: guardar con 500 mL y leerla de vuelta (fórmula de prueba borrada); reinicio de `agente-pro`.
 - **Archivos Modificados:** `desktop/src/components/formulas/FormulasPanel.tsx`, `desktop/src/lib/panelInfo.ts`, `app/services/formulas_db.py`, `docs/team-recaps.md`
+
+### 2026-10-01 - Cotizar / Facturar: botón «Crear en Alegra»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Facturación → Cotizar / Facturar)
+- **Qué se implementó:**
+  - En la barra de Cotizar / Facturar aparece «Crear en Alegra», que abre la misma ventana flotante de Contabilidad (`CrearProductosSiigoPanel`): si un producto no sale en el buscador, se crea sin salir de la venta. Pedido para Jenniffer y Cynthia.
+  - Se muestra con el mismo permiso que en Contabilidad (`productos-siigo`, o facturas/sync/facturación; administradores siempre); las dos ya lo tienen.
+  - **Verificado:** `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/CotizarFacturarPanel.tsx`, `docs/team-recaps.md`

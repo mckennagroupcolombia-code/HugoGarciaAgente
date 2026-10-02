@@ -1,12 +1,17 @@
 import { Ico } from "../icons/Ico";
 import { Icon } from "../icons/Icon";
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from "react";
 import { api, fetchAuthBlobUrl, postAuthBlobUrl } from "../api/client";
 import { useAppStore } from "../stores/app";
 import { usePantallaCompleta, soportaPantallaCompleta } from "../hooks/usePantallaCompleta";
 import { imagenDesdePortapapeles } from "../lib/clipboardImage";
 import logotipo from "../assets/marca/logotipo-turquesa.png";
 import TallerPorFacturar, { type CasoPorFacturar } from "./TallerPorFacturar";
+import FloatingToolWindow, { defaultFloatRect } from "./FloatingToolWindow";
+import { useTicketsAuth } from "../stores/ticketsAuth";
+import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
+
+const CrearProductosSiigoPanel = lazy(() => import("./CrearProductosSiigoPanel"));
 
 /**
  * Facturación → Cotizar/Facturar: módulo de venta directa.
@@ -297,6 +302,11 @@ async function precioDe(p: ProductoResultado, cantidad = 1): Promise<Linea> {
 
 export default function CotizarFacturarPanel() {
   const [paso, setPaso] = useState(1);
+  // «Crear en Alegra» también aquí (1-oct-2026): si el producto no sale en el buscador, se crea
+  // sin salir de la venta. Mismo permiso y misma ventana que en Contabilidad (ContabilidadHerramientas).
+  const usuario = useTicketsAuth((s) => s.user);
+  const puedeCrearEnAlegra = Boolean(puedeVerModuloContabilidad(usuario, "productos-siigo"));
+  const [verCrearAlegra, setVerCrearAlegra] = useState(false);
   const [ventaId, setVentaId] = useState<number | null>(null);
   const [venta, setVenta] = useState<Venta | null>(null);
 
@@ -686,6 +696,12 @@ export default function CotizarFacturarPanel() {
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <ComisionChip recargar={venta?.estado === "facturada" ? venta.id : 0} onAbrir={() => setVerRecientes(true)} />
+          {puedeCrearEnAlegra && (
+            <button type="button" className={btnHerramienta} aria-pressed={verCrearAlegra} onClick={() => setVerCrearAlegra((v) => !v)}
+                    title="Crear un producto o combo en Alegra que todavía no está en el catálogo">
+              <Icon name="package" size={14} weight="bold" /> Crear en Alegra
+            </button>
+          )}
           <button type="button" className={btnHerramienta} aria-pressed={verCola} onClick={() => setVerCola((v) => !v)}
                   title="Ventas de WhatsApp cobradas sin factura, para facturar caso por caso">
             <Icon name="receipt" size={14} weight="bold" /> Por facturar{casos ? ` (${casos.length})` : ""}
@@ -720,6 +736,27 @@ export default function CotizarFacturarPanel() {
           )}
         </div>
       </div>
+
+      {verCrearAlegra && (
+        <FloatingToolWindow
+          id="crear-siigo"
+          title="Crear en Alegra"
+          titleExtra={<Icon name="package" size={14} weight="bold" className="text-sky-600 dark:text-sky-300" />}
+          headerClassName="border-border bg-sky-500/10 text-sky-700 dark:text-sky-300"
+          borderClassName="border-sky-500/50"
+          defaultRect={defaultFloatRect("tr", 448, 560)}
+          minWidth={320}
+          minHeight={280}
+          zIndex={890}
+          onClose={() => setVerCrearAlegra(false)}
+        >
+          <div className="p-3">
+            <Suspense fallback={<p className="py-8 text-center text-sm text-muted">Cargando…</p>}>
+              <CrearProductosSiigoPanel compact />
+            </Suspense>
+          </div>
+        </FloatingToolWindow>
+      )}
 
       {verCola && (
         <TallerPorFacturar
