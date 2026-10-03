@@ -1,3 +1,13 @@
+### 2026-10-03 - App de colaborador: subir imágenes y archivos en la solicitud (TKT-2026-1617)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (app de colaborador `dist-colab`). Sin LLM.
+- **Qué se implementó:**
+  - La conversación de una solicitud en la app de colaborador mostraba los adjuntos pero no tenía cómo subirlos. Se agregó un botón 📎 (imágenes, PDF, Word, Excel, TXT; varios a la vez) y pegar captura con Ctrl+V en el cuadro de mensaje.
+  - Usa `POST /api/tickets/<id>/adjuntos`, que `_guard_colaborador_externo` ya permitía para tickets entre el colaborador y Armando: no hubo cambio de backend.
+  - Pendiente: adjuntar al crear una solicitud nueva (hoy se crea y luego se adjunta desde la conversación).
+  - **Verificado:** `tsc`; `npm run build` (incluye `dist-colab`). Sin prueba en navegador con la sesión del colaborador.
+- **Archivos Modificados:** `desktop/src/colab/AgendaColab.tsx`, `docs/team-recaps.md`
+
 ### 2026-10-02 06:30 - Revisión global de pesos, medidas y empaques: solicitud con wizard para Jenniffer
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Solicitudes · Producto). Sin LLM.

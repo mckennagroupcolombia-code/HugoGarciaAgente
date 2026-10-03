@@ -2,11 +2,11 @@
  * Agenda del colaborador externo: solo lo que hay entre él y Armando.
  *
  * El backend ya recorta (`_guard_colaborador_externo` y `listar_tickets`): acá
- * se lista, se crea una solicitud para Armando, se comenta y se marca como
- * hecha una acción que le asignaron. Nada de misiones, equipo ni categorías.
+ * se lista, se crea una solicitud para Armando, se comenta, se adjuntan
+ * imágenes/archivos (TKT-2026-1617) y se marca como hecha una acción que le asignaron. Nada de misiones, equipo ni categorías.
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api } from "../api/client";
 import { useTicketsAuth, type TicketsUser } from "./stubs/ticketsAuth";
 
@@ -49,6 +49,8 @@ function Detalle({ t, yo, onVolver }: { t: Ticket; yo: TicketsUser; onVolver: ()
   const [texto, setTexto] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [subiendo, setSubiendo] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const q = useQuery<Comentario[]>({
     queryKey: ["colab-comentarios", t.id],
     queryFn: () => api.get(`/api/tickets/${t.id}/comentarios`),
@@ -74,6 +76,24 @@ function Detalle({ t, yo, onVolver }: { t: Ticket; yo: TicketsUser; onVolver: ()
       void qc.invalidateQueries({ queryKey: ["colab-comentarios", t.id] });
     } catch (e) { setError((e as Error).message); }
     finally { setEnviando(false); }
+  }
+
+  async function subir(archivos: File[]) {
+    if (!archivos.length) return;
+    setSubiendo(true);
+    setError(null);
+    try {
+      for (const f of archivos) {
+        const fd = new FormData();
+        fd.append("archivo", f, f.name || `captura-${Date.now()}.png`);
+        await api.upload(`/api/tickets/${t.id}/adjuntos`, fd, { timeoutMs: 120_000 });
+      }
+      void qc.invalidateQueries({ queryKey: ["colab-adjuntos", t.id] });
+    } catch (e) { setError((e as Error).message); }
+    finally {
+      setSubiendo(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   async function marcarHecha() {
@@ -138,11 +158,32 @@ function Detalle({ t, yo, onVolver }: { t: Ticket; yo: TicketsUser; onVolver: ()
       )}
 
       <div className="flex gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+          className="hidden"
+          onChange={(e) => void subir(Array.from(e.target.files ?? []))}
+        />
+        <button
+          type="button"
+          title="Adjuntar imagen o archivo"
+          disabled={subiendo}
+          onClick={() => fileRef.current?.click()}
+          className="self-end rounded-lg border border-border px-3 py-2 text-sm font-bold text-ink disabled:opacity-50"
+        >
+          {subiendo ? "Subiendo…" : "📎"}
+        </button>
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
+          onPaste={(e) => {
+            const imgs = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
+            if (imgs.length) { e.preventDefault(); void subir(imgs); }
+          }}
           rows={2}
-          placeholder="Escribe un mensaje…"
+          placeholder="Escribe un mensaje o pega una imagen…"
           className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
         />
         <button type="button" disabled={enviando || !texto.trim()} onClick={() => void comentar()} className="self-end rounded-lg bg-accent px-3 py-2 text-sm font-bold text-white disabled:opacity-50">
