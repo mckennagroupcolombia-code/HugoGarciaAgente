@@ -1,6 +1,118 @@
 {
   "archivos": [
     {
+      "nombre": "CITRATO_ZINC_500g_20261002_142416.pdf",
+      "ruta": "Etiquetas McKenna/CITRATO_ZINC_500g_20261002_142416.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_ZINC_500g_20261002_142416.pdf",
+      "subido_at": "2026-10-02T14:24:16",
+      "bytes": 301218
+    },
+    {
+      "nombre": "CITRATO_ZINC_500g_20261002_142338.pdf",
+      "ruta": "Etiquetas McKenna/CITRATO_ZINC_500g_20261002_142338.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_ZINC_500g_20261002_142338.pdf",
+      "subido_at": "2026-10-02T14:23:39",
+      "bytes": 301218
+    },
+    {
+      "nombre": "CITRATO_ZINC_500g.pdf",
+      "ruta": "Etiquetas McKenna/CITRATO_ZINC_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_ZINC_500g.pdf",
+      "subido_at": "2026-10-02T14:23:19",
+      "bytes": 301218
+    },
+    {
+      "nombre": "PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20261002_140016.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20261002_140016.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20261002_140016.pdf",
+      "subido_at": "2026-10-02T14:00:16",
+      "bytes": 325080
+    },
+    {
+      "nombre": "PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20261002_135936.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20261002_135936.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20261002_135936.pdf",
+      "subido_at": "2026-10-02T13:59:36",
+      "bytes": 325080
+    },
+    {
+      "nombre": "PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20261002_135917.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20261002_135917.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20261002_135917.pdf",
+      "subido_at": "2026-10-02T13:59:18",
+      "bytes": 325080
+    },
+    {
+      "nombre": "CAFEINA_500g_20261002_135504.pdf",
+      "ruta": "Etiquetas McKenna/CAFEINA_500g_20261002_135504.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAFEINA_500g_20261002_135504.pdf",
+      "subido_at": "2026-10-02T13:55:04",
+      "bytes": 322476
+    },
+    {
+      "nombre": "CAFEINA_500g.pdf",
+      "ruta": "Etiquetas McKenna/CAFEINA_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAFEINA_500g.pdf",
+      "subido_at": "2026-10-02T13:54:52",
+      "bytes": 322476
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_20261002_135041.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_20261002_135041.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_20261002_135041.pdf",
+      "subido_at": "2026-10-02T13:50:41",
+      "bytes": 182433
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g.pdf",
+      "subido_at": "2026-10-02T13:50:26",
+      "bytes": 182433
+    },
+    {
+      "nombre": "AJONJOLI_NEGRO_500g.pdf",
+      "ruta": "Etiquetas McKenna/AJONJOLI_NEGRO_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AJONJOLI_NEGRO_500g.pdf",
+      "subido_at": "2026-10-02T13:48:19",
+      "bytes": 190334
+    },
+    {
+      "nombre": "AGUA_DESTILADA_250mL_20261002_093739.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILADA_250mL_20261002_093739.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILADA_250mL_20261002_093739.pdf",
+      "subido_at": "2026-10-02T09:37:39",
+      "bytes": 301979
+    },
+    {
+      "nombre": "AGUA_DESTILADA_250mL_20261002_093711.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILADA_250mL_20261002_093711.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILADA_250mL_20261002_093711.pdf",
+      "subido_at": "2026-10-02T09:37:11",
+      "bytes": 301979
+    },
+    {
+      "nombre": "AGUA_DESTILADA_250mL_20261002_093640.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILADA_250mL_20261002_093640.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILADA_250mL_20261002_093640.pdf",
+      "subido_at": "2026-10-02T09:36:40",
+      "bytes": 301979
+    },
+    {
+      "nombre": "AGUA_DESTILADA_250mL_20261002_093623.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILADA_250mL_20261002_093623.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILADA_250mL_20261002_093623.pdf",
+      "subido_at": "2026-10-02T09:36:23",
+      "bytes": 301979
+    },
+    {
+      "nombre": "AGUA_DESTILADA_250mL_20261002_093607.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILADA_250mL_20261002_093607.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILADA_250mL_20261002_093607.pdf",
+      "subido_at": "2026-10-02T09:36:07",
+      "bytes": 301979
+    },
+    {
       "nombre": "LACTATO_DE_CALCIO_50g_20261001_150949.pdf",
       "ruta": "Etiquetas McKenna/LACTATO_DE_CALCIO_50g_20261001_150949.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_DE_CALCIO_50g_20261001_150949.pdf",
@@ -1287,118 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/GLICERINA_VEGETAL_500mL_2.pdf",
       "subido_at": "2026-09-18T09:20:35",
       "bytes": 297471
-    },
-    {
-      "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260916_101511.pdf",
-      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260916_101511.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260916_101511.pdf",
-      "subido_at": "2026-09-16T10:15:11",
-      "bytes": 301761
-    },
-    {
-      "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260916_101155.pdf",
-      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260916_101155.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260916_101155.pdf",
-      "subido_at": "2026-09-16T10:11:56",
-      "bytes": 301761
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100952.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100952.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100952.pdf",
-      "subido_at": "2026-09-16T10:09:52",
-      "bytes": 485550
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100909.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100909.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100909.pdf",
-      "subido_at": "2026-09-16T10:09:09",
-      "bytes": 485550
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100854.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100854.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100854.pdf",
-      "subido_at": "2026-09-16T10:08:54",
-      "bytes": 485550
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100828.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100828.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100828.pdf",
-      "subido_at": "2026-09-16T10:08:28",
-      "bytes": 485550
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100804.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100804.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260916_100804.pdf",
-      "subido_at": "2026-09-16T10:08:04",
-      "bytes": 485550
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100645.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100645.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100645.pdf",
-      "subido_at": "2026-09-16T10:06:45",
-      "bytes": 492331
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100546.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100546.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100546.pdf",
-      "subido_at": "2026-09-16T10:05:46",
-      "bytes": 492331
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100519.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100519.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100519.pdf",
-      "subido_at": "2026-09-16T10:05:19",
-      "bytes": 492331
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100457.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100457.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100457.pdf",
-      "subido_at": "2026-09-16T10:04:57",
-      "bytes": 492331
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100433.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100433.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260916_100433.pdf",
-      "subido_at": "2026-09-16T10:04:34",
-      "bytes": 492331
-    },
-    {
-      "nombre": "EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100229.pdf",
-      "ruta": "Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100229.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100229.pdf",
-      "subido_at": "2026-09-16T10:02:29",
-      "bytes": 464629
-    },
-    {
-      "nombre": "EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100159.pdf",
-      "ruta": "Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100159.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100159.pdf",
-      "subido_at": "2026-09-16T10:02:00",
-      "bytes": 464629
-    },
-    {
-      "nombre": "EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100137.pdf",
-      "ruta": "Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100137.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100137.pdf",
-      "subido_at": "2026-09-16T10:01:38",
-      "bytes": 464629
-    },
-    {
-      "nombre": "EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100114.pdf",
-      "ruta": "Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100114.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260916_100114.pdf",
-      "subido_at": "2026-09-16T10:01:14",
-      "bytes": 464629
     }
   ]
 }

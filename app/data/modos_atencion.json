@@ -73,7 +73,13 @@
     "573219129462@c.us",
     "573015823487@c.us",
     "77005307519219@lid",
-    "177648537968832@lid"
+    "177648537968832@lid",
+    "116054462361830@lid",
+    "573183954547@c.us",
+    "135343126888496@lid",
+    "573115399876@c.us",
+    "1679802036272@lid",
+    "573123799097@c.us"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -150,7 +156,13 @@
     "573219129462@c.us": 1790897426.9197032,
     "573015823487@c.us": 1790898643.126774,
     "77005307519219@lid": 1790898643.126774,
-    "177648537968832@lid": 1790903028.9501169
+    "177648537968832@lid": 1790903028.9501169,
+    "116054462361830@lid": 1790949837.8833086,
+    "573183954547@c.us": 1790949837.8833086,
+    "135343126888496@lid": 1790952457.1331687,
+    "573115399876@c.us": 1790952457.1331687,
+    "1679802036272@lid": 1790964752.9185486,
+    "573123799097@c.us": 1790964752.9185486
   },
   "bot_auto_pausados": {
     "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe": {
@@ -520,6 +532,36 @@
     },
     "177648537968832@lid": {
       "timestamp": 1790903028.9501169,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "116054462361830@lid": {
+      "timestamp": 1790949837.8833086,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573183954547@c.us": {
+      "timestamp": 1790949837.8833086,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "135343126888496@lid": {
+      "timestamp": 1790952457.1331687,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573115399876@c.us": {
+      "timestamp": 1790952457.1331687,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "1679802036272@lid": {
+      "timestamp": 1790964752.9185486,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573123799097@c.us": {
+      "timestamp": 1790964752.9185486,
       "razon": "operador desde panel de chats",
       "ultimo_mensaje": ""
     }

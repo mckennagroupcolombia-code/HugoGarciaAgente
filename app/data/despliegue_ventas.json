@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-02T05:10:53",
+ "actualizado": "2026-10-02T06:08:01",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias).",
  "skus": {
@@ -2350,6 +2350,15 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO1235520034"
+   ]
+  },
+  "OILSMLU120ML": {
+   "nombre": "ACEITE SEMILLA DE UVA 120mL",
+   "titulo_meli": "Aceite De Semilla De Uva Grado Alimenticio 120 Ml",
+   "tipo": "kit",
+   "alias_destino": "C-ACESEMUVA120mL-COPIA",
+   "meli_ids": [
+    "MCO591008771"
    ]
   }
  },

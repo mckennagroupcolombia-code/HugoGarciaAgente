@@ -156,8 +156,8 @@
     "updated_at": "2026-09-30T12:23:32.809302"
   },
   "C-CITPOT250G": {
-    "stock": 11,
-    "updated_at": "2026-10-01T15:52:49.923416"
+    "stock": 9,
+    "updated_at": "2026-10-02T11:56:08.097236"
   },
   "C-CERABEREFBLAKG": {
     "stock": 10,
@@ -317,7 +317,7 @@
   },
   "C-EXTTEMATVER100G": {
     "stock": 10,
-    "updated_at": "2026-09-30T06:20:11.762109"
+    "updated_at": "2026-10-02T19:00:50.558266"
   },
   "C-RET5P30ML": {
     "stock": 23,
@@ -481,7 +481,7 @@
   },
   "C-SORPOT250G": {
     "stock": 20,
-    "updated_at": "2026-09-30T06:20:14.053049"
+    "updated_at": "2026-10-02T19:00:49.343049"
   },
   "OILNZ250ML": {
     "stock": 0,
@@ -1932,8 +1932,8 @@
     "updated_at": "2026-09-19T05:45:10.118442"
   },
   "C-KITACIHIA30ML": {
-    "stock": 7,
-    "updated_at": "2026-10-01T11:35:46.907483"
+    "stock": 5,
+    "updated_at": "2026-10-02T17:40:42.493326"
   },
   "C-CEBCOR150G": {
     "stock": 3,
@@ -1953,7 +1953,7 @@
   },
   "C-FRBSGL120ML": {
     "stock": 21,
-    "updated_at": "2026-09-30T06:20:15.277433"
+    "updated_at": "2026-10-02T12:20:39.578986"
   },
   "C-REVVID6MM": {
     "stock": 20,
@@ -1981,7 +1981,7 @@
   },
   "C-ACEESENMAN5ML": {
     "stock": 9,
-    "updated_at": "2026-10-01T07:05:39.886566"
+    "updated_at": "2026-10-02T12:20:40.961785"
   },
   "C-VAS400G": {
     "stock": 9,
@@ -2013,7 +2013,7 @@
   },
   "C-ACEESEBER5ML": {
     "stock": 7,
-    "updated_at": "2026-09-30T06:20:14.913582"
+    "updated_at": "2026-10-02T08:51:17.724954"
   },
   "C-GELSILCRI250G": {
     "stock": 5,
@@ -2057,7 +2057,7 @@
   },
   "C-ACETEATRE30ML": {
     "stock": 7,
-    "updated_at": "2026-09-30T06:20:17.227984"
+    "updated_at": "2026-10-02T18:58:13.439468"
   },
   "GTRVDR10ML12UN": {
     "stock": 4,
@@ -2089,7 +2089,7 @@
   },
   "C-LTEA100G": {
     "stock": 11,
-    "updated_at": "2026-10-01T20:56:09.881208"
+    "updated_at": "2026-10-02T12:07:02.899006"
   },
   "AS-4": {
     "stock": 4171,
@@ -2121,7 +2121,7 @@
   },
   "C-ACEESECLA5ML": {
     "stock": 0,
-    "updated_at": "2026-10-01T21:46:04.150604"
+    "updated_at": "2026-10-02T07:31:13.861052"
   },
   "GOTVID50ML": {
     "stock": 0,
@@ -2228,12 +2228,12 @@
     "updated_at": "2026-09-30T06:20:09.445924"
   },
   "C-ALBHUE500G": {
-    "stock": 1,
-    "updated_at": "2026-10-01T21:57:15.953531"
+    "stock": 0,
+    "updated_at": "2026-10-02T18:21:44.341752"
   },
   "C-POLTWE20P250ML": {
     "stock": 4,
-    "updated_at": "2026-09-30T23:15:46.915703"
+    "updated_at": "2026-10-02T09:45:24.154097"
   },
   "C-HARPAN00KG": {
     "stock": 0,
@@ -2346,5 +2346,9 @@
   "C-ACEBOMVAC": {
     "stock": 9,
     "updated_at": "2026-10-01T14:39:44.875240"
+  },
+  "C-PLVSLCPH": {
+    "stock": 2,
+    "updated_at": "2026-10-02T19:00:55.350056"
   }
 }
