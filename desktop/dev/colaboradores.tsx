@@ -123,8 +123,15 @@ let tarjetas: TarjetaDev[] = [
 ].map((t, i) => ({ texto: "", porque: "", estado: "abierto", turno_de: null, turno_desde: null, fecha_hecho: null, fuente: null,
                    adjuntos: [], enlaces: [], acuerdos: {}, creado_por: i % 2 ? 20 : 8, creado_en: ahoraMenos(48 - i),
                    actualizado_por: 8, actualizado_en: ahoraMenos(48 - i), ...t, id: i + 1 }));
-tarjetas[0].enlaces = [];
-tarjetas[7].enlaces = [{ a: 5, rel: "resuelve" }];
+// Linaje del cladograma (ids 1..13 en el orden de arriba) y una rama «Proceso» que viene del edificio.
+const PADRES: Record<number, number | null> = { 1: null, 2: null, 3: 2, 4: 2, 10: 1, 7: 10, 6: 10, 5: 10, 8: 5, 12: 10, 11: 12, 9: 11, 13: 5 };
+tarjetas = tarjetas.map((t) => ({ ...t, padre_id: PADRES[t.id] ?? null }));
+tarjetas.push(
+  { id: 20, padre_id: null, tipo: "paso", titulo: "Proceso (lo que estaba en el edificio)", texto: "", porque: "", estado: "abierto", turno_de: null, turno_desde: null, fecha_hecho: null, fuente: null, adjuntos: [], enlaces: [], acuerdos: {}, creado_por: 8, creado_en: ahoraMenos(1), actualizado_por: 8, actualizado_en: ahoraMenos(1) },
+  ...["Comprar materiales", "Preparar alicates", "Tejer el collar", "Revisar y empacar"].map((titulo, i) => (
+    { id: 21 + i, padre_id: 20, tipo: "paso", titulo, texto: "", porque: "", estado: "abierto", turno_de: null, turno_desde: null, fecha_hecho: null,
+      fuente: { canal: "edificio", autor: "Sebastián García", fecha: "", texto: `caja ${i}` }, adjuntos: [], enlaces: [], acuerdos: {},
+      creado_por: 8, creado_en: ahoraMenos(1), actualizado_por: 8, actualizado_en: ahoraMenos(1) })));
 const ritmoDev = {
   app: {
     "8": { nombre: "Armando García", en_ver: { n: 6, mediana_min: 95 }, en_responder: { n: 6, mediana_min: 12 }, total: { n: 6 },
@@ -238,17 +245,17 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
 
 // Para capturas sin clics (Chrome headless): ?abrir abre el proyecto y ?sel=<id> toca esa caja.
 const q = new URLSearchParams(location.search);
-// ?vista=edificio abre el proyecto en la pestaña del edificio (por defecto, el tablero).
-try { localStorage.setItem("colab-vista-proyecto", q.get("vista") === "edificio" ? "edificio" : "tablero"); } catch { /* */ }
+// Cada captura arranca con el mapa como viene (sin plegados ni zoom guardados de otra corrida).
+try { Object.keys(localStorage).filter((k) => k.startsWith("colab-mapa-")).forEach((k) => localStorage.removeItem(k)); } catch { /* */ }
 if (q.has("abrir")) {
   const tocar = (sel: string, luego?: () => void, intentos = 40) => {
     const el = document.querySelector<HTMLElement>(sel);
     if (el) { el.click(); luego?.(); } else if (intentos > 0) setTimeout(() => tocar(sel, luego, intentos - 1), 100);
   };
-  tocar("button.ob-mini", () => {
+  tocar("[data-proyecto]", () => {
     // Tablero: ?tarjeta=<id> abre esa tarjeta y ?chat abre «Traer del chat».
     const tid = q.get("tarjeta");
-    if (tid) setTimeout(() => tocar(`[data-tarjeta="${tid}"]`), 600);
+    if (tid) setTimeout(() => tocar(`[data-tarjeta="${tid}"] button`), 600);
     if (q.has("chat")) setTimeout(() => tocar("button[data-chat]", () => setTimeout(() => {
       const f = document.querySelector<HTMLTextAreaElement>("[aria-label='Traer del chat'] textarea");
       if (f) { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(f, "x"); f.dispatchEvent(new Event("input", { bubbles: true })); }

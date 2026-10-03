@@ -149,3 +149,57 @@ def test_api_del_tablero_para_la_pareja(cliente):  # noqa: F811
                          ("post", f"/api/colaboradores/diagramas/{did}/chat")]:
         assert getattr(cliente, metodo)(ruta, headers=_h("tok-otra"), json={"tipo": "idea", "titulo": "x"}).status_code == 404
     assert cliente.delete(f"/api/colaboradores/diagramas/{did}/tarjetas/{tid}", headers=_h()).status_code == 200
+
+
+# ─── El mapa: cladograma por linaje (3-oct-2026) ────────────────────────────
+
+def test_cada_tarjeta_cuelga_de_una_y_no_hay_ciclos(proyecto):
+    a = tb.crear(proyecto, 8, {"tipo": "origen", "titulo": "Collares de Armando"})
+    b = tb.crear(proyecto, 20, {"tipo": "resultado", "titulo": "Primeros tejidos", "padre_id": a["id"]})
+    c = tb.crear(proyecto, 8, {"tipo": "obstaculo", "titulo": "Aros grandes", "padre_id": b["id"]})
+    assert (b["padre_id"], c["padre_id"]) == (a["id"], b["id"])
+    with pytest.raises(ValueError):
+        tb.editar(proyecto, a["id"], 8, {"padre_id": c["id"]})        # a saldría de su propia rama
+    with pytest.raises(ValueError):
+        tb.editar(proyecto, a["id"], 8, {"padre_id": a["id"]})
+    with pytest.raises(ValueError):
+        tb.crear(proyecto, 8, {"tipo": "idea", "titulo": "x", "padre_id": 99999})
+    assert tb.editar(proyecto, c["id"], 8, {"padre_id": None})["padre_id"] is None
+
+
+def test_al_borrar_sus_ramas_suben_al_abuelo(proyecto):
+    a = tb.crear(proyecto, 8, {"tipo": "origen", "titulo": "A"})
+    b = tb.crear(proyecto, 8, {"tipo": "resultado", "titulo": "B", "padre_id": a["id"]})
+    c = tb.crear(proyecto, 8, {"tipo": "idea", "titulo": "C", "padre_id": b["id"]})
+    tb.borrar(proyecto, b["id"], 8)
+    assert next(t for t in tb.listar(proyecto) if t["id"] == c["id"])["padre_id"] == a["id"]
+
+
+def test_el_padre_es_del_mismo_proyecto(proyecto):
+    otro = col.crear("Otro", 8, colaborador_id=20)["id"]
+    ajena = tb.crear(otro, 8, {"tipo": "idea", "titulo": "ajena"})
+    with pytest.raises(ValueError):
+        tb.crear(proyecto, 8, {"tipo": "idea", "titulo": "x", "padre_id": ajena["id"]})
+
+
+def test_absorber_el_edificio_una_sola_vez(proyecto):
+    doc = {"nodes": [
+        {"id": "a", "label": "Comprar aros", "sublabel": "Telas y herrajes", "x": 0, "y": 0, "carril": "sebastian",
+         "tipo": "accion", "variables": {"como": "en moto"}, "tiempo_min": 120},
+        {"id": "b", "label": "Collar M", "x": 0, "y": 0, "carril": "sebastian", "tipo": "producto", "sku": "C-1",
+         "precio": {"monto": 65000, "moneda": "COP"}},
+        {"id": "c", "label": "Nuevo paso", "x": 0, "y": 0, "carril": "conjunto", "tipo": "accion"},
+        {"id": "d", "label": "¿Qué decidimos?", "x": 0, "y": 0, "carril": "conjunto", "tipo": "consenso"}],
+        "edges": []}
+    col.guardar(proyecto, doc, 1, 8)
+    r = tb.absorber_edificio(proyecto, 8)
+    assert r["traidas"] == 2 and r["saltadas"] == 2
+    ts = tb.listar(proyecto)
+    grupo = next(t for t in ts if t["titulo"].startswith("Proceso"))
+    hijos = [t for t in ts if t["padre_id"] == grupo["id"]]
+    assert {t["titulo"] for t in hijos} == {"Comprar aros", "Collar M"}
+    aros = next(t for t in hijos if t["titulo"] == "Comprar aros")
+    assert "Cómo: en moto" in aros["texto"] and "Tiempo: 120 min" in aros["texto"] and aros["turno_de"] is None
+    assert "Precio: 65.000 COP" in next(t for t in hijos if t["titulo"] == "Collar M")["texto"]
+    assert tb.absorber_edificio(proyecto, 8)["traidas"] == 0          # idempotente
+    assert len(tb.listar(proyecto)) == 3

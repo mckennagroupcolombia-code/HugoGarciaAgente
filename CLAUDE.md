@@ -254,7 +254,7 @@ de peso/medidas por SKU; nada se escribe en MeLi sin aprobar y antes se relee la
 **RRHH y horas** (`rrhh-horas.md`). ⚠️ **Nunca** poner horario de entrada/salida (convierte honorarios en contrato
 laboral). Tiempos solo cronometrados (≥5 muestras) o huella real, nunca estimados a mano. Salarios fuera de git.
 
-**Colaboradores** (`colaboradores.md`): desde el 3-oct el proyecto abre en un **tablero** (meta, roles, resultados, obstáculos, decisiones, a quién le toca y ritmo «visto → respuesta»); el edificio queda en su pestaña. «Traer del chat» lee el WhatsApp exportado sin guardarlo. · **Grabar pantalla** e **iconografía** (`desktop-panel.md`) ·
+**Colaboradores** (`colaboradores.md`): desde el 3-oct un proyecto es **un solo mapa-cladograma por linaje** (cada tarjeta cuelga de la que la originó; `padre_id`, sin ciclos), con turno y ritmo «visto → respuesta»; el edificio se absorbió como rama «Proceso». «Traer del chat» lee el WhatsApp exportado sin guardarlo. · **Grabar pantalla** e **iconografía** (`desktop-panel.md`) ·
 **Catálogo PDF, CLI, contenido multimedia y científico** (`contenido-catalogo.md`).
 
 ## Endpoints (tabla completa: `docs/agentic/ENDPOINTS.md`)

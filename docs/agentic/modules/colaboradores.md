@@ -252,3 +252,28 @@ terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**
     (Sebastián responde en mediana <1 min, 90 % antes de 37 min; Armando 90 % antes de ~9 h, 17 esperas >12 h).
   · Banco de pruebas: `dev/colaboradores.html?abrir` (tablero), `&tarjeta=<id>`, `&chat`, `&vista=edificio`.
     Tests: `tests/test_colab_tablero.py`.
+
+- **Un solo mapa: cladograma por linaje (3-oct-2026, tarde)** — reemplaza al tablero por secciones y al edificio.
+  El usuario no quería secciones ni pestañas: «todo un gran mapa en el mismo apartado visual, como un gran
+  cladograma». `colaboradores/MapaProyecto.tsx` (antes TableroProyecto.tsx) es la ÚNICA vista del proyecto:
+  · Raíz = el proyecto (título + meta). Cada tarjeta lleva `padre_id` (columna nueva de `colab_tarjetas`) y cuelga
+    de la que la ORIGINÓ: el obstáculo del resultado donde apareció, la decisión del obstáculo que resuelve, el
+    siguiente resultado de la decisión. Sin padre = cuelga de la raíz. Se lee de izquierda a derecha.
+  · Servidor: `_padre_valido` exige tarjeta viva del mismo proyecto y sube por los ancestros para impedir ciclos;
+    al borrar, sus hijas suben a colgar del abuelo. Los `enlaces` quedan como conexiones cruzadas (↔).
+  · Dibujo con cajas, no SVG (como el cladograma del Árbol del producto): cada fila trae su tramo de tronco,
+    así el árbol se acomoda solo. Nodo = cabeza de color por tipo (`COLOR_TIPO`), título, foto, chips de turno y
+    acuerdo; «＋ rama» brota una hija (`HIJO_DE` sugiere el tipo) y ▸/◂ pliega. «Sale de» en la hoja mueve la rama.
+  · Barra: Ritmo (desplegable, con «te tocan N»), Traer del chat, resaltar Todo / Me toca / Abiertos (lo demás se
+    apaga y una rama plegada que esconde algo resaltado se abre sola) y zoom (CSS `zoom`, guardado por proyecto,
+    65 % en celular). El lienzo se arrastra con el mouse; al abrir, la raíz queda a la vista.
+  · **El edificio se absorbió**: `absorber_edificio()` pasa cada caja a un nodo `paso` (texto con cómo/dónde/
+    cuándo/por qué, tiempo, costo/precio, SKU, empaque, datos; foto y adjuntos) bajo una rama «Proceso (lo que
+    estaba en el edificio)», plegada por defecto. Idempotente (`fuente.canal = "edificio"`, texto `caja <id>`);
+    salta cajas vacías («Nuevo paso», consenso sin asunto). `GET …/tablero` la corre la primera vez por proyecto y
+    proceso. El documento viejo (`doc_json`, operación, versiones) NO se borró; ya no hay vista que lo edite.
+    Se borraron `EdificioColab.tsx`, `edificio-colab.css` y `obra.css`; `obra.ts`, `campos.tsx` y el backend de la
+    operación siguen (tests y banco de pruebas). La lista de proyectos son tarjetas con meta y turnos.
+  · Proyecto 1: 64 nodos en 3 raíces (partida → … → primera venta; meta → roles; Proceso con 26 pasos).
+  · Banco: `dev/colaboradores.html?abrir` (mapa), `&tarjeta=<id>`, `&chat`. Tests: `tests/test_colab_tablero.py`
+    (linaje, ciclos, borrar sube al abuelo, padre de otro proyecto, absorber una sola vez).

@@ -52,6 +52,9 @@ def _suyo(f):
     return wrapper
 
 
+_absorbidos: set[int] = set()
+
+
 def register_colaboradores_routes(app):
     from app.services import colaboradores as col
 
@@ -183,6 +186,11 @@ def register_colaboradores_routes(app):
     def colab_tablero(did: int):
         from app.services import colab_tablero as tb
 
+        # Una sola vista (3-oct-2026): las cajas del edificio entran al mapa como rama «Proceso»
+        # la primera vez que se abre el proyecto en este proceso (idempotente si se repite).
+        if did not in _absorbidos:
+            tb.absorber_edificio(did, int(g.colab_usuario["id"]))
+            _absorbidos.add(did)
         return jsonify({"tarjetas": tb.listar(did), "ritmo": tb.ritmo(did), "tipos": tb.TIPOS,
                         "participantes": {str(u): col._nombre(u) for u in tb._pareja(did)}})
 

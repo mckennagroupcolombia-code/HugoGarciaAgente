@@ -1,15 +1,18 @@
 /**
- * Tablero del proyecto (3-oct-2026): la vista principal de Colaboradores. El edificio queda como
- * pestaña secundaria.
+ * Mapa del proyecto (3-oct-2026): la ÚNICA vista de un proyecto de Colaboradores. Todo el proyecto
+ * es un gran cladograma por LINAJE: la raíz es el proyecto y cada tarjeta cuelga de la que la
+ * originó (el obstáculo sale del resultado donde apareció, la decisión del obstáculo que resuelve,
+ * el siguiente resultado de la decisión). Se lee de izquierda a derecha cómo evolucionó.
  *
  * Por qué. Entre Armando y un colaborador no hay módulos que poner en pisos: hay una conversación
- * que deja ideas, pruebas, decisiones y tropiezos. El tablero responde en orden: de dónde
- * partimos, la meta, quién hace qué, qué salió, qué nos frena, qué decidimos, qué sigue y a quién
- * le toca — y el ritmo: cuánto tarda cada uno desde que ve lo del otro hasta que responde.
+ * que deja ideas, pruebas, decisiones y tropiezos. El edificio quedó absorbido como una rama
+ * «Proceso» (colab_tablero.absorber_edificio) y el tablero por secciones se descartó: el usuario
+ * quiere todo en el mismo apartado visual.
  *
  * Cada tarjeta se guarda sola (PATCH con lo que cambió): dos personas editando a la vez no se pisan.
- * «Traer del chat» lee el chat exportado de WhatsApp y deja convertir mensajes en tarjetas uno a
- * uno; el texto del chat no se guarda en el servidor. Backend: app/services/colab_tablero.py.
+ * «＋» en un nodo brota una rama; «Sale de» la cambia de lugar (el servidor impide ciclos).
+ * «Traer del chat» lee el chat exportado de WhatsApp y deja convertir mensajes en tarjetas; el
+ * texto del chat no se guarda. Backend: app/services/colab_tablero.py.
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,11 +21,11 @@ import { AuthImg, INP, MINI } from "./campos";
 import type { Adjunto } from "./modelo";
 import { Sprite, type SpriteId } from "./pixel";
 
-type TipoT = "origen" | "meta" | "rol" | "resultado" | "obstaculo" | "decision" | "tarea" | "idea" | "acuerdo";
+type TipoT = "origen" | "meta" | "rol" | "resultado" | "obstaculo" | "decision" | "tarea" | "idea" | "acuerdo" | "paso";
 type Rel = "viene_de" | "resuelve" | "bloquea";
 type Fuente = { canal: string; autor: string; fecha: string; texto: string };
 export type Tarjeta = {
-  id: number; tipo: TipoT; titulo: string; texto: string; porque: string;
+  id: number; padre_id: number | null; tipo: TipoT; titulo: string; texto: string; porque: string;
   estado: "abierto" | "hecho" | "descartado"; turno_de: number | null; turno_desde: string | null;
   fecha_hecho: string | null; fuente: Fuente | null; adjuntos: Adjunto[]; enlaces: { a: number; rel: Rel }[];
   acuerdos: Record<string, string>; creado_por: number; creado_en: string; actualizado_por: number; actualizado_en: string;
@@ -52,10 +55,22 @@ const SECCIONES: { tipo: TipoT; titulo: string; pregunta: string; sprite: Sprite
   { tipo: "resultado", titulo: "Resultados", pregunta: "Lo que ya salió, con fecha y prueba", sprite: "estrella" },
   { tipo: "acuerdo", titulo: "Acuerdos", pregunta: "Precios, comisiones y reglas que ya quedaron", sprite: "pulgar" },
   { tipo: "idea", titulo: "Ideas", pregunta: "Para después: sin compromiso todavía", sprite: "gema" },
+  { tipo: "paso", titulo: "Proceso", pregunta: "Un paso de cómo se hace", sprite: "control" },
 ];
+/** Color de la cabeza de cada nodo (paleta PICO-8 del resto de Colaboradores) y su letra. */
+const COLOR_TIPO: Record<TipoT, [string, string]> = {
+  origen: ["#5F574F", "#fff"], meta: ["#FFA300", "#000"], rol: ["#29ADFF", "#000"], resultado: ["#008751", "#fff"],
+  obstaculo: ["#FF004D", "#fff"], decision: ["#7E2553", "#fff"], tarea: ["#1D2B53", "#fff"], idea: ["#83769C", "#fff"],
+  acuerdo: ["#AB5236", "#fff"], paso: ["#C2C3C7", "#000"],
+};
+/** Qué suele brotar de cada tipo al tocar «＋» (se puede cambiar en la hoja). */
+const HIJO_DE: Record<TipoT | "raiz", TipoT> = {
+  raiz: "origen", origen: "resultado", meta: "resultado", rol: "tarea", resultado: "resultado", obstaculo: "decision",
+  decision: "resultado", tarea: "resultado", idea: "tarea", acuerdo: "tarea", paso: "paso",
+};
 const NOMBRE_TIPO: Record<TipoT, string> = {
   origen: "Punto de partida", meta: "Meta", rol: "Quién hace qué", resultado: "Resultado", obstaculo: "Obstáculo",
-  decision: "Decisión", tarea: "Próxima jugada", idea: "Idea", acuerdo: "Acuerdo",
+  decision: "Decisión", tarea: "Próxima jugada", idea: "Idea", acuerdo: "Acuerdo", paso: "Paso del proceso",
 };
 const SPRITE_TIPO = Object.fromEntries(SECCIONES.map((s) => [s.tipo, s.sprite])) as Record<TipoT, SpriteId>;
 const REL_TXT: Record<Rel, string> = { viene_de: "viene de", resuelve: "resuelve", bloquea: "bloquea" };
@@ -117,7 +132,7 @@ function RitmoBar({ t, yoId }: { t: Tablero; yoId: number }) {
                 )}
               </p>
             ) : (
-              <p className="mt-1 text-xs text-muted">Aún no hay idas y vueltas en el tablero para medir.</p>
+              <p className="mt-1 text-xs text-muted">Aún no hay idas y vueltas en el mapa para medir.</p>
             )}
             {chat && chat.n > 0 && (
               <p className="mt-1 text-[11px] text-muted">
@@ -138,41 +153,55 @@ function Chip({ children, fuerte }: { children: React.ReactNode; fuerte?: boolea
   return <span className={`rounded border px-1.5 py-0.5 text-[11px] ${fuerte ? "border-accent bg-accent text-white" : "border-border text-ink-secondary"}`}>{children}</span>;
 }
 
-function CartaT({ t, did, part, yoId, todas, onAbrir }: {
-  t: Tarjeta; did: number; part: Record<string, string>; yoId: number; todas: Tarjeta[]; onAbrir: () => void;
+/** Un nodo del cladograma: cabeza de color por tipo, título, foto y lo que importa de un vistazo. */
+function Nodo({ t, did, part, yoId, hijos, plegado, apagado, onAbrir, onBrotar, onPlegar }: {
+  t: Tarjeta; did: number; part: Record<string, string>; yoId: number; hijos: number; plegado: boolean; apagado: boolean;
+  onAbrir: () => void; onBrotar: () => void; onPlegar: () => void;
 }) {
   const foto = t.adjuntos.find((a) => a.tipo === "imagen");
   const quien = (uid?: number | null) => (uid === yoId ? "ti" : part[String(uid)]?.split(" ")[0] || "—");
   const ids = Object.keys(part);
-  const resueltaPor = todas.filter((o) => o.enlaces.some((e) => e.a === t.id && e.rel === "resuelve"));
+  const [fondo, letra] = COLOR_TIPO[t.tipo];
+  const cerrada = t.estado !== "abierto" && CON_TURNO.includes(t.tipo);
   return (
-    <button type="button" onClick={onAbrir} data-tarjeta={t.id}
-            className={`block w-full rounded-xl border bg-surface-panel p-2 text-left hover:bg-surface-hover ${t.estado === "abierto" ? "border-border" : "border-dashed border-border opacity-75"}`}>
-      <span className="flex gap-2">
-        {foto && (
-          <span className="h-14 w-14 shrink-0 overflow-hidden rounded border border-border">
-            <AuthImg did={did} mid={foto.id} className="h-full w-full object-cover" />
-          </span>
-        )}
-        <span className="min-w-0 flex-1">
-          <b className={`block text-sm text-ink ${t.estado === "descartado" ? "line-through" : ""}`}>{t.titulo || t.texto.slice(0, 80)}</b>
-          {t.texto && t.titulo && <span className="line-clamp-2 block text-xs text-ink-secondary">{t.texto}</span>}
+    <div className={`mp-nodo relative w-60 shrink-0 border-2 border-ink bg-surface-panel shadow-[3px_3px_0_rgb(var(--mck-ink))] transition-opacity ${apagado ? "opacity-35" : ""} ${t.turno_de === yoId && t.estado === "abierto" ? "outline outline-[3px] outline-offset-2 outline-accent" : ""}`}
+         data-tarjeta={t.id}>
+      <div className="flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] font-extrabold uppercase" style={{ background: fondo, color: letra }}>
+        <Sprite s={SPRITE_TIPO[t.tipo]} px={1} />
+        <span className="min-w-0 flex-1 truncate">{NOMBRE_TIPO[t.tipo]}{cerrada ? (t.estado === "hecho" ? " ✓" : " ✗") : ""}</span>
+        {t.fecha_hecho && <span className="font-bold normal-case">{fechaCorta(t.fecha_hecho)}</span>}
+      </div>
+      <button type="button" onClick={onAbrir} className="block w-full p-1.5 text-left hover:bg-surface-hover">
+        <span className="flex gap-1.5">
+          {foto && (
+            <span className="h-11 w-11 shrink-0 overflow-hidden border border-border">
+              <AuthImg did={did} mid={foto.id} className="h-full w-full object-cover" />
+            </span>
+          )}
+          <b className={`line-clamp-3 min-w-0 flex-1 text-[13px] leading-tight text-ink ${t.estado === "descartado" ? "line-through" : ""}`}>
+            {t.titulo || t.texto.slice(0, 90)}
+          </b>
         </span>
-      </span>
-      <span className="mt-1.5 flex flex-wrap gap-1">
-        {t.fecha_hecho && <Chip>{fechaCorta(t.fecha_hecho)}</Chip>}
-        {t.estado === "abierto" && t.turno_de && <Chip fuerte>le toca a {quien(t.turno_de)} · {hace(t.turno_desde)}</Chip>}
-        {t.estado === "hecho" && CON_TURNO.includes(t.tipo) && <Chip>{t.tipo === "obstaculo" ? "resuelto" : "hecho"}</Chip>}
-        {t.estado === "descartado" && <Chip>descartado</Chip>}
-        {CON_ACUERDO.includes(t.tipo) && (
-          <Chip>{ids.map((id) => `${t.acuerdos[id] ? "✓" : "○"} ${quien(Number(id)) === "ti" ? "tú" : quien(Number(id))}`).join("  ")}</Chip>
+        <span className="mt-1 flex flex-wrap gap-1">
+          {t.estado === "abierto" && t.turno_de && <Chip fuerte>le toca a {quien(t.turno_de)} · {hace(t.turno_desde)}</Chip>}
+          {CON_ACUERDO.includes(t.tipo) && (
+            <Chip>{ids.map((id) => `${t.acuerdos[id] ? "✓" : "○"} ${quien(Number(id)) === "ti" ? "tú" : quien(Number(id))}`).join(" ")}</Chip>
+          )}
+          {t.adjuntos.length > 1 && <Chip>📎 {t.adjuntos.length}</Chip>}
+          {t.fuente && t.fuente.canal === "whatsapp" && <Chip>💬</Chip>}
+          {t.enlaces.length > 0 && <Chip>↔ {t.enlaces.length}</Chip>}
+        </span>
+      </button>
+      <div className="flex border-t border-border text-[11px] font-bold">
+        <button type="button" onClick={onBrotar} className="flex-1 px-1 py-0.5 text-ink hover:bg-surface-hover" title="Brotar una rama de aquí">＋ rama</button>
+        {hijos > 0 && (
+          <button type="button" onClick={onPlegar} className="border-l border-border px-2 py-0.5 text-ink hover:bg-surface-hover"
+                  title={plegado ? "Desplegar sus ramas" : "Plegar sus ramas"}>
+            {plegado ? `▸ ${hijos}` : "◂"}
+          </button>
         )}
-        {resueltaPor.length > 0 && <Chip>lo resuelve: {resueltaPor.map((o) => o.titulo || "…").join(", ").slice(0, 60)}</Chip>}
-        {t.enlaces.length > 0 && <Chip>↔ {t.enlaces.length}</Chip>}
-        {t.adjuntos.length > 0 && <Chip>📎 {t.adjuntos.length}</Chip>}
-        {t.fuente && <Chip>💬 {t.fuente.autor.split(" ")[0]}</Chip>}
-      </span>
-    </button>
+      </div>
+    </div>
   );
 }
 
@@ -237,6 +266,17 @@ function HojaTarjeta({ did, inicial, id, todas, part, yoId, subir, onCerrar, onC
 
   const ids = Object.keys(part);
   const otras = todas.filter((x) => x.id !== id);
+  // No puede salir de sí misma ni de una de sus ramas (el servidor también lo impide).
+  const posiblesPadres = useMemo(() => {
+    if (id == null) return todas;
+    const fuera = new Set<number>([id]);
+    let creció = true;
+    while (creció) {
+      creció = false;
+      for (const x of todas) if (x.padre_id != null && fuera.has(x.padre_id) && !fuera.has(x.id)) { fuera.add(x.id); creció = true; }
+    }
+    return todas.filter((x) => !fuera.has(x.id));
+  }, [todas, id]);
   const enlaces = b.enlaces ?? [];
   const nom = (uid: string) => (Number(uid) === yoId ? "Tú" : part[uid]?.split(" ")[0] || uid);
 
@@ -292,6 +332,16 @@ function HojaTarjeta({ did, inicial, id, todas, part, yoId, subir, onCerrar, onC
           )}
         </div>
 
+        {/* De qué tarjeta sale: su lugar en el cladograma */}
+        <label className="block text-xs text-muted">
+          Sale de
+          <select value={b.padre_id ?? ""} onChange={(e) => set("padre_id", e.target.value ? Number(e.target.value) : null)}
+                  className={`${MINI} mt-0.5 w-full`}>
+            <option value="">la raíz (el proyecto)</option>
+            {posiblesPadres.map((o) => <option key={o.id} value={o.id}>{NOMBRE_TIPO[o.tipo]}: {(o.titulo || o.texto).slice(0, 60)}</option>)}
+          </select>
+        </label>
+
         {/* Capturas y archivos */}
         <div>
           <div className="flex items-center justify-between">
@@ -324,7 +374,7 @@ function HojaTarjeta({ did, inicial, id, todas, part, yoId, subir, onCerrar, onC
 
         {/* Enlaces con otras tarjetas */}
         <div>
-          <p className="px-t text-xs font-bold uppercase text-muted">Se conecta con</p>
+          <p className="px-t text-xs font-bold uppercase text-muted">También se conecta con</p>
           {enlaces.map((e) => {
             const o = todas.find((x) => x.id === e.a);
             return (
@@ -537,10 +587,28 @@ function HojaChat({ did, part, yoId, onCrear, onCerrar, onRitmo }: {
   );
 }
 
-// ─── El tablero ──────────────────────────────────────────────────────────────
+// ─── El mapa ─────────────────────────────────────────────────────────────────
 
-export default function TableroProyecto({ did, yoId, subir }: {
-  did: number; yoId: number; subir: (f: File) => Promise<Adjunto | null>;
+type Filtro = "todo" | "mio" | "abiertos";
+
+/** Un tramo del tronco: la línea vertical que une a los hermanos y el brazo hacia cada uno. */
+function Tronco({ primero, ultimo }: { primero: boolean; ultimo: boolean }) {
+  return (
+    <div className="relative w-6 shrink-0 self-stretch" aria-hidden="true">
+      {!(primero && ultimo) && (
+        <div className="absolute left-0 w-[3px] bg-ink" style={{ top: primero ? "50%" : 0, bottom: ultimo ? "50%" : 0 }} />
+      )}
+      <div className="absolute left-0 right-0 top-1/2 h-[3px] -translate-y-1/2 bg-ink" />
+    </div>
+  );
+}
+
+function guardado<T>(clave: string, defecto: T): T {
+  try { const v = localStorage.getItem(clave); return v ? (JSON.parse(v) as T) : defecto; } catch { return defecto; }
+}
+
+export default function MapaProyecto({ did, yoId, titulo, subir }: {
+  did: number; yoId: number; titulo: string; subir: (f: File) => Promise<Adjunto | null>;
 }) {
   const qc = useQueryClient();
   const clave = ["colab-tablero", did];
@@ -551,8 +619,15 @@ export default function TableroProyecto({ did, yoId, subir }: {
   });
   const [hoja, setHoja] = useState<{ id: number | null; b: Borrador } | null>(null);
   const [chat, setChat] = useState(false);
-  const [verCerradas, setVerCerradas] = useState(false);
+  const [verRitmo, setVerRitmo] = useState(false);
+  const [filtro, setFiltro] = useState<Filtro>("todo");
+  const [zoom, setZoomState] = useState<number>(() => guardado(`colab-mapa-zoom-${did}`, typeof window !== "undefined" && window.innerWidth < 768 ? 0.65 : 1));
+  const [plegados, setPlegadosState] = useState<number[] | null>(() => guardado<number[] | null>(`colab-mapa-plegados-${did}`, null));
+  const lienzo = useRef<HTMLDivElement>(null);
+  const arrastre = useRef<{ x: number; y: number; l: number; t: number } | null>(null);
   const refrescar = () => void qc.invalidateQueries({ queryKey: clave });
+  const setZoom = (z: number) => { const v = Math.min(1.6, Math.max(0.4, Math.round(z * 10) / 10)); setZoomState(v); try { localStorage.setItem(`colab-mapa-zoom-${did}`, JSON.stringify(v)); } catch { /* */ } };
+  const setPlegados = (xs: number[]) => { setPlegadosState(xs); try { localStorage.setItem(`colab-mapa-plegados-${did}`, JSON.stringify(xs)); } catch { /* */ } };
 
   // «Lo vi»: el servidor solo lo anota si hay algo nuevo del otro que no habías visto.
   const ultimo = q.data?.tarjetas.reduce((m, t) => (t.actualizado_en > m ? t.actualizado_en : m), "") ?? "";
@@ -561,56 +636,138 @@ export default function TableroProyecto({ did, yoId, subir }: {
     void api.post(`/api/colaboradores/diagramas/${did}/tablero/visto`, {}).catch(() => {});
   }, [did, ultimo, q.data]);
 
-  if (q.isLoading) return <p className="text-sm text-muted">Cargando el tablero…</p>;
+  // Al abrir, la raíz a la vista (en un árbol alto queda centrada muy abajo).
+  const centrado = useRef(false);
+  useEffect(() => {
+    if (centrado.current || !q.data || !lienzo.current) return;
+    centrado.current = true;
+    const raiz = lienzo.current.querySelector<HTMLElement>("[data-raiz]");
+    if (raiz) lienzo.current.scrollTop = Math.max(0, raiz.offsetTop * zoom - lienzo.current.clientHeight / 2 + 60);
+  }, [q.data, zoom]);
+
+  const tarjetas = q.data?.tarjetas;
+  const arbol = useMemo(() => {
+    const xs = tarjetas ?? [];
+    const ids = new Set(xs.map((x) => x.id));
+    const hijos = new Map<number | null, Tarjeta[]>();
+    for (const x of xs) {
+      const p = x.padre_id != null && ids.has(x.padre_id) ? x.padre_id : null;
+      hijos.set(p, [...(hijos.get(p) ?? []), x]);
+    }
+    const cuando = (x: Tarjeta) => x.fecha_hecho || x.creado_en.slice(0, 10);
+    for (const [k, v] of hijos) {
+      // Primero lo que da contexto (partida, meta, roles), luego por fecha; el proceso al final.
+      const peso: Partial<Record<TipoT, number>> = { origen: 0, meta: 1, rol: 2, paso: 9 };
+      hijos.set(k, [...v].sort((a, b) => (peso[a.tipo] ?? 5) - (peso[b.tipo] ?? 5) || cuando(a).localeCompare(cuando(b)) || a.id - b.id));
+    }
+    return hijos;
+  }, [tarjetas]);
+
+  if (q.isLoading) return <p className="text-sm text-muted">Cargando el mapa…</p>;
   if (q.error || !q.data) return <p className="text-sm text-red-500">{(q.error as Error)?.message || "No se pudo cargar"}</p>;
   const t = q.data;
-  const abrir = (x: Tarjeta) => setHoja({ id: x.id, b: { ...x } });
-  const nueva = (tipo: TipoT) => setHoja({ id: null, b: { tipo } });
-  const ordenar = (xs: Tarjeta[], tipo: TipoT) => tipo === "resultado"
-    ? [...xs].sort((a, b) => (a.fecha_hecho || a.creado_en).localeCompare(b.fecha_hecho || b.creado_en))
-    : [...xs].sort((a, b) => Number(a.estado !== "abierto") - Number(b.estado !== "abierto"));
-  const vacio = t.tarjetas.length === 0;
+
+  // Plegados por defecto: las ramas de «Proceso» (vienen del edificio y son muchas).
+  const plegadosEf = new Set(plegados ?? t.tarjetas.filter((x) => x.tipo === "paso" && (arbol.get(x.id)?.length ?? 0) > 0).map((x) => x.id));
+  const marcada = (x: Tarjeta) => filtro === "todo" || (x.estado === "abierto" && (filtro === "abiertos"
+    ? CON_TURNO.includes(x.tipo) : x.turno_de === yoId));
+  // Con un filtro, una rama plegada que esconde algo marcado se abre sola.
+  const conMarcadas = new Set<number>();
+  if (filtro !== "todo") {
+    const subir_ = (x: Tarjeta) => { let p = x.padre_id; while (p != null && !conMarcadas.has(p)) { conMarcadas.add(p); p = t.tarjetas.find((y) => y.id === p)?.padre_id ?? null; } };
+    t.tarjetas.filter(marcada).forEach(subir_);
+  }
+  const plegar = (id: number) => {
+    const s = new Set(plegadosEf);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    setPlegados([...s]);
+  };
+  const brotar = (padre: Tarjeta | null) => setHoja({ id: null, b: { tipo: HIJO_DE[padre?.tipo ?? "raiz"], padre_id: padre?.id ?? null } });
+  const n = t.tarjetas.length;
+  const miasAbiertas = t.tarjetas.filter((x) => x.estado === "abierto" && x.turno_de === yoId).length;
+  const meta = t.tarjetas.find((x) => x.tipo === "meta" && x.estado !== "descartado");
+
+  const rama = (x: Tarjeta): React.ReactNode => {
+    const hs = arbol.get(x.id) ?? [];
+    const plegado = plegadosEf.has(x.id) && !conMarcadas.has(x.id);
+    return (
+      <div className="flex items-center">
+        <Nodo t={x} did={did} part={t.participantes} yoId={yoId} hijos={hs.length} plegado={plegado} apagado={!marcada(x)}
+              onAbrir={() => setHoja({ id: x.id, b: { ...x } })} onBrotar={() => brotar(x)} onPlegar={() => plegar(x.id)} />
+        {hs.length > 0 && !plegado && ramas(hs)}
+      </div>
+    );
+  };
+  const ramas = (hs: Tarjeta[]) => (
+    <>
+      <div className="h-[3px] w-5 shrink-0 bg-ink" aria-hidden="true" />
+      <div className="flex flex-col">
+        {hs.map((h, i) => (
+          <div key={h.id} className="flex items-stretch">
+            <Tronco primero={i === 0} ultimo={i === hs.length - 1} />
+            <div className="py-1.5">{rama(h)}</div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+  const raices = arbol.get(null) ?? [];
 
   return (
-    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pb-6" data-testid="tablero">
-      <RitmoBar t={t} yoId={yoId} />
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" data-chat onClick={() => setChat(true)} className="px-btn flex items-center gap-1 rounded-lg border border-border px-3 py-1 text-sm font-bold text-ink">
+    <div className="flex min-h-0 flex-1 flex-col gap-2" data-testid="mapa">
+      {/* Barra del mapa */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button type="button" onClick={() => setVerRitmo((v) => !v)} aria-expanded={verRitmo}
+                className={`px-btn rounded-lg border border-border px-2.5 py-1 text-sm font-bold ${verRitmo ? "bg-accent text-white" : "text-ink"}`}>
+          Ritmo {miasAbiertas > 0 && <span className="ml-1 rounded bg-[#FF004D] px-1 text-[11px] text-white">te tocan {miasAbiertas}</span>}
+        </button>
+        <button type="button" data-chat onClick={() => setChat(true)} className="px-btn flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-sm font-bold text-ink">
           <Sprite s="doc" px={1} /> Traer del chat
         </button>
-        <label className="ml-auto flex items-center gap-1 text-xs text-muted">
-          <input type="checkbox" checked={verCerradas} onChange={(e) => setVerCerradas(e.target.checked)} /> ver resueltas y descartadas
-        </label>
+        <div className="flex overflow-hidden rounded-lg border border-border text-sm font-bold" role="radiogroup" aria-label="Resaltar">
+          {([["todo", "Todo"], ["mio", "Me toca"], ["abiertos", "Abiertos"]] as [Filtro, string][]).map(([k, txt]) => (
+            <button key={k} type="button" role="radio" aria-checked={filtro === k} onClick={() => setFiltro(k)}
+                    className={`px-2 py-1 ${filtro === k ? "bg-accent text-white" : "text-ink"}`}>{txt}</button>
+          ))}
+        </div>
+        <div className="ml-auto flex items-center overflow-hidden rounded-lg border border-border text-sm font-bold">
+          <button type="button" onClick={() => setZoom(zoom - 0.1)} className="px-2 py-1 text-ink" aria-label="Alejar">−</button>
+          <button type="button" onClick={() => setZoom(1)} className="px-1 py-1 text-xs text-muted" title="Tamaño normal">{Math.round(zoom * 100)} %</button>
+          <button type="button" onClick={() => setZoom(zoom + 0.1)} className="px-2 py-1 text-ink" aria-label="Acercar">＋</button>
+        </div>
       </div>
-      {vacio && (
-        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
-          Empiecen por arriba: de dónde parten y cuál es la meta. Lo demás sale de la conversación — «Traer del chat».
-        </p>
-      )}
-      <div className="grid gap-3 lg:grid-cols-2">
-        {SECCIONES.map((s) => {
-          const todas = t.tarjetas.filter((x) => x.tipo === s.tipo);
-          const xs = ordenar(verCerradas || !CON_TURNO.includes(s.tipo) ? todas : todas.filter((x) => x.estado === "abierto"), s.tipo);
-          const ocultas = todas.length - xs.length;
-          return (
-            <section key={s.tipo} className="rounded-xl border border-border bg-surface p-2.5" data-seccion={s.tipo}>
-              <header className="mb-1.5 flex items-start gap-2">
-                <Sprite s={s.sprite} px={2} />
-                <div className="min-w-0 flex-1">
-                  <h3 className="px-t text-sm font-bold uppercase text-ink">{s.titulo} <span className="text-muted">{todas.length || ""}</span></h3>
-                  <p className="text-[11px] text-muted">{s.pregunta}</p>
-                </div>
-                <button type="button" onClick={() => nueva(s.tipo)} aria-label={`Agregar: ${s.titulo}`}
-                        className="rounded border border-border px-2 text-sm font-bold text-ink">＋</button>
-              </header>
-              <div className="space-y-1.5">
-                {xs.map((x) => <CartaT key={x.id} t={x} did={did} part={t.participantes} yoId={yoId} todas={t.tarjetas} onAbrir={() => abrir(x)} />)}
-                {!xs.length && <p className="text-xs text-muted">{ocultas ? `${ocultas} resuelta${ocultas > 1 ? "s" : ""} (marca «ver resueltas»)` : "Nada todavía."}</p>}
-                {xs.length > 0 && ocultas > 0 && <p className="text-[11px] text-muted">+{ocultas} resuelta{ocultas > 1 ? "s" : ""}</p>}
-              </div>
-            </section>
-          );
-        })}
+      {verRitmo && <RitmoBar t={t} yoId={yoId} />}
+
+      {/* El lienzo: se arrastra con el mouse para moverse; en el celular, con el dedo. */}
+      <div ref={lienzo} className="mp-lienzo relative min-h-0 flex-1 cursor-grab overflow-auto border-2 border-ink active:cursor-grabbing"
+           style={{ backgroundColor: "rgb(var(--mck-surface))", backgroundImage: "radial-gradient(rgb(var(--mck-ink) / 0.18) 1px, transparent 1px)", backgroundSize: "16px 16px" }}
+           onPointerDown={(e) => {
+             if ((e.target as HTMLElement).closest("button, a, input, select, textarea") || e.pointerType !== "mouse") return;
+             const el = lienzo.current!;
+             arrastre.current = { x: e.clientX, y: e.clientY, l: el.scrollLeft, t: el.scrollTop };
+           }}
+           onPointerMove={(e) => {
+             const a = arrastre.current;
+             if (!a) return;
+             lienzo.current!.scrollLeft = a.l - (e.clientX - a.x);
+             lienzo.current!.scrollTop = a.t - (e.clientY - a.y);
+           }}
+           onPointerUp={() => { arrastre.current = null; }} onPointerLeave={() => { arrastre.current = null; }}>
+        <div className="inline-flex min-w-full items-center p-6" style={{ zoom }}>
+          {/* La raíz: el proyecto */}
+          <div className="w-56 shrink-0 border-2 border-ink bg-accent text-white shadow-[4px_4px_0_rgb(var(--mck-ink))]" data-raiz>
+            <div className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-extrabold uppercase"><Sprite s="bandera" px={1} /> Proyecto</div>
+            <div className="px-2 pb-2">
+              <b className="block text-[15px] leading-tight">{titulo}</b>
+              {meta && <span className="mt-1 block text-[11px] opacity-90">Meta: {meta.titulo}</span>}
+              <span className="mt-1 block text-[11px] opacity-80">{n} tarjeta{n === 1 ? "" : "s"}</span>
+            </div>
+            <button type="button" onClick={() => brotar(null)} className="block w-full border-t border-white/40 px-2 py-0.5 text-left text-[11px] font-bold hover:bg-white/10">＋ rama</button>
+          </div>
+          {raices.length > 0 ? ramas(raices) : (
+            <p className="ml-6 max-w-xs text-sm text-muted">Empiecen por la primera rama: de dónde parten. Lo demás brota de ahí — o tráiganlo del chat.</p>
+          )}
+        </div>
       </div>
 
       {chat && (
@@ -618,7 +775,7 @@ export default function TableroProyecto({ did, yoId, subir }: {
                   onCrear={(b) => setHoja({ id: null, b })} />
       )}
       {hoja && (
-        <HojaTarjeta key={hoja.id ?? `n-${hoja.b.tipo}-${hoja.b.fuente?.fecha ?? ""}`} did={did} id={hoja.id} inicial={hoja.b}
+        <HojaTarjeta key={hoja.id ?? `n-${hoja.b.tipo}-${hoja.b.padre_id ?? "r"}-${hoja.b.fuente?.fecha ?? ""}`} did={did} id={hoja.id} inicial={hoja.b}
                      todas={t.tarjetas} part={t.participantes} yoId={yoId} subir={subir}
                      onCerrar={() => setHoja(null)} onCambio={refrescar} />
       )}

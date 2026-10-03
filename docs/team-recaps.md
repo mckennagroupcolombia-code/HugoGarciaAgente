@@ -1,3 +1,14 @@
+### 2026-10-03 - Colaboradores: todo el proyecto en un solo mapa-cladograma
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Colaboradores, panel y app de colaborador). Sin LLM.
+- **Qué se implementó:**
+  - El tablero por secciones se reemplazó por **un gran mapa**: la raíz es el proyecto y cada tarjeta cuelga de la que la originó (partida → primeros tejidos → persa aprobado → versión 10/10 → broche débil → vender decorativo…). Se lee de izquierda a derecha cómo evolucionó.
+  - «＋ rama» en cada nodo, plegar/desplegar, «Sale de» para mover una rama (el servidor impide ciclos), resaltar Todo / Me toca / Abiertos, zoom, arrastrar el lienzo; ritmo y «Traer del chat» en la barra.
+  - **El edificio desapareció como vista**: sus cajas pasaron al mapa como la rama «Proceso» (26 pasos con su cómo/dónde/cuándo/por qué). El documento viejo se conserva en el servidor.
+  - Proyecto 1 reorganizado por linaje: 64 nodos en 3 raíces.
+  - **Verificado:** `pytest tests/test_colab_tablero.py tests/test_colaboradores.py tests/test_acceso_panel.py tests/test_smoke.py` (136 passed); `tsc`; `npm run build` con verificador de colaboradores; capturas en Chrome headless 1400 px y 390 px (mapa y hoja); ruta real con la sesión de Armando tras reiniciar `agente-pro`.
+- **Archivos Modificados:** `app/services/colab_tablero.py`, `app/routes_colaboradores.py`, `desktop/src/components/colaboradores/MapaProyecto.tsx` (antes `TableroProyecto.tsx`), `desktop/src/components/ColaboradoresPanel.tsx`, `desktop/dev/colaboradores.tsx`, borrados `EdificioColab.tsx`, `edificio-colab.css`, `obra.css`; `tests/test_colab_tablero.py`, `docs/agentic/modules/colaboradores.md`, `CLAUDE.md`, `docs/team-recaps.md`
+
 ### 2026-10-03 - Colaboradores: el proyecto abre en un tablero (meta, obstáculos, turno y ritmo)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Colaboradores, panel y app de colaborador). Sin LLM.

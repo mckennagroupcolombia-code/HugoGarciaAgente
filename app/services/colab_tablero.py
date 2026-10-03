@@ -47,6 +47,7 @@ TIPOS = {
     "tarea": "Próxima jugada",
     "idea": "Idea",
     "acuerdo": "Acuerdo",
+    "paso": "Paso del proceso",
 }
 ESTADOS = ("abierto", "hecho", "descartado")
 RELACIONES = ("viene_de", "resuelve", "bloquea")
@@ -100,6 +101,10 @@ def _ensure() -> None:
                 actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
             );
         """)
+        # El mapa es un cladograma: cada tarjeta cuelga de la que la originó (NULL = de la raíz).
+        cols = {r["name"] for r in con.execute("PRAGMA table_info(colab_tarjetas)")}
+        if "padre_id" not in cols:
+            con.execute("ALTER TABLE colab_tarjetas ADD COLUMN padre_id INTEGER")
 
 
 # ─── Saneo ───────────────────────────────────────────────────────────────────
@@ -214,6 +219,29 @@ def _registrar(con, did: int, uid: int, tipo: str, tarjeta_id: int | None = None
                 (int(uid), int(did)))
 
 
+def _padre_valido(con, did: int, padre, propio: int | None) -> int | None:
+    """El padre tiene que ser una tarjeta viva del mismo proyecto y no puede salir de su propia rama."""
+    if padre in (None, "", 0, "0"):
+        return None
+    try:
+        pid = int(padre)
+    except (TypeError, ValueError):
+        raise ValueError("Padre no válido") from None
+    padres = {int(r["id"]): r["padre_id"] for r in con.execute(
+        "SELECT id, padre_id FROM colab_tarjetas WHERE diagrama_id=? AND borrado=0", (int(did),))}
+    if pid not in padres:
+        raise ValueError("La tarjeta de la que sale no existe en este proyecto")
+    if propio is not None:
+        # Subir por los ancestros del nuevo padre: si aparece la propia tarjeta, sería un ciclo.
+        cur, vistos = pid, set()
+        while cur is not None and cur not in vistos:
+            if cur == int(propio):
+                raise ValueError("Una tarjeta no puede salir de su propia rama")
+            vistos.add(cur)
+            cur = padres.get(cur)
+    return pid
+
+
 def _otro(did: int, uid: int) -> int | None:
     resto = [p for p in _pareja(did) if p != int(uid)]
     return resto[0] if resto else None
@@ -235,18 +263,19 @@ def crear(did: int, uid: int, datos: dict, *, registrar: bool = True) -> dict:
         turno = _participante(did, datos["turno_de"]) if "turno_de" in datos else (
             _otro(did, uid) if tipo in ("obstaculo", "decision", "tarea") else None)
         estado = datos.get("estado") if datos.get("estado") in ESTADOS else "abierto"
+        padre = _padre_valido(con, did, datos.get("padre_id"), None)
         orden = con.execute("SELECT COALESCE(MAX(orden),0)+1 o FROM colab_tarjetas WHERE diagrama_id=?",
                             (int(did),)).fetchone()["o"]
         cur = con.execute(
             "INSERT INTO colab_tarjetas (diagrama_id, tipo, titulo, texto, porque, estado, turno_de, turno_desde,"
-            " fecha_hecho, fuente_json, adjuntos_json, enlaces_json, orden, creado_por, actualizado_por)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " fecha_hecho, fuente_json, adjuntos_json, enlaces_json, orden, creado_por, actualizado_por, padre_id)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (int(did), tipo, titulo, texto, col._texto(datos.get("porque"), 2000), estado, turno,
              _ahora() if turno else None,
              _fecha(datos.get("fecha_hecho")), _fuente(datos.get("fuente")),
              json.dumps(_adjuntos(did, datos.get("adjuntos")), ensure_ascii=False),
              json.dumps(_enlaces(datos.get("enlaces"), _ids(con, did), None), ensure_ascii=False),
-             orden, int(uid), int(uid)))
+             orden, int(uid), int(uid), padre))
         tid = cur.lastrowid
         if registrar:
             _registrar(con, did, uid, "escribio", tid)
@@ -286,6 +315,8 @@ def editar(did: int, tid: int, uid: int, cambios: dict) -> dict:
         if "enlaces" in cambios:
             sets["enlaces_json"] = json.dumps(_enlaces(cambios["enlaces"], _ids(con, did), int(tid)),
                                               ensure_ascii=False)
+        if "padre_id" in cambios:
+            sets["padre_id"] = _padre_valido(con, did, cambios["padre_id"], int(tid))
         if "orden" in cambios:
             o = col._num(cambios["orden"])
             if o is not None:
@@ -311,12 +342,88 @@ def borrar(did: int, tid: int, uid: int) -> None:
                           " WHERE id=? AND diagrama_id=? AND borrado=0", (int(uid), int(tid), int(did)))
         if not cur.rowcount:
             raise ValueError("Tarjeta no encontrada")
+        # Sus ramas no se caen con ella: suben a colgar de su padre.
+        padre = con.execute("SELECT padre_id FROM colab_tarjetas WHERE id=?", (int(tid),)).fetchone()["padre_id"]
+        con.execute("UPDATE colab_tarjetas SET padre_id=? WHERE padre_id=? AND diagrama_id=?", (padre, int(tid), int(did)))
         # Los enlaces que apuntaban a ella se caen solos al leer (no son ids válidos).
         for f in con.execute("SELECT id, enlaces_json FROM colab_tarjetas WHERE diagrama_id=? AND borrado=0",
                              (int(did),)).fetchall():
             en = [e for e in json.loads(f["enlaces_json"] or "[]") if int(e.get("a") or 0) != int(tid)]
             con.execute("UPDATE colab_tarjetas SET enlaces_json=? WHERE id=?", (json.dumps(en), f["id"]))
         _registrar(con, did, uid, "escribio", int(tid))
+
+
+def _texto_caja(n: dict) -> str:
+    """Lo que tenía una caja del edificio, en prosa: detalle, cómo/dónde/cuándo/por qué y sus datos."""
+    partes = [str(n.get("sublabel") or "").strip()]
+    nombres = {"como": "Cómo", "donde": "Dónde", "cuando": "Cuándo", "porque": "Por qué"}
+    for k, etq in nombres.items():
+        v = str((n.get("variables") or {}).get(k) or "").strip()
+        if v:
+            partes.append(f"{etq}: {v}")
+    if n.get("tiempo_min"):
+        partes.append(f"Tiempo: {n['tiempo_min']:g} min")
+    for k, etq in (("costo", "Costo"), ("precio", "Precio")):
+        d = n.get(k)
+        if isinstance(d, dict) and d.get("monto") is not None:
+            partes.append(f"{etq}: {d['monto']:,.0f} {d.get('moneda') or 'COP'}".replace(",", "."))
+    for k, etq in (("sku", "SKU"), ("plataforma", "Dónde se vende"), ("url", "Enlace")):
+        if n.get(k):
+            partes.append(f"{etq}: {n[k]}")
+    if isinstance(n.get("empaque"), dict) and n["empaque"].get("nombre"):
+        partes.append(f"Empaque: {n['empaque']['nombre']}")
+    for dto in n.get("datos") or []:
+        if isinstance(dto, dict) and dto.get("campo"):
+            partes.append(f"{dto['campo']}: {dto.get('valor') or ''}")
+    return "\n".join(p for p in partes if p)
+
+
+def absorber_edificio(did: int, uid: int) -> dict:
+    """Pasa las cajas del edificio al mapa como una rama «Proceso» (3-oct-2026: una sola vista).
+
+    Idempotente: cada caja guarda en `fuente` de qué caja vino y no se vuelve a traer. El documento
+    del edificio no se toca (sigue en colab_diagramas y su historial). Se saltan las cajas vacías
+    («Nuevo paso», un consenso sin asunto ni propuestas).
+    """
+    _ensure()
+    with col._conn() as con:
+        r = con.execute("SELECT doc_json FROM colab_diagramas WHERE id=?", (int(did),)).fetchone()
+        ya = {json.loads(f["fuente_json"]).get("texto") for f in con.execute(
+            "SELECT fuente_json FROM colab_tarjetas WHERE diagrama_id=? AND fuente_json LIKE '%\"canal\": \"edificio\"%'",
+            (int(did),))}
+        grupo = con.execute("SELECT id FROM colab_tarjetas WHERE diagrama_id=? AND borrado=0 AND tipo='paso'"
+                            " AND padre_id IS NULL AND titulo LIKE 'Proceso%' ORDER BY id LIMIT 1", (int(did),)).fetchone()
+    nodos = (json.loads(r["doc_json"] or "{}").get("nodes") if r else None) or []
+    traidas, saltadas = 0, 0
+    pendientes = []
+    for n in nodos:
+        marca = f"caja {n.get('id')}"
+        if marca in ya:
+            continue
+        texto = _texto_caja(n)
+        vacia = (not texto and str(n.get("label") or "").strip() in ("", "Nuevo paso", "Caja nueva")) or (
+            n.get("tipo") == "consenso" and not n.get("asunto") and not n.get("propuestas"))
+        if vacia:
+            saltadas += 1
+            continue
+        pendientes.append((n, marca, texto))
+    if pendientes and not grupo:
+        g = crear(did, uid, {"tipo": "paso", "titulo": "Proceso (lo que estaba en el edificio)",
+                             "texto": "Los pasos que se describieron en la vista de edificio. Cuélguenlos del resultado "
+                                      "o la decisión de donde salieron."}, registrar=False)
+        grupo_id = g["id"]
+    else:
+        grupo_id = grupo["id"] if grupo else None
+    for n, marca, texto in pendientes:
+        adj = list(n.get("adjuntos") or [])
+        if n.get("imagen"):
+            adj.insert(0, {"id": n["imagen"], "tipo": "imagen", "nombre": "foto"})
+        crear(did, uid, {"tipo": "paso", "titulo": str(n.get("label") or "")[:200] or "Paso", "texto": texto,
+                         "padre_id": grupo_id, "adjuntos": adj, "turno_de": None,
+                         "fuente": {"canal": "edificio", "autor": col.CARRILES.get(n.get("carril"), ""), "texto": marca}},
+              registrar=False)
+        traidas += 1
+    return {"traidas": traidas, "saltadas": saltadas, "grupo": grupo_id}
 
 
 def acordar(did: int, tid: int, uid: int, de_acuerdo: bool) -> dict:
