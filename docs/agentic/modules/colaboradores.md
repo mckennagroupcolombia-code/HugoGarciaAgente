@@ -223,3 +223,32 @@ versionados, con exportación Archify. Perfil `colaborador_externo` = lista blan
 Agenda con Armando. **Recibe otra aplicación** (`desktop/dist-colab/`, build `vite.colab.config.ts`, compilado por
 `npm run build`) y tiene su propia APK (`android-colab/`); los `.map` del panel no se entregan a nadie. **Un solo estilo: el edificio (26-sep-2026).** Se retiraron el tablero de flechas (React Flow), la vista clásica, «Rectas» y la exportación a Archify. El proyecto ES un edificio pixel (`colaboradores/EdificioColab.tsx`): pisos y habitaciones configurables («🏗 Construir», `operacion.edificio`); cada caja es un bloque libre colocado en una habitación (`habitacion`, `icono`, `avatar` responsable; la plantilla solo precarga campos, «Libre» incluida) que se construye al llenarse (obra: `colaboradores/obra.ts` = `colaboradores.etapa_obra`, hay test); las flechas son **entregas** que se ven como **relevos** (`components/relevos/CapaRelevos.tsx`, compartida con el Mapa): en el mismo piso quien envía la entrega en la mano a quien recibe; a otro piso la mete al ascensor, la cabina viaja con la caja adentro y quien recibe la saca en su piso; uno tras otro, en el orden del proceso; el bucle comprar → craftear → publicar → vender vive en los bloques de producto y el reparto son **partidas con nombre** (`operacion.reparto.reglas`, base costo o venta, % y para quién; el resto a la bóveda, nombrable); el ente tiene **campos libres** (no hay «margen» fijo). Estado de la operación solo por `accion_operacion`; **simulación** (no toca inventario ni contabilidad). La lista de proyectos es una calle de edificios. Detalle: `docs/agentic/modules/colaboradores.md`. Perfil `contador` (William) = consulta del Libro Mayor + comentarios en historial de
 terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**
+
+- **Tablero del proyecto — vista principal (3-oct-2026)**. Diagnóstico con el chat real Armando ↔ Sebastián
+  (1.464 mensajes, 7-ago → 3-oct) y el proyecto 1: 27 cajas, **0 flechas**, consenso vacío, 1.071 versiones de
+  autoguardado, texto de manual («cuándo: cada que hay un pedido») mientras lo que de verdad pasaba —aros
+  equivocados, broche que se abre, medida 48→47 cm, publicación activa, primera venta— vivía en WhatsApp. El
+  edificio sirve para la empresa porque cada piso tiene un módulo real; entre dos personas hay una conversación.
+  · `colaboradores/TableroProyecto.tsx` + `app/services/colab_tablero.py`. Secciones en orden: de dónde partimos
+    (`origen`), meta, quién hace qué (`rol`), lo que nos frena (`obstaculo`), decisiones, próxima jugada (`tarea`),
+    resultados (línea de tiempo por `fecha_hecho`), acuerdos, ideas. El edificio queda en la pestaña «Edificio»
+    (`colab-vista-proyecto` en localStorage); «＋ Caja» e «Historial» solo se ven allí.
+  · **Tarjeta = fila** de `colab_tarjetas` (no un documento): PATCH con solo los campos que cambiaron, así dos
+    personas no se pisan ni hace falta `combinar()`. Campos: título, texto, porqué, estado (abierto/hecho/
+    descartado), `turno_de` + `turno_desde` (a quién le toca y desde cuándo; al crear un obstáculo, decisión o
+    tarea la pelota queda en la cancha del otro; cerrarla la saca), `fecha_hecho`, `fuente` (cita textual del chat),
+    `adjuntos` (solo media de ESE proyecto), `enlaces` (viene_de/resuelve/bloquea; se caen al borrar la otra) y
+    `acuerdos` (cada uno marca el suyo en el servidor; con los dos, una decisión queda «hecho»; editar título o
+    texto los reinicia).
+  · **Ritmo**: `colab_eventos` (escribió / vio). El «vio» se anota solo si hay algo del otro sin ver
+    (`marcar_visto`). `calcular_ritmo` da por persona cuánto tarda en ver lo nuevo y en responder desde que lo vio, y
+    si hay algo esperando. Los tiempos van en UTC (como `datetime('now')`); el panel los convierte.
+  · **Traer del chat**: sube el .zip/.txt exportado o pega un pedazo; `leer_chat` entiende iOS y Android (día o mes
+    primero: decide por el orden de las fechas y, si empata, «AM/PM» = mes primero). **El texto no se guarda**: vuelve
+    al navegador y se marcan mensajes → tarjeta con su cita. `guardar_ritmo` guarda solo los números
+    (`colab_ritmo_chat`). Privacidad: el chat mezcla el proyecto con salud, sueldo y familia — nada de eso va al tablero.
+  · La lista de proyectos muestra la meta y cuántas jugadas le tocan a cada uno (`resumenes()` en `colab_listar`).
+  · Precargado el 3-oct en el proyecto 1 con 37 tarjetas sacadas del chat (solo proyecto) y el ritmo de WhatsApp
+    (Sebastián responde en mediana <1 min, 90 % antes de 37 min; Armando 90 % antes de ~9 h, 17 esperas >12 h).
+  · Banco de pruebas: `dev/colaboradores.html?abrir` (tablero), `&tarjeta=<id>`, `&chat`, `&vista=edificio`.
+    Tests: `tests/test_colab_tablero.py`.

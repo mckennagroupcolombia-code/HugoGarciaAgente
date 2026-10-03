@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from functools import wraps
 
 from flask import g, jsonify, request, send_file
@@ -58,7 +59,13 @@ def register_colaboradores_routes(app):
     @app.route("/app/api/colaboradores/diagramas", methods=["GET"])
     @_miembro
     def colab_listar():
-        return jsonify({"diagramas": col.listar(g.colab_usuario, request.args.get("archivados") == "1"),
+        from app.services import colab_tablero as tb
+
+        lista = col.listar(g.colab_usuario, request.args.get("archivados") == "1")
+        res = tb.resumenes([d["id"] for d in lista])
+        for d in lista:
+            d["tablero"] = res.get(int(d["id"]))
+        return jsonify({"diagramas": lista,
                         "yo": {"id": g.colab_usuario.get("id"), "nombre": g.colab_usuario.get("nombre")},
                         "carriles": col.CARRILES, "tipos": {k: v[1] for k, v in col.TIPOS.items()}})
 
@@ -166,6 +173,110 @@ def register_colaboradores_routes(app):
             return jsonify(col.guardar_media(did, datos, f.filename or "")), 201
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
+
+    # ── Tablero del proyecto (app/services/colab_tablero.py) ──────────────────
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/tablero", methods=["GET"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/tablero", methods=["GET"])
+    @_miembro
+    @_suyo
+    def colab_tablero(did: int):
+        from app.services import colab_tablero as tb
+
+        return jsonify({"tarjetas": tb.listar(did), "ritmo": tb.ritmo(did), "tipos": tb.TIPOS,
+                        "participantes": {str(u): col._nombre(u) for u in tb._pareja(did)}})
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/tablero/visto", methods=["POST"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/tablero/visto", methods=["POST"])
+    @_miembro
+    @_suyo
+    def colab_tablero_visto(did: int):
+        from app.services import colab_tablero as tb
+
+        return jsonify({"registrado": tb.marcar_visto(did, int(g.colab_usuario["id"]))})
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/tarjetas", methods=["POST"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/tarjetas", methods=["POST"])
+    @_miembro
+    @_suyo
+    def colab_tarjeta_crear(did: int):
+        from app.services import colab_tablero as tb
+
+        try:
+            return jsonify(tb.crear(did, int(g.colab_usuario["id"]), request.get_json(silent=True) or {})), 201
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/tarjetas/<int:tid>", methods=["PATCH", "DELETE"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/tarjetas/<int:tid>", methods=["PATCH", "DELETE"])
+    @_miembro
+    @_suyo
+    def colab_tarjeta(did: int, tid: int):
+        from app.services import colab_tablero as tb
+
+        try:
+            if request.method == "DELETE":
+                tb.borrar(did, tid, int(g.colab_usuario["id"]))
+                return jsonify({"ok": True})
+            return jsonify(tb.editar(did, tid, int(g.colab_usuario["id"]), request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404 if "no encontrada" in str(e) else 400
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/tarjetas/<int:tid>/acuerdo", methods=["POST"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/tarjetas/<int:tid>/acuerdo", methods=["POST"])
+    @_miembro
+    @_suyo
+    def colab_tarjeta_acuerdo(did: int, tid: int):
+        from app.services import colab_tablero as tb
+
+        d = request.get_json(silent=True) or {}
+        try:
+            return jsonify(tb.acordar(did, tid, int(g.colab_usuario["id"]), bool(d.get("de_acuerdo", True))))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/chat", methods=["POST"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/chat", methods=["POST"])
+    @_miembro
+    @_suyo
+    def colab_chat(did: int):
+        """Lee un chat exportado de WhatsApp para convertir mensajes en tarjetas.
+
+        El texto NO se guarda: vuelve al navegador y allá se elige mensaje por mensaje. Con
+        `guardar_ritmo` se guardan solo los números del ritmo (sin contenido).
+        """
+        from app.services import colab_tablero as tb
+
+        uid = int(g.colab_usuario["id"])
+        f = request.files.get("archivo")
+        try:
+            if f:
+                datos = f.read()
+                if len(datos) > col.MAX_MEDIA_BYTES:
+                    return jsonify({"error": "El archivo supera los 15 MB"}), 400
+                mensajes = tb.leer_chat(datos, f.filename or "")
+                opciones = request.form
+            else:
+                d = request.get_json(silent=True) or {}
+                mensajes = tb.leer_chat(str(d.get("texto") or ""))
+                opciones = d
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        if not mensajes:
+            return jsonify({"error": "No se reconocieron mensajes de WhatsApp en lo que llegó"}), 400
+        try:
+            pedidos = json.loads(opciones.get("autores")) if isinstance(opciones.get("autores"), str) \
+                else (opciones.get("autores") or {})
+        except ValueError:
+            pedidos = {}
+        pareja = tb._pareja(did)
+        autores = {str(k): int(v) for k, v in (pedidos or {}).items() if str(v).isdigit() and int(v) in pareja} \
+            or tb.autores_sugeridos(mensajes, did, uid)
+        ritmo = tb.ritmo_chat(mensajes, autores)
+        if str(opciones.get("guardar_ritmo") or "").lower() in ("1", "true"):
+            tb.guardar_ritmo_chat(did, uid, ritmo)
+        return jsonify({"mensajes": mensajes, "autores": autores, "ritmo": ritmo,
+                        "nombres": sorted({m["autor"] for m in mensajes})})
 
     @app.route("/api/colaboradores/diagramas/<int:did>/media/<mid>", methods=["GET"])
     @app.route("/app/api/colaboradores/diagramas/<int:did>/media/<mid>", methods=["GET"])

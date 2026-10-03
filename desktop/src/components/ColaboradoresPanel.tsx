@@ -1,6 +1,8 @@
 /**
- * Colaboradores: el proyecto que Armando construye con un colaborador externo (primero Sebastián),
- * como un EDIFICIO en pixel art — la única vista desde el 26-sep-2026 (colaboradores/EdificioColab).
+ * Colaboradores: el proyecto que Armando construye con un colaborador externo (primero Sebastián).
+ * Desde el 3-oct-2026 abre en el TABLERO (colaboradores/TableroProyecto: de dónde partimos, meta,
+ * quién hace qué, resultados, obstáculos, decisiones, turno y ritmo); el EDIFICIO en pixel art
+ * (colaboradores/EdificioColab) queda como pestaña secundaria.
  * Pisos y habitaciones configurables, cajas libres colocadas en ellas que se construyen al llenarse,
  * entregas que un avatar lleva de una caja a otra, y el juego de la operación (comprar → craftear →
  * publicar → vender, reparto en monedas, dharma). Se retiraron el tablero de flechas, la vista
@@ -17,6 +19,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { Sprite } from "./colaboradores/pixel";
 import EdificioColab from "./colaboradores/EdificioColab";
+import TableroProyecto from "./colaboradores/TableroProyecto";
 import {
   AuthImg, Colocacion, CompetenciaEditor, ConsensoEditor, ContenidoCaja, Entregas, Historial, INP, MINI,
   ProductoEditor, ProveedorEditor,
@@ -28,6 +31,12 @@ import {
 
 type Estado = { tipo: "ok" | "guardando" | "pendiente" | "aviso" | "error"; texto: string };
 type Sel = { tipo: "caja" | "entrega"; id: string } | null;
+type Vista = "tablero" | "edificio";
+
+function vistaGuardada(): Vista {
+  try { return localStorage.getItem("colab-vista-proyecto") === "edificio" ? "edificio" : "tablero"; }
+  catch { return "tablero"; }
+}
 
 function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: number; nombre: string }; onVolver: () => void }) {
   const qc = useQueryClient();
@@ -52,6 +61,8 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
   const [verHistorial, setVerHistorial] = useState(false);
   const [pleno, setPleno] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [subiendo, setSubiendo] = useState(false);
+  const [vista, setVistaState] = useState<Vista>(vistaGuardada);
+  const setVista = (v: Vista) => { setVistaState(v); try { localStorage.setItem("colab-vista-proyecto", v); } catch { /* sin almacenamiento */ } };
 
   const aplicarRemoto = useCallback((d: Diagrama, aviso?: string) => {
     setNodos(d.doc.nodes);
@@ -208,23 +219,39 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
   return (
     <div className={`colab-pixel ${pleno ? "fixed inset-0 z-40 flex h-[100dvh] flex-col gap-2 bg-surface p-2" : "flex min-h-0 flex-1 flex-col gap-2"}`}
          style={pleno ? { paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" } : undefined}>
-      <div className="px-hud flex min-w-0 items-center gap-2">
+      <div className="px-hud flex min-w-0 flex-wrap items-center gap-2">
         <button type="button" onClick={() => { void guardar(); onVolver(); }} aria-label="Volver a la calle de proyectos"
                 className="shrink-0 rounded-lg border border-border px-2 py-1 text-sm font-bold text-muted">←</button>
         <Sprite s="bloques" px={2} titulo="Proyecto" />
         <input value={titulo} onChange={(e) => { setTitulo(e.target.value); marcarCambio(); }} aria-label="Nombre del proyecto"
                className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-base font-bold text-ink focus:border-border" />
-        <span className="px-t min-w-0 max-w-[30%] shrink-0 truncate" style={{ color: colorEstado, fontSize: 11 }}>{estado.texto}</span>
-        <button type="button" onClick={() => setNuevaEn(pisos[0]?.habitaciones[0]?.id ?? "")}
-                className="px-btn shrink-0 rounded-lg bg-accent px-3 py-1 text-sm font-bold text-white">＋ Caja</button>
-        <button type="button" onClick={() => setVerHistorial(true)} className="px-btn shrink-0 rounded-lg border border-border px-2 py-1 text-sm font-bold text-ink">
-          Historial
-        </button>
+        {vista === "edificio" && (
+          <span className="px-t min-w-0 max-w-[30%] shrink-0 truncate" style={{ color: colorEstado, fontSize: 11 }}>{estado.texto}</span>
+        )}
+        <div className="order-last flex w-full shrink-0 overflow-hidden rounded-lg border border-border sm:order-none sm:w-auto" role="tablist" aria-label="Vista del proyecto">
+          {(["tablero", "edificio"] as Vista[]).map((v) => (
+            <button key={v} type="button" role="tab" aria-selected={vista === v} onClick={() => setVista(v)}
+                    className={`flex-1 px-3 py-1 text-sm font-bold ${vista === v ? "bg-accent text-white" : "text-ink"}`}>
+              {v === "tablero" ? "Tablero" : "Edificio"}
+            </button>
+          ))}
+        </div>
+        {vista === "edificio" && (
+          <>
+            <button type="button" onClick={() => setNuevaEn(pisos[0]?.habitaciones[0]?.id ?? "")}
+                    className="px-btn shrink-0 rounded-lg bg-accent px-3 py-1 text-sm font-bold text-white">＋ Caja</button>
+            <button type="button" onClick={() => setVerHistorial(true)} className="px-btn shrink-0 rounded-lg border border-border px-2 py-1 text-sm font-bold text-ink">
+              Historial
+            </button>
+          </>
+        )}
         <button type="button" onClick={() => setPleno((v) => !v)} aria-label={pleno ? "Salir de pantalla completa" : "Pantalla completa"}
                 className="shrink-0 rounded-lg border border-border px-2 py-1 text-sm font-bold text-muted">{pleno ? "⤡" : "⛶"}</button>
       </div>
 
-      {op ? (
+      {vista === "tablero" ? (
+        <TableroProyecto did={inicial.id} yoId={yo?.id ?? 0} subir={subirMedia} />
+      ) : op ? (
         <EdificioColab
           nodos={nodos} entregas={entregas} op={op} dharma={operacion.dharma} participantes={meta.participantes}
           selId={sel?.tipo === "caja" ? sel.id : null}
@@ -369,7 +396,7 @@ export default function ColaboradoresPanel() {
     catch (e) { setError((e as Error).message); }
   }
   async function crear() {
-    const titulo = window.prompt("Nombre del diagrama (ej. Relación comercial — proyecto X):");
+    const titulo = window.prompt("Nombre del proyecto (ej. Collar persa):");
     if (!titulo?.trim()) return;
     try {
       const d = await api.post<Diagrama>("/api/colaboradores/diagramas", { titulo: titulo.trim() });
@@ -395,8 +422,8 @@ export default function ColaboradoresPanel() {
       <div>
         <h2 className="text-base font-bold text-ink">Colaboradores</h2>
         <p className="text-xs text-muted">
-          Cada proyecto es un edificio que construyen juntos: cada caja es un piso, y se termina a medida que lo llenan
-          (cómo, dónde, por qué, tiempo, dinero, fotos…). Lo que guarda uno lo ve el otro en segundos.
+          Cada proyecto abre en su tablero: de dónde parten, la meta, quién hace qué, resultados, lo que los frena,
+          decisiones y a quién le toca. El edificio sigue en su pestaña. Lo que guarda uno lo ve el otro en segundos.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -410,7 +437,7 @@ export default function ColaboradoresPanel() {
       {q.error && <p className="text-sm text-red-500">{(q.error as Error).message}</p>}
       {!q.isLoading && !lista.length && !q.error && (
         <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
-          Todavía no hay diagramas. Empiecen con «Relación comercial».
+          Todavía no hay proyectos. Creen uno y empiecen por la meta.
         </p>
       )}
       {/* La calle de proyectos: cada proyecto es un edificio en obra (pisos terminados con la luz
@@ -442,7 +469,19 @@ export default function ColaboradoresPanel() {
                 <span className="ob-rotulo">
                   <b>{d.titulo}</b>
                   <span className="ob-mini-barra"><span style={{ width: `${Math.round(obra.avance * 100)}%` }} /></span>
-                  {obra.terminados}/{obra.pisos} pisos · {Math.round(obra.avance * 100)} %
+                  {d.tablero?.tarjetas ? (
+                    <>
+                      {d.tablero.meta ? <span className="block">Meta: {d.tablero.meta}</span> : <span className="block">Sin meta escrita</span>}
+                      {(() => {
+                        const yoId = String(q.data?.yo.id ?? "");
+                        const mio = d.tablero.turno[yoId] ?? 0;
+                        const otro = Object.entries(d.tablero.turno).filter(([k]) => k !== yoId).reduce((s, [, n]) => s + n, 0);
+                        return <span className="block">Te tocan {mio} · al otro {otro}</span>;
+                      })()}
+                    </>
+                  ) : (
+                    <>{obra.terminados}/{obra.pisos} pisos · {Math.round(obra.avance * 100)} %</>
+                  )}
                   <span className="block opacity-80">
                     {d.actualizado_por_nombre ? `${d.actualizado_por_nombre} · ` : ""}{d.actualizado_en}
                   </span>

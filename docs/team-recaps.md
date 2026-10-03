@@ -1,3 +1,15 @@
+### 2026-10-03 - Colaboradores: el proyecto abre en un tablero (meta, obstáculos, turno y ritmo)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Colaboradores, panel y app de colaborador). Sin LLM.
+- **Qué se implementó:**
+  - Diagnóstico con el chat real con Sebastián y el proyecto 1: 27 cajas sin una sola flecha, consenso vacío y texto de manual, mientras lo importante (aros, broche, medida, publicación, primera venta) se quedaba en WhatsApp.
+  - Vista nueva **Tablero** (principal; el edificio queda en la pestaña «Edificio»): de dónde partimos, meta, quién hace qué, lo que nos frena, decisiones, próxima jugada, resultados con fecha y prueba, acuerdos e ideas. Cada tarjeta lleva capturas (Ctrl+V), enlaces (resuelve / bloquea / viene de), la cita del chat de donde salió, a quién le toca y desde cuándo, y el «de acuerdo» de cada uno.
+  - **Ritmo**: cuánto tarda cada uno en ver lo nuevo del otro y en responder desde que lo vio (eventos en `colab_eventos`), más el ritmo del chat de WhatsApp (solo números).
+  - **Traer del chat**: se sube el .zip exportado o se pega texto, se marcan mensajes y se convierten en tarjetas. El chat no se guarda en el servidor.
+  - Precargado el proyecto 1 con 37 tarjetas sacadas del chat (solo lo del proyecto; nada personal) y el ritmo de WhatsApp.
+  - **Verificado:** `pytest tests/test_colab_tablero.py tests/test_colaboradores.py tests/test_acceso_panel.py tests/test_smoke.py` (132 passed); `tsc`; `npm run build` con verificador del build de colaboradores; capturas en Chrome headless 390 px y 1280 px del banco `dev/colaboradores.html` (tablero, hoja, chat, edificio); rutas reales con la sesión de Armando tras reiniciar `agente-pro`.
+- **Archivos Modificados:** `app/services/colab_tablero.py`, `app/routes_colaboradores.py`, `desktop/src/components/colaboradores/TableroProyecto.tsx`, `desktop/src/components/ColaboradoresPanel.tsx`, `desktop/src/components/colaboradores/modelo.ts`, `desktop/dev/colaboradores.tsx`, `tests/test_colab_tablero.py`, `docs/agentic/modules/colaboradores.md`, `docs/agentic/ENDPOINTS.md`, `CLAUDE.md`, `docs/team-recaps.md`
+
 ### 2026-10-03 - App de colaborador: subir imágenes y archivos en la solicitud (TKT-2026-1617)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (app de colaborador `dist-colab`). Sin LLM.

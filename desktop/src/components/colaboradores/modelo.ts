@@ -66,6 +66,8 @@ export type Diagrama = {
   obra?: { pisos: number; terminados: number; avance: number };
   operacion?: Operacion;
   dharma?: Record<string, number>;
+  /** Resumen del tablero para la lista de proyectos (meta vigente y a quién le toca cuánto). */
+  tablero?: { tarjetas: number; meta: string; turno: Record<string, number> };
 };
 export type Lista = { diagramas: Omit<Diagrama, "doc">[]; yo: { id: number; nombre: string } };
 export type Version = { version: number; usuario: string; resumen: string; creado_en: string; nodos: number; flechas: number };

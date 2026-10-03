@@ -103,6 +103,40 @@ function fotoEjemplo(tono: string): string {
     + `<g fill="none" stroke="#52606d" stroke-width="10">${eslabones}</g></svg>`;
 }
 
+// Tablero (colab_tablero.py): unas tarjetas de ejemplo y un ritmo inventado.
+type TarjetaDev = Record<string, unknown> & { id: number };
+const ahoraMenos = (h: number) => new Date(Date.now() - h * 3600e3).toISOString().slice(0, 19).replace("T", " ");
+let tarjetas: TarjetaDev[] = [
+  { tipo: "origen", titulo: "Armando ya había hecho collares de aros para su perro", texto: "Aros de acero comprados por millar; el broche fue el punto débil.", fecha_hecho: "2026-08-15" },
+  { tipo: "meta", titulo: "Validar el collar persa con ventas reales", texto: "Primeras ventas con margen conocido para los dos.", acuerdos: { "8": ahoraMenos(30) } },
+  { tipo: "rol", titulo: "Sebastián fabrica y envía", texto: "Teje, empaca en bolsa y despacha con la guía que le llega." },
+  { tipo: "rol", titulo: "Armando publica y vende", texto: "Fotos, publicación y cobro; cobra comisión por venta." },
+  { tipo: "obstaculo", titulo: "El broche se abre con un tirón fuerte", texto: "Por ahora se vende como decorativo.", turno_de: 20, turno_desde: ahoraMenos(50), adjuntos: [{ id: "1-foto.jpg", tipo: "imagen", nombre: "broche" }] },
+  { tipo: "obstaculo", titulo: "¿Cuánto tarda un collar?", texto: "Falta medirlo con cronómetro.", turno_de: 20, turno_desde: ahoraMenos(6 * 24) },
+  { tipo: "obstaculo", titulo: "Compró los aros grandes en vez de los de 16 mm", estado: "hecho" },
+  { tipo: "decision", titulo: "Talla L a $75.000", turno_de: 8, turno_desde: ahoraMenos(3), acuerdos: { "20": ahoraMenos(2) } },
+  { tipo: "tarea", titulo: "Enviar el collar de la primera venta", turno_de: 20, turno_desde: ahoraMenos(1), fecha_hecho: "2026-10-03" },
+  { tipo: "resultado", titulo: "Persa aprobado: «esa era»", fecha_hecho: "2026-09-14", fuente: { canal: "whatsapp", autor: "Tú", fecha: "2026-09-14 13:27:35", texto: "ahi si ya es otra cosa, esa era" } },
+  { tipo: "resultado", titulo: "Primera venta", fecha_hecho: "2026-10-03", adjuntos: [{ id: "1-foto2.jpg", tipo: "imagen", nombre: "venta" }] },
+  { tipo: "acuerdo", titulo: "Medida: el collar 1 cm menos que el cuello", texto: "Cuello 48 cm → collar 47 cm.", acuerdos: { "8": ahoraMenos(9), "20": ahoraMenos(8) } },
+  { tipo: "idea", titulo: "Chapa de aluminio con el nombre del perro", turno_de: 8, turno_desde: ahoraMenos(20) },
+].map((t, i) => ({ texto: "", porque: "", estado: "abierto", turno_de: null, turno_desde: null, fecha_hecho: null, fuente: null,
+                   adjuntos: [], enlaces: [], acuerdos: {}, creado_por: i % 2 ? 20 : 8, creado_en: ahoraMenos(48 - i),
+                   actualizado_por: 8, actualizado_en: ahoraMenos(48 - i), ...t, id: i + 1 }));
+tarjetas[0].enlaces = [];
+tarjetas[7].enlaces = [{ a: 5, rel: "resuelve" }];
+const ritmoDev = {
+  app: {
+    "8": { nombre: "Armando García", en_ver: { n: 6, mediana_min: 95 }, en_responder: { n: 6, mediana_min: 12 }, total: { n: 6 },
+           esperando_desde: ahoraMenos(3), visto_pendiente: false, espera_min: 180 },
+    "20": { nombre: "Sebastián García", en_ver: { n: 5, mediana_min: 8 }, en_responder: { n: 5, mediana_min: 4 }, total: { n: 5 },
+            esperando_desde: null, visto_pendiente: false, espera_min: null },
+  },
+  chat: { desde: "2026-08-07", hasta: "2026-10-03", mensajes: 1464, personas: {
+    "8": { n: 217, mediana_min: 0.9, p75_min: 53.5, p90_min: 551.5, mas_de_12_h: 17 },
+    "20": { n: 217, mediana_min: 0.7, p75_min: 6, p90_min: 36.6, mas_de_12_h: 3 } } },
+};
+
 const fetchReal = window.fetch.bind(window);
 window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof entrada === "string" ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
@@ -136,6 +170,37 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
       diagrama = { ...diagrama, doc: b.doc, titulo: b.titulo ?? diagrama.titulo, version: diagrama.version + 1 };
     }
     return json({ ...diagrama, operacion, dharma: {} });
+  }
+  if (ruta.endsWith("/tablero")) {
+    return json({ tarjetas, ritmo: ritmoDev, participantes: { "8": "Armando García", "20": "Sebastián García" } });
+  }
+  if (ruta.endsWith("/tablero/visto")) return json({ registrado: false });
+  if (ruta.endsWith("/tarjetas") && metodo === "POST") {
+    const b = JSON.parse(String(init?.body ?? "{}"));
+    const t = { texto: "", porque: "", estado: "abierto", adjuntos: [], enlaces: [], acuerdos: {}, creado_por: 8,
+                creado_en: ahoraMenos(0), actualizado_por: 8, actualizado_en: ahoraMenos(0), ...b, id: tarjetas.length + 100 };
+    tarjetas = [...tarjetas, t];
+    return json(t, 201);
+  }
+  const tj = ruta.match(/\/tarjetas\/(\d+)(\/acuerdo)?$/);
+  if (tj) {
+    const id = Number(tj[1]);
+    if (metodo === "DELETE") { tarjetas = tarjetas.filter((t) => t.id !== id); return json({ ok: true }); }
+    const b = JSON.parse(String(init?.body ?? "{}"));
+    tarjetas = tarjetas.map((t) => t.id !== id ? t : tj[2]
+      ? { ...t, acuerdos: { ...(t.acuerdos as object), "8": b.de_acuerdo ? ahoraMenos(0) : undefined } }
+      : { ...t, ...b, actualizado_en: ahoraMenos(0) });
+    return json(tarjetas.find((t) => t.id === id));
+  }
+  if (ruta.endsWith("/chat")) {
+    const mensajes = [
+      { i: 0, fecha: "2026-09-17 10:59:33", autor: "Tú", texto: "Respecto a lo del producto bajese de la nube, aterrice" },
+      { i: 1, fecha: "2026-09-17 10:59:37", autor: "Tú", texto: "Un producto solo uno" },
+      { i: 2, fecha: "2026-09-17 11:02:25", autor: "Sebastian 🤓", texto: "Pues terminados ya tengo 4" },
+      { i: 3, fecha: "2026-09-17 11:07:06", autor: "Tú", texto: "Solo uno y miramos. Muéstreme el primero ya con el broche solucionado y de una lo publicamos" },
+      { i: 4, fecha: "2026-09-17 11:15:59", autor: "Sebastian 🤓", texto: "<video omitido>" },
+    ];
+    return json({ mensajes, autores: { "Tú": 8, "Sebastian 🤓": 20 }, nombres: ["Sebastian 🤓", "Tú"], ritmo: ritmoDev.chat });
   }
   if (ruta.endsWith("/consenso")) return json(diagrama);                     // sin lógica: solo no romper
   // Operación: imitación mínima de colaboradores.accion_operacion (la lógica real tiene sus pruebas en Python).
@@ -173,12 +238,24 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
 
 // Para capturas sin clics (Chrome headless): ?abrir abre el proyecto y ?sel=<id> toca esa caja.
 const q = new URLSearchParams(location.search);
+// ?vista=edificio abre el proyecto en la pestaña del edificio (por defecto, el tablero).
+try { localStorage.setItem("colab-vista-proyecto", q.get("vista") === "edificio" ? "edificio" : "tablero"); } catch { /* */ }
 if (q.has("abrir")) {
   const tocar = (sel: string, luego?: () => void, intentos = 40) => {
     const el = document.querySelector<HTMLElement>(sel);
     if (el) { el.click(); luego?.(); } else if (intentos > 0) setTimeout(() => tocar(sel, luego, intentos - 1), 100);
   };
   tocar("button.ob-mini", () => {
+    // Tablero: ?tarjeta=<id> abre esa tarjeta y ?chat abre «Traer del chat».
+    const tid = q.get("tarjeta");
+    if (tid) setTimeout(() => tocar(`[data-tarjeta="${tid}"]`), 600);
+    if (q.has("chat")) setTimeout(() => tocar("button[data-chat]", () => setTimeout(() => {
+      const f = document.querySelector<HTMLTextAreaElement>("[aria-label='Traer del chat'] textarea");
+      if (f) { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(f, "x"); f.dispatchEvent(new Event("input", { bubbles: true })); }
+      setTimeout(() => tocar("[aria-label='Traer del chat'] button.bg-accent", () => setTimeout(() => {
+        document.querySelectorAll<HTMLInputElement>("[aria-label='Traer del chat'] input[type=checkbox]")[2]?.click();
+      }, 300)), 200);
+    }, 300)), 600);
     const id = q.get("sel");
     if (id) setTimeout(() => tocar(`[data-caja="${id}"] .eb-cuerpo`, () => {
       // ?medir: el estilo calculado de un campo de la hoja, al título (para --dump-dom).
