@@ -285,3 +285,27 @@ terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**
   movimiento» se ve el estado final quieto. Se abre sola la primera vez (`colab-guia-mapa-vista` en localStorage)
   y con el botón «Guía» de la barra; ← → y Esc. Los tipos (nombre, sprite, color, `HIJO_DE`) viven en
   `mapaTipos.ts`, compartidos por el mapa y la guía. Banco: `dev/colaboradores.html?abrir&guia=<n>`.
+
+- **Varios anfitriones y proyectos personales o compartidos (3-oct-2026)** — reemplaza «Quién entra» y «Un
+  diagrama es de una pareja» de arriba. Pedido: que Cynthia también arme flujos como Armando con Sebastián,
+  invite a más personas o lo use a solas y lo comparta después.
+  · **Membresía** `colab_miembros(diagrama_id, usuario_id, rol dueno|miembro, agregado_por, agregado_en)`. Un
+    usuario ve SOLO los proyectos donde es miembro (`puede_ver`, `listar`); el anfitrión ya no ve todos. Los
+    proyectos viejos se migraron con Armando de dueño y su `colaborador_id` de miembro.
+  · **Anfitrión** (`es_anfitrion`) = Armando (`COLABORADORES_ANFITRION_ID`) o cualquiera de la casa con el permiso
+    `colaboradores` que no sea externo: crea proyectos e invita. `es_miembro` (entrar al espacio) = anfitrión o
+    externo. Cynthia (id 6) recibió el permiso el 3-oct.
+  · **Crear**: el proyecto nace PERSONAL (solo el dueño) salvo que traiga `colaborador_id`; el que crea un externo
+    nace compartido con Armando (como antes).
+  · **Invitar** (`agregar_miembro`, solo el dueño y si es anfitrión): a cualquier persona activa
+    (`GET /api/colaboradores/usuarios`, solo nombre y foto, 403 para externos). Si no tenía el panel, se le
+    prende SOLO `permisos_secciones.colaboradores` (`_dar_acceso_al_panel`): adentro sigue viendo solo sus
+    proyectos. **Sacar/salirse** (`quitar_miembro`): el dueño saca; cada quien se sale; el dueño no (archiva).
+  · El mapa usa los miembros como participantes: turno automático al «otro» solo si son exactamente dos; una
+    decisión queda tomada cuando TODOS marcan de acuerdo; el ritmo sale por persona.
+  · UI: botón de miembros en la cabeza del proyecto («Con Sebastián» / «Personal») → `colaboradores/Miembros.tsx`;
+    la lista dice personal/compartido y quién lo creó.
+  · ⚠️ Pendiente: la **Agenda** de un colaborador externo sigue siendo solo con Armando (`_guard_colaborador_externo`
+    y `routes_tickets` usan `anfitrion_id()`); si Cynthia invita a un externo, comparte el mapa pero no solicitudes.
+  · Tests: `tests/test_colab_tablero.py` (anfitriona, personal, invitar da acceso, externo no invita, salirse,
+    tres miembros, API).

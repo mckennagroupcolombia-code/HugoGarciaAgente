@@ -203,3 +203,75 @@ def test_absorber_el_edificio_una_sola_vez(proyecto):
     assert "Precio: 65.000 COP" in next(t for t in hijos if t["titulo"] == "Collar M")["texto"]
     assert tb.absorber_edificio(proyecto, 8)["traidas"] == 0          # idempotente
     assert len(tb.listar(proyecto)) == 3
+
+
+# ─── Varios anfitriones: proyectos personales y compartidos (3-oct-2026) ────
+
+CYN = {"id": 6, "nombre": "C", "rol": {"nivel": 3}, "permisos_secciones": {"colaboradores": True}}
+ARM = {"id": 8, "nombre": "A", "rol": {"nivel": 3}, "permisos_secciones": {}}
+SEB = {"id": 20, "nombre": "S", "rol": {"nivel": 1}, "permisos_secciones": {"colaborador_externo": True}}
+
+
+@pytest.fixture()
+def espacio(monkeypatch, tmp_path):
+    monkeypatch.setattr(col, "_DB_PATH", str(tmp_path / "c.db"))
+    monkeypatch.setattr(col, "_nombre", lambda uid: f"u{uid}")
+    monkeypatch.setattr(col, "colaboradores_ids", lambda: [20, 21])
+    monkeypatch.setattr(col, "_usuario_de", lambda uid: {"id": uid, "activo": 1} if uid in (6, 7, 8, 20, 21) else None)
+    dados = []
+    monkeypatch.setattr(col, "_dar_acceso_al_panel", lambda uid: dados.append(uid) or uid == 7)
+    return dados
+
+
+def test_cynthia_es_anfitriona_y_su_proyecto_nace_personal(espacio):
+    assert col.es_anfitrion(CYN) and col.es_anfitrion(ARM) and not col.es_anfitrion(SEB)
+    did = col.crear("Etiquetas nuevas", 6)["id"]
+    assert col.miembros_ids(did) == [6]
+    assert col.puede_ver(did, CYN) and not col.puede_ver(did, ARM) and not col.puede_ver(did, SEB)
+    assert [d["id"] for d in col.listar(ARM)] == []
+
+
+def test_invitar_comparte_y_da_acceso_al_panel(espacio):
+    did = col.crear("Etiquetas nuevas", 6)["id"]
+    r = col.agregar_miembro(did, CYN, 7)                    # alguien de la casa sin el panel
+    assert r["acceso_dado"] is True and espacio == [7]
+    col.agregar_miembro(did, CYN, 20)                       # un colaborador externo
+    assert col.miembros_ids(did) == [6, 7, 20] and col.puede_ver(did, SEB)
+    with pytest.raises(PermissionError):
+        col.agregar_miembro(did, SEB, 21)                   # el externo no invita
+    with pytest.raises(PermissionError):
+        col.quitar_miembro(did, SEB, 7)                     # ni saca a otros
+    col.quitar_miembro(did, SEB, 20)                        # pero sí se sale
+    with pytest.raises(ValueError):
+        col.quitar_miembro(did, CYN, 6)                     # la dueña no se sale
+    assert col.miembros_ids(did) == [6, 7]
+
+
+def test_con_tres_el_turno_no_va_solo_y_deciden_todos(espacio):
+    did = col.crear("Trío", 6)["id"]
+    col.agregar_miembro(did, CYN, 7)
+    col.agregar_miembro(did, CYN, 20)
+    d = tb.crear(did, 6, {"tipo": "decision", "titulo": "Precio"})
+    assert d["turno_de"] is None
+    tb.acordar(did, d["id"], 6, True)
+    assert tb.acordar(did, d["id"], 7, True)["estado"] == "abierto"
+    assert tb.acordar(did, d["id"], 20, True)["estado"] == "hecho"
+    assert set(tb.ritmo(did)["app"]) == {"6", "7", "20"}
+
+
+def test_lo_que_crea_el_externo_sigue_compartido_con_armando(espacio):
+    did = col.crear("Collares", 20)["id"]
+    assert col.miembros_ids(did) == [20, 8] and col.es_dueno(did, 20)
+
+
+def test_api_de_miembros(cliente, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(col, "_usuario_de", lambda uid: {"id": uid, "activo": 1})
+    monkeypatch.setattr(col, "_dar_acceso_al_panel", lambda uid: False)
+    did = cliente.post("/api/colaboradores/diagramas", headers=_h("tok-armando"), json={"titulo": "Mío"}).get_json()["id"]
+    assert cliente.get(f"/api/colaboradores/diagramas/{did}", headers=_h()).status_code == 404     # Sebastián aún no
+    assert cliente.get("/api/colaboradores/usuarios", headers=_h()).status_code == 403              # el externo no invita
+    r = cliente.post(f"/api/colaboradores/diagramas/{did}/miembros", headers=_h("tok-armando"), json={"usuario_id": 20})
+    assert r.status_code == 200 and [m["id"] for m in r.get_json()["miembros"]] == [8, 20]
+    assert cliente.get(f"/api/colaboradores/diagramas/{did}", headers=_h()).status_code == 200
+    assert cliente.delete(f"/api/colaboradores/diagramas/{did}/miembros/20", headers=_h()).status_code == 200
+    assert cliente.get(f"/api/colaboradores/diagramas/{did}", headers=_h()).status_code == 404

@@ -68,8 +68,11 @@ export type Diagrama = {
   dharma?: Record<string, number>;
   /** Resumen del tablero para la lista de proyectos (meta vigente y a quién le toca cuánto). */
   tablero?: { tarjetas: number; meta: string; turno: Record<string, number> };
+  /** Quién está en el proyecto (3-oct-2026): el dueño primero; uno solo = proyecto personal. */
+  miembros?: Miembro[];
 };
-export type Lista = { diagramas: Omit<Diagrama, "doc">[]; yo: { id: number; nombre: string } };
+export type Miembro = { id: number; nombre: string; rol: "dueno" | "miembro"; desde?: string };
+export type Lista = { diagramas: Omit<Diagrama, "doc">[]; yo: { id: number; nombre: string; anfitrion?: boolean } };
 export type Version = { version: number; usuario: string; resumen: string; creado_en: string; nodos: number; flechas: number };
 
 /** Las plantillas: con qué arranca una caja nueva. «Libre» no trae nada: se le crean sus campos. */

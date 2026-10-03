@@ -81,7 +81,7 @@ const NOTAS: Record<string, string> = {
   "guias-envio": "también se abre con Pedidos Web o Empaque",
   "entregas-flex": "también se abre con Pedidos Web, Empaque o Guías de envío",
   "mapa-sistema": "vista de administración: sin este permiso solo la ve un administrador",
-  colaboradores: "diagramas compartidos con colaboradores externos (el anfitrión es Armando)",
+  colaboradores: "proyectos en mapa, personales o compartidos; quien lo tiene puede crear proyectos e invitar gente (ve solo los proyectos donde está)",
   arquitectura: "solo administrador: es el mapa interno del sistema y con él se planean borrados",
   combos: "también abre el Mapa del sistema en la API",
   producto: "también se abre con Combos o Mapa del sistema",

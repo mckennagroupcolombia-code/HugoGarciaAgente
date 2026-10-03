@@ -334,7 +334,7 @@ export const FUERA_DEL_FLUJO: PasoApp[] = [
   { panel: "placas-concreto", hace: "Calculadora de placas de concreto (otro taller)" },
   { panel: "juegos", hace: "Juegos para un descanso (dentro de la Agenda)" },
   { panel: "chat-equipo", hace: "Conversación operativa del equipo (dentro de la Agenda)" },
-  { panel: "colaboradores", hace: "Diagramas compartidos con colaboradores (dentro de la Agenda)" },
+  { panel: "colaboradores", hace: "Proyectos en mapa, personales o compartidos con colaboradores (dentro de la Agenda)" },
 ];
 
 /** Dónde vive un panel dentro de la secuencia (para la miga del cabezote). */

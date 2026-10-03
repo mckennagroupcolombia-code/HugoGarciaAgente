@@ -39,8 +39,9 @@ export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string):
     if (seccion === "hugo" || seccion === "tickets") return puedeVerTickets(user);
     return true;
   }
-  // Colaboradores es un espacio entre Armando y sus colaboradores: ni otro
-  // administrador lo ve sin el permiso explícito (el backend lo niega igual).
+  // Colaboradores: solo con el permiso explícito, ni siquiera un administrador sin él (el backend lo
+  // niega igual). Con el permiso se crean proyectos propios e invita; adentro, cada quien ve solo los
+  // proyectos donde es miembro (colab_miembros).
   if (seccion === "colaboradores") return Boolean(user.permisos_secciones?.colaboradores);
   const logistica = puedeVerModuloLogistica(user, seccion);
   if (logistica !== null) return logistica;

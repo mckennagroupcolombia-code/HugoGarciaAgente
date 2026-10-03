@@ -16,14 +16,21 @@ import { useRef, useState } from "react";
 import { api } from "../api/client";
 import { Sprite } from "./colaboradores/pixel";
 import MapaProyecto from "./colaboradores/MapaProyecto";
+import Miembros, { resumenMiembros } from "./colaboradores/Miembros";
 import type { Adjunto, Diagrama, Lista } from "./colaboradores/modelo";
 
-function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: number; nombre: string }; onVolver: () => void }) {
+function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: Lista["yo"]; onVolver: () => void }) {
   const qc = useQueryClient();
   const [titulo, setTitulo] = useState(inicial.titulo);
   const [aviso, setAviso] = useState<string | null>(null);
   const [pleno, setPleno] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const timer = useRef<number | null>(null);
+  const [verMiembros, setVerMiembros] = useState(false);
+  const mq = useQuery<{ miembros: Diagrama["miembros"] }>({
+    queryKey: ["colab-miembros", inicial.id],
+    queryFn: () => api.get(`/api/colaboradores/diagramas/${inicial.id}/miembros`),
+    initialData: { miembros: inicial.miembros },
+  });
 
   /** El nombre vive en el proyecto (colab_diagramas); su documento viejo se reenvía tal cual. */
   async function guardarTitulo(t: string, reintento = false): Promise<void> {
@@ -66,10 +73,21 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
                }}
                className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 text-base font-bold text-ink focus:border-border" />
         {aviso && <span className="px-t max-w-[40%] shrink-0 truncate text-[11px] text-[#FF004D]">{aviso}</span>}
+        <button type="button" data-compartir onClick={() => setVerMiembros(true)}
+                className="flex shrink-0 items-center gap-1 rounded-lg border border-border px-2 py-1 text-sm font-bold text-ink"
+                title="Quién está en el proyecto">
+          <Sprite s="jugador" px={1} />
+          <span className="hidden sm:inline">{resumenMiembros(mq.data?.miembros, yo?.id ?? 0)}</span>
+          <span className="sm:hidden">{(mq.data?.miembros ?? []).length}</span>
+        </button>
         <button type="button" onClick={() => setPleno((v) => !v)} aria-label={pleno ? "Salir de pantalla completa" : "Pantalla completa"}
                 className="shrink-0 rounded-lg border border-border px-2 py-1 text-sm font-bold text-muted">{pleno ? "⤡" : "⛶"}</button>
       </div>
       <MapaProyecto did={inicial.id} yoId={yo?.id ?? 0} titulo={titulo} subir={subirMedia} />
+      {verMiembros && (
+        <Miembros did={inicial.id} yoId={yo?.id ?? 0} anfitrion={Boolean(yo?.anfitrion)}
+                  onCerrar={() => setVerMiembros(false)} onSalir={onVolver} />
+      )}
     </div>
   );
 }
@@ -121,7 +139,8 @@ export default function ColaboradoresPanel() {
         <h2 className="text-base font-bold text-ink">Colaboradores</h2>
         <p className="text-xs text-muted">
           Cada proyecto es un mapa que crece como un árbol: de dónde parten, la meta, y cada resultado, obstáculo y
-          decisión colgando de lo que lo originó, con a quién le toca. Lo que guarda uno lo ve el otro en segundos.
+          decisión colgando de lo que lo originó, con a quién le toca. Puede ser personal o compartido: solo lo ven
+          quienes están en él, y lo que guarda uno lo ven los demás en segundos.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -148,6 +167,10 @@ export default function ColaboradoresPanel() {
               <button type="button" onClick={() => void abrir(d.id)} className="block w-full p-2.5 text-left hover:bg-surface-hover" data-proyecto={d.id}>
                 <span className="flex items-center gap-1.5"><Sprite s="bandera" px={2} /><b className="text-ink">{d.titulo}</b></span>
                 <span className="mt-1 block text-xs text-ink-secondary">{tb?.meta ? `Meta: ${tb.meta}` : "Sin meta escrita"}</span>
+                <span className="mt-0.5 block text-[11px] text-ink-secondary">
+                  {resumenMiembros(d.miembros, Number(yoId))}
+                  {d.miembros?.[0] && d.miembros[0].id !== Number(yoId) ? ` · lo creó ${d.miembros[0].nombre.split(" ")[0]}` : ""}
+                </span>
                 <span className="mt-1 flex flex-wrap gap-1 text-[11px]">
                   <span className="border border-border px-1.5">{tb?.tarjetas ?? 0} tarjetas</span>
                   {mio > 0 && <span className="bg-accent px-1.5 text-white">te tocan {mio}</span>}

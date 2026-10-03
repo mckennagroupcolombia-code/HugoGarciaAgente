@@ -138,9 +138,9 @@ def _participante(did: int, v) -> int | None:
 
 
 def _pareja(did: int) -> list[int]:
-    with col._conn() as con:
-        r = con.execute("SELECT colaborador_id FROM colab_diagramas WHERE id=?", (int(did),)).fetchone()
-    return col._participantes_ids(r["colaborador_id"] if r else None)
+    """Los miembros del proyecto (antes era la pareja anfitrión–colaborador; desde el 3-oct puede ser
+    uno solo —proyecto personal— o varios)."""
+    return col.miembros_ids(did)
 
 
 def _adjuntos(did: int, v) -> list[dict]:
@@ -243,8 +243,9 @@ def _padre_valido(con, did: int, padre, propio: int | None) -> int | None:
 
 
 def _otro(did: int, uid: int) -> int | None:
+    """La jugada pasa sola al otro solo si son exactamente dos; con más, quien escribe elige."""
     resto = [p for p in _pareja(did) if p != int(uid)]
-    return resto[0] if resto else None
+    return resto[0] if len(resto) == 1 else None
 
 
 def crear(did: int, uid: int, datos: dict, *, registrar: bool = True) -> dict:

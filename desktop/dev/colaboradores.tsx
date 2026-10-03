@@ -144,6 +144,8 @@ const ritmoDev = {
     "20": { n: 217, mediana_min: 0.7, p75_min: 6, p90_min: 36.6, mas_de_12_h: 3 } } },
 };
 
+const miembrosDev = [{ id: 8, nombre: "Armando García", rol: "dueno" }, { id: 20, nombre: "Sebastián García", rol: "miembro" }];
+
 const fetchReal = window.fetch.bind(window);
 window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof entrada === "string" ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
@@ -169,7 +171,7 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
     const otro = (id: number, titulo: string, pisos: number, terminados: number) => ({
       ...resumen, id, titulo, nodos: pisos, obra: { pisos, terminados, avance: pisos ? terminados / pisos : 0 } });
     return json({ diagramas: [{ ...resumen, obra }, otro(2, "Aretes — ya en venta", 5, 5), otro(3, "Pulseras de hilo", 12, 1)],
-                  yo: { id: 8, nombre: "Armando García" } });
+                  yo: { id: 8, nombre: "Armando García", anfitrion: true } });
   }
   if (ruta === "/api/colaboradores/diagramas/1") {
     if (metodo === "PUT") {
@@ -177,6 +179,14 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
       diagrama = { ...diagrama, doc: b.doc, titulo: b.titulo ?? diagrama.titulo, version: diagrama.version + 1 };
     }
     return json({ ...diagrama, operacion, dharma: {} });
+  }
+  if (ruta.endsWith("/miembros")) {
+    if (metodo === "POST") miembrosDev.push({ id: 7, nombre: "Victor Garcia", rol: "miembro" });
+    return json({ miembros: miembrosDev, soy_dueno: true, acceso_dado: true });
+  }
+  if (ruta === "/api/colaboradores/usuarios") {
+    return json({ usuarios: [{ id: 7, nombre: "Victor Garcia", externo: false }, { id: 10, nombre: "Jenniffer Garcia", externo: false },
+                             { id: 20, nombre: "Sebastián García", externo: true }] });
   }
   if (ruta.endsWith("/tablero")) {
     return json({ tarjetas, ritmo: ritmoDev, participantes: { "8": "Armando García", "20": "Sebastián García" } });
@@ -268,6 +278,7 @@ if (q.has("abrir")) {
     // ?guia=<n>: la guía abierta en la escena n (0 = la primera).
     const n = Number(q.get("guia") || 0);
     for (let k = 0; k < n; k++) setTimeout(() => document.querySelector<HTMLElement>("[data-guia] [aria-label='Siguiente']")?.click(), 400 + k * 50);
+    if (q.has("miembros")) setTimeout(() => tocar("button[data-compartir]"), 700);
     const id = q.get("sel");
     if (id) setTimeout(() => tocar(`[data-caja="${id}"] .eb-cuerpo`, () => {
       // ?medir: el estilo calculado de un campo de la hoja, al título (para --dump-dom).

@@ -119,10 +119,20 @@ def es_colaborador_externo(usuario: dict | None) -> bool:
     return bool((usuario.get("permisos_secciones") or {}).get("colaborador_externo"))
 
 
+def es_anfitrion(usuario: dict | None) -> bool:
+    """Quién arma proyectos propios e invita gente (3-oct-2026): Armando y cualquiera de la casa con el
+    permiso `colaboradores` (Cynthia, por ejemplo). Un colaborador externo no invita."""
+    if not usuario or es_colaborador_externo(usuario):
+        return False
+    return int(usuario.get("id") or 0) == anfitrion_id() or bool((usuario.get("permisos_secciones") or {}).get("colaboradores"))
+
+
 def es_miembro(usuario: dict | None) -> bool:
+    """Quién entra al espacio de Colaboradores: anfitriones y colaboradores externos. Qué proyectos ve
+    cada uno lo decide `colab_miembros` (puede_ver), no esto."""
     if not usuario:
         return False
-    return int(usuario.get("id") or 0) == anfitrion_id() or es_colaborador_externo(usuario)
+    return es_anfitrion(usuario) or es_colaborador_externo(usuario)
 
 
 def colaboradores_ids() -> list[int]:
@@ -144,25 +154,128 @@ def colaboradores_ids() -> list[int]:
     return sorted(out)
 
 
-def _pareja_de(usuario: dict) -> int | None:
-    """Con qué colaborador es este diagrama. None = lo mira el anfitrión (ve todos)."""
-    return int(usuario["id"]) if es_colaborador_externo(usuario) else None
-
-
 def puede_ver(did: int, usuario: dict) -> bool:
-    """Un colaborador solo entra a SUS diagramas con el anfitrión.
-
-    Hoy hay uno solo, pero el día que haya dos, el diagrama de la relación
-    comercial de uno no puede abrirlo el otro: el permiso `colaborador_externo`
-    no es una llave de todo el espacio, es la llave de su pareja.
-    """
+    """Solo los MIEMBROS de un proyecto lo ven (3-oct-2026). Antes el anfitrión veía todos y cada
+    colaborador los de su pareja; con varios anfitriones (Armando, Cynthia…) y proyectos personales, la
+    llave es la membresía: ni otro anfitrión ni otro colaborador entra cambiando el id."""
     _ensure()
-    mio = _pareja_de(usuario)
-    if mio is None:
-        return True
     with _conn() as con:
-        r = con.execute("SELECT colaborador_id FROM colab_diagramas WHERE id=?", (int(did),)).fetchone()
-    return bool(r) and int(r["colaborador_id"] or 0) == mio
+        return con.execute("SELECT 1 FROM colab_miembros WHERE diagrama_id=? AND usuario_id=?",
+                           (int(did), int(usuario.get("id") or 0))).fetchone() is not None
+
+
+def miembros_ids(did: int) -> list[int]:
+    """Los miembros del proyecto, el dueño primero."""
+    _ensure()
+    with _conn() as con:
+        return [int(r["usuario_id"]) for r in con.execute(
+            "SELECT usuario_id FROM colab_miembros WHERE diagrama_id=? ORDER BY rol='dueno' DESC, agregado_en, usuario_id",
+            (int(did),))]
+
+
+def miembros(did: int) -> list[dict]:
+    _ensure()
+    with _conn() as con:
+        filas = con.execute("SELECT usuario_id, rol, agregado_en FROM colab_miembros WHERE diagrama_id=?"
+                            " ORDER BY rol='dueno' DESC, agregado_en, usuario_id", (int(did),)).fetchall()
+    return [{"id": int(f["usuario_id"]), "nombre": _nombre(f["usuario_id"]), "rol": f["rol"], "desde": f["agregado_en"]}
+            for f in filas]
+
+
+def es_dueno(did: int, uid: int) -> bool:
+    _ensure()
+    with _conn() as con:
+        return con.execute("SELECT 1 FROM colab_miembros WHERE diagrama_id=? AND usuario_id=? AND rol='dueno'",
+                           (int(did), int(uid))).fetchone() is not None
+
+
+def _usuario_de(uid: int) -> dict | None:
+    try:
+        from app.services import tickets_db as tdb
+
+        with tdb._conn() as db:
+            r = db.execute("SELECT id, nombre, foto, activo, permisos_secciones, rol_id FROM usuarios WHERE id=?",
+                           (int(uid),)).fetchone()
+            if not r:
+                return None
+            nivel = db.execute("SELECT nivel FROM roles WHERE id=?", (r["rol_id"],)).fetchone()
+        d = dict(r)
+        d["permisos_secciones"] = json.loads(d.get("permisos_secciones") or "{}") or {}
+        d["rol"] = {"nivel": int(nivel["nivel"]) if nivel else 0}
+        return d
+    except Exception:
+        return None
+
+
+def invitables(usuario: dict) -> list[dict]:
+    """A quién puede invitar un anfitrión: las personas activas (menos él y el bot). Solo nombre y foto."""
+    if not es_anfitrion(usuario):
+        return []
+    try:
+        from app.services import tickets_db as tdb
+
+        with tdb._conn() as db:
+            filas = db.execute("SELECT id, nombre, foto, username, permisos_secciones FROM usuarios WHERE activo=1"
+                               " ORDER BY nombre").fetchall()
+    except Exception:
+        return []
+    out = []
+    for f in filas:
+        if int(f["id"]) == int(usuario["id"]) or (f["username"] or "").startswith("hugo"):
+            continue
+        p = json.loads(f["permisos_secciones"] or "{}") or {}
+        out.append({"id": int(f["id"]), "nombre": f["nombre"], "foto": f["foto"] or "",
+                    "externo": bool(p.get("colaborador_externo"))})
+    return out
+
+
+def _dar_acceso_al_panel(uid: int) -> bool:
+    """Quien entra a un proyecto necesita el panel: se le prende SOLO el permiso `colaboradores`
+    (lo que ve adentro lo sigue decidiendo la membresía). Devuelve True si hubo que darlo."""
+    from app.services import tickets_db as tdb
+
+    with tdb._conn() as db:
+        r = db.execute("SELECT permisos_secciones FROM usuarios WHERE id=? AND activo=1", (int(uid),)).fetchone()
+        if not r:
+            raise ValueError("Esa persona no existe o está inactiva")
+        p = json.loads(r["permisos_secciones"] or "{}") or {}
+        if p.get("colaboradores"):
+            return False
+        p["colaboradores"] = True
+        db.execute("UPDATE usuarios SET permisos_secciones=? WHERE id=?", (json.dumps(p), int(uid)))
+        db.commit()
+    return True
+
+
+def agregar_miembro(did: int, por: dict, uid: int) -> dict:
+    """El dueño invita a alguien al proyecto (un personal pasa a compartido)."""
+    _ensure()
+    if not es_dueno(did, int(por["id"])) or not es_anfitrion(por):
+        raise PermissionError("Solo quien creó el proyecto invita gente")
+    if int(uid) == int(por["id"]):
+        raise ValueError("Ya estás en el proyecto")
+    if not _usuario_de(uid) or not _usuario_de(uid).get("activo"):
+        raise ValueError("Esa persona no existe o está inactiva")
+    acceso = _dar_acceso_al_panel(int(uid))
+    with _conn() as con:
+        con.execute("INSERT OR IGNORE INTO colab_miembros (diagrama_id, usuario_id, rol, agregado_por) VALUES (?,?, 'miembro', ?)",
+                    (int(did), int(uid), int(por["id"])))
+        con.execute("UPDATE colab_diagramas SET actualizado_por=?, actualizado_en=datetime('now') WHERE id=?",
+                    (int(por["id"]), int(did)))
+    return {"miembros": miembros(did), "acceso_dado": acceso}
+
+
+def quitar_miembro(did: int, por: dict, uid: int) -> dict:
+    """El dueño saca a alguien, o cada quien se sale. El dueño no se sale (archiva el proyecto)."""
+    _ensure()
+    yo = int(por["id"])
+    if es_dueno(did, int(uid)):
+        raise ValueError("Quien creó el proyecto no puede salirse; puede archivarlo")
+    if int(uid) != yo and not es_dueno(did, yo):
+        raise PermissionError("Solo quien creó el proyecto saca a otras personas")
+    with _conn() as con:
+        con.execute("DELETE FROM colab_miembros WHERE diagrama_id=? AND usuario_id=?", (int(did), int(uid)))
+    return {"miembros": miembros(did)}
 
 
 def _conn():
@@ -212,6 +325,22 @@ def _ensure() -> None:
             ids = colaboradores_ids()
             if len(ids) == 1:
                 con.execute("UPDATE colab_diagramas SET colaborador_id=? WHERE colaborador_id IS NULL", (ids[0],))
+        # Miembros (3-oct-2026): un proyecto ya no es «del anfitrión con su colaborador» sino de quien
+        # lo creó (dueño) y de quienes invite. Los de antes: el anfitrión de dueño y su colaborador.
+        con.execute("""CREATE TABLE IF NOT EXISTS colab_miembros (
+                           diagrama_id INTEGER NOT NULL,
+                           usuario_id INTEGER NOT NULL,
+                           rol TEXT NOT NULL DEFAULT 'miembro',
+                           agregado_por INTEGER,
+                           agregado_en TEXT NOT NULL DEFAULT (datetime('now')),
+                           PRIMARY KEY (diagrama_id, usuario_id))""")
+        for d in con.execute("SELECT id, colaborador_id FROM colab_diagramas WHERE id NOT IN"
+                             " (SELECT diagrama_id FROM colab_miembros)").fetchall():
+            con.execute("INSERT OR IGNORE INTO colab_miembros (diagrama_id, usuario_id, rol) VALUES (?,?, 'dueno')",
+                        (d["id"], anfitrion_id()))
+            if d["colaborador_id"]:
+                con.execute("INSERT OR IGNORE INTO colab_miembros (diagrama_id, usuario_id, rol) VALUES (?,?, 'miembro')",
+                            (d["id"], int(d["colaborador_id"])))
 
 
 def _nombre(uid) -> str:
@@ -296,7 +425,7 @@ def _a_dict(r, *, con_doc: bool = True) -> dict:
     if con_doc:
         d["doc"] = doc
         # Quiénes pueden votar, con nombre: la caja de consenso los muestra.
-        d["participantes"] = {str(uid): _nombre(uid) for uid in _participantes_ids(d.get("colaborador_id"))}
+        d["participantes"] = {str(uid): _nombre(uid) for uid in miembros_ids(d["id"])}
         # La operación con sus valores por defecto (avatares de hoy) y el dharma de cada persona.
         d["operacion"] = operacion_de(doc, d.get("colaborador_id"))
         d["dharma"] = dharma(doc, d.get("colaborador_id"))
@@ -304,6 +433,7 @@ def _a_dict(r, *, con_doc: bool = True) -> dict:
     d["flechas"] = len(doc.get("edges") or [])
     d["obra"] = resumen_obra(doc)
     d["actualizado_por_nombre"] = _nombre(d.get("actualizado_por"))
+    d["miembros"] = miembros(d["id"])
     return d
 
 
@@ -549,13 +679,9 @@ def validar_doc(doc) -> dict:
 
 def listar(usuario: dict, incluir_archivados: bool = False) -> list[dict]:
     _ensure()
-    conds, params = [], []
+    conds, params = ["id IN (SELECT diagrama_id FROM colab_miembros WHERE usuario_id=?)"], [int(usuario.get("id") or 0)]
     if not incluir_archivados:
         conds.append("archivado=0")
-    mio = _pareja_de(usuario)
-    if mio is not None:
-        conds.append("colaborador_id=?")
-        params.append(mio)
     where = (" WHERE " + " AND ".join(conds)) if conds else ""
     with _conn() as con:
         filas = con.execute("SELECT * FROM colab_diagramas" + where + " ORDER BY actualizado_en DESC", params)
@@ -578,17 +704,17 @@ def crear(titulo: str, usuario_id: int, descripcion: str = "", doc: dict | None 
     if not titulo:
         raise ValueError("El diagrama necesita un título")
     limpio = validar_doc(doc or {"nodes": [], "edges": []})
-    # Con quién es: si lo crea el colaborador, con él; si lo crea el anfitrión,
-    # con el que diga (y si solo hay uno, con ese).
+    # Quién está (3-oct-2026): el que lo crea es el dueño. Un proyecto de un anfitrión nace PERSONAL
+    # salvo que traiga `colaborador_id` (y se comparte después invitando); el que crea un colaborador
+    # externo nace compartido con el anfitrión, como siempre.
     ids = colaboradores_ids()
+    invitado = None
     if int(usuario_id) in ids:
-        pareja = int(usuario_id)
+        pareja, invitado = int(usuario_id), anfitrion_id()
     elif colaborador_id and int(colaborador_id) in ids:
-        pareja = int(colaborador_id)
-    elif len(ids) == 1:
-        pareja = ids[0]
+        pareja = invitado = int(colaborador_id)
     else:
-        raise ValueError("Elige con qué colaborador es este diagrama")
+        pareja = None
     with _conn() as con:
         cur = con.execute(
             "INSERT INTO colab_diagramas (titulo, descripcion, doc_json, creado_por, actualizado_por, colaborador_id)"
@@ -599,6 +725,11 @@ def crear(titulo: str, usuario_id: int, descripcion: str = "", doc: dict | None 
         did = cur.lastrowid
         con.execute("INSERT INTO colab_diagrama_versiones (diagrama_id, version, doc_json, usuario_id, resumen)"
                     " VALUES (?,?,?,?,?)", (did, 1, json.dumps(limpio, ensure_ascii=False), usuario_id, "Creado"))
+        con.execute("INSERT INTO colab_miembros (diagrama_id, usuario_id, rol, agregado_por) VALUES (?,?, 'dueno', ?)",
+                    (did, int(usuario_id), int(usuario_id)))
+        if invitado and int(invitado) != int(usuario_id):
+            con.execute("INSERT OR IGNORE INTO colab_miembros (diagrama_id, usuario_id, rol, agregado_por) VALUES (?,?, 'miembro', ?)",
+                        (did, int(invitado), int(usuario_id)))
     return obtener(did)
 
 

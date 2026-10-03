@@ -69,7 +69,8 @@ def register_colaboradores_routes(app):
         for d in lista:
             d["tablero"] = res.get(int(d["id"]))
         return jsonify({"diagramas": lista,
-                        "yo": {"id": g.colab_usuario.get("id"), "nombre": g.colab_usuario.get("nombre")},
+                        "yo": {"id": g.colab_usuario.get("id"), "nombre": g.colab_usuario.get("nombre"),
+                               "anfitrion": col.es_anfitrion(g.colab_usuario)},
                         "carriles": col.CARRILES, "tipos": {k: v[1] for k, v in col.TIPOS.items()}})
 
     @app.route("/api/colaboradores/diagramas", methods=["POST"])
@@ -174,6 +175,44 @@ def register_colaboradores_routes(app):
             return jsonify({"error": "El archivo supera los 15 MB"}), 400
         try:
             return jsonify(col.guardar_media(did, datos, f.filename or "")), 201
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    # ── Miembros: proyectos personales y compartidos (3-oct-2026) ─────────────
+
+    @app.route("/api/colaboradores/usuarios", methods=["GET"])
+    @app.route("/app/api/colaboradores/usuarios", methods=["GET"])
+    @_miembro
+    def colab_invitables():
+        """A quién puede invitar un anfitrión (nombre y foto). Un colaborador externo no invita."""
+        if not col.es_anfitrion(g.colab_usuario):
+            return jsonify({"error": "Solo un anfitrión invita gente"}), 403
+        return jsonify({"usuarios": col.invitables(g.colab_usuario)})
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/miembros", methods=["GET", "POST"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/miembros", methods=["GET", "POST"])
+    @_miembro
+    @_suyo
+    def colab_miembros(did: int):
+        if request.method == "GET":
+            return jsonify({"miembros": col.miembros(did), "soy_dueno": col.es_dueno(did, int(g.colab_usuario["id"]))})
+        d = request.get_json(silent=True) or {}
+        try:
+            return jsonify(col.agregar_miembro(did, g.colab_usuario, int(d.get("usuario_id") or 0)))
+        except PermissionError as e:
+            return jsonify({"error": str(e)}), 403
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/miembros/<int:uid>", methods=["DELETE"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/miembros/<int:uid>", methods=["DELETE"])
+    @_miembro
+    @_suyo
+    def colab_quitar_miembro(did: int, uid: int):
+        try:
+            return jsonify(col.quitar_miembro(did, g.colab_usuario, uid))
+        except PermissionError as e:
+            return jsonify({"error": str(e)}), 403
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
 

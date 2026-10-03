@@ -1,3 +1,15 @@
+### 2026-10-03 - Colaboradores: Cynthia y cualquiera con el permiso arman sus propios proyectos e invitan gente
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Colaboradores, panel y app de colaborador). Sin LLM.
+- **Qué se implementó:**
+  - Los proyectos ahora tienen **miembros**: quien lo crea es el dueño, nace personal y se comparte invitando. Cada persona ve solo los proyectos donde está (antes Armando veía todos y cada proyecto era una pareja fija).
+  - Cualquiera de la casa con el permiso «Colaboradores» puede crear proyectos e invitar a otras personas (de la casa o colaboradores externos). Al invitado se le activa Colaboradores en su menú si no lo tenía; el dueño saca gente y cada quien puede salirse. Un colaborador externo no invita.
+  - Cynthia recibió el permiso «Colaboradores». Los dos proyectos existentes quedaron con Armando de dueño y Sebastián de miembro.
+  - El mapa funciona con 1, 2 o más personas: el turno pasa solo al otro únicamente entre dos; una decisión queda tomada cuando todos están de acuerdo.
+  - Pendiente: la Agenda de un colaborador externo sigue siendo solo con Armando.
+  - **Verificado:** `pytest tests/test_colab_tablero.py tests/test_colaboradores.py tests/test_acceso_panel.py tests/test_smoke.py` (141 passed); `qa:panel-access`; `tsc`; `npm run build` con verificador de colaboradores; capturas del banco (hoja de miembros, lista); rutas reales tras reiniciar `agente-pro`: Cynthia ve 0 proyectos y puede invitar, Armando y Sebastián ven los 2, Sebastián recibe 403 al pedir a quién invitar.
+- **Archivos Modificados:** `app/services/colaboradores.py`, `app/services/colab_tablero.py`, `app/routes_colaboradores.py`, `desktop/src/components/colaboradores/Miembros.tsx`, `desktop/src/components/colaboradores/modelo.ts`, `desktop/src/components/ColaboradoresPanel.tsx`, `desktop/src/lib/panelAccess.ts`, `desktop/src/lib/permisosCatalogo.ts`, `desktop/src/lib/flujoApp.ts`, `desktop/dev/colaboradores.tsx`, `tests/test_colab_tablero.py`, `docs/agentic/modules/colaboradores.md`, `CLAUDE.md`, `docs/team-recaps.md`
+
 ### 2026-10-03 - Colaboradores: guía animada del mapa
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Colaboradores, panel y app de colaborador). Sin LLM.
