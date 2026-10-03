@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
 import TerminalLog from "./TerminalLog";
@@ -272,7 +273,7 @@ function ActionButton({
       } ${compact ? "opacity-90" : ""}`}
     >
       <div className="flex items-start gap-2">
-        <span className="text-lg leading-none mt-0.5 shrink-0">{action.icon}</span>
+        <span className="text-lg leading-none mt-0.5 shrink-0"><Ico e={action.icon} /></span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-ink leading-tight">{action.label}</p>
           <p className="text-[11px] text-muted leading-snug">{action.description}</p>
@@ -465,7 +466,7 @@ export default function SyncPanel() {
             className="rounded-xl border border-accent/40 bg-accent/5 px-3 py-2.5 text-left hover:bg-accent/10 transition"
           >
             <p className="text-xs font-bold uppercase tracking-wide text-accent">
-              💲 Precios en Ganancia
+              <Ico e="💲" /> Precios en Ganancia
             </p>
             <p className="mt-0.5 text-[11px] text-muted/90">
               Edita el precio de venta desde Ganancia — se aplica a MeLi, Alegra y la web.

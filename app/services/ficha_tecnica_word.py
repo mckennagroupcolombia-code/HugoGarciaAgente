@@ -78,7 +78,7 @@ _FISICAS_MAP = (
     ("punto_fusion", ("punto de fusion", "punto fusion", "melting point")),
     ("indice_saponificacion", ("indice de saponificacion", "saponificacion")),
     ("ph", ("ph", "ph (1%", "ph 1%")),
-    ("olor", ("olor", "odour", "odor")),
+    ("olor", ("aroma", "olor", "odour", "odor")),
     ("sabor", ("sabor", "taste")),
     ("formula_quimica", ("formula quimica", "formula molecular", "formula")),
     ("solubilidad", ("solubilidad", "solubility")),

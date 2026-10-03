@@ -15,6 +15,7 @@ export default function InicioLauncher() {
   const { user } = useTicketsAuth();
   const panel = useAppStore((s) => s.panel);
   const advancedToggle = useUiMode((s) => s.advanced);
+  const navClasica = useUiMode((s) => s.navClasica);
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   const navegarPanel = useNavegarPanel();
 
@@ -22,7 +23,9 @@ export default function InicioLauncher() {
     .filter((s) => !s.advancedOnly || advanced)
     .filter((s) => itemsVisiblesHub(s.items, user, advanced, puedeVerSeccionPanel, s.id).length > 0);
 
-  if (secciones.length === 0) return null;
+  // Con la navegación por flujo, el cabezote ya lleva a todo en secuencia: repetir aquí los
+  // accesos por departamento sería volver a mostrar el menú viejo.
+  if (!navClasica || secciones.length === 0) return null;
 
   function ir(sectionId: (typeof secciones)[number]["id"]) {
     const next = primerPanelHub(sectionId, user, advanced, puedeVerSeccionPanel, panel);

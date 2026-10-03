@@ -2,9 +2,9 @@ import { useState, type ReactNode } from "react";
 import ProductAttribute from "./ProductAttribute";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import { ICONOS_QUIMICA_CIRCULARES, quitarCirculoExterior } from "../../lib/iconosQuimicaCirculares";
-import { TITULOS_COMPOSICION, type ProductLabelData } from "./productLabelTypes";
+import { TITULOS_COMPOSICION, TITULOS_GRADO, tituloComposicion, tituloGrado, type ProductLabelData } from "./productLabelTypes";
 
-export type AttributeKey = "origin" | "appearance" | "odor" | "composition" | "grade" | "storage";
+export type AttributeKey = "origin" | "appearance" | "odor" | "composition" | "grade" | "sabor" | "storage";
 
 /** Claves de los íconos guardados en `attribute_icons`: las seis celdas de la
  *  ficha y la línea de alérgenos de la etiqueta de 69 × 51 mm. */
@@ -20,10 +20,11 @@ const ICONO_GALERIA_POR_DEFECTO: Record<AttributeKey, string> = {
   odor: "aroma_ondas_gota",
   composition: "composicion_molecula_enlazada",
   grade: "calidad_escudo_sello",
+  sabor: "sabor_lengua",
   storage: "conservacion_envase_sellado",
 };
 
-const TAMANO_ICONO = 58;
+const TAMANO_ICONO = 64;
 
 function IconoGaleriaInline({ id, size = TAMANO_ICONO }: { id: string; size?: number }) {
   const icono = ICONOS_QUIMICA_CIRCULARES.find((i) => i.id === id);
@@ -62,14 +63,17 @@ export default function ProductAttributeGrid({
   onIconChange: (campo: AttributeKey, svgDataUrl: string) => void;
 }) {
   const [campoAbierto, setCampoAbierto] = useState<AttributeKey | null>(null);
+  // Grado alimentos: la casilla de Grado muestra el sabor (menú del título).
+  const tituloCeldaGrado = tituloGrado(data);
+  const conSabor = tituloCeldaGrado === TITULOS_GRADO[1];
 
   const celdas: { icon: ReactNode; title: string; campo: AttributeKey }[] = (
     [
       ["Origen", "origin"],
       ["Apariencia", "appearance"],
-      ["Olor", "odor"],
-      [data.compositionTitulo || TITULOS_COMPOSICION[0], "composition"],
-      ["Grado", "grade"],
+      ["Aroma", "odor"],
+      [tituloComposicion(data), "composition"],
+      [tituloCeldaGrado, conSabor ? "sabor" : "grade"],
       ["Conservación", "storage"],
     ] as [string, AttributeKey][]
   ).map(([title, campo]) => ({
@@ -86,38 +90,60 @@ export default function ProductAttributeGrid({
       // derecha comparte exactamente las mismas líneas de fila.
       style={{ gridRow: "span 3", gridTemplateRows: "subgrid" }}
     >
-      {celdas.map((c, i) => {
-        const esColIzq = i % 2 === 0;
-        const esFilaUltima = i >= celdas.length - 2;
+      {/* Una fila = un contenedor propio. `content-center` centra en vertical
+          el renglón implícito (tan alto como el módulo más largo de la fila) y
+          los dos módulos arrancan a la misma altura: los íconos y títulos de
+          una misma fila quedan en línea aunque un valor tenga 1 renglón y el
+          otro 3. Centrar cada celda por separado desalineaba los íconos. */}
+      {[0, 2, 4].map((ini) => {
+        const fila = celdas.slice(ini, ini + 2);
+        const esFilaUltima = ini >= celdas.length - 2;
         return (
           <div
-            key={c.campo}
-            className={`${esColIzq ? "border-r-[1.5px] border-[color:var(--acento)]" : ""} ${
+            key={ini}
+            className={`relative col-span-2 grid grid-cols-2 content-center items-start ${
               esFilaUltima ? "" : "border-b-[1.5px] border-[color:var(--acento)]"
             }`}
           >
-            <ProductAttribute
-              icon={c.icon}
-              iconSrc={attributeIcons[c.campo]}
-              title={c.title}
-              value={data[c.campo]}
-              onChange={(v) => onChange({ [c.campo]: v })}
-              editMode={editMode}
-              onEditarIcono={() => setCampoAbierto(c.campo)}
-              styleKey={c.campo}
-              {...(c.campo === "composition"
-                ? {
-                    tituloOpciones: TITULOS_COMPOSICION,
-                    onTituloChange: (v: string) => onChange({ compositionTitulo: v }),
-                  }
-                : {})}
+            {/* Divisoria central a todo el alto de la fila (las celdas ya no
+                miden la fila entera, así que no pueden llevar el borde). */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-1/2 border-r-[1.5px] border-[color:var(--acento)]"
             />
+            {fila.map((c) => (
+              <div key={c.campo}>
+                <ProductAttribute
+                  icon={c.icon}
+                  iconSrc={attributeIcons[c.campo]}
+                  title={c.title}
+                  value={data[c.campo] ?? ""}
+                  onChange={(v) => onChange({ [c.campo]: v })}
+                  editMode={editMode}
+                  onEditarIcono={() => setCampoAbierto(c.campo)}
+                  // Grado y Sabor comparten tamaños de letra: es la misma casilla.
+                  styleKey={c.campo === "sabor" ? "grade" : c.campo}
+                  {...(c.campo === "composition"
+                    ? {
+                        tituloOpciones: TITULOS_COMPOSICION,
+                        onTituloChange: (v: string) => onChange({ compositionTitulo: v }),
+                      }
+                    : c.campo === "grade" || c.campo === "sabor"
+                      ? {
+                          tituloOpciones: TITULOS_GRADO,
+                          onTituloChange: (v: string) => onChange({ gradeTitulo: v }),
+                        }
+                      : {})}
+                />
+              </div>
+            ))}
           </div>
         );
       })}
 
       <GaleriaIconosQuimicosModal
         abierta={campoAbierto !== null}
+        campo={campoAbierto}
         onCerrar={() => setCampoAbierto(null)}
         onElegir={(svgDataUrl) => {
           if (campoAbierto) onIconChange(campoAbierto, svgDataUrl);

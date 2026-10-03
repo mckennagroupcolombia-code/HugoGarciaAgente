@@ -115,7 +115,12 @@ def iniciar_corrida_ticket(
     segundos_previos: int = 0,
 ) -> tuple[dict | None, str | None]:
     with _conn() as db:
+        # Buscar y crear en la misma transacción de escritura: al abrir una acción el panel
+        # pedía «iniciar» dos veces a la vez y a veces nacían dos cronómetros para la misma
+        # tarea (uno quedaba huérfano en pausa). BEGIN IMMEDIATE hace esperar al segundo.
+        db.execute("BEGIN IMMEDIATE")
         if not db.execute("SELECT 1 FROM tickets WHERE id=?", (ticket_id,)).fetchone():
+            db.rollback()
             return None, "Ticket no encontrado"
         existente = _corrida_abierta_ticket(db, ticket_id, usuario_id)
         if existente:
@@ -139,6 +144,7 @@ def iniciar_corrida_ticket(
                     (seg_prev, c["id"]),
                 )
                 db.commit()
+            db.commit()
             row = db.execute(
                 "SELECT * FROM ticket_corridas WHERE id=?", (c["id"],),
             ).fetchone()
@@ -311,3 +317,61 @@ def finalizar_corridas_abiertas_ticket(ticket_id: int) -> None:
                 (now, c["id"]),
             )
         db.commit()
+
+
+def corridas_en_curso_usuario(usuario_id: int) -> list[dict]:
+    """Cronómetros abiertos (activos o en pausa) de una persona en tareas que siguen abiertas.
+
+    Alimenta el reloj del cabezote y el aviso de voz «tiene una tarea en proceso», que se
+    muestran en cualquier pantalla (antes solo existían dentro de la vista Acciones)."""
+    with _conn() as db:
+        rows = db.execute(
+            """
+            SELECT c.*, t.numero, t.titulo, t.tipo, t.estado AS ticket_estado
+            FROM ticket_corridas c JOIN tickets t ON t.id = c.ticket_id
+            WHERE c.usuario_id=? AND c.estado IN ('activa','pausada')
+              AND t.estado NOT IN ('resuelto','rechazado')
+            ORDER BY (c.estado='activa') DESC, COALESCE(c.reanudada_en, c.iniciada_en) DESC
+            """,
+            (usuario_id,),
+        ).fetchall()
+    out = []
+    for r in rows:
+        d = _corrida_ticket_dict(r)
+        out.append({
+            "corrida_id": d["id"], "ticket_id": d["ticket_id"], "numero": d["numero"],
+            "titulo": d["titulo"], "tipo": d["tipo"], "estado": d["estado"],
+            "segundos": d["segundos_transcurridos"], "segundos_acumulados": d["segundos_acumulados"],
+            "iniciada_en": d["iniciada_en"], "reanudada_en": d["reanudada_en"],
+        })
+    return out
+
+
+def cerrar_corridas_huerfanas(aplicar: bool = False) -> list[dict]:
+    """Cronómetros que siguen abiertos aunque su tarea ya se cerró (resuelta o rechazada).
+
+    Se cierran SIN sumar tiempo: estado 'finalizada', sin tramo en la bitácora y con
+    finalizada_en NULL (control de horas, rendimiento y tiempos estándar solo cuentan
+    corridas con finalizada_en). Así dejan de inflar el total del ticket, que sumaba el
+    tiempo de una corrida «activa» abierta desde agosto."""
+    with _conn() as db:
+        rows = db.execute(
+            """
+            SELECT c.id, c.ticket_id, c.usuario_id, c.estado, c.iniciada_en, c.segundos_acumulados,
+                   t.titulo, t.estado AS ticket_estado
+            FROM ticket_corridas c JOIN tickets t ON t.id = c.ticket_id
+            WHERE c.estado IN ('activa','pausada') AND t.estado IN ('resuelto','rechazado')
+            """
+        ).fetchall()
+        out = [dict(r) for r in rows]
+        if aplicar and out:
+            db.executemany(
+                """
+                UPDATE ticket_corridas
+                SET estado='finalizada', segundos_acumulados=0, reanudada_en=NULL, finalizada_en=NULL
+                WHERE id=?
+                """,
+                [(r["id"],) for r in out],
+            )
+            db.commit()
+    return out

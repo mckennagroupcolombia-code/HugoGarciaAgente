@@ -28,6 +28,8 @@ MODELO_REVISOR = os.getenv("WA_V2_SUPERVISOR_MODELO", "claude-haiku-4-5")
 CONTEXTO_BUDGET = "wa_ventas_v2_supervisor"
 
 _PAT_PRECIO = re.compile(r"\$\s?(\d{1,3}(?:[.,]\d{3})+|\d{4,})")
+# En la evidencia (herramientas, pedido y lo que escribió el asesor) los montos pueden venir sin "$".
+_PAT_MONTO_EVIDENCIA = re.compile(r"(?<![\d$.,])(\d{1,3}(?:[.,]\d{3})+|\d{4,7})(?![\d.,])")
 _PAT_DIGITOS = re.compile(r"(?<![\d$.,])(\d[\d .-]{6,}\d)(?![\d])")
 _PAT_PAGO = re.compile(r"\b(nequi|daviplata|cuenta\s+(?:de\s+)?(?:ahorros|corriente)|llave|bre-?b|transfiya|qr)\b", re.I)
 _PIDE_DATO = {
@@ -48,13 +50,15 @@ class Revision:
         return not self.problemas
 
 
-def _montos(texto: str) -> set[int]:
+def _montos(texto: str, *, evidencia: bool = False) -> set[int]:
     out = set()
-    for m in _PAT_PRECIO.findall(texto or ""):
-        try:
-            out.add(int(re.sub(r"[.,]", "", m)))
-        except ValueError:
-            continue
+    pats = (_PAT_PRECIO, _PAT_MONTO_EVIDENCIA) if evidencia else (_PAT_PRECIO,)
+    for pat in pats:
+        for m in pat.findall(texto or ""):
+            try:
+                out.add(int(re.sub(r"[.,]", "", m)))
+            except ValueError:
+                continue
     return out
 
 
@@ -68,7 +72,7 @@ def revisar_reglas(respuesta: str, *, evidencia: str, cliente: dict) -> Revision
     (lo único de donde puede salir un precio o una cifra).
     """
     rev = Revision(nivel="reglas")
-    permitidos = _montos(evidencia)
+    permitidos = _montos(evidencia, evidencia=True)
     no_respaldados = sorted(_montos(respuesta) - permitidos)
     if no_respaldados:
         rev.problemas.append(
@@ -89,7 +93,12 @@ def revisar_reglas(respuesta: str, *, evidencia: str, cliente: dict) -> Revision
                 "No des números de cuenta, llaves ni teléfonos: el asesor comparte los datos de pago."
             )
             break
-    if _PAT_PAGO.search(respuesta or "") and re.search(r"\d{6,}", _solo_digitos(respuesta or "")):
+    # Solo un número largo NO conocido (no un precio con $, no la cédula del cliente) junto a
+    # una palabra de pago es dato de pago. Antes se concatenaban todos los dígitos de la
+    # respuesta y cualquier lista de precios + "medio de pago" disparaba la regla.
+    if _PAT_PAGO.search(respuesta or "") and any(
+        len(_solo_digitos(x)) >= 6 and _solo_digitos(x) not in conocidos for x in _PAT_DIGITOS.findall(respuesta or "")
+    ):
         rev.problemas.append("La respuesta parece incluir datos de pago. Tú no los das: el asesor los comparte al cerrar.")
 
     # Volver a pedir un dato que ya está guardado (lo que hizo perder la venta de Doris).
@@ -127,11 +136,20 @@ Reglas del negocio que Hugo debe cumplir:
 - Responde lo que el cliente preguntó; no inventa.
 
 NO son errores (no los marques): el trato "veci" y el tono colombiano cercano (es la voz de la marca); la presentación como asistente virtual; ofrecer un asesor. En WhatsApp el paso a un humano es pasar_a_asesor; en el chat WEB no existe esa herramienta: allí el paso a un humano es el botón de continuar por WhatsApp o el carrito de la página. No exijas herramientas ni textos que el canal no tiene.
+Tampoco son errores: decir que un asesor sigue por este mismo chat cuando la EVIDENCIA trae "Aviso enviado al equipo" (no es una promesa de tiempo, ni siquiera fuera de horario: es el flujo del negocio; solo sería error si dice "en un momento", "enseguida", "más tarde" o una hora concreta); decir que el asesor revisa o confirma un precio negociado o el total al retomar (regla del negocio: el bot no cierra); repetir un precio, total o tarifa que un ASESOR (humano) escribió en el CONTEXTO (lo que dijo el asesor manda sobre la web); ofrecer la presentación de 500 g cuando el cliente pide "una libra"; decir que los precios de la web ya incluyen IVA; armar el pedido con el precio de la web cuando el cliente recuerda un precio anterior que NINGÚN asesor escribió en el contexto (el recuerdo del cliente no es evidencia; el asesor lo revisa).
+Sí es error: una cifra que no está ni en la EVIDENCIA ni en lo que escribió el asesor; contradecir o corregir un precio que dio el asesor; volver a presentarse o saludar en una conversación que ya venía; pedir un dato que el cliente ya dio; dar datos de pago o dosis.
+Promesa de tiempo: márcala SOLO si la respuesta contiene literalmente una de estas expresiones: "en un momento", "enseguida", "ya mismo", "en unos minutos", "más tarde", "en breve", "pronto", "hoy mismo", "mañana" o una hora concreta. Decir qué hará el asesor (revisar, confirmar, compartir datos de pago, enviar la guía) sin una de esas expresiones NO es promesa: es el flujo del negocio.
+La fecha, la hora y si el equipo está en horario vienen al inicio del CONTEXTO ("Fecha y hora en Colombia"): úsalas tal cual; no deduzcas la hora a partir de los mensajes anteriores.
 
 Responde SOLO con un JSON en una línea: {"aprobado": true|false, "problemas": ["..."]}. Marca aprobado=false únicamente por errores reales que perjudiquen al cliente o al negocio, no por estilo."""
 
+CRITERIO_RETOMA = """
+Este turno RETOMA un chat que venía atendiendo un ASESOR humano que dejó de responder. Revisa además: ¿la respuesta continúa el hilo del asesor (su último mensaje, lo que ya acordó con el cliente) o lo reinicia (se presenta, saluda, repite totales o datos de pago, vuelve a pedir lo ya dado)? Reiniciar el hilo es error."""
 
-def revisar_ia(respuesta: str, *, contexto: str, evidencia: str, canal: str, cliente=None) -> tuple[Revision, int, int]:
+
+def revisar_ia(
+    respuesta: str, *, contexto: str, evidencia: str, canal: str, cliente=None, retomando: bool = False
+) -> tuple[Revision, int, int]:
     """(revisión, tokens_in, tokens_out). Falla abierta: si el revisor no responde, aprueba."""
     from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_anthropic
 
@@ -144,16 +162,19 @@ def revisar_ia(respuesta: str, *, contexto: str, evidencia: str, canal: str, cli
     ok, _ = permitir_llamada(MODELO_REVISOR, contexto=CONTEXTO_BUDGET)
     if not ok:
         return rev, 0, 0
+    # Cabeza (fecha/hora, horario, pedido) + cola (últimos mensajes): recortar solo por la
+    # cola dejaba al revisor sin la hora y "deducía" el horario de los mensajes viejos.
+    ctx = contexto if len(contexto) <= 6500 else contexto[:2000] + "\n…(mensajes intermedios omitidos)…\n" + contexto[-4500:]
     contenido = (
-        f"Canal: {canal}\n\nCONTEXTO DE LA CONVERSACIÓN:\n{contexto[-6000:]}\n\n"
-        f"EVIDENCIA (herramientas y pedido):\n{evidencia[-4000:]}\n\n"
+        f"Canal: {canal}\n\nCONTEXTO DE LA CONVERSACIÓN:\n{ctx}\n\n"
+        f"EVIDENCIA (herramientas, pedido y lo que escribió el asesor):\n{evidencia[-4000:]}\n\n"
         f"RESPUESTA PROPUESTA DE HUGO:\n{respuesta}"
     )
     try:
         resp = cliente.messages.create(
             model=MODELO_REVISOR,
             max_tokens=600,
-            system=PROMPT_REVISOR,
+            system=PROMPT_REVISOR + (CRITERIO_RETOMA if retomando else ""),
             messages=[{"role": "user", "content": contenido}],
         )
     except Exception as e:
@@ -168,10 +189,27 @@ def revisar_ia(respuesta: str, *, contexto: str, evidencia: str, canal: str, cli
     except ValueError:
         data = {}
     if data.get("aprobado") is False:
-        rev.problemas = [str(p)[:300] for p in (data.get("problemas") or []) if str(p).strip()][:5] or [
-            "El supervisor rechazó la respuesta sin detalle."
-        ]
+        problemas = [str(p)[:300] for p in (data.get("problemas") or []) if str(p).strip()][:5]
+        rev.problemas = filtrar_promesas_sin_plazo(respuesta, problemas) or (
+            [] if problemas else ["El supervisor rechazó la respuesta sin detalle."]
+        )
     return rev, t_in, t_out
+
+
+# El revisor tiende a llamar "promesa" a cualquier mención de lo que hará el asesor. Solo
+# cuenta si la respuesta trae una expresión de tiempo literal; si no, el reparo se descarta.
+_PAT_TIEMPO_LITERAL = re.compile(
+    r"\b(en un momento|enseguida|ya mismo|en unos minutos|m[aá]s tarde|en breve|pronto|hoy mismo|"
+    r"a primera hora|en (?:una|media) hora|a las \d{1,2}(?::\d{2})?)\b",
+    re.I,
+)
+_PAT_REPARO_PROMESA = re.compile(r"promes|promet|plazo|tiempo|averiguar[aá]|gesti[oó]n que no puede", re.I)
+
+
+def filtrar_promesas_sin_plazo(respuesta: str, problemas: list[str]) -> list[str]:
+    if _PAT_TIEMPO_LITERAL.search(respuesta or ""):
+        return problemas
+    return [p for p in problemas if not _PAT_REPARO_PROMESA.search(p)]
 
 
 def es_de_riesgo(respuesta: str, herramientas: list[str]) -> bool:

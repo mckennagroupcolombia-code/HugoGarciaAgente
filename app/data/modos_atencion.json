@@ -1,138 +1,572 @@
 {
   "numeros_en_humano": [
-    "116054462361830@lid",
-    "573183954547@c.us",
-    "61109012840604@lid",
-    "573003945052@c.us",
-    "103684889403577@lid",
-    "573124055615@c.us",
-    "573212158090@c.us",
-    "69148990259320@lid",
-    "573115713149@c.us",
-    "54821012902003@lid",
-    "173619909017622@lid",
-    "573164935659@c.us",
-    "39230852067497@lid",
-    "573128485865@c.us",
+    "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe",
+    "85500551516276@lid",
+    "573019229626@c.us",
+    "573192247757@c.us",
+    "16080508592159@lid",
+    "256058081677329@lid",
+    "235368536358931@lid",
+    "573204642331@c.us",
+    "573227203834@c.us",
+    "172692212863191@lid",
+    "573104578432@c.us",
+    "174869778043120@lid",
+    "119026881671318@lid",
+    "573175195817@c.us",
+    "120363023555909043@g.us",
+    "35567010074856@lid",
+    "2367030300735@lid",
+    "573014433084@c.us",
+    "120363393955474672@g.us",
+    "233706501468198@lid",
+    "573175764579@c.us",
+    "279529390088428@lid",
+    "573016708239@c.us",
+    "573248699507@c.us",
+    "69884067238048@lid",
+    "233276971216936@lid",
+    "573205031961@c.us",
+    "56466169974985@lid",
+    "573011487739@c.us",
+    "573015675107@c.us",
+    "246291007328392@lid",
+    "121530763731073@lid",
+    "573208299760@c.us",
+    "7421820989667@lid",
+    "573168330664@c.us",
+    "171068597776517@lid",
+    "94700505694256@lid",
+    "573024381676@c.us",
+    "251290466701322@lid",
+    "249730957316313@lid",
+    "573217953421@c.us",
+    "573004054394@c.us",
+    "123394527903825@lid",
+    "258519064379559@lid",
+    "573042673171@c.us",
+    "573218851807@c.us",
+    "4707519078573@lid",
+    "187256463695894@lid",
+    "573187462545@c.us",
+    "180496738828390@lid",
+    "573202705050@c.us",
+    "135025232183389@lid",
+    "573153867079@c.us",
+    "225567504892142@lid",
     "112000482979882@lid",
     "573053106833@c.us",
-    "260653159858336@lid",
-    "573217423374@c.us"
+    "156272502517833@lid",
+    "573174346955@c.us",
+    "211230820171855@lid",
+    "573163397382@c.us",
+    "573203141452@c.us",
+    "156289699172555@lid",
+    "267946567938297@lid",
+    "573223550780@c.us",
+    "39170219229281@lid",
+    "61886284455978@lid",
+    "573207508278@c.us",
+    "56083850748008@lid",
+    "573016371669@c.us",
+    "197418255695940@lid",
+    "573219129462@c.us",
+    "573015823487@c.us",
+    "77005307519219@lid",
+    "177648537968832@lid",
+    "116054462361830@lid",
+    "573183954547@c.us",
+    "135343126888496@lid",
+    "573115399876@c.us",
+    "1679802036272@lid",
+    "573123799097@c.us"
   ],
   "numeros_silenciados": [],
   "timestamps": {
-    "116054462361830@lid": 1789135765.493789,
-    "573183954547@c.us": 1789135765.493789,
-    "61109012840604@lid": 1789147239.6056125,
-    "573003945052@c.us": 1789147239.6056125,
-    "103684889403577@lid": 1789149585.807416,
-    "573124055615@c.us": 1789149585.807416,
-    "573212158090@c.us": 1789152462.147829,
-    "69148990259320@lid": 1789152462.147829,
-    "573115713149@c.us": 1789152462.147829,
-    "54821012902003@lid": 1789152462.147829,
-    "173619909017622@lid": 1789152462.147829,
-    "573164935659@c.us": 1789152462.147829,
-    "39230852067497@lid": 1789152462.147829,
-    "573128485865@c.us": 1789152462.147829,
-    "112000482979882@lid": 1789152462.147829,
-    "573053106833@c.us": 1789152462.147829,
-    "260653159858336@lid": 1789152462.147829,
-    "573217423374@c.us": 1789152462.147829
+    "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe": 1790178747.8837469,
+    "85500551516276@lid": 1790717602.359398,
+    "573019229626@c.us": 1790717602.359398,
+    "573192247757@c.us": 1790605714.6285589,
+    "16080508592159@lid": 1790605714.6285589,
+    "256058081677329@lid": 1790606269.6630688,
+    "235368536358931@lid": 1790616349.0276742,
+    "573204642331@c.us": 1790616349.0276742,
+    "573227203834@c.us": 1790621260.2992072,
+    "172692212863191@lid": 1790621260.2992072,
+    "573104578432@c.us": 1790621266.504241,
+    "174869778043120@lid": 1790621266.504241,
+    "119026881671318@lid": 1790621270.8016381,
+    "573175195817@c.us": 1790621270.8016381,
+    "120363023555909043@g.us": 1790621282.216532,
+    "35567010074856@lid": 1790629475.3355436,
+    "2367030300735@lid": 1790687486.759396,
+    "573014433084@c.us": 1790687486.759396,
+    "120363393955474672@g.us": 1790687490.7516515,
+    "233706501468198@lid": 1790687494.875017,
+    "573175764579@c.us": 1790687494.875017,
+    "279529390088428@lid": 1790692346.4918094,
+    "573016708239@c.us": 1790692346.4918094,
+    "573248699507@c.us": 1790692348.9461899,
+    "69884067238048@lid": 1790692348.9461899,
+    "233276971216936@lid": 1790693217.4421027,
+    "573205031961@c.us": 1790693217.4421027,
+    "56466169974985@lid": 1790694656.988616,
+    "573011487739@c.us": 1790694656.988616,
+    "573015675107@c.us": 1790700667.1354527,
+    "246291007328392@lid": 1790700667.1354527,
+    "121530763731073@lid": 1790707954.6172817,
+    "573208299760@c.us": 1790717536.10684,
+    "7421820989667@lid": 1790717536.10684,
+    "573168330664@c.us": 1790720457.178922,
+    "171068597776517@lid": 1790720457.178922,
+    "94700505694256@lid": 1790721582.974034,
+    "573024381676@c.us": 1790721582.974034,
+    "251290466701322@lid": 1790724056.6071713,
+    "249730957316313@lid": 1790769085.355793,
+    "573217953421@c.us": 1790769085.355793,
+    "573004054394@c.us": 1790782759.8800378,
+    "123394527903825@lid": 1790782759.8800378,
+    "258519064379559@lid": 1790785398.3682761,
+    "573042673171@c.us": 1790785398.3682761,
+    "573218851807@c.us": 1790789766.5253491,
+    "4707519078573@lid": 1790789766.5253491,
+    "187256463695894@lid": 1790794900.371986,
+    "573187462545@c.us": 1790799706.730904,
+    "180496738828390@lid": 1790799706.730904,
+    "573202705050@c.us": 1790799795.1634424,
+    "135025232183389@lid": 1790799795.1634424,
+    "573153867079@c.us": 1790861770.1337762,
+    "225567504892142@lid": 1790861770.1337762,
+    "112000482979882@lid": 1790861773.5977583,
+    "573053106833@c.us": 1790861773.5977583,
+    "156272502517833@lid": 1790865292.5371563,
+    "573174346955@c.us": 1790865292.5371563,
+    "211230820171855@lid": 1790870407.6441956,
+    "573163397382@c.us": 1790870407.6441956,
+    "573203141452@c.us": 1790870410.6436343,
+    "156289699172555@lid": 1790870410.6436343,
+    "267946567938297@lid": 1790874682.5774674,
+    "573223550780@c.us": 1790874682.5774674,
+    "39170219229281@lid": 1790878704.452641,
+    "61886284455978@lid": 1790885688.9222305,
+    "573207508278@c.us": 1790885688.9222305,
+    "56083850748008@lid": 1790896646.1583579,
+    "573016371669@c.us": 1790896646.1583579,
+    "197418255695940@lid": 1790897426.9197032,
+    "573219129462@c.us": 1790897426.9197032,
+    "573015823487@c.us": 1790898643.126774,
+    "77005307519219@lid": 1790898643.126774,
+    "177648537968832@lid": 1790903028.9501169,
+    "116054462361830@lid": 1790949837.8833086,
+    "573183954547@c.us": 1790949837.8833086,
+    "135343126888496@lid": 1790952457.1331687,
+    "573115399876@c.us": 1790952457.1331687,
+    "1679802036272@lid": 1790964752.9185486,
+    "573123799097@c.us": 1790964752.9185486
   },
   "bot_auto_pausados": {
-    "116054462361830@lid": {
-      "timestamp": 1789135765.493789,
+    "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe": {
+      "timestamp": 1790178747.883747,
+      "razon": "web_pago_pedido",
+      "ultimo_mensaje": "Ok"
+    },
+    "85500551516276@lid": {
+      "timestamp": 1790717602.359398,
+      "razon": "mensaje repetido por posible bot",
+      "ultimo_mensaje": "Ok"
+    },
+    "573019229626@c.us": {
+      "timestamp": 1790717602.359398,
+      "razon": "mensaje repetido por posible bot",
+      "ultimo_mensaje": "Ok"
+    },
+    "573192247757@c.us": {
+      "timestamp": 1790605714.6285589,
+      "razon": "cliente solicit\u00f3 humano",
+      "ultimo_mensaje": "Ok"
+    },
+    "16080508592159@lid": {
+      "timestamp": 1790605714.6285589,
+      "razon": "cliente solicit\u00f3 humano",
+      "ultimo_mensaje": "Ok"
+    },
+    "256058081677329@lid": {
+      "timestamp": 1790606269.6630688,
+      "razon": "r\u00e1faga de 7 mensajes en 120s",
+      "ultimo_mensaje": "Ok"
+    },
+    "235368536358931@lid": {
+      "timestamp": 1790616349.0276742,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Ok"
+    },
+    "573204642331@c.us": {
+      "timestamp": 1790616349.0276742,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Ok"
+    },
+    "573227203834@c.us": {
+      "timestamp": 1790621260.2992072,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Me puedes indicar si la presentaci\u00f3n cambio .... Si siguen manejando la otra presentaci\u00f3n? O si se equivocaron de producto"
+      "ultimo_mensaje": "Ok"
     },
-    "573183954547@c.us": {
-      "timestamp": 1789135765.493789,
+    "172692212863191@lid": {
+      "timestamp": 1790621260.2992072,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Me puedes indicar si la presentaci\u00f3n cambio .... Si siguen manejando la otra presentaci\u00f3n? O si se equivocaron de producto"
+      "ultimo_mensaje": "Ok"
     },
-    "61109012840604@lid": {
-      "timestamp": 1789147239.6056125,
+    "573104578432@c.us": {
+      "timestamp": 1790621266.504241,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Ok"
     },
-    "573003945052@c.us": {
-      "timestamp": 1789147239.6056125,
+    "174869778043120@lid": {
+      "timestamp": 1790621266.504241,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Ok"
     },
-    "103684889403577@lid": {
-      "timestamp": 1789149585.807416,
+    "119026881671318@lid": {
+      "timestamp": 1790621270.8016381,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Ok"
     },
-    "573124055615@c.us": {
-      "timestamp": 1789149585.807416,
+    "573175195817@c.us": {
+      "timestamp": 1790621270.8016381,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Ok"
     },
-    "573212158090@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": ""
+    "120363023555909043@g.us": {
+      "timestamp": 1790621282.216532,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
     },
-    "69148990259320@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": ""
+    "35567010074856@lid": {
+      "timestamp": 1790629475.3355436,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
     },
-    "573115713149@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": ""
+    "2367030300735@lid": {
+      "timestamp": 1790687486.759396,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
     },
-    "54821012902003@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": ""
+    "573014433084@c.us": {
+      "timestamp": 1790687486.759396,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
     },
-    "173619909017622@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": ""
+    "120363393955474672@g.us": {
+      "timestamp": 1790687490.7516515,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
     },
-    "573164935659@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": ""
+    "233706501468198@lid": {
+      "timestamp": 1790687494.875017,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
     },
-    "39230852067497@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": ""
+    "573175764579@c.us": {
+      "timestamp": 1790687494.875017,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
     },
-    "573128485865@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": ""
+    "279529390088428@lid": {
+      "timestamp": 1790692346.4918094,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573016708239@c.us": {
+      "timestamp": 1790692346.4918094,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573248699507@c.us": {
+      "timestamp": 1790692348.9461899,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "69884067238048@lid": {
+      "timestamp": 1790692348.9461899,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "233276971216936@lid": {
+      "timestamp": 1790693217.4421027,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573205031961@c.us": {
+      "timestamp": 1790693217.4421027,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "56466169974985@lid": {
+      "timestamp": 1790694656.988616,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573011487739@c.us": {
+      "timestamp": 1790694656.988616,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573015675107@c.us": {
+      "timestamp": 1790700667.1354527,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "246291007328392@lid": {
+      "timestamp": 1790700667.1354527,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "121530763731073@lid": {
+      "timestamp": 1790707954.6172817,
+      "razon": "r\u00e1faga de 10 mensajes en 120s",
+      "ultimo_mensaje": "Ok"
+    },
+    "573208299760@c.us": {
+      "timestamp": 1790717536.10684,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "7421820989667@lid": {
+      "timestamp": 1790717536.10684,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573168330664@c.us": {
+      "timestamp": 1790720457.178922,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "171068597776517@lid": {
+      "timestamp": 1790720457.178922,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "94700505694256@lid": {
+      "timestamp": 1790721582.974034,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573024381676@c.us": {
+      "timestamp": 1790721582.974034,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "251290466701322@lid": {
+      "timestamp": 1790724056.6071713,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "249730957316313@lid": {
+      "timestamp": 1790769085.355793,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573217953421@c.us": {
+      "timestamp": 1790769085.355793,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573004054394@c.us": {
+      "timestamp": 1790782759.8800378,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "123394527903825@lid": {
+      "timestamp": 1790782759.8800378,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "258519064379559@lid": {
+      "timestamp": 1790785398.3682761,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573042673171@c.us": {
+      "timestamp": 1790785398.3682761,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573218851807@c.us": {
+      "timestamp": 1790789766.5253491,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "4707519078573@lid": {
+      "timestamp": 1790789766.5253491,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "187256463695894@lid": {
+      "timestamp": 1790794900.371986,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573187462545@c.us": {
+      "timestamp": 1790799706.730904,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "180496738828390@lid": {
+      "timestamp": 1790799706.730904,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573202705050@c.us": {
+      "timestamp": 1790799795.1634424,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "135025232183389@lid": {
+      "timestamp": 1790799795.1634424,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573153867079@c.us": {
+      "timestamp": 1790861770.1337762,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "225567504892142@lid": {
+      "timestamp": 1790861770.1337762,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
     },
     "112000482979882@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
-      "ultimo_mensaje": ""
+      "timestamp": 1790861773.5977583,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
     },
     "573053106833@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "timestamp": 1790861773.5977583,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "156272502517833@lid": {
+      "timestamp": 1790865292.5371563,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573174346955@c.us": {
+      "timestamp": 1790865292.5371563,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "211230820171855@lid": {
+      "timestamp": 1790870407.6441956,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573163397382@c.us": {
+      "timestamp": 1790870407.6441956,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573203141452@c.us": {
+      "timestamp": 1790870410.6436343,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "156289699172555@lid": {
+      "timestamp": 1790870410.6436343,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "267946567938297@lid": {
+      "timestamp": 1790874682.5774674,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573223550780@c.us": {
+      "timestamp": 1790874682.5774674,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "39170219229281@lid": {
+      "timestamp": 1790878704.452641,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "61886284455978@lid": {
+      "timestamp": 1790885688.9222305,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "573207508278@c.us": {
+      "timestamp": 1790885688.9222305,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Ok"
+    },
+    "56083850748008@lid": {
+      "timestamp": 1790896646.1583579,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Ok"
+    },
+    "573016371669@c.us": {
+      "timestamp": 1790896646.1583579,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Ok"
+    },
+    "197418255695940@lid": {
+      "timestamp": 1790897426.9197032,
+      "razon": "operador desde panel de chats",
       "ultimo_mensaje": ""
     },
-    "260653159858336@lid": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+    "573219129462@c.us": {
+      "timestamp": 1790897426.9197032,
+      "razon": "operador desde panel de chats",
       "ultimo_mensaje": ""
     },
-    "573217423374@c.us": {
-      "timestamp": 1789152462.147829,
-      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+    "573015823487@c.us": {
+      "timestamp": 1790898643.126774,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "77005307519219@lid": {
+      "timestamp": 1790898643.126774,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "177648537968832@lid": {
+      "timestamp": 1790903028.9501169,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "116054462361830@lid": {
+      "timestamp": 1790949837.8833086,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573183954547@c.us": {
+      "timestamp": 1790949837.8833086,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "135343126888496@lid": {
+      "timestamp": 1790952457.1331687,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573115399876@c.us": {
+      "timestamp": 1790952457.1331687,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "1679802036272@lid": {
+      "timestamp": 1790964752.9185486,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573123799097@c.us": {
+      "timestamp": 1790964752.9185486,
+      "razon": "operador desde panel de chats",
       "ultimo_mensaje": ""
     }
   },
-  "bot_global_activo": false,
+  "bot_global_activo": true,
   "horario_bot": {
     "habilitado": false,
     "hora_inicio": "08:00",

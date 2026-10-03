@@ -130,6 +130,7 @@ from app.meli_reclamos import crear_accion_anular_factura_por_reclamo
 from app.meli_webhook_topics import meli_webhook_evaluar_despacho
 from app.sync import sincronizar_stock_todas_las_plataformas
 from app.tools.meli_autofactura_entrega import procesar_entrega_meli_para_factura
+from app.meli_mensaje_venta_sku import procesar_mensaje_venta_sku
 
 # Memoria para deduplicación de preguntas
 preguntas_procesadas = {}
@@ -219,6 +220,25 @@ def _procesar_orden_meli(order_id: str):
             except Exception:
                 sku = ""
                 stock_post_venta = None
+
+            # Mensaje automático al comprador si el SKU está configurado en
+            # app/data/mensajes_venta_sku.json (una sola vez por orden+SKU,
+            # aunque MeLi repita orders_v2). Nunca interrumpe el sync de stock.
+            try:
+                sku_msg = sku or item_info.get("seller_sku") or ""
+                if sku_msg:
+                    comprador = orden.get("buyer") or {}
+                    nombre_comprador = " ".join(
+                        p for p in (comprador.get("first_name"), comprador.get("last_name")) if p
+                    ) or (comprador.get("nickname") or "")
+                    procesar_mensaje_venta_sku(
+                        str(order_id),
+                        sku_msg,
+                        nombre_producto=item_info.get("title") or "",
+                        comprador=nombre_comprador,
+                    )
+            except Exception as e_msg:
+                print(f"⚠️ [MELI-MSG-SKU] Error en orden {order_id}: {e_msg}")
 
             if not sku:
                 print(

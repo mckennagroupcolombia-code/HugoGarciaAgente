@@ -8,19 +8,26 @@ import {
 } from "react";
 import BuscadorFichaTecnica from "../etiqueta-ficha/BuscadorFichaTecnica";
 import PopoverFlotante from "../etiqueta-ficha/PopoverFlotante";
-import { EJEMPLO_ETIQUETA, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
+import MenuLogoCorporativo from "../etiqueta-ficha/MenuLogoCorporativo";
+import { EditableLabel } from "../etiqueta-ficha/EditableField";
+import type { AttributeKey } from "../etiqueta-ficha/ProductAttributeGrid";
+import LemaLogo from "../etiqueta-30ml/LemaLogo";
+import { EJEMPLO_ETIQUETA, normalizarHex, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
 import CampoEtiqueta from "../etiqueta-30ml/CampoEtiqueta";
 import BarcodeSection from "../etiqueta-30ml/BarcodeSection";
+import { IconoCelda } from "../etiqueta-30ml/TechnicalCell";
 import { textoContenidoNeto } from "../etiqueta-30ml/etiqueta30mlTypes";
 import { useVersionFuentes } from "../etiqueta-30ml/useAjusteTexto";
+import { FUENTES_DISPONIBLES, useTextStyleCtx } from "../etiqueta-ficha/TextStyleContext";
+import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import type { CodigoEan } from "../../lib/etiquetasCodigosEan";
 import {
+  ALTO_FRANJA_CIRCULAR,
   arcoTexto,
-  COLORES_FRANJA_BARRAS,
-  lineasAplicaciones,
+  CASILLAS_CIRCULAR,
   TRAMOS_CIRCULAR,
-  unirAplicaciones,
   variablesCirculares,
+  type CampoCasillaCircular,
   type ReticulaCircular,
 } from "./etiquetaCircularTypes";
 import "../etiqueta-30ml/etiqueta30ml.css";
@@ -29,11 +36,6 @@ import "./etiquetaCircular.css";
 /** Ejemplos en gris de las casillas vacías, solo en edición (§ referencia). */
 const EJEMPLO_CIRCULAR = {
   productName: "MANTECA KARITÉ",
-  descripcionProducto:
-    "Grasa vegetal de color marfil, extraída de la semilla del árbol del karité "
-    + "(Butyrospermum parkii Kostchy, fam. Sapotáceas), un árbol de África Central.",
-  aplicacionesTitulo: "Aplicaciones:",
-  aplicacion: "En la fabricación de cremas hidratantes para piel…",
   empresa: "MCKENNA GROUP",
   registro: "SD2018919-20245917",
   controlCalidad:
@@ -46,22 +48,26 @@ interface Props {
   data: ProductLabelData;
   reticula: ReticulaCircular;
   editMode: boolean;
+  attributeIcons: Partial<Record<AttributeKey, string>>;
   guias?: boolean;
   onChange?: (patch: Partial<ProductLabelData>) => void;
+  onIconChange?: (campo: AttributeKey, svgDataUrl: string) => void;
   onElegirCodigo?: (codigo: CodigoEan) => void;
 }
 
 /**
- * Etiqueta circular 53 × 53 mm — Ceras y mantecas.
+ * Etiqueta circular 53 × 53 mm (y redonda 70 × 70) — Ceras y mantecas.
  *
  *            ╭────── MANTECA KARITÉ ──────╮
- *          ╱      descripción del producto   ╲
- *        │           Aplicaciones:            │
- *   E  │  • … • … • …                          │  c
- *   M  │                                       │  o
- *   P  │            ▌▌▐▌▌▐▐▌▌                  │  n
- *   R  │               125 g                   │  t
- *        ╲        SD2018919-20245917         ╱
+ *          ╱        logo · lema            ╲
+ *        │  ───────────────────────────     │
+ *   E  │        ◎         │        ◇          │  c
+ *   M  │      ORIGEN      │    APARIENCIA     │  o
+ *   P  │   ─────────────────────────────     │  n
+ *   R  │        ≈         │        ▢          │  t
+ *        │     AROMA        │   CONSERVACIÓN    │
+ *        │  ───────────────────────────        │
+ *        ╲     ▌▌▐▌▌▐▐▌▌   125 g          ╱
  *            ╰───────────────────────────╯
  *
  * Dos capas sobre un lienzo cuadrado con `border-radius: 50%`: el SVG con
@@ -74,7 +80,7 @@ interface Props {
  * diseño; quien la muestra la escala desde afuera.
  */
 const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCircular(
-  { data, reticula, editMode, guias, onChange, onElegirCodigo },
+  { data, reticula, editMode, attributeIcons, guias, onChange, onIconChange, onElegirCodigo },
   ref,
 ) {
   const uid = useId().replace(/:/g, "");
@@ -83,23 +89,14 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
   // Bandas y tamaños salen de la retícula: siguen al diámetro, no son px sueltos.
   const bandas = reticula.bandas;
   const tam = reticula.tam;
+  const acento = normalizarHex(data.accentColor);
 
-  const bandaDescRef = useRef<HTMLDivElement>(null);
-  const bandaListaRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
+  const [menuLogo, setMenuLogo] = useState(false);
+  const [iconoAbierto, setIconoAbierto] = useState<CampoCasillaCircular | null>(null);
 
   const cambio = (campo: keyof ProductLabelData) =>
     onChange ? (v: string) => onChange({ [campo]: v }) : undefined;
-
-  const aplicaciones = lineasAplicaciones(data.aplicaciones);
-  const filas = editable && aplicaciones.length === 0 ? [""] : aplicaciones;
-  const editarAplicacion = (i: number, v: string) => {
-    const copia = [...filas];
-    copia[i] = v;
-    onChange?.({ aplicaciones: unirAplicaciones(copia) });
-  };
-  const quitarAplicacion = (i: number) =>
-    onChange?.({ aplicaciones: unirAplicaciones(filas.filter((_, j) => j !== i)) });
-  const anadirAplicacion = () => onChange?.({ aplicaciones: unirAplicaciones([...filas, ""]) });
 
   const idTitulo = `${uid}-titulo`;
   const idControl = `${uid}-control`;
@@ -123,8 +120,11 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           <path id={idCiudad} fill="none" d={arcoTexto(centro, rAnillo - sepArco, TRAMOS_CIRCULAR.empresa.desde, TRAMOS_CIRCULAR.empresa.hasta, true)} />
         </defs>
 
-        <circle className="ec-borde-exterior" cx={centro} cy={centro} r={rExterior} strokeWidth={reticula.lineaFina} />
-        <circle className="ec-borde-interior" cx={centro} cy={centro} r={rInterior} strokeWidth={reticula.linea} />
+        {/* Relleno y trazo como ATRIBUTOS: al rasterizar el PNG (html-to-image) se pierde
+            el CSS de las clases en el SVG — sin ellos los aros no salían y un <circle> sin
+            relleno explícito sale negro, tapando toda la etiqueta. */}
+        <circle className="ec-borde-exterior" fill="none" stroke="#d9d9d9" cx={centro} cy={centro} r={rExterior} strokeWidth={reticula.lineaFina} />
+        <circle className="ec-borde-interior" fill="none" stroke={acento} cx={centro} cy={centro} r={rInterior} strokeWidth={reticula.linea} />
 
         <TextoCurvo
           idPath={idTitulo}
@@ -133,7 +133,9 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           ejemplo={EJEMPLO_CIRCULAR.productName}
           tam={tam.titulo}
           rotulo="Nombre del producto"
+          styleKey="ec_productName"
           clase="ec-curvo ec-curvo-titulo"
+          pintura={{ fill: acento, peso: 700, espaciado: "0.012em", mayusculas: true }}
           editable={editable}
           editMode={editMode}
           onChange={cambio("productName")}
@@ -145,10 +147,14 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           ejemplo={EJEMPLO_CIRCULAR.controlCalidad}
           tam={tam.control}
           rotulo="Aviso de control de calidad"
+          styleKey="ec_controlCalidad"
           clase="ec-curvo ec-curvo-gris"
+          pintura={{ fill: "#1a1a1a", peso: 500, espaciado: "0.01em" }}
           editable={editable}
           editMode={editMode}
           multilinea
+          dosRenglones
+          centro={centro}
           onChange={cambio("controlCalidad")}
         />
         <TextoCurvo
@@ -158,7 +164,9 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           ejemplo={EJEMPLO_CIRCULAR.registro}
           tam={tam.registro}
           rotulo="Número de registro"
+          styleKey="ec_registro"
           clase="ec-curvo"
+          pintura={{ fill: acento, peso: 600, espaciado: "0.02em" }}
           editable={editable}
           editMode={editMode}
           onChange={cambio("registro")}
@@ -170,7 +178,9 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           ejemplo={EJEMPLO_CIRCULAR.empresa}
           tam={tam.empresa}
           rotulo="Razón social"
+          styleKey="ec_empresa"
           clase="ec-curvo"
+          pintura={{ fill: acento, peso: 600, espaciado: "0.02em" }}
           editable={editable}
           editMode={editMode}
           onChange={cambio("empresa")}
@@ -182,7 +192,9 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           ejemplo={EJEMPLO_ETIQUETA.city}
           tam={tam.empresa}
           rotulo="Ciudad y país"
+          styleKey="ec_city"
           clase="ec-curvo"
+          pintura={{ fill: acento, peso: 600, espaciado: "0.02em" }}
           editable={editable}
           editMode={editMode}
           onChange={cambio("city")}
@@ -190,90 +202,76 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
       </svg>
 
       <div className="ec-centro">
+        {reticula.lineas.map((l, i) => (
+          <span
+            key={i}
+            className="ec-separador"
+            aria-hidden="true"
+            style={{ top: l.top, left: l.left, width: l.ancho, height: l.alto }}
+          />
+        ))}
+
         {/* Lupa de fichas técnicas: fuera del recorrido de los textos, en el
             hueco que queda arriba a la derecha del anillo. */}
         {editable && onChange && (
-          <div style={{ position: "absolute", top: diametro * 0.09, right: diametro * 0.3 }}>
+          <div style={{ position: "absolute", top: diametro * 0.345, right: diametro * 0.115 }}>
             <BuscadorFichaTecnica onAplicar={onChange} consultaInicial={data.barcodeTitle || ""} />
           </div>
         )}
 
+        {/* Logo y lema de la casa, igual que en las demás etiquetas: el logo se
+            elige de DISEÑO CORPORATIVO y el lema es constante. */}
         <div
-          ref={bandaDescRef}
-          className="ec-banda"
-          style={{ top: bandas.descripcion.top, height: bandas.descripcion.alto, width: bandas.descripcion.ancho }}
+          ref={logoRef}
+          className="ec-banda ec-logo"
+          style={{ top: bandas.logo.top, height: bandas.logo.alto, width: bandas.logo.ancho }}
         >
-          <CampoEtiqueta
-            valor={data.descripcionProducto || ""}
-            onChange={cambio("descripcionProducto")}
-            editMode={editMode}
-            styleKey="ec_descripcion"
-            ejemplo={EJEMPLO_CIRCULAR.descripcionProducto}
-            tam={tam.descripcion}
-            maxLineas={5}
-            cajaRef={bandaDescRef}
-            multilinea
-            className="ec-descripcion"
-          />
-        </div>
-
-        <div
-          className="ec-banda"
-          style={{ top: bandas.aplicacionesTitulo.top, height: bandas.aplicacionesTitulo.alto, width: bandas.aplicacionesTitulo.ancho }}
-        >
-          <CampoEtiqueta
-            valor={data.aplicacionesTitulo || ""}
-            onChange={cambio("aplicacionesTitulo")}
-            editMode={editMode}
-            styleKey="ec_aplicacionesTitulo"
-            ejemplo={EJEMPLO_CIRCULAR.aplicacionesTitulo}
-            tam={tam.aplicacionesTitulo}
-            maxLineas={1}
-            className="ec-aplicaciones-titulo"
-          />
-        </div>
-
-        <div
-          ref={bandaListaRef}
-          className="ec-banda"
-          style={{ top: bandas.aplicaciones.top, height: bandas.aplicaciones.alto, width: bandas.aplicaciones.ancho }}
-        >
-          <ul className="ec-lista">
-            {filas.map((linea, i) => (
-              <li key={i} className="ec-item">
-                <span className="ec-item-vineta" aria-hidden="true" />
-                <div className="ec-item-caja">
-                  <CampoEtiqueta
-                    valor={linea}
-                    onChange={editable ? (v) => editarAplicacion(i, v) : undefined}
-                    editMode={editMode}
-                    styleKey="ec_aplicacion"
-                    ejemplo={EJEMPLO_CIRCULAR.aplicacion}
-                    tam={tam.aplicacion}
-                    maxLineas={4}
-                    cajaRef={bandaListaRef}
-                    multilinea
-                    className="ec-item-texto"
-                  />
-                  {editable && filas.length > 1 && (
-                    <button
-                      type="button"
-                      className="ec-item-quitar mck-btn-no-fx"
-                      title="Quitar esta aplicación"
-                      onClick={() => quitarAplicacion(i)}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-          {editable && (
-            <button type="button" className="ec-anadir mck-btn-no-fx" onClick={anadirAplicacion}>
-              + Añadir aplicación
-            </button>
+          <button
+            type="button"
+            disabled={!editable}
+            onClick={() => setMenuLogo((v) => !v)}
+            title={editable ? "Elegir logo (carpeta DISEÑO CORPORATIVO)" : undefined}
+            className="e30-logo-caja ec-logo-caja mck-btn-no-fx"
+          >
+            {data.logoUrl ? (
+              <img className="ec-logo-img" src={data.logoUrl} alt="Logotipo" />
+            ) : editMode ? (
+              <span className="e30-logo-vacio">McKenna Group</span>
+            ) : null}
+          </button>
+          <LemaLogo logoRef={logoRef} logoUrl={data.logoUrl} className="ec-lema" />
+          {onChange && (
+            <MenuLogoCorporativo
+              data={data}
+              onChange={onChange}
+              anchorRef={logoRef}
+              abierto={editable && menuLogo}
+              onCerrar={() => setMenuLogo(false)}
+              alinear="centro"
+            />
           )}
+        </div>
+
+        <div
+          className="ec-banda ec-rejilla"
+          style={{ top: bandas.rejilla.top, height: bandas.rejilla.alto, width: bandas.rejilla.ancho }}
+        >
+          {CASILLAS_CIRCULAR.map((c) => (
+            <CasillaCircular
+              key={c.campo}
+              campo={c.campo}
+              titulo={c.titulo}
+              valor={data[c.campo] || ""}
+              ejemplo={EJEMPLO_ETIQUETA[c.campo]}
+              iconoElegido={attributeIcons[c.campo]}
+              iconoPorDefecto={c.icono}
+              editMode={editMode}
+              tamTitulo={tam.casillaTitulo[0]}
+              tamValor={tam.casillaValor}
+              onChange={cambio(c.campo)}
+              onEditarIcono={editable && onIconChange ? () => setIconoAbierto(c.campo) : undefined}
+            />
+          ))}
         </div>
 
         <div
@@ -281,16 +279,12 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           style={{ top: bandas.barras.top, height: bandas.barras.alto, width: bandas.barras.ancho }}
         >
           <div className="ec-barras-caja">
-            <div className="ec-franja-color" aria-hidden="true">
-              {COLORES_FRANJA_BARRAS.map((c) => (
-                <span key={c} style={{ background: c }} />
-              ))}
-            </div>
             <BarcodeSection
               value={data.barcode}
               editMode={editable}
               onChange={(v) => onChange?.({ barcode: v })}
               onElegirCodigo={onElegirCodigo}
+              franja={{ alto: ALTO_FRANJA_CIRCULAR }}
             />
           </div>
         </div>
@@ -312,11 +306,92 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           />
         </div>
       </div>
+
+      {onIconChange && (
+        <GaleriaIconosQuimicosModal
+          abierta={iconoAbierto !== null}
+          campo={iconoAbierto}
+          colorTinta={normalizarHex(data.accentColor)}
+          onCerrar={() => setIconoAbierto(null)}
+          onElegir={(svgDataUrl) => {
+            if (iconoAbierto) onIconChange(iconoAbierto, svgDataUrl);
+            setIconoAbierto(null);
+          }}
+        />
+      )}
     </div>
   );
 });
 
 export default EtiquetaCircular;
+
+// ── Casilla de la rejilla ──────────────────────────────────────────────────
+
+/** Ícono, título y valor breve apilados y centrados en su columna. El ícono
+ *  abre la galería en edición; el valor se encoge hasta 3 renglones. */
+function CasillaCircular({
+  campo,
+  titulo,
+  valor,
+  ejemplo,
+  iconoElegido,
+  iconoPorDefecto,
+  editMode,
+  tamTitulo,
+  tamValor,
+  onChange,
+  onEditarIcono,
+}: {
+  campo: CampoCasillaCircular;
+  titulo: string;
+  valor: string;
+  ejemplo: string;
+  iconoElegido?: string;
+  iconoPorDefecto: string;
+  editMode: boolean;
+  tamTitulo: number;
+  tamValor: readonly [number, number];
+  onChange?: (v: string) => void;
+  onEditarIcono?: () => void;
+}) {
+  const cajaRef = useRef<HTMLDivElement>(null);
+  return (
+    <div className="ec-casilla">
+      <button
+        type="button"
+        className="ec-casilla-icono e30-celda-icono mck-btn-no-fx"
+        disabled={!onEditarIcono}
+        onClick={onEditarIcono}
+        title={onEditarIcono ? "Cambiar ícono" : undefined}
+        aria-label={`Ícono de ${titulo.toLowerCase()}`}
+      >
+        <IconoCelda elegido={iconoElegido} porDefecto={iconoPorDefecto} />
+      </button>
+      <div ref={cajaRef} className="ec-casilla-texto">
+        <EditableLabel
+          texto={titulo}
+          editMode={editMode}
+          styleKey={`ec_${campo}Titulo`}
+          defaultFontSize={tamTitulo}
+          as="p"
+          className="ec-casilla-titulo"
+        />
+        <CampoEtiqueta
+          valor={valor}
+          onChange={onChange}
+          editMode={editMode}
+          styleKey={`ec_${campo}`}
+          ejemplo={ejemplo}
+          tam={tamValor}
+          maxLineas={3}
+          cajaRef={cajaRef}
+          multilinea
+          className="ec-casilla-valor"
+        />
+      </div>
+    </div>
+  );
+}
 
 // ── Texto curvo ────────────────────────────────────────────────────────────
 
@@ -330,6 +405,75 @@ export default EtiquetaCircular;
  * se vuelve clicable y su casilla se abre en un popover anclado al propio
  * texto — sigue editándose sobre la etiqueta, como el logo o el código.
  */
+/** Cómo se pinta un texto curvo. Va como atributos del <text> y no solo por
+ *  clase: el PNG de «Revisar y aprobar» (html-to-image) pierde el CSS de las
+ *  clases en el SVG y los textos salían negros, finos y en minúsculas. En
+ *  pantalla la clase sigue mandando (pesa más que un atributo). */
+interface PinturaCurva {
+  fill: string;
+  peso: number;
+  espaciado: string;
+  mayusculas?: boolean;
+}
+
+const FUENTE_SVG = "Montserrat, system-ui, -apple-system, Segoe UI, sans-serif";
+
+/** Distancia de cada renglón al eje del arco, en fracción del tamaño de
+ *  letra: los dos renglones quedan a 1,2 em entre sí, dentro del anillo. */
+const SEP_RENGLON = 0.6;
+
+let lienzoMedida: CanvasRenderingContext2D | null = null;
+
+/** Ancho de un texto con la fuente, el peso y el espaciado (en em) dados. */
+function anchoTexto(texto: string, f: number, fuente: string, pintura: PinturaCurva): number {
+  if (!lienzoMedida) lienzoMedida = document.createElement("canvas").getContext("2d");
+  if (!lienzoMedida) return 0;
+  lienzoMedida.font = `${pintura.peso} ${f}px ${fuente}`;
+  const em = parseFloat(pintura.espaciado) || 0;
+  return lienzoMedida.measureText(texto).width + texto.length * em * f;
+}
+
+/** Largo útil de un arco (con el mismo respiro en las puntas que el de un renglón). */
+function largoUtil(r: number, desde: number, hasta: number): number {
+  return (r * Math.abs(hasta - desde) * Math.PI) / 180 * 0.96;
+}
+
+/**
+ * Busca, desde el tamaño elegido hacia abajo, el mayor tamaño al que el texto
+ * cabe: primero en un renglón y, si no, partido por palabras en dos arcos
+ * concéntricos (el de afuera, más largo, lleva el comienzo). Así el tamaño
+ * que se elige en el popover se respeta en vez de encogerse para caber en uno.
+ */
+function repartirEnDosArcos(
+  texto: string,
+  arco: { r: number; desde: number; hasta: number },
+  max: number,
+  min: number,
+  fuente: string,
+  pintura: PinturaCurva,
+): { f: number; dos: boolean; a: string; b: string; cabe: boolean } {
+  const palabras = texto.trim().split(/\s+/);
+  for (let f = max; ; f = Math.max(min, f - 0.5)) {
+    if (anchoTexto(texto, f, fuente, pintura) <= largoUtil(arco.r, arco.desde, arco.hasta)) {
+      return { f, dos: false, a: texto, b: "", cabe: true };
+    }
+    const sep = f * SEP_RENGLON;
+    const largoA = largoUtil(arco.r + sep, arco.desde, arco.hasta);
+    const largoB = largoUtil(arco.r - sep, arco.desde, arco.hasta);
+    let mejor: { a: string; b: string; peor: number } | null = null;
+    for (let i = 1; i < palabras.length; i++) {
+      const a = palabras.slice(0, i).join(" ");
+      const b = palabras.slice(i).join(" ");
+      const ra = anchoTexto(a, f, fuente, pintura) / largoA;
+      const rb = anchoTexto(b, f, fuente, pintura) / largoB;
+      const peor = Math.max(ra, rb);
+      if (peor <= 1 && (!mejor || peor < mejor.peor)) mejor = { a, b, peor };
+    }
+    if (mejor) return { f, dos: true, a: mejor.a, b: mejor.b, cabe: true };
+    if (f <= min) return { f, dos: false, a: texto, b: "", cabe: false };
+  }
+}
+
 function TextoCurvo({
   idPath,
   arco,
@@ -337,66 +481,129 @@ function TextoCurvo({
   ejemplo,
   tam,
   rotulo,
+  styleKey,
   clase,
+  pintura,
   editable,
   editMode,
   multilinea = false,
+  dosRenglones = false,
+  centro,
   onChange,
 }: {
   idPath: string;
-  arco: { r: number; desde: number; hasta: number };
+  arco: { r: number; desde: number; hasta: number; haciaAfuera?: boolean };
   valor: string;
   ejemplo: string;
   tam: readonly [number, number];
   /** Nombre del dato, para el encabezado del popover. */
   rotulo: string;
+  /** Clave de su tamaño/fuente en `text_styles`, como las casillas rectas. */
+  styleKey: string;
   clase: string;
+  pintura: PinturaCurva;
   editable: boolean;
   editMode: boolean;
   multilinea?: boolean;
+  /** Si al tamaño elegido no cabe en su arco, pasa a dos renglones en arcos
+   *  concéntricos (uno por fuera y otro por dentro del eje) antes de
+   *  encogerse. Necesita `centro` para trazar esos arcos. */
+  dosRenglones?: boolean;
+  centro?: number;
   onChange?: (v: string) => void;
 }) {
   const textoRef = useRef<SVGTextElement>(null);
   const [abierto, setAbierto] = useState(false);
   const [desborda, setDesborda] = useState(false);
   const versionFuentes = useVersionFuentes();
+  // Tamaño elegido = máximo, como en `CampoEtiqueta`: si no cabe en el arco
+  // se encoge igual que antes. El mínimo baja con él para poder achicarlo.
+  const { estilos } = useTextStyleCtx();
+  const override = estilos[styleKey];
+  const max = override?.fontSize ?? tam[0];
+  const min = Math.min(tam[1], max);
+  const fuente = override?.fontFamily || FUENTE_SVG;
+  const elegido = override?.fontSize != null;
 
   const vacio = !valor.trim();
-  const visible = vacio ? (editMode ? ejemplo : "") : valor;
+  const crudo = vacio ? (editMode ? ejemplo : "") : valor;
+  const visible = pintura.mayusculas ? crudo.toLocaleUpperCase("es") : crudo;
   // Largo del arco disponible, menos un respiro en las dos puntas.
   const largoArco = (arco.r * Math.abs(arco.hasta - arco.desde) * Math.PI) / 180 * 0.96;
+
+  // Reparto en dos renglones (solo con `dosRenglones`): tamaño final y texto
+  // de cada arco. `null` = cabe en uno, sobre el arco de siempre.
+  const [renglones, setRenglones] = useState<{ f: number; a: string; b: string } | null>(null);
+  const sep = renglones ? renglones.f * SEP_RENGLON : 0;
 
   useLayoutEffect(() => {
     const el = textoRef.current;
     if (!el || !visible) {
       setDesborda(false);
+      setRenglones(null);
       return;
     }
-    let f = tam[0];
+    // Sin tamaño elegido se queda en un renglón y se encoge como siempre; al
+    // subirlo en el popover, en vez de encogerse de vuelta pasa a dos.
+    if (dosRenglones && elegido) {
+      // Medido en un canvas (misma fuente, peso y espaciado): así se prueban
+      // los cortes sin tocar el DOM que pinta React.
+      const reparto = repartirEnDosArcos(visible, arco, max, min, fuente, pintura);
+      setRenglones(reparto.dos ? { f: reparto.f, a: reparto.a, b: reparto.b } : null);
+      el.style.fontSize = `${reparto.f}px`;
+      setDesborda(!reparto.cabe);
+      return;
+    }
+    setRenglones(null);
+    let f = max;
     el.style.fontSize = `${f}px`;
     const cabe = () => el.getComputedTextLength() <= largoArco;
-    while (f > tam[1] && !cabe()) {
-      f = Math.max(tam[1], f - 0.5);
+    while (f > min && !cabe()) {
+      f = Math.max(min, f - 0.5);
       el.style.fontSize = `${f}px`;
     }
     setDesborda(!cabe());
-  }, [visible, tam, largoArco, versionFuentes]);
+  }, [visible, max, min, fuente, largoArco, versionFuentes, dosRenglones, elegido, arco.r, arco.desde, arco.hasta, pintura.peso, pintura.espaciado]);
 
   return (
     <>
+      {renglones && centro !== undefined && (
+        <defs>
+          <path id={`${idPath}-1`} fill="none" d={arcoTexto(centro, arco.r + sep, arco.desde, arco.hasta, arco.haciaAfuera ?? true)} />
+          <path id={`${idPath}-2`} fill="none" d={arcoTexto(centro, arco.r - sep, arco.desde, arco.hasta, arco.haciaAfuera ?? true)} />
+        </defs>
+      )}
       <text
         ref={textoRef}
         className={`${clase}${vacio ? " ec-curvo-ejemplo" : ""}`}
+        fill={pintura.fill}
+        fontFamily={fuente}
+        fontWeight={pintura.peso}
+        letterSpacing={pintura.espaciado}
         dominantBaseline="central"
         onClick={editable ? () => setAbierto((v) => !v) : undefined}
-        style={desborda && editMode && !vacio ? { fill: "#d33" } : undefined}
+        style={{
+          fontFamily: fuente,
+          ...(desborda && editMode && !vacio ? { fill: "#d33" } : {}),
+        }}
       >
         <title>
           {desborda && !vacio ? `${rotulo}: no cabe completo en su arco, acórtalo` : rotulo}
         </title>
-        <textPath href={`#${idPath}`} startOffset="50%" textAnchor="middle">
-          {visible}
-        </textPath>
+        {renglones && centro !== undefined ? (
+          <>
+            <textPath href={`#${idPath}-1`} startOffset="50%" textAnchor="middle">
+              {renglones.a}
+            </textPath>
+            <textPath href={`#${idPath}-2`} startOffset="50%" textAnchor="middle">
+              {renglones.b}
+            </textPath>
+          </>
+        ) : (
+          <textPath href={`#${idPath}`} startOffset="50%" textAnchor="middle">
+            {visible}
+          </textPath>
+        )}
       </text>
       {editable && (
         <CasillaCurva
@@ -404,10 +611,13 @@ function TextoCurvo({
           abierto={abierto}
           onCerrar={() => setAbierto(false)}
           rotulo={rotulo}
+          styleKey={styleKey}
+          tamano={max}
           valor={valor}
           ejemplo={ejemplo}
           multilinea={multilinea}
           desborda={desborda}
+          dosRenglones={dosRenglones}
           onChange={onChange}
         />
       )}
@@ -421,22 +631,30 @@ function CasillaCurva({
   abierto,
   onCerrar,
   rotulo,
+  styleKey,
+  tamano,
   valor,
   ejemplo,
   multilinea,
   desborda,
+  dosRenglones,
   onChange,
 }: {
   anchorRef: RefObject<SVGTextElement | null>;
   abierto: boolean;
   onCerrar: () => void;
   rotulo: string;
+  styleKey: string;
+  tamano: number;
   valor: string;
   ejemplo: string;
   multilinea: boolean;
   desborda: boolean;
+  dosRenglones: boolean;
   onChange?: (v: string) => void;
 }) {
+  const { estilos, setEstilo } = useTextStyleCtx();
+  const override = estilos[styleKey];
   return (
     <PopoverFlotante anchorRef={anchorRef} abierto={abierto} onCerrar={onCerrar} alinear="centro" ancho={320}>
       <div className="mb-1.5 flex items-center justify-between">
@@ -464,10 +682,49 @@ function CasillaCurva({
           className="mck-field-lg w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs"
         />
       )}
+      <div className="mt-2 flex items-center gap-2 text-xs text-ink">
+        <label className="flex items-center gap-1">
+          <span className="text-muted">Tamaño</span>
+          <input
+            type="number"
+            min={6}
+            max={160}
+            step={0.5}
+            value={Math.round(tamano * 2) / 2}
+            onChange={(e) => setEstilo(styleKey, { fontSize: Number(e.target.value) || undefined })}
+            className="mck-field-lg w-16 rounded border border-border bg-surface-input px-1 py-0.5 text-xs"
+          />
+        </label>
+        <label className="flex items-center gap-1">
+          <span className="text-muted">Fuente</span>
+          <select
+            value={override?.fontFamily ?? ""}
+            onChange={(e) => setEstilo(styleKey, { fontFamily: e.target.value || undefined })}
+            className="rounded border border-border bg-surface-input px-1 py-0.5 text-xs"
+          >
+            {FUENTES_DISPONIBLES.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {override?.fontSize !== undefined && (
+          <button
+            type="button"
+            onClick={() => setEstilo(styleKey, { fontSize: undefined })}
+            className="text-muted underline hover:text-ink"
+          >
+            Restablecer
+          </button>
+        )}
+      </div>
       <p className={`mt-1 text-[11px] ${desborda ? "text-red-600" : "text-muted"}`}>
         {desborda
-          ? "No cabe completo en su arco ni al tamaño mínimo: acórtalo."
-          : "Va sobre el arco; el tamaño se ajusta solo para que quepa."}
+          ? "No cabe completo en su arco ni al tamaño mínimo: acórtalo o baja el tamaño."
+          : dosRenglones
+            ? "Va sobre el arco; si el tamaño elegido no cabe en un renglón, pasa a dos."
+            : "Va sobre el arco; si el tamaño elegido no cabe, se encoge solo hasta que quepa."}
       </p>
     </PopoverFlotante>
   );

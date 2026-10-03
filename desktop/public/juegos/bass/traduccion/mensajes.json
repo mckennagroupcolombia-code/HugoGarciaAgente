@@ -1,0 +1,3188 @@
+[
+ {
+  "off": "188009",
+  "bytes": 34,
+  "en": "THE SLACK\nTANGLED IN\nTHE REEL.\n¶\n",
+  "es": "SEDAL ENREDADO\nEN EL CARRETE.\n¶\n"
+ },
+ {
+  "off": "18802E",
+  "bytes": 65,
+  "en": "OH NO! THE\nFISH SNAPPED\nTHE LINE!\n¶\nTHE FISH\nTOOK YOUR\nLURE!\n¶\n",
+  "es": "OH NO! EL PEZ\nROMPIO EL\nSEDAL!\n¶\nEL PEZ SE\nLLEVO TU\nCEBO!\n¶\n"
+ },
+ {
+  "off": "188072",
+  "bytes": 69,
+  "en": "WOW! THAT\nFISH BROKE\nTHE ROD!\n¶\nTHE FISH TOOK\nOFF WITH THE\nLURE.\n¶\n",
+  "es": "VAYA! ESE PEZ\nROMPIO LA\nVARA!\n¶\nEL PEZ SE FUE\nCON EL CEBO.\n¶\n"
+ },
+ {
+  "off": "1880BA",
+  "bytes": 60,
+  "en": "OH NO!\nTHE HOOK\nBROKEN!\n¶\nYOU HAVE TO\nFIX IT RIGHT\nNOW!\n¶\n",
+  "es": "OH NO! SE\nROMPIO EL\nANZUELO!\n¶\nARREGLALO\nYA MISMO!\n¶\n"
+ },
+ {
+  "off": "1880F9",
+  "bytes": 63,
+  "en": "OH NO!THE\nHOOK WAS\nBROKEN!\n¶\nYOU HAVE TO\nFIX IT RIGHT\nNOW!\n¶\n",
+  "es": "OH NO! SE\nROMPIO EL\nANZUELO!\n¶\nARREGLALO\nAHORA MISMO!\n¶\n"
+ },
+ {
+  "off": "188139",
+  "bytes": 41,
+  "en": "IT TOOK <VAR 530900>\nMINUTES TO\nFIX THE LINE.\n¶\n",
+  "es": "TARDASTE <VAR 530900>\nMINUTOS EN\nARREGLARLO.\n¶\n"
+ },
+ {
+  "off": "188163",
+  "bytes": 41,
+  "en": "THE ROD TOOK\n<VAR 530900> MINUTES\nTO REPLACE.\n¶\n",
+  "es": "CAMBIAR LA VARA\nTOMO <VAR 530900>\nMINUTOS.\n¶\n"
+ },
+ {
+  "off": "18818F",
+  "bytes": 107,
+  "en": "I HAVE AN\nANNOUNCEMENT\nTO MAKE.\n¶\nALL ANGLERS\nSHOULD HAVE\nRETURNED.\n¶\nTHE EVENT\nENDED <03><01>\nMINUTES AGO.\n¶\n",
+  "es": "TENGO UN\nANUNCIO.\n¶\nTODOS LOS\nPESCADORES YA\nDEBIAN VOLVER.\n¶\nEL EVENTO\nTERMINO HACE\n<03><01> MINUTOS.\n¶\n"
+ },
+ {
+  "off": "1881FD",
+  "bytes": 37,
+  "en": "I HOPE THAT\nNOBODY WAS\nPENALIZED.\n¶\n",
+  "es": "OJALA NADIE\nTENGA\nPENALIZACION.\n¶\n"
+ },
+ {
+  "off": "188225",
+  "bytes": 102,
+  "en": "I HAVE AN\nANNOUNCEMENT\nTO MAKE.\n¶\nTHE EVENT IS\nOVER.PENALTY\nTIME HAS\n¶\nBEGUN FOR\nLATE\nFINISHERS.\n¶\n",
+  "es": "TENGO UN\nANUNCIO.\n¶\nEL EVENTO\nTERMINO. EMPIEZA\nLA PENALIZACION\n¶\nPARA LOS QUE\nLLEGUEN TARDE.\n¶\n"
+ },
+ {
+  "off": "18828E",
+  "bytes": 56,
+  "en": "DO YOU WANT\nTO KEEP USING\nMY ADVICE?\n¶\nYOUR ANSWER IS<FC28>",
+  "es": "QUIERES SEGUIR\nUSANDO MIS\nCONSEJOS?\n¶\nTU RESPUESTA:<FC28>"
+ },
+ {
+  "off": "1882C9",
+  "bytes": 21,
+  "en": "ALRIGHT!\nLET'S GO!\n¶\n",
+  "es": "BIEN!\nVAMOS!\n¶\n"
+ },
+ {
+  "off": "1882E1",
+  "bytes": 34,
+  "en": "OKAY. I'LL\nKEEP AN EYE\nON YOU!\n¶\n",
+  "es": "BIEN. TE\nESTARE\nVIGILANDO!\n¶\n"
+ },
+ {
+  "off": "18830A",
+  "bytes": 41,
+  "en": "\nDO YOU NEED\nMY HELP?\n¶\nYOUR ANSWER IS<FC28>",
+  "es": "\nNECESITAS\nMI AYUDA?\n¶\nTU RESPUESTA:<FC28>"
+ },
+ {
+  "off": "188336",
+  "bytes": 28,
+  "en": "ALRIGHT. LET\nME HELP YOU.\n¶\n",
+  "es": "BIEN. DEJA\nQUE TE AYUDE.\n¶\n"
+ },
+ {
+  "off": "188355",
+  "bytes": 37,
+  "en": "OKAY. I WON'T\nBOTHER YOU\nANYMORE.\n¶\n",
+  "es": "BIEN. NO TE\nMOLESTARE\nMAS.\n¶\n"
+ },
+ {
+  "off": "18837D",
+  "bytes": 82,
+  "en": "HA!HA! YOU'LL\nNEVER GET ONE\nDOING THAT.\n¶\nTHE VIBRATING\nBLADES LURE\nTHE FISH.\n¶\n",
+  "es": "JA! JA! ASI\nNUNCA VAS A\nPESCAR NADA.\n¶\nLAS PALETAS\nVIBRAN Y\nATRAEN AL PEZ.\n¶\n"
+ },
+ {
+  "off": "1883D2",
+  "bytes": 38,
+  "en": "REEL IN THE\nLINE LITTLE\nBY LITTLE.\n¶\n",
+  "es": "RECOGE EL\nSEDAL POCO\nA POCO.\n¶\n"
+ },
+ {
+  "off": "1883FB",
+  "bytes": 76,
+  "en": "COME ON! YOU\nLET THAT ONE\nGET AWAY.\n¶\nTHE CHURNING\nPROP LURES\nTHE FISH.\n¶\n",
+  "es": "VAMOS! DEJASTE\nESCAPAR ESE.\n¶\nLA HELICE\nGIRA Y ATRAE\nA LOS PECES.\n¶\n"
+ },
+ {
+  "off": "18844A",
+  "bytes": 32,
+  "en": "REEL IN THE\nLINE BIT BY\nBIT.\n¶\n",
+  "es": "RECOGE SEDAL\nPOCO A POCO.\n¶\n"
+ },
+ {
+  "off": "18846D",
+  "bytes": 32,
+  "en": "PULL UP ON\nTHE ROD A\nLITTLE.\n¶\n",
+  "es": "LEVANTA UN\nPOCO LA VARA.\n¶\n"
+ },
+ {
+  "off": "188490",
+  "bytes": 64,
+  "en": "YOU LET THE\nFISH GET\nAWAY.\n¶\nTHIS LURE\nIMITATES\nA CRAYFISH.\n¶\n",
+  "es": "DEJASTE\nESCAPAR\nAL PEZ.\n¶\nESTE CEBO\nIMITA UN\nCANGREJO.\n¶\n"
+ },
+ {
+  "off": "1884D3",
+  "bytes": 65,
+  "en": "DON'T SCARE\nTHE FISH\nAWAY.\n¶\nMOVE THE LURE\nLIKE A WEAK\nFISH.\n¶\n",
+  "es": "NO ESPANTES\nA LOS PECES.\n¶\nMUEVE EL CEBO\nCOMO UN PEZ\nDEBIL.\n¶\n"
+ },
+ {
+  "off": "188517",
+  "bytes": 40,
+  "en": "GENTLY SWING\nTHE ROD LEFT\nAND RIGHT.\n¶\n",
+  "es": "MUEVE SUAVE\nLA VARA A\nIZQ. Y DER.\n¶\n"
+ },
+ {
+  "off": "188542",
+  "bytes": 38,
+  "en": "REEL IN THE\nLURE LITTLE\nBY LITTLE.\n¶\n",
+  "es": "RECOGE EL\nCEBO POCO\nA POCO.\n¶\n"
+ },
+ {
+  "off": "18856B",
+  "bytes": 82,
+  "en": "COME ON! USE\nBETTER ACTION\nON THE LURE.\n¶\nMOVE IT LIKE\nA FISH THAT'S\nFEEDING.\n¶\n",
+  "es": "VAMOS! DALE\nMEJOR ACCION\nAL CEBO.\n¶\nMUEVELO COMO\nUN PEZ QUE\nSE ALIMENTA.\n¶\n"
+ },
+ {
+  "off": "1885C0",
+  "bytes": 35,
+  "en": "REEL THE LINE\nTO SINK THE\nLURE.\n¶\n",
+  "es": "RECOGE PARA\nHUNDIR EL\nCEBO.\n¶\n"
+ },
+ {
+  "off": "1885E6",
+  "bytes": 42,
+  "en": "SWING THE ROD\nWHEN THE LURE\nFLOATS UP.\n¶\n",
+  "es": "MUEVE LA VARA\nCUANDO EL CEBO\nFLOTE.\n¶\n"
+ },
+ {
+  "off": "188613",
+  "bytes": 70,
+  "en": "HA!HA! YOU\nREALLY LOST\nTHAT ONE.\n¶\nTHE SOUND\nWAVES LURE\nTHE FISH.\n¶\n",
+  "es": "JA! JA! ESE\nSE TE ESCAPO.\n¶\nLAS ONDAS DE\nSONIDO ATRAEN\nAL PEZ.\n¶\n"
+ },
+ {
+  "off": "18865C",
+  "bytes": 39,
+  "en": "REEL SLOWLY\nTO PRODUCE\nSOUND WAVES.\n¶\n",
+  "es": "RECOGE LENTO\nPARA HACER\nSONIDO.\n¶\n"
+ },
+ {
+  "off": "188686",
+  "bytes": 70,
+  "en": "YOU SHOULD'VE\nHAD THAT ONE.\n¶\nMOVE THE JIG\n& PORK LIKE\nA CRAYFISH.\n¶\n",
+  "es": "ESE DEBIO\nSER TUYO.\n¶\nMUEVE EL JIG\n& PORK COMO\nUN CANGREJO.\n¶\n"
+ },
+ {
+  "off": "1886CF",
+  "bytes": 38,
+  "en": "PULL UP ON\nTHE ROD ONCE\nIN AWHILE.\n¶\n",
+  "es": "LEVANTA LA\nVARA DE VEZ\nEN CUANDO.\n¶\n"
+ },
+ {
+  "off": "1886F8",
+  "bytes": 32,
+  "en": "REEL THE LINE\nIN BIT BY\nBIT.\n¶\n",
+  "es": "RECOGE SEDAL\nPOCO A POCO.\n¶\n"
+ },
+ {
+  "off": "18871B",
+  "bytes": 66,
+  "en": "YOU LET THAT\nONE GET AWAY.\n¶\nMAKE THE LINE\nWIGGLE LIKE\nA WORM.\n¶\n",
+  "es": "ESE SE TE\nESCAPO.\n¶\nMENEA EL SEDAL\nCOMO UN\nGUSANO.\n¶\n"
+ },
+ {
+  "off": "188760",
+  "bytes": 32,
+  "en": "REEL IN THE\nLINE BIT BY\nBIT.\n¶\n",
+  "es": "RECOGE SEDAL\nPOCO A POCO.\n¶\n"
+ },
+ {
+  "off": "188783",
+  "bytes": 30,
+  "en": "SLOWLY PULL\nUP ON THE\nROD.\n¶\n",
+  "es": "LEVANTA LA\nVARA LENTO.\n¶\n"
+ },
+ {
+  "off": "1887A4",
+  "bytes": 74,
+  "en": "HA! HA! THAT\nCAST WASN'T\nVERY GOOD.\n¶\nTHIS LURE\nIMITATES A\nREAL FROG.\n¶\n",
+  "es": "JA! JA! ESE\nLANCE NO FUE\nMUY BUENO.\n¶\nESTE CEBO\nIMITA UNA\nRANA REAL.\n¶\n"
+ },
+ {
+  "off": "1887F1",
+  "bytes": 35,
+  "en": "REEL IN AND\nMAKE THE\nLURE SWIM.\n¶\n",
+  "es": "RECOGE Y HAZ\nQUE EL CEBO\nNADE.\n¶\n"
+ },
+ {
+  "off": "188817",
+  "bytes": 40,
+  "en": "SLOWLY SWING\nTHE ROD LEFT\nAND RIGHT.\n¶\n",
+  "es": "MUEVE LENTO\nLA VARA A\nIZQ. Y DER.\n¶\n"
+ },
+ {
+  "off": "188842",
+  "bytes": 65,
+  "en": "YOU LET THAT\nONE GET AWAY!\n¶\nTHIS LURE\nSPARKLES AND\nVIBRATES.\n¶\n",
+  "es": "DEJASTE\nESCAPAR ESE!\n¶\nESTE CEBO\nBRILLA Y\nVIBRA.\n¶\n"
+ },
+ {
+  "off": "188886",
+  "bytes": 27,
+  "en": "REEL IN THE\nLINE SLOWLY.\n¶\n",
+  "es": "RECOGE EL\nSEDAL LENTO.\n¶\n"
+ },
+ {
+  "off": "1888A4",
+  "bytes": 22,
+  "en": "PULL UP ON\nTHE ROD.\n¶\n",
+  "es": "LEVANTA\nLA VARA.\n¶\n"
+ },
+ {
+  "off": "1888BD",
+  "bytes": 34,
+  "en": "DON'T USE\nEXCESSIVE\nMOVEMENTS!\n¶\n",
+  "es": "NO TE MUEVAS\nDEMASIADO!\n¶\n"
+ },
+ {
+  "off": "1888E2",
+  "bytes": 98,
+  "en": "YOU CRACKED\nYOUR LURE ON\nTHAT CAST.\n¶\nCHECK THE\nCASTING AREA\n¶\nWITH THE MARK\nBEFORE YOU\nCAST.\n¶\n",
+  "es": "ROMPISTE EL\nCEBO EN ESE\nLANCE.\n¶\nREVISA LA ZONA\nDE LANCE\n¶\nCON LA MARCA\nANTES DE\nLANZAR.\n¶\n"
+ },
+ {
+  "off": "188947",
+  "bytes": 78,
+  "en": "THERE IS TOO\nMUCH SLACK IN\nTHE LINE.\n¶\nEXTRA LINE\nTANGLES IN\nTHESE REELS.\n¶\n",
+  "es": "HAY DEMASIADO\nSEDAL FLOJO.\n¶\nEL SEDAL DE MAS\nSE ENREDA EN\nESTOS CARRETES.\n¶\n"
+ },
+ {
+  "off": "188998",
+  "bytes": 71,
+  "en": "NEXT TIME\nTHUMB THE\nLINE TO SLOW.\n¶\nTHE LURE\nJUST BEFORE\nIT DROPS.\n¶\n",
+  "es": "FRENA EL SEDAL\nCON EL PULGAR\n¶\nJUSTO ANTES DE\nQUE CAIGA\nEL CEBO.\n¶\n"
+ },
+ {
+  "off": "1889E2",
+  "bytes": 29,
+  "en": "OH NO! THE\nFISH GOT\nAWAY!\n¶\n",
+  "es": "OH NO! EL\nPEZ SE\nESCAPO!\n¶\n"
+ },
+ {
+  "off": "188A02",
+  "bytes": 15,
+  "en": "TAKE IT EASY!\n¶\n",
+  "es": "CON CALMA!\n¶\n"
+ },
+ {
+  "off": "188A14",
+  "bytes": 79,
+  "en": "OH NO! THAT\nWAS TOO MUCH\nFOR THE ROD.\n¶\nNOTHING YOU\nCAN DO ABOUT\nTHIS ONE.\n¶\n",
+  "es": "OH NO! ESO FUE\nDEMASIADO\nPARA LA VARA.\n¶\nNO PUEDES\nHACER NADA\nCON ESTE.\n¶\n"
+ },
+ {
+  "off": "188A66",
+  "bytes": 21,
+  "en": "THE FISH\nGOT AWAY!\n¶\n",
+  "es": "EL PEZ\nSE ESCAPO!\n¶\n"
+ },
+ {
+  "off": "188A7E",
+  "bytes": 35,
+  "en": "IF HOOK IS\nLOOSE, PULL\nTHE ROD.\n¶\n",
+  "es": "ANZUELO FLOJO?\nTIRA DE\nLA VARA.\n¶\n"
+ },
+ {
+  "off": "188AA8",
+  "bytes": 26,
+  "en": "\nIT'S ALMOST\nWEIGH-IN.\n¶\n",
+  "es": "\nYA CASI ES\nEL PESAJE.\n¶\n"
+ },
+ {
+  "off": "188AC9",
+  "bytes": 27,
+  "en": "\nIT'S TIME TO\nWEIGH-IN!\n¶\n",
+  "es": "\nES HORA\nDEL PESAJE!\n¶\n"
+ },
+ {
+  "off": "188AE7",
+  "bytes": 37,
+  "en": "YOU LOST YOUR\nCHANCE TO\nWEIGH-IN.\n¶\n",
+  "es": "PERDISTE LA\nOPORTUNIDAD\nDE PESAR.\n¶\n"
+ },
+ {
+  "off": "188B0F",
+  "bytes": 78,
+  "en": "THIS LAKE\nABOUNDS WITH\nPLANT LIFE.\n¶\nHEAD FOR THE\nREEDS OR THE\nLILY PADS.\n¶\n",
+  "es": "ESTE LAGO ESTA\nLLENO DE\nVEGETACION.\n¶\nVE A LOS JUNCOS\nO A LOS\nNENUFARES.\n¶\n"
+ },
+ {
+  "off": "188B60",
+  "bytes": 77,
+  "en": "THIS RIVER IS\nFAMOUS FOR\nBIG BASS.\n¶\nLET'S GO TO\nTHE ROCKS OR\nTHE REEDS.\n¶\n",
+  "es": "ESTE RIO ES\nFAMOSO POR\nSUS LOBINAS.\n¶\nVAMOS A LAS\nROCAS O A\nLOS JUNCOS.\n¶\n"
+ },
+ {
+  "off": "188BB0",
+  "bytes": 36,
+  "en": "I DOUBT THERE\nARE ANY FISH\nHERE.\n¶\n",
+  "es": "DUDO QUE HAYA\nPECES AQUI.\n¶\n"
+ },
+ {
+  "off": "188BD7",
+  "bytes": 36,
+  "en": "DO YOU REALLY\nWANT TO CAST\nHERE?\n¶\n",
+  "es": "DE VERDAD\nQUIERES\nLANZAR AQUI?\n¶\n"
+ },
+ {
+  "off": "188BFE",
+  "bytes": 45,
+  "en": "YOU SHOULD GO\nTO ONE OF THE\nBETTER SPOTS.\n¶\n",
+  "es": "DEBERIAS IR A\nUNO DE LOS\nMEJORES SITIOS.\n¶\n"
+ },
+ {
+  "off": "188C2E",
+  "bytes": 116,
+  "en": "THE BASS LIKE\nHIDING UNDER\nTHE BRIDGE.\n¶\nTHAT'S WHERE\nTHE BASS LIKE\nTO FEED.\n¶\nLOOK OUT!\nDON'T SNAG\nYOUR LINE!\n¶\n",
+  "es": "A LAS LOBINAS\nLES GUSTA\nESTAR BAJO\n¶\nEL PUENTE. AHI\nLES GUSTA\nALIMENTARSE.\n¶\nCUIDADO! NO\nENGANCHES\nEL SEDAL!\n¶\n"
+ },
+ {
+  "off": "188CA5",
+  "bytes": 38,
+  "en": "MOST PEOPLE\nGO BY THIS\nGREAT SPOT.\n¶\n",
+  "es": "CASI NADIE\nSE FIJA EN\nESTE SITIO.\n¶\n"
+ },
+ {
+  "off": "188CCE",
+  "bytes": 69,
+  "en": "HERE IS ONE\nOF THE WEED-\nBEDS.\n¶\nBASS LIKE\nFEEDING IN\nTHIS SPOT.\n¶\n",
+  "es": "AQUI HAY UN\nLECHO DE\nALGAS.\n¶\nLAS LOBINAS\nCOMEN EN\nESTE SITIO.\n¶\n"
+ },
+ {
+  "off": "188D16",
+  "bytes": 36,
+  "en": "I'M SURE THAT\nTHE BASS ARE\nHERE.\n¶\n",
+  "es": "SEGURO HAY\nLOBINAS\nAQUI.\n¶\n"
+ },
+ {
+  "off": "188D3D",
+  "bytes": 79,
+  "en": "THE LILY PADS\nARE A GOOD\nBASS SPOT.\n¶\nTHE BASS LIKE\nTO HIDE AND\nFEED HERE.\n¶\n",
+  "es": "LOS NENUFARES\nSON BUEN\nSITIO.\n¶\nLAS LOBINAS SE\nESCONDEN Y\nCOMEN AQUI.\n¶\n"
+ },
+ {
+  "off": "188D8F",
+  "bytes": 40,
+  "en": "LOOKS LIKE A\nGOOD SPOT FOR\nBIG BASS.\n¶\n",
+  "es": "BUEN SITIO\nPARA LOBINAS\nGRANDES.\n¶\n"
+ },
+ {
+  "off": "188DBA",
+  "bytes": 108,
+  "en": "THE SHORE-\nTREES SHADE\nTHE WATER.\n¶\nBASS LIKE\nIT HERE ON\nHOT DAYS.\n¶\nDON'T SNAG\nTHE LINE IN\nTHE TREES.\n¶\n",
+  "es": "LOS ARBOLES DAN\nSOMBRA AL AGUA.\n¶\nLAS LOBINAS VAN\nAHI SI HACE\nCALOR.\n¶\nOJO CON EL\nSEDAL EN LOS\nARBOLES.\n¶\n"
+ },
+ {
+  "off": "188E29",
+  "bytes": 38,
+  "en": "THIS IS THE\nBEST SPOT\nON HOT DAYS.\n¶\n",
+  "es": "EL MEJOR SITIO\nEN DIAS\nDE CALOR.\n¶\n"
+ },
+ {
+  "off": "188E52",
+  "bytes": 107,
+  "en": "BASS LIKE TO\nFEED IN THE\nREEDS.\n¶\nTHE BASS MUST\nBE HIDING\nHERE.\n¶\nLOOK OUT FOR\nHAZARDS WHEN\nYOU CAST.\n¶\n",
+  "es": "LAS LOBINAS\nCOMEN EN\nLOS JUNCOS.\n¶\nDEBEN ESTAR\nESCONDIDAS\nAQUI.\n¶\nOJO CON LOS\nOBSTACULOS\nAL LANZAR.\n¶\n"
+ },
+ {
+  "off": "188EC0",
+  "bytes": 28,
+  "en": "YOU'RE WISE\nTO CAST HERE.\n¶\n",
+  "es": "BIEN PENSADO\nLANZAR AQUI.\n¶\n"
+ },
+ {
+  "off": "188EDF",
+  "bytes": 107,
+  "en": "EROSION HAS\nCARVED THESE\nROCKS.\n¶\nTHE BASS MUST\nBE HIDING\nHERE.\n¶\nLOOK OUT FOR\nHAZARDS WHEN\nYOU CAST.\n¶\n",
+  "es": "LA EROSION\nTALLO ESTAS\nROCAS.\n¶\nDEBEN ESTAR\nESCONDIDAS\nAQUI.\n¶\nOJO CON LOS\nOBSTACULOS\nAL LANZAR.\n¶\n"
+ },
+ {
+  "off": "188F4D",
+  "bytes": 33,
+  "en": "THE ROCKS\nHOLD A LOT\nOF BASS.\n¶\n",
+  "es": "ROCAS: HAY\nMUCHAS\nLOBINAS.\n¶\n"
+ },
+ {
+  "off": "188F71",
+  "bytes": 111,
+  "en": "THESE ARE\nPILES FROM AN\nOLD BRIDGE.\n¶\nTHE BASS LIKE\nTO STAY HERE.\n¶\nWATCH OUT FOR\nTHE PILES WHEN\nYOU CAST.\n¶\n",
+  "es": "SON PILOTES DE\nUN PUENTE\nVIEJO.\n¶\nA LAS LOBINAS\nLES GUSTA\nESTAR AQUI.\n¶\nOJO CON LOS\nPILOTES\nAL LANZAR.\n¶\n"
+ },
+ {
+  "off": "188FE3",
+  "bytes": 34,
+  "en": "THIS SPOT IS\nTOO GOOD TO\nMISS.\n¶\n",
+  "es": "ESTE SITIO ES\nDEMASIADO\nBUENO.\n¶\n"
+ },
+ {
+  "off": "189008",
+  "bytes": 34,
+  "en": "THE BUOYS\nMARK THE\nBOUNDARIES.\n¶\n",
+  "es": "LAS BOYAS\nMARCAN\nEL LIMITE.\n¶\n"
+ },
+ {
+  "off": "18902D",
+  "bytes": 37,
+  "en": "IT CAN BE\nSURPRISINGLY\nGOOD HERE.\n¶\n",
+  "es": "AQUI PUEDE\nSER MUY\nBUENO.\n¶\n"
+ },
+ {
+  "off": "189055",
+  "bytes": 87,
+  "en": "THERE'S SOME\nACTION ON THE\nFISH FINDER.\n¶\nIT MIGHT ONLY\nBE THE WEEDS.\nTRY CASTING.\n¶\n",
+  "es": "HAY ALGO EN\nEL SONAR.\n¶\nPUEDEN SER\nSOLO ALGAS.\nPRUEBA LANZAR.\n¶\n"
+ },
+ {
+  "off": "1890AF",
+  "bytes": 42,
+  "en": "THE LUNKERS\nLIKE THE DEEP\nWATER WEEDS.\n¶\n",
+  "es": "LAS GRANDES\nVAN A LAS\nALGAS HONDAS.\n¶\n"
+ },
+ {
+  "off": "1890DC",
+  "bytes": 87,
+  "en": "THERE'S SOME\nACTION ON THE\nFISH FINDER.\n¶\nIT MIGHT ONLY\nBE THE WEEDS.\nTRY CASTING.\n¶\n",
+  "es": "HAY ALGO EN\nEL SONAR.\n¶\nPUEDEN SER\nSOLO ALGAS.\nPRUEBA LANZAR.\n¶\n"
+ },
+ {
+  "off": "189136",
+  "bytes": 42,
+  "en": "THE LUNKERS\nLIKE THE DEEP\nWATER WEEDS.\n¶\n",
+  "es": "LAS GRANDES\nVAN A LAS\nALGAS HONDAS.\n¶\n"
+ },
+ {
+  "off": "189163",
+  "bytes": 68,
+  "en": "THE FINDER\nIS SHOWING\nSOMETHING.\n¶\nCAST OVER\nTHE GRAVEL\nBOTTOM.\n¶\n",
+  "es": "EL SONAR\nMUESTRA\nALGO.\n¶\nLANZA SOBRE\nEL FONDO DE\nGRAVA.\n¶\n"
+ },
+ {
+  "off": "1891AA",
+  "bytes": 36,
+  "en": "THE LUNKERS\nLIKE THE DEEP\nWATER.\n¶\n",
+  "es": "LAS GRANDES\nPREFIEREN\nLO HONDO.\n¶\n"
+ },
+ {
+  "off": "1891D1",
+  "bytes": 68,
+  "en": "THE FINDER\nIS SHOWING\nSOMETHING.\n¶\nCAST OVER\nTHE GRAVEL\nBOTTOM.\n¶\n",
+  "es": "EL SONAR\nMUESTRA\nALGO.\n¶\nLANZA SOBRE\nEL FONDO DE\nGRAVA.\n¶\n"
+ },
+ {
+  "off": "189218",
+  "bytes": 36,
+  "en": "THE LUNKERS\nLIKE THE DEEP\nWATER.\n¶\n",
+  "es": "LAS GRANDES\nPREFIEREN\nLO HONDO.\n¶\n"
+ },
+ {
+  "off": "18923F",
+  "bytes": 32,
+  "en": "BE CAREFUL\nDRIVING\nTHE BOAT.\n¶\n",
+  "es": "CUIDADO AL\nMANEJAR\nEL BOTE.\n¶\n"
+ },
+ {
+  "off": "189262",
+  "bytes": 66,
+  "en": "YOU'VE\nDAMAGED\nTHE BOAT!\n¶\nGO BACK TO\nTHE MARINA\nTO WEIGH-IN.\n¶\n",
+  "es": "ROMPISTE\nEL BOTE!\n¶\nVUELVE AL\nMUELLE PARA\nEL PESAJE.\n¶\n"
+ },
+ {
+  "off": "1892A7",
+  "bytes": 23,
+  "en": "LET'S USE\nTHIS LURE.\n¶\n",
+  "es": "USEMOS\nESTE CEBO.\n¶\n"
+ },
+ {
+  "off": "1892BF",
+  "bytes": 53,
+  "en": "THE BOAT WILL BE\nCRUSHED IF YOU\nABUSE IT ANYMORE.\n¶\n",
+  "es": "EL BOTE SE VA A\nDESTROZAR SI\nSIGUES ASI.\n¶\n"
+ },
+ {
+  "off": "1892F7",
+  "bytes": 76,
+  "en": "TOO BAD. YOUR\nBOAT HAS BEEN\nDAMAGED.\n¶\nYOU HAVE TO\nRETURN AND\nWEIGH-IN.\n¶\n",
+  "es": "QUE PENA. TU\nBOTE QUEDO\nAVERIADO.\n¶\nTIENES QUE\nVOLVER AL\nPESAJE.\n¶\n"
+ },
+ {
+  "off": "189344",
+  "bytes": 36,
+  "en": "THERE IS\nSOMETHING IN\nTHE TREES.\n¶\n",
+  "es": "HAY ALGO\nEN LOS\nARBOLES.\n¶\n"
+ },
+ {
+  "off": "18936B",
+  "bytes": 71,
+  "en": "IT'S A NICE\nLURE. YOU'RE\nLUCKY!\n¶\nADD THAT ONE\nTO YOUR\nTACKLE BOX.\n¶\n",
+  "es": "ES UN BUEN\nCEBO. QUE\nSUERTE!\n¶\nGUARDALO EN\nTU CAJA DE\nAPAREJOS.\n¶\n"
+ },
+ {
+  "off": "1893B3",
+  "bytes": 36,
+  "en": "THERE IS\nSOMETHING BY\nTHE ROCKS.\n¶\n",
+  "es": "HAY ALGO\nJUNTO A\nLAS ROCAS.\n¶\n"
+ },
+ {
+  "off": "1893DA",
+  "bytes": 76,
+  "en": "IT'S A LURE!\nYOU NEED ONE\nLIKE THAT.\n¶\nADD THAT ONE\nTO YOUR\nTACKLE BOX.\n¶\n",
+  "es": "ES UN CEBO!\nTE HACIA\nFALTA UNO.\n¶\nGUARDALO EN\nTU CAJA DE\nAPAREJOS.\n¶\n"
+ },
+ {
+  "off": "189427",
+  "bytes": 36,
+  "en": "THERE IS\nSOMETHING IN\nTHE TREES.\n¶\n",
+  "es": "HAY ALGO\nEN LOS\nARBOLES.\n¶\n"
+ },
+ {
+  "off": "18944E",
+  "bytes": 77,
+  "en": "IT'S A RARE\nLURE. JUMP UP\nAND GET IT.\n¶\nPUT THAT ONE\nIN YOUR\nTACKLE BOX.\n¶\n",
+  "es": "ES UN CEBO\nRARO. SALTA\nY AGARRALO.\n¶\nMETELO EN\nTU CAJA DE\nAPAREJOS.\n¶\n"
+ },
+ {
+  "off": "18949C",
+  "bytes": 37,
+  "en": "THERE IS AN\nOBJECT NEAR\nTHE DUMP.\n¶\n",
+  "es": "HAY UN OBJETO\nCERCA DEL\nBASURERO.\n¶\n"
+ },
+ {
+  "off": "1894C4",
+  "bytes": 75,
+  "en": "IT'S A NICE\nLURE! THAT'S\nGOOD LUCK!\n¶\nADD THAT ONE\nTO YOUR\nTACKLE BOX.\n¶\n",
+  "es": "ES UN BUEN\nCEBO! QUE\nBUENA SUERTE!\n¶\nGUARDALO EN\nTU CAJA DE\nAPAREJOS.\n¶\n"
+ },
+ {
+  "off": "189510",
+  "bytes": 11,
+  "en": "WEIGH-IN?<FC29>",
+  "es": "PESAJE?<FC29>"
+ },
+ {
+  "off": "18951C",
+  "bytes": 36,
+  "en": "THE TOURNAMENT\nIS OVER. WEIGH-IN.\n¶\n",
+  "es": "TERMINO EL\nTORNEO. AL PESAJE\n¶\n"
+ },
+ {
+  "off": "189543",
+  "bytes": 107,
+  "en": "I HAVE AN\nANNOUNCEMENT\nTO MAKE.\n¶\nALL ANGLERS\nSHOULD HAVE\nRETURNED.\n¶\nTHE EVENT\nENDED <03><01>\nMINUTES AGO.\n¶\n",
+  "es": "TENGO UN\nANUNCIO.\n¶\nTODOS LOS\nPESCADORES YA\nDEBIAN VOLVER.\n¶\nEL EVENTO\nTERMINO HACE\n<03><01> MINUTOS.\n¶\n"
+ },
+ {
+  "off": "1895B1",
+  "bytes": 37,
+  "en": "I HOPE THAT\nNOBODY WAS\nPENALIZED.\n¶\n",
+  "es": "OJALA NADIE\nTENGA\nPENALIZACION.\n¶\n"
+ },
+ {
+  "off": "1895D9",
+  "bytes": 103,
+  "en": "I HAVE AN\nANNOUNCEMENT\nTO MAKE.\n¶\nTHE EVENT IS\nOVER. PENALTY\nTIME HAS\n¶\nBEGUN FOR\nLATE\nFINISHERS.\n¶\n",
+  "es": "TENGO UN\nANUNCIO.\n¶\nEL EVENTO\nTERMINO. EMPIEZA\nLA PENALIZACION\n¶\nPARA LOS QUE\nLLEGUEN TARDE.\n¶\n"
+ },
+ {
+  "off": "189647",
+  "bytes": 31,
+  "en": "\nTHIS EVENT IS\nALMOST OVER.\n¶\n",
+  "es": "\nEL EVENTO\nCASI TERMINA.\n¶\n"
+ },
+ {
+  "off": "189669",
+  "bytes": 32,
+  "en": "IT'S <05>:<04><01>.\nTIME TO\nWEIGH-IN.\n¶\n",
+  "es": "SON <05>:<04><01>.\nHORA DEL\nPESAJE.\n¶\n"
+ },
+ {
+  "off": "18968C",
+  "bytes": 31,
+  "en": "YOU'RE TOO\nLATE. IT'S\nOVER.\n¶\n",
+  "es": "LLEGAS\nTARDE. YA\nTERMINO.\n¶\n"
+ },
+ {
+  "off": "1896AC",
+  "bytes": 39,
+  "en": "THE AWARDS\nSHOW BEGINS\nAT <08>:<04><01> A.M.\n¶\n",
+  "es": "LA PREMIACION\nEMPIEZA\nA LAS <08>:<04><01> AM\n¶\n"
+ },
+ {
+  "off": "1896D6",
+  "bytes": 35,
+  "en": "HERE'S THE\nLATEST EVENT\nUPDATE.\n¶\n",
+  "es": "ESTA ES LA\nULTIMA\nNOVEDAD.\n¶\n"
+ },
+ {
+  "off": "1896FA",
+  "bytes": 16,
+  "en": "READY TO QUIT?<FC20>",
+  "es": "QUIERES SALIR?<FC20>"
+ },
+ {
+  "off": "18970B",
+  "bytes": 43,
+  "en": "TURN OFF THE UNIT\nWITHOUT PRESSING\nRESET.",
+  "es": "GUARDADO. PULSA\nESC O SALIR\nPARA VOLVER."
+ },
+ {
+  "off": "189737",
+  "bytes": 12,
+  "en": "TOURN. INFO.",
+  "es": "INFO TORNEO"
+ },
+ {
+  "off": "189744",
+  "bytes": 33,
+  "en": "<02>ST PLACE\n<03>ND PLACE\n<04>RD PLACE\n¶\n",
+  "es": "<02>ER LUGAR\n<03>DO LUGAR\n<04>ER LUGAR\n¶\n"
+ },
+ {
+  "off": "189766",
+  "bytes": 10,
+  "en": "WHOLE WELL",
+  "es": "VIVERO"
+ },
+ {
+  "off": "189771",
+  "bytes": 8,
+  "en": "ONE FISH",
+  "es": "UN PEZ"
+ },
+ {
+  "off": "18977A",
+  "bytes": 9,
+  "en": "BEST FISH",
+  "es": "MEJOR PEZ"
+ },
+ {
+  "off": "189784",
+  "bytes": 8,
+  "en": "LIVEWELL",
+  "es": "VIVERO"
+ },
+ {
+  "off": "18978D",
+  "bytes": 18,
+  "en": "YOU DIDN'T QUALIFY",
+  "es": "NO CLASIFICASTE"
+ },
+ {
+  "off": "1897A0",
+  "bytes": 12,
+  "en": "DISQUALIFIED",
+  "es": "ELIMINADO"
+ },
+ {
+  "off": "1897B1",
+  "bytes": 73,
+  "en": "\nAPPROX.WEIGHT:\n<VAR a90a00>.<VAR ab0a00>LBS.\n¶\nTHIS FISH IS\nRANKED <1F><VAR a70a00>\nRIGHT NOW.\n¶\n",
+  "es": "\nPESO APROX.:\n<VAR a90a00>.<VAR ab0a00>LBS.\n¶\nESTE PEZ VA\nDE <1F><VAR a70a00>\nAHORA MISMO.\n¶\n"
+ },
+ {
+  "off": "18981E",
+  "bytes": 34,
+  "en": "DROP THAT ONE IN \nTHE LIVEWELL.\n¶\n",
+  "es": "PONLO EN\nEL VIVERO.\n¶\n"
+ },
+ {
+  "off": "189841",
+  "bytes": 29,
+  "en": "<VAR f31100> FISH IN\nTHE LIVEWELL.\n¶\n",
+  "es": "<VAR f31100> PECES EN\nEL VIVERO.\n¶\n"
+ },
+ {
+  "off": "18985F",
+  "bytes": 13,
+  "en": "CHOOSE ONE.<FC21>",
+  "es": "ELIGE UNO.<FC21>"
+ },
+ {
+  "off": "18986D",
+  "bytes": 26,
+  "en": "   SPECIES         EST.WT.",
+  "es": "   ESPECIE       PESO EST."
+ },
+ {
+  "off": "189888",
+  "bytes": 10,
+  "en": "NO FISH!\n¶\n",
+  "es": "SIN PEZ!\n¶\n"
+ },
+ {
+  "off": "189893",
+  "bytes": 22,
+  "en": "EST.TOTAL WT.:  . LBS.",
+  "es": "PESO TOT.EST.:  . LBS."
+ },
+ {
+  "off": "1898AA",
+  "bytes": 19,
+  "en": "REVIEW FISH DATA?<FC20>",
+  "es": "VER DATOS DE PEZ?<FC20>"
+ },
+ {
+  "off": "1898BE",
+  "bytes": 19,
+  "en": "SELECT ONE FISH.\n<FD>",
+  "es": "ELIGE UN PEZ.\n<FD>"
+ },
+ {
+  "off": "1898D2",
+  "bytes": 29,
+  "en": "(PRESS A BUTTON\n TO VIEW.)\n¶\n",
+  "es": "(PULSA A\nPARA VER.)\n¶\n"
+ },
+ {
+  "off": "1898F0",
+  "bytes": 17,
+  "en": "/LARGEMOUTH BASS/",
+  "es": "/LOBINA GRANDE  /"
+ },
+ {
+  "off": "189902",
+  "bytes": 17,
+  "en": "/SMALLMOUTH BASS/",
+  "es": "/LOBINA CHICA   /"
+ },
+ {
+  "off": "189914",
+  "bytes": 17,
+  "en": "/SPOTTED BASS   /",
+  "es": "/LOBINA PINTA   /"
+ },
+ {
+  "off": "189926",
+  "bytes": 17,
+  "en": "/CRAPPIE        /",
+  "es": "/CRAPPIE        /"
+ },
+ {
+  "off": "189938",
+  "bytes": 17,
+  "en": "/BLUEGILL       /",
+  "es": "/MOJARRA        /"
+ },
+ {
+  "off": "18994A",
+  "bytes": 17,
+  "en": "/WALLEYE        /",
+  "es": "/PERCA          /"
+ },
+ {
+  "off": "18995C",
+  "bytes": 17,
+  "en": "/NORTHERN PIKE  /",
+  "es": "/LUCIO          /"
+ },
+ {
+  "off": "18996E",
+  "bytes": 17,
+  "en": "/CATFISH        /",
+  "es": "/BAGRE          /"
+ },
+ {
+  "off": "189992",
+  "bytes": 20,
+  "en": "SELECT ONE RECORD.<FC24>",
+  "es": "ELIGE UN RECORD.<FC24>"
+ },
+ {
+  "off": "1899A7",
+  "bytes": 8,
+  "en": "OFFICIAL",
+  "es": "OFICIAL"
+ },
+ {
+  "off": "1899B0",
+  "bytes": 10,
+  "en": "UNOFFICIAL",
+  "es": "NO OFICIAL"
+ },
+ {
+  "off": "1899BB",
+  "bytes": 20,
+  "en": "VIEW OTHER RECORD?<FC20>",
+  "es": "VER OTRO RECORD?<FC20>"
+ },
+ {
+  "off": "1899D0",
+  "bytes": 21,
+  "en": "SELECT ONE RECORD.\n<FD>",
+  "es": "ELIGE UN RECORD.\n<FD>"
+ },
+ {
+  "off": "1899E6",
+  "bytes": 27,
+  "en": "(PRESS A BUTTON\n TO VIEW.)",
+  "es": "(PULSA A\nPARA VER.)"
+ },
+ {
+  "off": "189A22",
+  "bytes": 9,
+  "en": "/  . LBS.",
+  "es": ""
+ },
+ {
+  "off": "189A2C",
+  "bytes": 10,
+  "en": "/  .  LBS.",
+  "es": ""
+ },
+ {
+  "off": "189A37",
+  "bytes": 19,
+  "en": "     SPECIES WEIGHT",
+  "es": "     ESPECIE   PESO"
+ },
+ {
+  "off": "189A4B",
+  "bytes": 22,
+  "en": "TOTAL WEIGHT:  .  LBS.",
+  "es": "PESO TOTAL:    .  LBS."
+ },
+ {
+  "off": "189A62",
+  "bytes": 16,
+  "en": ";LARGEMOUTH BASS",
+  "es": ";LOBINA GRANDE"
+ },
+ {
+  "off": "189A73",
+  "bytes": 16,
+  "en": ";SMALLMOUTH BASS",
+  "es": ";LOBINA CHICA"
+ },
+ {
+  "off": "189A84",
+  "bytes": 16,
+  "en": ";SPOTTED BASS   ",
+  "es": ";LOBINA PINTA"
+ },
+ {
+  "off": "189A95",
+  "bytes": 16,
+  "en": ";CRAPPIE        ",
+  "es": ";CRAPPIE"
+ },
+ {
+  "off": "189AA6",
+  "bytes": 16,
+  "en": ";BLUEGILL       ",
+  "es": ";MOJARRA"
+ },
+ {
+  "off": "189AB7",
+  "bytes": 16,
+  "en": ";WALLEYE        ",
+  "es": ";PERCA"
+ },
+ {
+  "off": "189AC8",
+  "bytes": 16,
+  "en": ";NORTHERN PIKE  ",
+  "es": ";LUCIO"
+ },
+ {
+  "off": "189AD9",
+  "bytes": 16,
+  "en": ";CATFISH        ",
+  "es": ";BAGRE"
+ },
+ {
+  "off": "189B08",
+  "bytes": 38,
+  "en": "THIS IS A PHOTO &\nDATA OF THE FISH.\n¶\n",
+  "es": "ESTA ES LA FOTO\nY DATOS DEL PEZ.\n¶\n"
+ },
+ {
+  "off": "189C0F",
+  "bytes": 20,
+  "en": "VIEW MORE RECORDS?<FC20>",
+  "es": "VER MAS RECORDS?<FC20>"
+ },
+ {
+  "off": "189C24",
+  "bytes": 17,
+  "en": "GREEN VALLEY LAKE",
+  "es": "LAGO VALLE VERDE"
+ },
+ {
+  "off": "189C36",
+  "bytes": 10,
+  "en": "ONYX RIVER",
+  "es": "RIO ONIX"
+ },
+ {
+  "off": "189C41",
+  "bytes": 11,
+  "en": "BRONZE LAKE",
+  "es": "LAGO BRONCE"
+ },
+ {
+  "off": "189C4D",
+  "bytes": 14,
+  "en": "BLUESTONE LAKE",
+  "es": "LAGO PIEDRAZUL"
+ },
+ {
+  "off": "189C5C",
+  "bytes": 7,
+  "en": "SPINNER",
+  "es": ""
+ },
+ {
+  "off": "189C64",
+  "bytes": 6,
+  "en": "MINNOW",
+  "es": ""
+ },
+ {
+  "off": "189C6B",
+  "bytes": 10,
+  "en": "JIG-&-PORK",
+  "es": ""
+ },
+ {
+  "off": "189C76",
+  "bytes": 4,
+  "en": "FROG",
+  "es": "RANA"
+ },
+ {
+  "off": "189C7B",
+  "bytes": 7,
+  "en": "SWISHER",
+  "es": ""
+ },
+ {
+  "off": "189C83",
+  "bytes": 4,
+  "en": "GRUB",
+  "es": ""
+ },
+ {
+  "off": "189C88",
+  "bytes": 14,
+  "en": "VIBRATING LURE",
+  "es": "CEBO VIBRADOR"
+ },
+ {
+  "off": "189C97",
+  "bytes": 8,
+  "en": "BUZZBAIT",
+  "es": ""
+ },
+ {
+  "off": "189CA0",
+  "bytes": 10,
+  "en": "PENCILBAIT",
+  "es": ""
+ },
+ {
+  "off": "189CAB",
+  "bytes": 9,
+  "en": "CRANKBAIT",
+  "es": ""
+ },
+ {
+  "off": "189CB5",
+  "bytes": 12,
+  "en": "PLASTIC WORM",
+  "es": "GUSANO"
+ },
+ {
+  "off": "189CC2",
+  "bytes": 11,
+  "en": "SPINNERBAIT",
+  "es": ""
+ },
+ {
+  "off": "189CCE",
+  "bytes": 10,
+  "en": "NOISY BAIT",
+  "es": "RUIDOSO"
+ },
+ {
+  "off": "189CD9",
+  "bytes": 8,
+  "en": "TUBEBAIT",
+  "es": ""
+ },
+ {
+  "off": "189CE2",
+  "bytes": 8,
+  "en": "CRAYFISH",
+  "es": "CANGREJO"
+ },
+ {
+  "off": "189CEB",
+  "bytes": 12,
+  "en": "BACKTAIL JIG",
+  "es": ""
+ },
+ {
+  "off": "189CF8",
+  "bytes": 10,
+  "en": "OPEN WATER",
+  "es": "AGUA LIBRE"
+ },
+ {
+  "off": "189D03",
+  "bytes": 6,
+  "en": "MARINA",
+  "es": "MUELLE"
+ },
+ {
+  "off": "189D0A",
+  "bytes": 5,
+  "en": "WEEDS",
+  "es": "ALGAS"
+ },
+ {
+  "off": "189D10",
+  "bytes": 9,
+  "en": "LILY PADS",
+  "es": "NENUFARES"
+ },
+ {
+  "off": "189D1A",
+  "bytes": 5,
+  "en": "TREES",
+  "es": "ARBOL"
+ },
+ {
+  "off": "189D20",
+  "bytes": 5,
+  "en": "REEDS",
+  "es": "JUNCO"
+ },
+ {
+  "off": "189D2A",
+  "bytes": 6,
+  "en": "BRIDGE",
+  "es": "PUENTE"
+ },
+ {
+  "off": "189D31",
+  "bytes": 5,
+  "en": "ROCKS",
+  "es": "ROCAS"
+ },
+ {
+  "off": "189D37",
+  "bytes": 5,
+  "en": "PILES",
+  "es": "PILAR"
+ },
+ {
+  "off": "189D3D",
+  "bytes": 4,
+  "en": "DUMP",
+  "es": ""
+ },
+ {
+  "off": "189D42",
+  "bytes": 5,
+  "en": "BUOYS",
+  "es": "BOYAS"
+ },
+ {
+  "off": "189D48",
+  "bytes": 6,
+  "en": "TIMBER",
+  "es": "TRONCO"
+ },
+ {
+  "off": "189D51",
+  "bytes": 40,
+  "en": "ALRIGHT! YOU\nCAUGHT YOUR\nFIRST FISH.\n¶\n",
+  "es": "BIEN! PESCASTE\nTU PRIMER PEZ.\n¶\n"
+ },
+ {
+  "off": "189D7C",
+  "bytes": 37,
+  "en": "YOU GOT A\nBASS ON YOUR\nFIRST TRY!\n¶\n",
+  "es": "UNA LOBINA\nAL PRIMER\nINTENTO!\n¶\n"
+ },
+ {
+  "off": "189DA4",
+  "bytes": 36,
+  "en": "NOT A BASS\nTHIS TIME.\nTRY AGAIN.\n¶\n",
+  "es": "NO ES LOBINA.\nINTENTA\nDE NUEVO.\n¶\n"
+ },
+ {
+  "off": "189DCB",
+  "bytes": 31,
+  "en": "GOOD!\nCATCH MORE\nLIKE THIS!\n¶\n",
+  "es": "BIEN! PESCA\nMAS ASI!\n¶\n"
+ },
+ {
+  "off": "189DED",
+  "bytes": 31,
+  "en": "YOU'LL DO\nBETTER NEXT\nTIME.\n¶\n",
+  "es": "LA PROXIMA\nTE IRA MEJOR.\n¶\n"
+ },
+ {
+  "off": "189E0F",
+  "bytes": 40,
+  "en": "IT'S GOOD\nPRACTICE FOR\nHOOKING BASS.\n¶\n",
+  "es": "BUENA PRACTICA\nPARA PESCAR\nLOBINAS.\n¶\n"
+ },
+ {
+  "off": "189E3A",
+  "bytes": 39,
+  "en": "PRETTY FISH!\nIT'LL BRING\nGOOD LUCK.\n¶\n",
+  "es": "LINDO PEZ!\nTE TRAERA\nBUENA SUERTE.\n¶\n"
+ },
+ {
+  "off": "189E64",
+  "bytes": 42,
+  "en": "IT'S HUGE! IT\nCOULD BE A \nLAKE RECORD.\n¶\n",
+  "es": "ES ENORME!\nPODRIA SER\nRECORD DEL LAGO\n¶\n"
+ },
+ {
+  "off": "189E8F",
+  "bytes": 55,
+  "en": "THAT'S A BEAUTIFUL\nFISH! IT'LL BRING\nYOU GOOD LUCK.\n¶\n",
+  "es": "QUE PEZ TAN\nHERMOSO! TE\nTRAERA SUERTE.\n¶\n"
+ },
+ {
+  "off": "189EC7",
+  "bytes": 47,
+  "en": "THAT'S A MONSTER!\nNOBODY CAN CATCH\nYOU NOW!\n¶\n",
+  "es": "ES UN MONSTRUO!\nNADIE TE\nALCANZA YA!\n¶\n"
+ },
+ {
+  "off": "189EF7",
+  "bytes": 15,
+  "en": "LARGEMOUTH BASS",
+  "es": "LOBINA GRANDE"
+ },
+ {
+  "off": "189F07",
+  "bytes": 15,
+  "en": "SMALLMOUTH BASS",
+  "es": "LOBINA CHICA"
+ },
+ {
+  "off": "189F17",
+  "bytes": 12,
+  "en": "SPOTTED BASS",
+  "es": "LOBINA PINTA"
+ },
+ {
+  "off": "189F24",
+  "bytes": 7,
+  "en": "CRAPPIE",
+  "es": "CRAPPIE"
+ },
+ {
+  "off": "189F2C",
+  "bytes": 8,
+  "en": "BLUEGILL",
+  "es": "MOJARRA"
+ },
+ {
+  "off": "189F35",
+  "bytes": 7,
+  "en": "WALLEYE",
+  "es": "PERCA"
+ },
+ {
+  "off": "189F3D",
+  "bytes": 13,
+  "en": "NORTHERN PIKE",
+  "es": "LUCIO"
+ },
+ {
+  "off": "189F4B",
+  "bytes": 7,
+  "en": "CATFISH",
+  "es": "BAGRE"
+ },
+ {
+  "off": "189F75",
+  "bytes": 9,
+  "en": "COPY DATA",
+  "es": "COPIAR"
+ },
+ {
+  "off": "189F7F",
+  "bytes": 10,
+  "en": "ERASE DATA",
+  "es": "BORRAR"
+ },
+ {
+  "off": "189F8A",
+  "bytes": 19,
+  "en": "INPUT YOUR NAME.\n<FD>",
+  "es": "PON TU NOMBRE.\n<FD>"
+ },
+ {
+  "off": "189F9E",
+  "bytes": 28,
+  "en": "(PRESS A BUTTON\n TO ENTER.)",
+  "es": "(PULSA A PARA\nCONFIRMAR.)"
+ },
+ {
+  "off": "189FBB",
+  "bytes": 17,
+  "en": "CHOOSE ANGLER.\n<FD>",
+  "es": "ELIGE PESCADOR\n<FD>"
+ },
+ {
+  "off": "189FCD",
+  "bytes": 28,
+  "en": "(PRESS A BUTTON\n TO ENTER.)",
+  "es": "(PULSA A PARA\nCONFIRMAR.)"
+ },
+ {
+  "off": "189FEA",
+  "bytes": 20,
+  "en": "INPUT MORE DETAIL?<FC2B>",
+  "es": "MAS DETALLES?<FC2B>"
+ },
+ {
+  "off": "189FFF",
+  "bytes": 14,
+  "en": "CHOOSE ONE.\n<FD>",
+  "es": "ELIGE UNO.\n<FD>"
+ },
+ {
+  "off": "18A00E",
+  "bytes": 28,
+  "en": "(PRESS A BUTTON\n TO ENTER.)",
+  "es": "(PULSA A PARA\nCONFIRMAR.)"
+ },
+ {
+  "off": "18A02B",
+  "bytes": 18,
+  "en": "SELECT GLASSES.\n<FD>",
+  "es": "ELIGE GAFAS.\n<FD>"
+ },
+ {
+  "off": "18A03E",
+  "bytes": 28,
+  "en": "(PRESS A BUTTON\n TO ENTER.)",
+  "es": "(PULSA A PARA\nCONFIRMAR.)"
+ },
+ {
+  "off": "18A05B",
+  "bytes": 21,
+  "en": "CHOOSE YOUR STYLE.\n<FD>",
+  "es": "ELIGE TU ESTILO.\n<FD>"
+ },
+ {
+  "off": "18A071",
+  "bytes": 28,
+  "en": "(PRESS A BUTTON\n TO ENTER.)",
+  "es": "(PULSA A PARA\nCONFIRMAR.)"
+ },
+ {
+  "off": "18A08E",
+  "bytes": 21,
+  "en": "CHOOSE YOUR STYLE.\n<FD>",
+  "es": "ELIGE TU ESTILO.\n<FD>"
+ },
+ {
+  "off": "18A0A4",
+  "bytes": 28,
+  "en": "(PRESS A BUTTON\n TO ENTER.)",
+  "es": "(PULSA A PARA\nCONFIRMAR.)"
+ },
+ {
+  "off": "18A0C1",
+  "bytes": 39,
+  "en": "STAGE <02>:\n LOCAL AMATEUR\n TOURNAMENT\n¶\n",
+  "es": "ETAPA <02>:\n TORNEO LOCAL\n AMATEUR\n¶\n"
+ },
+ {
+  "off": "18A0E9",
+  "bytes": 40,
+  "en": "STAGE <03>:\n AMATEUR BASS\n CHAMPIONSHIP\n¶\n",
+  "es": "ETAPA <03>:\n CAMPEONATO\n AMATEUR\n¶\n"
+ },
+ {
+  "off": "18A112",
+  "bytes": 34,
+  "en": "STAGE <04>:\n PRO BASS\n TOURNAMENT\n¶\n",
+  "es": "ETAPA <04>:\n TORNEO PRO\n¶\n"
+ },
+ {
+  "off": "18A135",
+  "bytes": 41,
+  "en": "STAGE <05>:\n BASSIN' WORLD\n CHAMPIONSHIP\n¶\n",
+  "es": "ETAPA <05>:\n CAMPEONATO\n MUNDIAL\n¶\n"
+ },
+ {
+  "off": "18A15F",
+  "bytes": 5,
+  "en": "ALAN ",
+  "es": ""
+ },
+ {
+  "off": "18A165",
+  "bytes": 5,
+  "en": "LISA ",
+  "es": ""
+ },
+ {
+  "off": "18A16B",
+  "bytes": 6,
+  "en": "KAREN ",
+  "es": ""
+ },
+ {
+  "off": "18A172",
+  "bytes": 7,
+  "en": "WARREN ",
+  "es": ""
+ },
+ {
+  "off": "18A17A",
+  "bytes": 5,
+  "en": "MARY ",
+  "es": ""
+ },
+ {
+  "off": "18A180",
+  "bytes": 4,
+  "en": "PAM ",
+  "es": ""
+ },
+ {
+  "off": "18A185",
+  "bytes": 5,
+  "en": "ERIK ",
+  "es": ""
+ },
+ {
+  "off": "18A18B",
+  "bytes": 6,
+  "en": "TRACY ",
+  "es": ""
+ },
+ {
+  "off": "18A192",
+  "bytes": 5,
+  "en": "CLAY ",
+  "es": ""
+ },
+ {
+  "off": "18A198",
+  "bytes": 6,
+  "en": "KEVIN ",
+  "es": ""
+ },
+ {
+  "off": "18A19F",
+  "bytes": 7,
+  "en": "GORDON ",
+  "es": ""
+ },
+ {
+  "off": "18A1A7",
+  "bytes": 6,
+  "en": "SUSAN ",
+  "es": ""
+ },
+ {
+  "off": "18A1AE",
+  "bytes": 5,
+  "en": "JACK ",
+  "es": ""
+ },
+ {
+  "off": "18A1B4",
+  "bytes": 6,
+  "en": "STACY ",
+  "es": ""
+ },
+ {
+  "off": "18A1BB",
+  "bytes": 5,
+  "en": "JOHN ",
+  "es": ""
+ },
+ {
+  "off": "18A1C1",
+  "bytes": 6,
+  "en": "STEVE ",
+  "es": ""
+ },
+ {
+  "off": "18A1C8",
+  "bytes": 5,
+  "en": "DOUG ",
+  "es": ""
+ },
+ {
+  "off": "18A1CE",
+  "bytes": 6,
+  "en": "DANNY ",
+  "es": ""
+ },
+ {
+  "off": "18A1D5",
+  "bytes": 7,
+  "en": "MARGIE ",
+  "es": ""
+ },
+ {
+  "off": "18A1DD",
+  "bytes": 6,
+  "en": "CHUCK ",
+  "es": ""
+ },
+ {
+  "off": "18A1E4",
+  "bytes": 5,
+  "en": "DAVE ",
+  "es": ""
+ },
+ {
+  "off": "18A1EA",
+  "bytes": 7,
+  "en": "DENNIS ",
+  "es": ""
+ },
+ {
+  "off": "18A1F2",
+  "bytes": 4,
+  "en": "TOM ",
+  "es": ""
+ },
+ {
+  "off": "18A1F7",
+  "bytes": 4,
+  "en": "DON ",
+  "es": ""
+ },
+ {
+  "off": "18A1FC",
+  "bytes": 5,
+  "en": "NICK ",
+  "es": ""
+ },
+ {
+  "off": "18A202",
+  "bytes": 6,
+  "en": "LINDA ",
+  "es": ""
+ },
+ {
+  "off": "18A209",
+  "bytes": 6,
+  "en": "SHARI ",
+  "es": ""
+ },
+ {
+  "off": "18A210",
+  "bytes": 5,
+  "en": "BRAD ",
+  "es": ""
+ },
+ {
+  "off": "18A216",
+  "bytes": 5,
+  "en": "BILL ",
+  "es": ""
+ },
+ {
+  "off": "18A21C",
+  "bytes": 6,
+  "en": "BRIAN ",
+  "es": ""
+ },
+ {
+  "off": "18A223",
+  "bytes": 5,
+  "en": "BRET ",
+  "es": ""
+ },
+ {
+  "off": "18A229",
+  "bytes": 5,
+  "en": "PAUL ",
+  "es": ""
+ },
+ {
+  "off": "18A22F",
+  "bytes": 5,
+  "en": "MATT ",
+  "es": ""
+ },
+ {
+  "off": "18A235",
+  "bytes": 7,
+  "en": "MICKEY ",
+  "es": ""
+ },
+ {
+  "off": "18A23D",
+  "bytes": 6,
+  "en": "LARRY ",
+  "es": ""
+ },
+ {
+  "off": "18A244",
+  "bytes": 6,
+  "en": "RALPH ",
+  "es": ""
+ },
+ {
+  "off": "18A24B",
+  "bytes": 6,
+  "en": "RANDY ",
+  "es": ""
+ },
+ {
+  "off": "18A252",
+  "bytes": 5,
+  "en": "RICK ",
+  "es": ""
+ },
+ {
+  "off": "18A258",
+  "bytes": 7,
+  "en": "ANGELA ",
+  "es": ""
+ },
+ {
+  "off": "18A260",
+  "bytes": 6,
+  "en": "ANNIE ",
+  "es": ""
+ },
+ {
+  "off": "18A267",
+  "bytes": 4,
+  "en": "WOOD",
+  "es": ""
+ },
+ {
+  "off": "18A26C",
+  "bytes": 5,
+  "en": "EVANS",
+  "es": ""
+ },
+ {
+  "off": "18A272",
+  "bytes": 6,
+  "en": "OLIVER",
+  "es": ""
+ },
+ {
+  "off": "18A279",
+  "bytes": 4,
+  "en": "KARP",
+  "es": ""
+ },
+ {
+  "off": "18A27E",
+  "bytes": 4,
+  "en": "GUNN",
+  "es": ""
+ },
+ {
+  "off": "18A283",
+  "bytes": 5,
+  "en": "GEARY",
+  "es": ""
+ },
+ {
+  "off": "18A289",
+  "bytes": 4,
+  "en": "KING",
+  "es": ""
+ },
+ {
+  "off": "18A28E",
+  "bytes": 6,
+  "en": "COOPER",
+  "es": ""
+ },
+ {
+  "off": "18A295",
+  "bytes": 5,
+  "en": "CLOSE",
+  "es": ""
+ },
+ {
+  "off": "18A29B",
+  "bytes": 5,
+  "en": "SHARP",
+  "es": ""
+ },
+ {
+  "off": "18A2A1",
+  "bytes": 4,
+  "en": "JUDD",
+  "es": ""
+ },
+ {
+  "off": "18A2A6",
+  "bytes": 7,
+  "en": "JOHNSON",
+  "es": ""
+ },
+ {
+  "off": "18A2AE",
+  "bytes": 5,
+  "en": "SCOTT",
+  "es": ""
+ },
+ {
+  "off": "18A2B4",
+  "bytes": 5,
+  "en": "STONE",
+  "es": ""
+ },
+ {
+  "off": "18A2BA",
+  "bytes": 5,
+  "en": "SMITH",
+  "es": ""
+ },
+ {
+  "off": "18A2C0",
+  "bytes": 7,
+  "en": "DOUGLAS",
+  "es": ""
+ },
+ {
+  "off": "18A2C8",
+  "bytes": 6,
+  "en": "TUCKER",
+  "es": ""
+ },
+ {
+  "off": "18A2D3",
+  "bytes": 5,
+  "en": "DAVIS",
+  "es": ""
+ },
+ {
+  "off": "18A2D9",
+  "bytes": 7,
+  "en": "DONOVAN",
+  "es": ""
+ },
+ {
+  "off": "18A2E1",
+  "bytes": 6,
+  "en": "NELSON",
+  "es": ""
+ },
+ {
+  "off": "18A2E8",
+  "bytes": 5,
+  "en": "NORTH",
+  "es": ""
+ },
+ {
+  "off": "18A2EE",
+  "bytes": 4,
+  "en": "BERG",
+  "es": ""
+ },
+ {
+  "off": "18A2F3",
+  "bytes": 5,
+  "en": "PIPER",
+  "es": ""
+ },
+ {
+  "off": "18A2F9",
+  "bytes": 4,
+  "en": "BASS",
+  "es": ""
+ },
+ {
+  "off": "18A2FE",
+  "bytes": 6,
+  "en": "HUNTER",
+  "es": ""
+ },
+ {
+  "off": "18A305",
+  "bytes": 5,
+  "en": "HANDY",
+  "es": ""
+ },
+ {
+  "off": "18A30B",
+  "bytes": 6,
+  "en": "BEAMER",
+  "es": ""
+ },
+ {
+  "off": "18A312",
+  "bytes": 6,
+  "en": "BISHOP",
+  "es": ""
+ },
+ {
+  "off": "18A319",
+  "bytes": 6,
+  "en": "BROOKS",
+  "es": ""
+ },
+ {
+  "off": "18A320",
+  "bytes": 5,
+  "en": "BLACK",
+  "es": ""
+ },
+ {
+  "off": "18A326",
+  "bytes": 6,
+  "en": "MARTIN",
+  "es": ""
+ },
+ {
+  "off": "18A32D",
+  "bytes": 7,
+  "en": "DRISCOL",
+  "es": ""
+ },
+ {
+  "off": "18A335",
+  "bytes": 5,
+  "en": "MEIER",
+  "es": ""
+ },
+ {
+  "off": "18A33B",
+  "bytes": 5,
+  "en": "MAGER",
+  "es": ""
+ },
+ {
+  "off": "18A341",
+  "bytes": 6,
+  "en": "MORGAN",
+  "es": ""
+ },
+ {
+  "off": "18A348",
+  "bytes": 4,
+  "en": "RYAN",
+  "es": ""
+ },
+ {
+  "off": "18A34D",
+  "bytes": 6,
+  "en": "RIVERA",
+  "es": ""
+ },
+ {
+  "off": "18A354",
+  "bytes": 7,
+  "en": "ROBBINS",
+  "es": ""
+ },
+ {
+  "off": "18A35C",
+  "bytes": 5,
+  "en": "WATTS",
+  "es": ""
+ },
+ {
+  "off": "18A362",
+  "bytes": 5,
+  "en": "HANK ",
+  "es": ""
+ },
+ {
+  "off": "18A368",
+  "bytes": 6,
+  "en": "PARKER",
+  "es": ""
+ },
+ {
+  "off": "18A371",
+  "bytes": 26,
+  "en": "CURRENT\nSTANDINGS AT\n<FF>D<10>",
+  "es": "POSICIONES\nAHORA EN\n<FF>D<10>"
+ },
+ {
+  "off": "18A3CF",
+  "bytes": 16,
+  "en": "\nIS IN THIRD.\n¶\n",
+  "es": "\nVA TERCERO.\n¶\n"
+ },
+ {
+  "off": "18A3E2",
+  "bytes": 39,
+  "en": "RELAX, THE\nTOURNAMENT\nJUST STARTED.\n¶\n",
+  "es": "CALMA, EL\nTORNEO\nAPENAS EMPIEZA.\n¶\n"
+ },
+ {
+  "off": "18A40C",
+  "bytes": 35,
+  "en": "THERE'S PLENTY\nOF ACTION\nAHEAD!\n¶\n",
+  "es": "QUEDA MUCHA\nACCION\nPOR DELANTE!\n¶\n"
+ },
+ {
+  "off": "18A432",
+  "bytes": 71,
+  "en": "THE BATTLE\nIS ALMOST\nOVER.\n¶\nWE'LL SEE IF\nTHERE ARE ANY\nSURPRISES.\n¶\n",
+  "es": "LA BATALLA\nCASI\nTERMINA.\n¶\nVEREMOS SI\nHAY ALGUNA\nSORPRESA.\n¶\n"
+ },
+ {
+  "off": "18A47C",
+  "bytes": 78,
+  "en": "IT'S ALMOST\nTIME TO\nWEIGH-IN.\n¶\nDON'T BE LATE.\nYOU COULD BE\nDISQUALIFIED.\n¶\n",
+  "es": "YA CASI ES\nHORA DEL\nPESAJE.\n¶\nNO LLEGUES\nTARDE: TE\nELIMINARIAN.\n¶\n"
+ },
+ {
+  "off": "18A4CC",
+  "bytes": 9,
+  "en": "   . LBS.",
+  "es": ""
+ },
+ {
+  "off": "18A4D8",
+  "bytes": 4,
+  "en": "LBS.",
+  "es": ""
+ },
+ {
+  "off": "18A4DE",
+  "bytes": 20,
+  "en": "NOW YOU ARE RANKED <1F>",
+  "es": "AHORA VAS DE <1F>"
+ },
+ {
+  "off": "18A52D",
+  "bytes": 13,
+  "en": "CHOOSE ONE.<FC2D>",
+  "es": "ELIGE UNO.<FC2D>"
+ },
+ {
+  "off": "18A53B",
+  "bytes": 14,
+  "en": "CHOOSE ONE.\n<FD>",
+  "es": "ELIGE UNO.\n<FD>"
+ },
+ {
+  "off": "18A54A",
+  "bytes": 22,
+  "en": "(PRESS A TO \n ENTER.)",
+  "es": "(PULSA A\nPARA SEGUIR)"
+ },
+ {
+  "off": "18A561",
+  "bytes": 13,
+  "en": "CHOOSE ONE.<FC2C>",
+  "es": "ELIGE UNO.<FC2C>"
+ },
+ {
+  "off": "18A56F",
+  "bytes": 21,
+  "en": "SELECT ONE RECORD.\n<FD>",
+  "es": "ELIGE UN RECORD.\n<FD>"
+ },
+ {
+  "off": "18A585",
+  "bytes": 22,
+  "en": "(PRESS A TO \n ENTER.)",
+  "es": "(PULSA A\nPARA SEGUIR)"
+ },
+ {
+  "off": "18A59C",
+  "bytes": 55,
+  "en": "SELECT AN AREA TO\nSTORE THE RECORD.\nPRESS A TO ENTER.",
+  "es": "ELIGE DONDE\nGUARDAR EL RECORD.\nPULSA A."
+ },
+ {
+  "off": "18A5D4",
+  "bytes": 15,
+  "en": "IS THIS OKAY?<FC2B>",
+  "es": "ESTA BIEN?<FC2B>"
+ },
+ {
+  "off": "18A5E4",
+  "bytes": 17,
+  "en": "SELECT ONE TO \n<FD>",
+  "es": "ELIGE UNO PARA\n<FD>"
+ },
+ {
+  "off": "18A5F6",
+  "bytes": 28,
+  "en": "ERASE.(PRESS \n A TO ENTER.)",
+  "es": "BORRAR.\n(PULSA A.)"
+ },
+ {
+  "off": "18A613",
+  "bytes": 43,
+  "en": "THIS DATA HAS\nBEEN ERASED.\nSTART AGAIN.\n¶\n",
+  "es": "DATOS BORRADOS.\nEMPIEZA\nDE NUEVO.\n¶\n"
+ },
+ {
+  "off": "18A63F",
+  "bytes": 56,
+  "en": "TOURNAMENT RECORD\nHAS BEEN ERASED.\nDATA STARTS OVER!\n¶\n",
+  "es": "RECORD DE TORNEO\nBORRADO. TODO\nEMPIEZA DE CERO!\n¶\n"
+ },
+ {
+  "off": "18A67F",
+  "bytes": 18,
+  "en": "SELECT ONE LURE.<FC22>",
+  "es": "ELIGE UN CEBO.<FC22>"
+ },
+ {
+  "off": "18A692",
+  "bytes": 12,
+  "en": "ATTACH LURE.",
+  "es": "PONER CEBO"
+ },
+ {
+  "off": "18A69F",
+  "bytes": 10,
+  "en": "VIEW INFO.",
+  "es": "VER INFO"
+ },
+ {
+  "off": "18A6AA",
+  "bytes": 15,
+  "en": "SELECT COLOR.<FC23>",
+  "es": "ELIGE COLOR.<FC23>"
+ },
+ {
+  "off": "18A6BA",
+  "bytes": 6,
+  "en": "BRIGHT",
+  "es": "VIVO"
+ },
+ {
+  "off": "18A6C1",
+  "bytes": 7,
+  "en": "NATURAL",
+  "es": ""
+ },
+ {
+  "off": "18A6C9",
+  "bytes": 20,
+  "en": "SELECT LURE TYPE.\n<FD>",
+  "es": "TIPO DE CEBO:\n<FD>"
+ },
+ {
+  "off": "18A6DE",
+  "bytes": 21,
+  "en": "(PRESS A TO\n ENTER.)",
+  "es": "(PULSA A\nPARA IR.)"
+ },
+ {
+  "off": "18A6F6",
+  "bytes": 8,
+  "en": ";SPINNER",
+  "es": ""
+ },
+ {
+  "off": "18A701",
+  "bytes": 7,
+  "en": ";MINNOW",
+  "es": ""
+ },
+ {
+  "off": "18A70B",
+  "bytes": 11,
+  "en": ";JIG-&-PORK",
+  "es": ""
+ },
+ {
+  "off": "18A719",
+  "bytes": 5,
+  "en": ";FROG",
+  "es": ";RANA"
+ },
+ {
+  "off": "18A721",
+  "bytes": 8,
+  "en": ";SWISHER",
+  "es": ""
+ },
+ {
+  "off": "18A72C",
+  "bytes": 5,
+  "en": ";GRUB",
+  "es": ""
+ },
+ {
+  "off": "18A734",
+  "bytes": 15,
+  "en": ";VIBRATING LURE",
+  "es": ";CEBO VIBRADOR"
+ },
+ {
+  "off": "18A746",
+  "bytes": 9,
+  "en": ";BUZZBAIT",
+  "es": ""
+ },
+ {
+  "off": "18A752",
+  "bytes": 11,
+  "en": ";PENCILBAIT",
+  "es": ""
+ },
+ {
+  "off": "18A760",
+  "bytes": 10,
+  "en": ";CRANKBAIT",
+  "es": ""
+ },
+ {
+  "off": "18A76D",
+  "bytes": 13,
+  "en": ";PLASTIC WORM",
+  "es": ";GUSANO"
+ },
+ {
+  "off": "18A77D",
+  "bytes": 12,
+  "en": ";SPINNERBAIT",
+  "es": ""
+ },
+ {
+  "off": "18A78C",
+  "bytes": 11,
+  "en": ";NOISY BAIT",
+  "es": ";RUIDOSO"
+ },
+ {
+  "off": "18A79A",
+  "bytes": 9,
+  "en": ";TUBEBAIT",
+  "es": ""
+ },
+ {
+  "off": "18A7A6",
+  "bytes": 9,
+  "en": ";CRAYFISH",
+  "es": ";CANGREJO"
+ },
+ {
+  "off": "18A7B2",
+  "bytes": 13,
+  "en": ";BACKTAIL JIG",
+  "es": ""
+ },
+ {
+  "off": "18A7C2",
+  "bytes": 26,
+  "en": "YOU DON'T HAVE\nTHIS LURE.",
+  "es": "NO TIENES\nESTE CEBO."
+ },
+ {
+  "off": "18A7DF",
+  "bytes": 34,
+  "en": "YOU DON'T HAVE\nA LURE RIGHT\nNOW!",
+  "es": "NO TIENES\nNINGUN CEBO\nAHORA!"
+ },
+ {
+  "off": "18A802",
+  "bytes": 19,
+  "en": "SELECT A LURE TO\n<FD>",
+  "es": "ELIGE UN CEBO\n<FD>"
+ },
+ {
+  "off": "18A816",
+  "bytes": 28,
+  "en": "REVIEW.(PRESS A\n TO ENTER.)",
+  "es": "PARA VER.\n(PULSA A.)"
+ },
+ {
+  "off": "18A833",
+  "bytes": 16,
+  "en": "REVIEW OTHERS?<FC20>",
+  "es": "VER OTROS?<FC20>"
+ },
+ {
+  "off": "18A844",
+  "bytes": 140,
+  "en": "SPINNER:\nONE OF THE CLASSIC\nBASS LURES.\n¶\nWHILE IN THE WATER\nTHE BLADE REFLECTS\n& CREATES NOISE.\n¶\nSWING THE ROD\nWHILE YOU'RE\nREELING.\n¶\n",
+  "es": "SPINNER:\nUN CEBO CLASICO\nPARA LOBINAS.\n¶\nEN EL AGUA LA\nPALETA REFLEJA\nLUZ Y HACE RUIDO.\n¶\nMUEVE LA VARA\nMIENTRAS\nRECOGES.\n¶\n"
+ },
+ {
+  "off": "18A8D1",
+  "bytes": 135,
+  "en": "MINNOW:\nDIVES AND IMITATES\nA SMALL BAITFISH.\n¶\nTHIS LURE WOBBLES\nLIKE A STRUGGLING\nFISH.\n¶\nREEL IN SLOWLY\nWHILE SWINGING\nTHE ROD.\n¶\n",
+  "es": "MINNOW:\nSE HUNDE E IMITA\nUN PECECILLO.\n¶\nESTE CEBO SE\nTAMBALEA COMO UN\nPEZ HERIDO.\n¶\nRECOGE LENTO\nMIENTRAS MUEVES\nLA VARA.\n¶\n"
+ },
+ {
+  "off": "18A959",
+  "bytes": 102,
+  "en": "JIG-&-PORK:\nLURES THE LUNKERS\nWITH PORK FLAVOR.\n¶\nUSE FLUID MOTIONS\n& LET IT GLIDE TO\nTHE BOTTOM.\n¶\n",
+  "es": "JIG-&-PORK:\nATRAE A LAS\nGRANDES CON\n¶\nSABOR A CERDO.\nMUEVELO SUAVE\nHASTA EL FONDO.\n¶\n"
+ },
+ {
+  "off": "18A9C0",
+  "bytes": 155,
+  "en": "FROG:\nFLOATS LIKE A FROG\nDANGLING ITS LEGS\n¶\nTHIS LURE SLIDES\nTHROUGH THE WEEDS\n& THE LILY PADS.\n¶\nMAKE IT SWIM LEFT\n& RIGHT, AND LET\nTHE LEGS DANCE.\n¶\n",
+  "es": "RANA:\nFLOTA COMO UNA\nRANA CON LAS\n¶\nPATAS COLGANDO.\nSE DESLIZA ENTRE\nALGAS Y NENUFARES\n¶\nHAZLA NADAR DE\nLADO A LADO Y QUE\nBAILEN LAS PATAS.\n¶\n"
+ },
+ {
+  "off": "18AA5C",
+  "bytes": 140,
+  "en": "SWISHER:\nFLOAT LURE a.k.a.\nPROPELLER BAIT.\n¶\nTHE PROPELLER\nSPLASHES AND LURES\nIN THE BIG BASS.\n¶\nTAKE UP THE\nLINE IN SMALL\nINCREMENTS.\n¶\n",
+  "es": "SWISHER:\nCEBO FLOTANTE\nCON HELICE.\n¶\nLA HELICE\nSALPICA Y ATRAE\nA LAS GRANDES.\n¶\nRECOGE EL SEDAL\nEN TIRONES\nCORTOS.\n¶\n"
+ },
+ {
+  "off": "18AAE9",
+  "bytes": 139,
+  "en": "GRUB:\nSOFT-PLASTIC WITH\nA HOOKED TAIL.\n¶\nIT'S WEEDLESS! THE\nHOOK IS HIDDEN\nBY THE BODY.\n¶\nTHIS SQUIRMING\nLURE IS GOOD FOR\nSMALL BASS.\n¶\n",
+  "es": "GRUB:\nPLASTICO BLANDO\nCON COLA CURVA.\n¶\nNO SE ENGANCHA:\nEL ANZUELO VA\nOCULTO EN EL CUERPO\n¶\nSIRVE PARA\nLOBINAS\nCHICAS.\n¶\n"
+ },
+ {
+  "off": "18AB75",
+  "bytes": 145,
+  "en": "VIBRATING LURE:\nIMITATES A NOISY\nBAITFISH.\n¶\nA NOISY, LIPLESS,\nSLANT HEAD LURE\nTHAT BASS LOVE.\n¶\nUSE WHEN THE BASS\nARE FEEDING ON\nBAITFISH.\n¶\n",
+  "es": "CEBO VIBRADOR:\nIMITA UN PEZ\nRUIDOSO.\n¶\nRUIDOSO, SIN\nLABIO, DE CABEZA\nINCLINADA.\n¶\nUSALO CUANDO LAS\nLOBINAS COMAN\nPECECILLOS.\n¶\n"
+ },
+ {
+  "off": "18AC07",
+  "bytes": 123,
+  "en": "BUZZBAIT:\nFLOAT LURE WITH A\nBLADE AND A JIG.\n¶\nBUZZES WHEN IT\nMOVES THROUGH\nTHE WATER.\n¶\nGOOD FOR\nSHALLOW WATER\nBASS.\n¶\n",
+  "es": "BUZZBAIT:\nCEBO FLOTANTE CON\nPALETA Y JIG.\n¶\nZUMBA AL MOVERSE\nPOR EL AGUA.\n¶\nBUENO PARA\nLOBINAS EN\nAGUA POCO HONDA.\n¶\n"
+ },
+ {
+  "off": "18AC83",
+  "bytes": 107,
+  "en": "PENCILBAIT:\nTHIN SURFACE LURE.\n¶\nIMITATES A WEAK\nFISH NEAR THE\nSURFACE.\n¶\nSWING THE ROD\nWHILE\nREELING.\n¶\n",
+  "es": "PENCILBAIT:\nFINO, DE\nSUPERFICIE.\n¶\nIMITA UN PEZ\nDEBIL EN LA\nSUPERFICIE.\n¶\nMUEVE LA VARA\nAL RECOGER.\n¶\n"
+ },
+ {
+  "off": "18ACEF",
+  "bytes": 146,
+  "en": "CRANKBAIT:\nTHE MOST POPULAR\nSINK LURE.\n¶\nA LIP MAKES THEM\nDIVE. THEIR SHAPE\nCREATES A RUMBLE.\n¶\nALTERNATE REELING\n& STOPPING.\n(SINK & FLOAT)\n¶\n",
+  "es": "CRANKBAIT:\nEL CEBO DE FONDO\nMAS POPULAR.\n¶\nEL LABIO LO HACE\nHUNDIRSE; SU FORMA\nVIBRA AL NADAR.\n¶\nALTERNA RECOGER\nY PARAR.\n(HUNDE Y FLOTA)\n¶\n"
+ },
+ {
+  "off": "18AD82",
+  "bytes": 154,
+  "en": "PLASTIC WORM:\nRESEMBLES A REAL\nWORM WITH A HOOK.\n¶\nGLIDES THROUGH THE\nWEEDS. GOOD FOR\nMOST CONDITIONS.\n¶\nMAKE IT WIGGLE AND\nJIGGLE LIKE A REAL\nWORM.\n¶\n",
+  "es": "GUSANO:\nPARECE UN GUSANO\nREAL CON ANZUELO.\n¶\nSE DESLIZA ENTRE\nLAS ALGAS. BUENO\nCASI SIEMPRE.\n¶\nHAZ QUE SE MENEE\nY SE RETUERZA COMO\nUN GUSANO REAL.\n¶\n"
+ },
+ {
+  "off": "18AE1D",
+  "bytes": 121,
+  "en": "SPINNERBAIT:\nA METAL BLADE\nWITH A JIG.\n¶\nTHE METAL BLADE\nREFLECTS AND\nCREATES NOISE.\n¶\nSWING THE ROD\nWHILE\nREELING.\n¶\n",
+  "es": "SPINNERBAIT:\nUNA PALETA DE\nMETAL CON JIG.\n¶\nLA PALETA\nREFLEJA LUZ Y\nHACE RUIDO.\n¶\nMUEVE LA VARA\nMIENTRAS\nRECOGES.\n¶\n"
+ },
+ {
+  "off": "18AE97",
+  "bytes": 93,
+  "en": "NOISY BAIT:\nTWO WINGS CREATE A\nTURBULENT SPLASH.\n¶\nTHIS NOISY\nLURE ATTRACTS\nTHE LUNKERS.\n¶\n",
+  "es": "RUIDOSO:\nDOS ALAS HACEN\nUN GRAN CHAPOTEO.\n¶\nESTE CEBO\nRUIDOSO ATRAE\nA LAS GRANDES.\n¶\n"
+ },
+ {
+  "off": "18AEF5",
+  "bytes": 137,
+  "en": "TUBEBAIT:\nLOOKS LIKE A\nSOFT SQUID TUBE.\n¶\nA LONG AND SLENDER\nTUBE THAT IS\nWEEDLESS.\n¶\nFLIP IT IN THE\nWEEDS OR IN THE\nSHALLOW WATER.\n¶\n",
+  "es": "TUBEBAIT:\nPARECE UN\nCALAMAR BLANDO.\n¶\nUN TUBO LARGO Y\nFINO QUE NO\nSE ENGANCHA.\n¶\nLANZALO ENTRE\nLAS ALGAS O EN\nAGUA POCO HONDA.\n¶\n"
+ },
+ {
+  "off": "18AF7F",
+  "bytes": 73,
+  "en": "CRAYFISH:\nLOBSTER LIKE\nSINK LURE.\n¶\nGREAT FOR HAULING\nIN THE LUNKERS.\n¶\n",
+  "es": "CANGREJO:\nCEBO DE FONDO\nEN FORMA DE\n¶\nCANGREJO. BUENO\nPARA GRANDES.\n¶\n"
+ },
+ {
+  "off": "18AFC9",
+  "bytes": 131,
+  "en": "BACKTAIL JIG:\nSINK LURE WITH\nA TAIL.\n¶\nTHE HOOK IS\nCOVERED BY A PLUME\nOR A TAIL.\n¶\nGOOD FOR CRAPPIE,\nBLUEGILL AND SMALL\nBASS.\n¶\n",
+  "es": "BACKTAIL JIG:\nCEBO DE FONDO\nCON COLA.\n¶\nEL ANZUELO VA\nOCULTO EN UN\nPENACHO O COLA.\n¶\nPARA CRAPPIE,\nMOJARRA Y\nLOBINAS CHICAS.\n¶\n"
+ },
+ {
+  "off": "18B04F",
+  "bytes": 32,
+  "en": "USE A\nCRANKBAIT OR\nA MINNOW.\n¶\n",
+  "es": "USA CRANKBAIT\nO MINNOW.\n¶\n"
+ },
+ {
+  "off": "18B072",
+  "bytes": 30,
+  "en": "EITHER ONE\nWILL WORK\nWELL.\n¶\n",
+  "es": "CUALQUIERA\nVA BIEN.\n¶\n"
+ },
+ {
+  "off": "18B093",
+  "bytes": 115,
+  "en": "ENTICE THE\nFISH FROM\nUNDER THE\n¶\nBRIDGE WITH\nA MINNOW OR\nA CRANKBAIT.\n¶\nMAKE THE LURE\nMOVE LIKE A\nSMALL FISH.\n¶\n",
+  "es": "SACA A LOS\nPECES DE\nDEBAJO DEL\n¶\nPUENTE CON UN\nMINNOW O UN\nCRANKBAIT.\n¶\nMUEVE EL CEBO\nCOMO UN\nPECECILLO.\n¶\n"
+ },
+ {
+  "off": "18B109",
+  "bytes": 68,
+  "en": "USE A WEED-\nLESS LURE.\n¶\nTRY A JIG &\nPORK BAIT OR A\nSPINNERBAIT.\n¶\n",
+  "es": "USA UN CEBO\nANTIENGANCHE.\n¶\nPRUEBA JIG &\nPORK O\nSPINNERBAIT.\n¶\n"
+ },
+ {
+  "off": "18B150",
+  "bytes": 38,
+  "en": "THE FROG IS\nBEST IN THE\nLILY PADS.\n¶\n",
+  "es": "LA RANA VA\nMEJOR EN LOS\nNENUFARES.\n¶\n"
+ },
+ {
+  "off": "18B179",
+  "bytes": 78,
+  "en": "USE THE\nSWISHER UNDER\nTHE TREES.\n¶\nMOVE IT LIKE\nA BUG FALLEN\nFROM A TREE.\n¶\n",
+  "es": "USA EL SWISHER\nBAJO LOS\nARBOLES.\n¶\nMUEVELO COMO\nUN BICHO CAIDO\nDEL ARBOL.\n¶\n"
+ },
+ {
+  "off": "18B1CA",
+  "bytes": 79,
+  "en": "A JIG & PORK\nBAIT IS BEST\nIN THE REEDS.\n¶\nALSO,THE\nSPINNERBAIT\nWORKS WELL.\n¶\n",
+  "es": "EL JIG & PORK\nES LO MEJOR\nEN LOS JUNCOS.\n¶\nEL SPINNERBAIT\nTAMBIEN\nVA BIEN.\n¶\n"
+ },
+ {
+  "off": "18B21C",
+  "bytes": 61,
+  "en": "USE A MINNOW\nOR A\nCRANKBAIT.\n¶\nMOVE IT LIKE\nA SMALL FISH.\n¶\n",
+  "es": "USA MINNOW\nO CRANKBAIT.\n¶\nMUEVELO COMO\nUN PECECILLO.\n¶\n"
+ },
+ {
+  "off": "18B25C",
+  "bytes": 74,
+  "en": "SMALL FISH\nARE NEARBY.\nUSE A MINNOW\n¶\nOR A\nCRANKBAIT TO\nGET A LUNKER.\n¶\n",
+  "es": "HAY PECECILLOS\nCERCA. USA\nMINNOW O\n¶\nCRANKBAIT PARA\nSACAR UNA\nGRANDE.\n¶\n"
+ },
+ {
+  "off": "18B2A9",
+  "bytes": 77,
+  "en": "IF THE BASS\nARE SUSPENDED\nUSE A MINNOW.\n¶\nIN DEEP WATER\nUSE A\nCRANKBAIT.\n¶\n",
+  "es": "LOBINAS A\nMEDIA AGUA:\nUSA MINNOW.\n¶\nEN AGUA HONDA\nUSA UN\nCRANKBAIT.\n¶\n"
+ },
+ {
+  "off": "18B2F9",
+  "bytes": 68,
+  "en": "USE A LURE\nTHAT WON'T\nSNAG.\n¶\nSPINNERBAITS\nAND WORMS\nWORK WELL.\n¶\n",
+  "es": "USA UN CEBO\nQUE NO SE\nENGANCHE.\n¶\nSPINNERBAIT\nY GUSANO\nSIRVEN.\n¶\n"
+ },
+ {
+  "off": "18B340",
+  "bytes": 67,
+  "en": "IN DEEP WATER\nWEEDS.\nA WORM OR\n¶\nA JIG &\nPORK BAIT\nWORKS WELL.\n¶\n",
+  "es": "EN ALGAS\nHONDAS, UN\nGUSANO O\n¶\nUN JIG &\nPORK VAN\nMUY BIEN.\n¶\n"
+ },
+ {
+  "off": "18B386",
+  "bytes": 76,
+  "en": "BASS FEED\nAROUND THE\nGRAVEL AREAS\n¶\nUSE A CRANK-\nBAIT OR A \nJIG & PORK.\n¶\n",
+  "es": "LAS LOBINAS\nCOMEN CERCA\nDE LA GRAVA.\n¶\nUSA CRANKBAIT\nO JIG & PORK.\n¶\n"
+ },
+ {
+  "off": "18B3D5",
+  "bytes": 76,
+  "en": "BASS FEED\nAROUND THE\nGRAVEL AREAS\n¶\nUSE A CRANK-\nBAIT OR A \nJIG & PORK.\n¶\n",
+  "es": "LAS LOBINAS\nCOMEN CERCA\nDE LA GRAVA.\n¶\nUSA CRANKBAIT\nO JIG & PORK.\n¶\n"
+ },
+ {
+  "off": "18B422",
+  "bytes": 88,
+  "en": "NO MORE LURES\nIN YOUR\nTACKLE BOX.\n¶\nTHAT WAS YOUR\nLAST LURE!\n¶\nYOU HAVE TO\nWEIGH-IN.\n¶\n",
+  "es": "NO QUEDAN CEBOS\nEN TU CAJA.\n¶\nESE ERA\nEL ULTIMO!\n¶\nTIENES QUE\nIR AL PESAJE.\n¶\n"
+ },
+ {
+  "off": "18B47B",
+  "bytes": 14,
+  "en": "WELCOME TO THE",
+  "es": "BIENVENIDO AL"
+ },
+ {
+  "off": "18B48A",
+  "bytes": 14,
+  "en": "EXCITING WORLD",
+  "es": "EMOCIONANTE"
+ },
+ {
+  "off": "18B499",
+  "bytes": 16,
+  "en": "OF BASS FISHING!",
+  "es": "MUNDO DE LOBINAS"
+ },
+ {
+  "off": "18B4AA",
+  "bytes": 21,
+  "en": "PREPARE TO MATCH WITS",
+  "es": "PREPARATE PARA MEDIR"
+ },
+ {
+  "off": "18B4C0",
+  "bytes": 20,
+  "en": "WITH THE TENACIOUS &",
+  "es": "TU INGENIO CON LA"
+ },
+ {
+  "off": "18B4D5",
+  "bytes": 19,
+  "en": "ELUSIVE BLACK BASS.",
+  "es": "ESCURRIDIZA LOBINA."
+ },
+ {
+  "off": "18B4E9",
+  "bytes": 19,
+  "en": "SEEK OUT BASS WHILE",
+  "es": "BUSCA LOBINAS"
+ },
+ {
+  "off": "18B4FD",
+  "bytes": 17,
+  "en": "COMPETING AGAINST",
+  "es": "COMPITIENDO CON"
+ },
+ {
+  "off": "18B50F",
+  "bytes": 14,
+  "en": "OTHER ANGLERS.",
+  "es": "OTROS RIVALES."
+ },
+ {
+  "off": "18B51E",
+  "bytes": 20,
+  "en": "USE YOUR FINESSE AND",
+  "es": "USA TU FINURA Y"
+ },
+ {
+  "off": "18B533",
+  "bytes": 19,
+  "en": "SKILL TO BECOME THE",
+  "es": "HABILIDAD PARA SER"
+ },
+ {
+  "off": "18B547",
+  "bytes": 15,
+  "en": "WORLD CHAMPION.",
+  "es": "CAMPEON MUNDIAL"
+ },
+ {
+  "off": "18B557",
+  "bytes": 19,
+  "en": "GAIN AN APRECIATION",
+  "es": "APRENDE LO QUE"
+ },
+ {
+  "off": "18B56B",
+  "bytes": 20,
+  "en": "FOR WHAT IT TAKES TO",
+  "es": "CUESTA LLEGAR A SER"
+ },
+ {
+  "off": "18B580",
+  "bytes": 20,
+  "en": "BECOME A PRO BASSER.",
+  "es": "UN PESCADOR PRO."
+ },
+ {
+  "off": "18B595",
+  "bytes": 18,
+  "en": "PRESS START BUTTON",
+  "es": "PULSA START"
+ },
+ {
+  "off": "18B5A8",
+  "bytes": 10,
+  "en": "START GAME",
+  "es": "EMPEZAR"
+ },
+ {
+  "off": "18B5B3",
+  "bytes": 11,
+  "en": "VIEW RECORD",
+  "es": "VER RECORD"
+ },
+ {
+  "off": "18B5C1",
+  "bytes": 29,
+  "en": "YOU'VE WON\nTHE GRAND\nPRIZE!",
+  "es": "GANASTE\nEL GRAN\nPREMIO!"
+ },
+ {
+  "off": "18B5E1",
+  "bytes": 35,
+  "en": "TAKE A TRIP\nIN SEARCH\nOF LUNKERS!",
+  "es": "VIAJA EN\nBUSCA DE\nLAS GRANDES!"
+ },
+ {
+  "off": "18B61B",
+  "bytes": 12,
+  "en": "!\nIT HELPS!",
+  "es": "!\nAYUDA!"
+ },
+ {
+  "off": "18B630",
+  "bytes": 30,
+  "en": "\nYOU MUST FIND\nTHE BIG BASS!",
+  "es": "\nBUSCA LA\nGRAN LOBINA!"
+ },
+ {
+  "off": "18B651",
+  "bytes": 25,
+  "en": "<FD><04>THAT'S ALL!\nTAKE CARE.",
+  "es": "<FD><04>ESO ES TODO!\nCUIDATE."
+ },
+ {
+  "off": "18B67E",
+  "bytes": 8,
+  "en": "USE JOHN",
+  "es": "CON JOHN"
+ },
+ {
+  "off": "18B687",
+  "bytes": 8,
+  "en": "NO GUIDE",
+  "es": "SIN GUIA"
+ },
+ {
+  "off": "18B692",
+  "bytes": 41,
+  "en": "THIS IS THE\nLOCAL AMATEUR\nTOURNAMENT.\n¶\n",
+  "es": "ESTE ES EL\nTORNEO LOCAL\nAMATEUR.\n¶\n"
+ },
+ {
+  "off": "18B6BE",
+  "bytes": 36,
+  "en": "AT BEAUTIFUL\nGREEN VALLEY\nLAKE! \n¶\n",
+  "es": "EN EL HERMOSO\nLAGO VALLE\nVERDE!\n¶\n"
+ },
+ {
+  "off": "18B6E5",
+  "bytes": 40,
+  "en": "<06><01> ENTRIES\nDESIRE TO BE\nPRO BASSERS.\n¶\n",
+  "es": "<06><01> INSCRITOS\nQUIEREN\nSER PROS.\n¶\n"
+ },
+ {
+  "off": "18B710",
+  "bytes": 40,
+  "en": "ONLY THE TOP\n<04> GO TO THE\nNEXT EVENT.\n¶\n",
+  "es": "SOLO LOS <04>\nMEJORES\nPASAN.\n¶\n"
+ },
+ {
+  "off": "18B73B",
+  "bytes": 27,
+  "en": "GOOD LUCK TO\nALL OF YOU!\n¶\n",
+  "es": "SUERTE\nA TODOS!\n¶\n"
+ },
+ {
+  "off": "18B759",
+  "bytes": 34,
+  "en": "HERE ARE THE\nTOURNAMENT\nRULES.\n¶\n",
+  "es": "LAS REGLAS\nDEL TORNEO:\n¶\n"
+ },
+ {
+  "off": "18B77C",
+  "bytes": 15,
+  "en": "REVIEW RULES?<FC20>",
+  "es": "VER REGLAS?<FC20>"
+ },
+ {
+  "off": "18B78E",
+  "bytes": 102,
+  "en": "ARE YOU\nIN THIS\nTOURNAMENT?\n¶\nHI! I'M JOHN,\nAN EXPERT\nFISHERMAN.\n¶\nWOULD YOU\nLIKE MY\nASSISTANCE?\n¶\n",
+  "es": "ESTAS EN\nESTE\nTORNEO?\n¶\nHOLA! SOY JOHN,\nPESCADOR\nEXPERTO.\n¶\nQUIERES\nMI\nAYUDA?\n¶\n"
+ },
+ {
+  "off": "18B7F7",
+  "bytes": 15,
+  "en": "TAKE A GUIDE?<FC20>",
+  "es": "QUIERES GUIA?<FC20>"
+ },
+ {
+  "off": "18B809",
+  "bytes": 34,
+  "en": "YOU SHOULD\nWIN WITH MY\nADVICE.\n¶\n",
+  "es": "CON MIS\nCONSEJOS\nGANARAS.\n¶\n"
+ },
+ {
+  "off": "18B82E",
+  "bytes": 30,
+  "en": "YOU REALLY\nSHOULD TAKE\nME!\n¶\n",
+  "es": "DEBERIAS\nLLEVARME!\n¶\n"
+ },
+ {
+  "off": "18B84F",
+  "bytes": 37,
+  "en": "I'LL GIVE YOU\nTHESE LURES\nANYWAY.\n¶\n",
+  "es": "IGUAL TE DOY\nESTOS CEBOS.\n¶\n"
+ },
+ {
+  "off": "18B877",
+  "bytes": 29,
+  "en": "JOHN GAVE YOU\nTHESE LURES.\n¶\n",
+  "es": "JOHN TE DIO\nESTOS CEBOS.\n¶\n"
+ },
+ {
+  "off": "18B895",
+  "bytes": 28,
+  "en": "JOHN HAS LEFT\nTHE MARINA.\n¶\n",
+  "es": "JOHN SE FUE\nDEL MUELLE.\n¶\n"
+ },
+ {
+  "off": "18B8B4",
+  "bytes": 31,
+  "en": "LET'S START\nTHE\nTOURNAMENT.\n¶\n",
+  "es": "EMPECEMOS\nEL TORNEO.\n¶\n"
+ },
+ {
+  "off": "18B8D4",
+  "bytes": 364,
+  "en": "HERE ARE THE\nTOURNAMENT RULES.\n¶\nTOURNAMENT HOURS\nSTART: <08>:<01><01> A.M.\nEND:   <05>:<04><01> P.M.\n¶\nONLY BLACK BASS\nWILL BE INCLUDED\nAT THE WEIGH-IN.\n¶\nTOTAL WEIGHT\nDETERMINES YOUR\nRANKING.\n¶\nA MAXIMUM OF <06>\nFISH MAY BE KEPT\nIN THE LIVEWELL.\n¶\nEXTRA FISH SHOULD\nBE CULLED.\n¶\n<02> LB. PENALTY\nFOR EACH MINUTE AN\nANGLER IS LATE.\n¶\nDISQUALIFICATION:\nMORE THAN <03><01>\nMINUTES LATE.\n¶\n",
+  "es": "ESTAS SON LAS\nREGLAS DEL TORNEO.\n¶\nHORARIO DEL TORNEO\nINICIO: <08>:<01><01> A.M.\nFIN:    <05>:<04><01> P.M.\n¶\nSOLO LAS LOBINAS\nNEGRAS CUENTAN\nEN EL PESAJE.\n¶\nEL PESO TOTAL\nDETERMINA TU\nPOSICION.\n¶\nMAXIMO <06> PECES\nEN EL\nVIVERO.\n¶\nLOS PECES DE MAS\nDEBEN SOLTARSE.\n¶\n<02> LB. DE MULTA\nPOR CADA MINUTO\nDE RETRASO.\n¶\nELIMINADO:\nMAS DE <03><01>\nMINUTOS TARDE.\n¶\n"
+ },
+ {
+  "off": "18BA41",
+  "bytes": 15,
+  "en": "REVIEW AGAIN?<FC20>",
+  "es": "VER DE NUEVO?<FC20>"
+ },
+ {
+  "off": "18BA54",
+  "bytes": 41,
+  "en": "THIS IS THE\nAMATEUR BASS\nCHAMPIONSHIP\n¶\n",
+  "es": "ESTE ES EL\nCAMPEONATO\nAMATEUR.\n¶\n"
+ },
+ {
+  "off": "18BA80",
+  "bytes": 17,
+  "en": "AT ONYX\nRIVER.\n¶\n",
+  "es": "EN RIO\nONIX.\n¶\n"
+ },
+ {
+  "off": "18BA94",
+  "bytes": 36,
+  "en": "<09><01> AMATEUR\nCHAMPS ARE\nCOMPETING.\n¶\n",
+  "es": "<09><01> CAMPEONES\nAMATEUR\nCOMPITEN.\n¶\n"
+ },
+ {
+  "off": "18BABB",
+  "bytes": 40,
+  "en": "THE WINNER\nWILL BECOME\nA PRO BASSER.\n¶\n",
+  "es": "EL GANADOR\nSE CONVERTIRA\nEN PRO.\n¶\n"
+ },
+ {
+  "off": "18BAE6",
+  "bytes": 37,
+  "en": "CAN I GO?\nWILL YOU TAKE\nME ALONG?\n¶\n",
+  "es": "PUEDO IR?\nME LLEVAS\nCONTIGO?\n¶\n"
+ },
+ {
+  "off": "18BB0E",
+  "bytes": 27,
+  "en": "YOU'LL WIN\nWITH MY HELP.\n¶\n",
+  "es": "GANARAS CON\nMI AYUDA.\n¶\n"
+ },
+ {
+  "off": "18BB2C",
+  "bytes": 39,
+  "en": "YOU ARE READY\nTO BECOME A\nBASS PRO.\n¶\n",
+  "es": "ESTAS LISTO\nPARA SER\nUN PRO.\n¶\n"
+ },
+ {
+  "off": "18BB56",
+  "bytes": 104,
+  "en": "WELCOME TO\nTHE PRO BASS\nTOURNAMENT.\n¶\nHANK PARKER\nIS ENTERED IN\nTHIS EVENT.\n¶\nHI HANK! HOW\nARE YOU?\n¶\n",
+  "es": "BIENVENIDOS AL\nTORNEO\nPROFESIONAL.\n¶\nHANK PARKER\nPARTICIPA EN\nESTE EVENTO.\n¶\nHOLA HANK!\nCOMO ESTAS?\n¶\n"
+ },
+ {
+  "off": "18BBC1",
+  "bytes": 62,
+  "en": "PRETTY GOOD!\nIT'S A\nPLEASURE TO\n¶\nCOMPETE WITH\nALL OF YOU.\n¶\n",
+  "es": "MUY BIEN!\nES UN PLACER\n¶\nCOMPETIR CON\nTODOS USTEDES.\n¶\n"
+ },
+ {
+  "off": "18BC02",
+  "bytes": 38,
+  "en": "EVERYONE CAN\nRELAX UNTIL\nWE START.\n¶\n",
+  "es": "RELAJENSE\nHASTA QUE\nEMPECEMOS.\n¶\n"
+ },
+ {
+  "off": "18BC2B",
+  "bytes": 37,
+  "en": "YOUR SMILE\nSHOWS YOUR\nCONFIDENCE.\n¶\n",
+  "es": "TU SONRISA\nMUESTRA TU\nCONFIANZA.\n¶\n"
+ },
+ {
+  "off": "18BC53",
+  "bytes": 26,
+  "en": "WELCOME TO\nBRONZE LAKE.\n¶\n",
+  "es": "ESTAMOS EN\nLAGO BRONCE.\n¶\n"
+ },
+ {
+  "off": "18BC70",
+  "bytes": 40,
+  "en": "<09><01> HIGHLY\nSKILLED PROS \nARE ENTERED.\n¶\n",
+  "es": "<09><01> PROS MUY\nHABILES\nPARTICIPAN.\n¶\n"
+ },
+ {
+  "off": "18BC9B",
+  "bytes": 28,
+  "en": "NOW THE FIGHT\nWILL BEGIN.\n¶\n",
+  "es": "AHORA EMPIEZA\nLA LUCHA.\n¶\n"
+ },
+ {
+  "off": "18BCBA",
+  "bytes": 34,
+  "en": "YOU KNOW THE\nTOURNAMENT\nRULES.\n¶\n",
+  "es": "YA CONOCEN\nLAS REGLAS.\n¶\n"
+ },
+ {
+  "off": "18BCDF",
+  "bytes": 26,
+  "en": "LET'S START\nTHE BATTLE!\n¶\n",
+  "es": "QUE EMPIECE\nLA BATALLA!\n¶\n"
+ },
+ {
+  "off": "18BCFC",
+  "bytes": 66,
+  "en": "LADIES AND\nGENTLEMEN,\n¶\nTHIS IS THE\nBASSIN' WORLD\nCHAMPIONSHIP\n¶\n",
+  "es": "DAMAS Y\nCABALLEROS,\n¶\nESTE ES EL\nCAMPEONATO\nMUNDIAL\n¶\n"
+ },
+ {
+  "off": "18BD41",
+  "bytes": 21,
+  "en": "AT BLUESTONE\nLAKE.\n¶\n",
+  "es": "EN LAGO\nPIEDRAZUL.\n¶\n"
+ },
+ {
+  "off": "18BD59",
+  "bytes": 39,
+  "en": "THE TOP <04><01>\nPRO ANGLERS\nARE ENTERED.\n¶\n",
+  "es": "LOS <04><01> MEJORES\nPROS\nPARTICIPAN.\n¶\n"
+ },
+ {
+  "off": "18BD83",
+  "bytes": 34,
+  "en": "THERE WILL\nBE ONLY ONE\nWINNER.\n¶\n",
+  "es": "SOLO HABRA\nUN GANADOR.\n¶\n"
+ },
+ {
+  "off": "18BDA8",
+  "bytes": 39,
+  "en": "THE WINNER\nGETS A NEW\nTRUCK & BOAT.\n¶\n",
+  "es": "EL GANADOR\nRECIBE\nCAMIONETA Y BOTE\n¶\n"
+ },
+ {
+  "off": "18BDD2",
+  "bytes": 38,
+  "en": "IF YOU WIN,\nYOU CAN FISH\nANYWHERE!\n¶\n",
+  "es": "SI GANAS,\nPODRAS PESCAR\nDONDE SEA!\n¶\n"
+ },
+ {
+  "off": "18BE02",
+  "bytes": 42,
+  "en": "WHO WILL LAND\nTHE BIG BASS\nOF THE DAY?\n¶\n",
+  "es": "QUIEN SACARA\nLA GRAN LOBINA\nDEL DIA?\n¶\n"
+ },
+ {
+  "off": "18BE2F",
+  "bytes": 39,
+  "en": "TOO BAD. YOU\nDIDN'T CATCH\nANYTHING.\n¶\n",
+  "es": "QUE PENA.\nNO PESCASTE\nNADA.\n¶\n"
+ },
+ {
+  "off": "18BE59",
+  "bytes": 44,
+  "en": "IT'S A TINY\nLARGEMOUTH.\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "LOBINA GRANDE\nDIMINUTA.\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18BE88",
+  "bytes": 46,
+  "en": "THAT'S A NICE\nLARGEMOUTH!\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "QUE BUENA\nLOBINA GRANDE!\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18BEB9",
+  "bytes": 44,
+  "en": "IT'S A BIG \nLARGEMOUTH!\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "UNA LOBINA\nGRANDE ENORME!\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18BF0F",
+  "bytes": 45,
+  "en": "IT'S A GIANT\nLARGEMOUTH!\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "UNA LOBINA\nGRANDE GIGANTE!\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18BF3F",
+  "bytes": 44,
+  "en": "IT'S A HUGE\nLARGEMOUTH!\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "UNA LOBINA\nGRANDE INMENSA!\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18BF96",
+  "bytes": 45,
+  "en": "IT'S A TINY \nSMALLMOUTH.\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "LOBINA CHICA\nDIMINUTA.\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18BFC6",
+  "bytes": 46,
+  "en": "IT'S A LITTLE\nSMALLMOUTH.\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "UNA LOBINA\nCHICA MENUDA.\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18BFF7",
+  "bytes": 46,
+  "en": "WHAT A LOVELY\nSMALLMOUTH!\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "QUE LINDA\nLOBINA CHICA!\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18C028",
+  "bytes": 37,
+  "en": "THAT'S AN\nINCREDIBLE \nSMALLMOUTH!\n¶\n",
+  "es": "QUE LOBINA\nCHICA TAN\nINCREIBLE!\n¶\n"
+ },
+ {
+  "off": "18C050",
+  "bytes": 45,
+  "en": "IT'S A HUGE \nSMALLMOUTH!\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "UNA LOBINA\nCHICA ENORME!\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18C07E",
+  "bytes": 10,
+  "en": "SMALLMOUTH",
+  "es": "LOB. CHICA"
+ },
+ {
+  "off": "18C089",
+  "bytes": 7,
+  "en": "SPOTTED",
+  "es": "PINTA"
+ },
+ {
+  "off": "18C093",
+  "bytes": 28,
+  "en": "I THINK THIS\nONE IS OKAY.\n¶\n",
+  "es": "CREO QUE\nESTE VALE.\n¶\n"
+ },
+ {
+  "off": "18C0B2",
+  "bytes": 22,
+  "en": "THAT ONE'S\nNOT BAD.\n¶\n",
+  "es": "ESE NO\nESTA MAL.\n¶\n"
+ },
+ {
+  "off": "18C0CB",
+  "bytes": 28,
+  "en": "THAT'S A GOOD\nSIZED FISH!\n¶\n",
+  "es": "ES UN PEZ DE\nBUENA TALLA!\n¶\n"
+ },
+ {
+  "off": "18C0EA",
+  "bytes": 33,
+  "en": "THIS ONE WILL\nGET YOU\nRANKED.\n¶\n",
+  "es": "CON ESTE\nENTRAS EN\nLA TABLA.\n¶\n"
+ },
+ {
+  "off": "18C10E",
+  "bytes": 31,
+  "en": "WOW! THAT'S\nA MASSIVE\nBASS.\n¶\n",
+  "es": "VAYA! ES UNA\nLOBINA\nENORME.\n¶\n"
+ },
+ {
+  "off": "18C130",
+  "bytes": 32,
+  "en": "THIS FISH\nWILL HELP YOU\nWIN!\n¶\n",
+  "es": "ESTE PEZ TE\nAYUDARA A\nGANAR!\n¶\n"
+ },
+ {
+  "off": "18C153",
+  "bytes": 28,
+  "en": "IT'S A NEW \nLAKE RECORD!!\n¶\n",
+  "es": "NUEVO RECORD\nDEL LAGO!!\n¶\n"
+ },
+ {
+  "off": "18C182",
+  "bytes": 12,
+  "en": " \nA HAND!\n¶\n",
+  "es": " \nBRAVO!\n¶\n"
+ },
+ {
+  "off": "18C191",
+  "bytes": 34,
+  "en": "HOW ABOUT A\nROUND OF\nAPPLAUSE!\n¶\n",
+  "es": "QUE TAL\nUN FUERTE\nAPLAUSO!\n¶\n"
+ },
+ {
+  "off": "18C1B6",
+  "bytes": 28,
+  "en": "WHAT IS THE\nTOTAL WEIGHT?\n¶\n",
+  "es": "CUAL ES EL\nPESO TOTAL?\n¶\n"
+ },
+ {
+  "off": "18C1D5",
+  "bytes": 33,
+  "en": "IT'S TOUGH\nTO MAKE THE\nTOP <04>.\n¶\n",
+  "es": "ES DIFICIL\nENTRAR AL\nTOP <04>.\n¶\n"
+ },
+ {
+  "off": "18C1F9",
+  "bytes": 40,
+  "en": "THAT'S A BIG\nHAUL. IT WILL\nBE CLOSE.\n¶\n",
+  "es": "BUENA PESCA.\nESTARA MUY\nPAREJO.\n¶\n"
+ },
+ {
+  "off": "18C224",
+  "bytes": 40,
+  "en": "GOOD TOTAL!\nTHERE'S STILL \nA CHANCE.\n¶\n",
+  "es": "BUEN TOTAL!\nAUN HAY\nUNA CHANCE.\n¶\n"
+ },
+ {
+  "off": "18C24F",
+  "bytes": 25,
+  "en": "EXCELLENT!\nYOU ARE <1F><02>!\n¶\n",
+  "es": "EXCELENTE!\nVAS DE <1F><02>!\n¶\n"
+ },
+ {
+  "off": "18C26B",
+  "bytes": 24,
+  "en": "THAT'S A \nNEW RECORD!\n¶\n",
+  "es": "ES UN\nNUEVO RECORD!\n¶\n"
+ },
+ {
+  "off": "18C299",
+  "bytes": 12,
+  "en": " \nA HAND.\n¶\n",
+  "es": " \nBRAVO.\n¶\n"
+ },
+ {
+  "off": "18C2A8",
+  "bytes": 46,
+  "en": "IT'S A TINY\nSPOTTED BASS.\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "LOBINA PINTA\nDIMINUTA.\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18C2D9",
+  "bytes": 47,
+  "en": "THAT SPOTTED\nBASS IS OKAY.\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "ESA LOBINA\nPINTA VALE.\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18C30B",
+  "bytes": 48,
+  "en": "THAT'S A NICE\nSPOTTED BASS!\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "QUE BUENA\nLOBINA PINTA!\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18C33E",
+  "bytes": 47,
+  "en": "THAT SPOTTED\nBASS IS HUGE!\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "ESA LOBINA\nPINTA ES ENORME!\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18C370",
+  "bytes": 47,
+  "en": "THAT SPOTTED\nBASS IS GIANT\nTHE WT. IS<FD><14>..<FD><08>\n¶\n",
+  "es": "ESA LOBINA\nPINTA ES GIGANTE\nPESA<FD><14>..<FD><08>\n¶\n"
+ },
+ {
+  "off": "18C3A0",
+  "bytes": 7,
+  "en": "ANGLER/",
+  "es": "NOMBRE/"
+ },
+ {
+  "off": "18C3D5",
+  "bytes": 78,
+  "en": " \nYOU'RE LATE \nTO WEIGH-IN.\n¶\n<VAR 9b1000> MIN. LATE\nPENALTY=<VAR a90a00>LBS.\nFROM TOTAL.\n¶\n",
+  "es": " \nLLEGASTE TARDE\nAL PESAJE.\n¶\n<VAR 9b1000> MIN. TARDE\nMULTA=<VAR a90a00>LBS.\nDEL TOTAL.\n¶\n"
+ },
+ {
+  "off": "18C426",
+  "bytes": 61,
+  "en": "THE WEIGH-IN\nHAS STARTED.\n¶\nWHO WILL\nWIN THIS\nTOURNAMENT?\n¶\n",
+  "es": "EMPEZO\nEL PESAJE.\n¶\nQUIEN GANARA\nESTE\nTORNEO?\n¶\n"
+ },
+ {
+  "off": "18C466",
+  "bytes": 38,
+  "en": "LET'S CHECK\nTHE CURRENT\nSTANDINGS.\n¶\n",
+  "es": "VEAMOS LAS\nPOSICIONES\nACTUALES.\n¶\n"
+ },
+ {
+  "off": "18C48F",
+  "bytes": 76,
+  "en": "EVERYONE HAS\nFINISHED\nWEIGHING-IN.\n¶\nWHICH <04> WILL\nGO TO THE\nNEXT ROUND.\n¶\n",
+  "es": "TODOS HAN\nTERMINADO\nDE PESAR.\n¶\nCUALES <04>\nPASARAN A LA\nSIGUIENTE RONDA\n¶\n"
+ },
+ {
+  "off": "18C4DE",
+  "bytes": 39,
+  "en": "TAKE A LOOK\nAT THE WEIGH-\nIN BOARD.\n¶\n",
+  "es": "MIRA LA\nTABLA DE\nPESAJE.\n¶\n"
+ },
+ {
+  "off": "18C52D",
+  "bytes": 34,
+  "en": "!!\nIS IN <03>ND.\n¶\nTHE WINNER IS\n<FF>G<10>",
+  "es": "!!\nVA <03>DO.\n¶\nEL GANADOR ES\n<FF>G<10>"
+ },
+ {
+  "off": "18C5A4",
+  "bytes": 49,
+  "en": "HERE ARE THE\nFINAL\nRESULTS!\n¶\nWHO WILL BE\n<1F><02>?\n¶\n",
+  "es": "RESULTADOS\nFINALES!\n¶\nQUIEN SERA\n<1F><02>?\n¶\n"
+ },
+ {
+  "off": "18C620",
+  "bytes": 23,
+  "en": "RANK SPECIES        WT.",
+  "es": "POS. ESPECIE       PESO"
+ },
+ {
+  "off": "18C64C",
+  "bytes": 10,
+  "en": "/  .  LBS.",
+  "es": ""
+ },
+ {
+  "off": "18C657",
+  "bytes": 19,
+  "en": ";TOTAL WT:  .  LBS.",
+  "es": ";PESO TOT:  .  LBS."
+ },
+ {
+  "off": "18C66B",
+  "bytes": 17,
+  "en": "/LARGEMOUTH BASS/",
+  "es": "/LOBINA GRANDE  /"
+ },
+ {
+  "off": "18C67D",
+  "bytes": 17,
+  "en": "/SMALLMOUTH BASS/",
+  "es": "/LOBINA CHICA   /"
+ },
+ {
+  "off": "18C68F",
+  "bytes": 17,
+  "en": "/SPOTTED BASS   /",
+  "es": "/LOBINA PINTA   /"
+ },
+ {
+  "off": "18C6A1",
+  "bytes": 13,
+  "en": "LOCAL AMATEUR",
+  "es": "TORNEO LOCAL"
+ },
+ {
+  "off": "18C6AF",
+  "bytes": 10,
+  "en": "TOURNAMENT",
+  "es": "AMATEUR"
+ },
+ {
+  "off": "18C6BA",
+  "bytes": 12,
+  "en": "AMATEUR BASS",
+  "es": "CAMPEONATO"
+ },
+ {
+  "off": "18C6C7",
+  "bytes": 12,
+  "en": "CHAMPIONSHIP",
+  "es": "AMATEUR"
+ },
+ {
+  "off": "18C6D4",
+  "bytes": 8,
+  "en": "PRO BASS",
+  "es": "TORNEO"
+ },
+ {
+  "off": "18C6DD",
+  "bytes": 10,
+  "en": "TOURNAMENT",
+  "es": "PRO"
+ },
+ {
+  "off": "18C6E8",
+  "bytes": 13,
+  "en": "BASSIN' WORLD",
+  "es": "CAMPEONATO"
+ },
+ {
+  "off": "18C6F6",
+  "bytes": 12,
+  "en": "CHAMPIONSHIP",
+  "es": "MUNDIAL"
+ },
+ {
+  "off": "18C725",
+  "bytes": 25,
+  "en": ".\n¶\nYOU CAN ENTER THE\n<FF>}<10>",
+  "es": ".\n¶\nPUEDES ENTRAR AL\n<FF>}<10>"
+ },
+ {
+  "off": "18C749",
+  "bytes": 65,
+  "en": "SORRY YOU LOST.\nNO PRIZE THIS\nTIME.\n¶\nWHY DON'T YOU TRY\nTHE <FF>Y<10>",
+  "es": "LO SIENTO.\nSIN PREMIO\nESTA VEZ.\n¶\nPOR QUE NO\nPRUEBAS EL <FF>Y<10>"
+ },
+ {
+  "off": "18C795",
+  "bytes": 57,
+  "en": "YOU ARE\nDISQUALIFIED FOR\nDEFYING THE RULES\n¶\nTRY THE <FF>Y<10>",
+  "es": "QUEDAS\nELIMINADO POR\nROMPER LAS REGLAS\n¶\nPRUEBA EL <FF>Y<10>"
+ },
+ {
+  "off": "18C7D5",
+  "bytes": 11,
+  "en": " \nAGAIN.\n¶\n",
+  "es": " \nYA.\n¶\n"
+ },
+ {
+  "off": "18C7E1",
+  "bytes": 19,
+  "en": "SAVE YOUR RECORD?<FC2B>",
+  "es": "GUARDAR RECORD?<FC2B>"
+ },
+ {
+  "off": "18C7F7",
+  "bytes": 39,
+  "en": "HOW WAS IT?\nDID MY ADVICE\nHELP YOU?\n¶\n",
+  "es": "QUE TAL?\nTE SIRVIERON\nMIS CONSEJOS?\n¶\n"
+ },
+ {
+  "off": "18C821",
+  "bytes": 26,
+  "en": "IT WAS EASY.\nWASN'T IT?\n¶\n",
+  "es": "FUE FACIL,\nVERDAD?\n¶\n"
+ },
+ {
+  "off": "18C83E",
+  "bytes": 36,
+  "en": "KEEP UP THE\nGOOD WORK\nNEXT TIME!\n¶\n",
+  "es": "SIGUE ASI\nLA PROXIMA\nVEZ!\n¶\n"
+ },
+ {
+  "off": "18C878",
+  "bytes": 18,
+  "en": "!\nYOU'RE A PRO.\n¶\n",
+  "es": "!\nERES UN PRO.\n¶\n"
+ },
+ {
+  "off": "18C88D",
+  "bytes": 37,
+  "en": "YOU DON'T\nREALLY NEED\nME ANYMORE.\n¶\n",
+  "es": "YA NO ME\nNECESITAS.\n¶\n"
+ },
+ {
+  "off": "18C8B5",
+  "bytes": 34,
+  "en": "THE NEXT\nROUND WILL BE\nHARDER.\n¶\n",
+  "es": "LA SIGUIENTE\nSERA MAS DURA.\n¶\n"
+ },
+ {
+  "off": "18C8EC",
+  "bytes": 15,
+  "en": ".\nGO FOR IT!\n¶\n",
+  "es": ".\nADELANTE!\n¶\n"
+ },
+ {
+  "off": "18C8FE",
+  "bytes": 31,
+  "en": "HERE IS A \nPRESENT FOR\nYOU.\n¶\n",
+  "es": "TENGO UN\nREGALO\nPARA TI.\n¶\n"
+ },
+ {
+  "off": "18C920",
+  "bytes": 37,
+  "en": "JOHN GAVE YOU\nTHESE LURES\nANYWAY.\n¶\n",
+  "es": "JOHN TE DIO\nESTOS CEBOS\nIGUAL.\n¶\n"
+ },
+ {
+  "off": "18C948",
+  "bytes": 34,
+  "en": "USE THESE.\nTHEY WILL\nHELP YOU.\n¶\n",
+  "es": "USA ESTOS.\nTE AYUDARAN.\n¶\n"
+ },
+ {
+  "off": "18C96D",
+  "bytes": 12,
+  "en": "GOOD LUCK!\n¶\n",
+  "es": "SUERTE!\n¶\n"
+ },
+ {
+  "off": "18C97A",
+  "bytes": 27,
+  "en": "JOHN LEFT TO\nGO BASSIN'.\n¶\n",
+  "es": "JOHN SE FUE\nA PESCAR.\n¶\n"
+ },
+ {
+  "off": "18C9B0",
+  "bytes": 110,
+  "en": "?\n¶\nI HEARD \nYOU'RE A GOOD\nBASSER.\n¶\nTHE NEXT\nSTAGE IS VERY\nDIFFICULT.\n¶\nGET PSYCHED UP\nFOR SOME\nBASSIN'.\n¶\n",
+  "es": "?\n¶\nOI QUE ERES\nUN BUEN\nPESCADOR.\n¶\nLA SIGUIENTE\nETAPA ES\nMUY DIFICIL.\n¶\nPREPARATE\nPARA PESCAR\nEN SERIO.\n¶\n"
+ },
+ {
+  "off": "18CA1F",
+  "bytes": 86,
+  "en": "YOU'VE WON THE\nBASSIN' WORLD\nCHAMPIONSHIP!\n¶\nYOU'RE THE <1F><02>\nBASS PRO IN\nTHE WORLD.\n¶\n",
+  "es": "GANASTE EL\nCAMPEONATO\nMUNDIAL!\n¶\nERES EL <1F><02>\nPESCADOR PRO\nDEL MUNDO.\n¶\n"
+ },
+ {
+  "off": "18CA78",
+  "bytes": 65,
+  "en": "YOU'VE DONE A\nGREAT JOB.\n¶\nYOU'RE THE <1F><02>\nBASSER IN THE\nWORLD.\n¶\n",
+  "es": "HICISTE UN\nGRAN TRABAJO.\n¶\nERES EL <1F><02>\nPESCADOR\nDEL MUNDO.\n¶\n"
+ },
+ {
+  "off": "18CABA",
+  "bytes": 39,
+  "en": "HERE COMES \nJOHN! HE LOOKS\nEXCITED.\n¶\n",
+  "es": "AHI VIENE\nJOHN! SE VE\nEMOCIONADO.\n¶\n"
+ },
+ {
+  "off": "18CAE4",
+  "bytes": 34,
+  "en": "I'M HERE TO\nSEE YOUR\nWEIGH-IN.\n¶\n",
+  "es": "VINE A VER\nTU PESAJE.\n¶\n"
+ },
+ {
+  "off": "18CB09",
+  "bytes": 28,
+  "en": "THAT'S GREAT!\nGOOD GOING!\n¶\n",
+  "es": "GENIAL!\nBIEN HECHO!\n¶\n"
+ },
+ {
+  "off": "18CB38",
+  "bytes": 15,
+  "en": " \nWOULD WIN.\n¶\n",
+  "es": " \nGANARIA.\n¶\n"
+ },
+ {
+  "off": "18CB4A",
+  "bytes": 62,
+  "en": "SORRY. YOU\nALMOST WON.\n¶\nMAYBE NEXT\nTIME YOU'LL\nDO BETTER.\n¶\n",
+  "es": "LO SIENTO.\nCASI GANAS.\n¶\nQUIZA LA\nPROXIMA\nTE VAYA MEJOR.\n¶\n"
+ }
+]

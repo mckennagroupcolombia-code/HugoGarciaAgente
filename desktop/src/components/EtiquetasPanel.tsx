@@ -1,5 +1,7 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode, type RefObject } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api, resolvePanelApiUrl, ticketsSessionHeaders } from "../api/client";
 import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
@@ -36,6 +38,7 @@ import {
 } from "../lib/cmykColor";
 import {
   mmParaTipoEtiqueta,
+  nombreTipoPorMedidas,
   TIPOS_ETIQUETA_DEFAULT,
   useTiposEtiqueta,
   etiquetaTamanoTipoNombre,
@@ -70,8 +73,9 @@ import { codificarRutaRecursoPng } from "./etiquetas/RecursoPngViewer";
 import { resolverUrlImagenCanvas } from "../lib/plantillasVisualesImagen";
 import { AjusteOffsetImpresion } from "./etiquetas/AjusteOffsetImpresion";
 import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
-import { puedeVerTabEtiquetas, puedeVerEtiquetasAvanzado, esTabEtiquetasSoloCynthia } from "../lib/studioVisualAccess";
+import { puedeVerTabEtiquetas, puedeVerEtiquetasAvanzado, puedeVerPapelTinta } from "../lib/studioVisualAccess";
 import { precargarDiseno, ETIQUETAS_GC_TIME } from "../lib/etiquetasPrefetch";
+import { registerNestedBackHandler } from "../lib/appBackNavigation";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -2065,7 +2069,7 @@ function BannerErrorImpresora({
   return (
     <Banner tone="danger" className="flex-shrink-0 items-start rounded-none border-x-0 border-t-0 px-4 py-3" onClose={onCerrar}>
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 text-lg leading-none" aria-hidden>⚠️</span>
+        <span className="mt-0.5 text-lg leading-none" aria-hidden><Ico e="⚠️" /></span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold">{error.error}</p>
           <p className="mt-1 text-xs leading-relaxed">
@@ -2242,7 +2246,7 @@ function BloqueLoteExpPreview({
   const lineaLote = loteText?.trim() || undefined;
   const lineaExp = vencText?.trim() || undefined;
   const visible = Boolean(lineaLote || lineaExp);
-  const fontMostrar = Math.max(fontPx * 1.35, 16);
+  const fontMostrar = fontPx;
 
   const mover = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!stageRef.current) return;
@@ -2328,6 +2332,7 @@ function VistaPreviaConLote({
   vencXPct: _vencXPct,
   vencYPct: _vencYPct,
   onVencPositionChange,
+  paginaMm,
   imgClassName = "block max-w-full max-h-full w-auto h-auto rounded-lg shadow transition-opacity duration-200",
   containerClassName = "flex items-center justify-center w-full h-full min-h-[8rem]",
 }: {
@@ -2345,6 +2350,9 @@ function VistaPreviaConLote({
   vencXPct: number;
   vencYPct: number;
   onVencPositionChange?: (x: number, y: number) => void;
+  /** Medida física [ancho, alto] de la página impresa. Sin ella se asume la
+   *  imagen renderizada a PREVIEW_DPI (vista previa de PDF). */
+  paginaMm?: [number, number];
   imgClassName?: string;
   containerClassName?: string;
 }) {
@@ -2382,10 +2390,19 @@ function VistaPreviaConLote({
   }, [syncImgMetrics, imagen, srcUrl]);
 
   const imgSrc = srcUrl ?? (imagen ? `data:${mime};base64,${imagen}` : undefined);
-  const fontPx =
-    imgMetrics.naturalH > 0 && imgMetrics.displayH > 0
-      ? Math.max(TAMANO_TEXTO_PT_MIN, loteFont * (PREVIEW_DPI / 72) * (imgMetrics.displayH / imgMetrics.naturalH))
-      : Math.max(TAMANO_TEXTO_PT_MIN, loteFont);
+  // px de pantalla por punto de impresión: el PDF dibuja el lote en pt sobre la
+  // página de la etiqueta, así que la vista previa escala con la misma medida.
+  let pxPorPt = 1;
+  if (paginaMm && paginaMm[0] > 0 && paginaMm[1] > 0 && imgMetrics.displayW > 0 && imgMetrics.displayH > 0) {
+    const ptPorMm = 72 / 25.4;
+    pxPorPt = Math.min(
+      imgMetrics.displayW / (paginaMm[0] * ptPorMm),
+      imgMetrics.displayH / (paginaMm[1] * ptPorMm),
+    );
+  } else if (imgMetrics.naturalH > 0 && imgMetrics.displayH > 0) {
+    pxPorPt = (PREVIEW_DPI / 72) * (imgMetrics.displayH / imgMetrics.naturalH);
+  }
+  const fontPx = loteFont * pxPorPt;
 
   const moverBloque = onLotePositionChange || onVencPositionChange
     ? (x: number, y: number) => {
@@ -2450,6 +2467,7 @@ function VistaPreviaPngConLote({
   vencXPct,
   vencYPct,
   onVencPositionChange,
+  paginaMm,
   imgClassName = PREVIEW_IMG_ETIQUETA_PNG,
   containerClassName = PREVIEW_CONTAINER_ETIQUETA_PNG,
 }: {
@@ -2463,6 +2481,7 @@ function VistaPreviaPngConLote({
   vencXPct: number;
   vencYPct: number;
   onVencPositionChange?: (x: number, y: number) => void;
+  paginaMm?: [number, number];
   imgClassName?: string;
   containerClassName?: string;
 }) {
@@ -2503,6 +2522,7 @@ function VistaPreviaPngConLote({
       vencXPct={vencXPct}
       vencYPct={vencYPct}
       onVencPositionChange={onVencPositionChange}
+      paginaMm={paginaMm}
       imgClassName={imgClassName}
       containerClassName={containerClassName}
     />
@@ -2586,6 +2606,98 @@ function BotonSubirPdfEtiqueta({
       {errorLocal && (
         <p className="mt-1 text-[11px] text-danger">{errorLocal}</p>
       )}
+    </div>
+  );
+}
+
+/** PDF recién subido; el servidor devuelve el tamaño de la página 1 en mm. */
+type PdfSubidoImprimir = PdfItem & {
+  ok?: boolean;
+  ancho_mm?: number;
+  alto_mm?: number;
+  /** Copia PNG (600 dpi) que el servidor deja en ETIQUETAS STUDIO. */
+  png_biblioteca?: RecursoPng | null;
+};
+
+/** Imprimir: carga un archivo del ordenador (PDF, PNG o JPG), lo guarda en la
+ *  biblioteca de Imprimir (carpeta ETIQUETAS STUDIO, la única que esa
+ *  biblioteca lista) y lo abre directo en la ventana de impresión. */
+function BotonCargarArchivoImprimir({
+  onPdf,
+  onImagen,
+}: {
+  onPdf: (item: PdfSubidoImprimir) => void;
+  onImagen: (item: RecursoPng) => void;
+}) {
+  const qc = useQueryClient();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [errorLocal, setErrorLocal] = useState<string | null>(null);
+
+  const subirMut = useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData();
+      fd.append("archivo", file);
+      const esPdf =
+        file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      if (esPdf) {
+        fd.append("biblioteca_imprimir", "1");
+        const pdf = await api.upload<PdfSubidoImprimir>("/api/etiquetas/subir-pdf", fd);
+        return { tipo: "pdf" as const, pdf };
+      }
+      if (!esImagenPngJpg(file)) throw new Error("Solo se permiten archivos PDF, PNG o JPG.");
+      fd.append("carpeta", "ETIQUETAS STUDIO");
+      const imagen = await api.upload<RecursoPng & { ok: boolean }>("/api/etiquetas/recursos-png", fd);
+      return { tipo: "imagen" as const, imagen };
+    },
+    onSuccess: (res) => {
+      setErrorLocal(null);
+      if (res.tipo === "pdf") {
+        void qc.invalidateQueries({ queryKey: ["etiquetas-pdfs"] });
+        void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+        void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+        // Se abre la copia de la biblioteca: lo que se imprime hoy es lo mismo
+        // que se va a encontrar mañana en ETIQUETAS STUDIO.
+        if (res.pdf.png_biblioteca?.nombre) onImagen(res.pdf.png_biblioteca);
+        else onPdf({ ...res.pdf, guardado: true });
+      } else {
+        void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+        void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+        onImagen(res.imagen);
+      }
+    },
+    onError: (err: Error) => setErrorLocal(err.message),
+  });
+
+  return (
+    <div className="flex shrink-0 items-center gap-1.5">
+      {/* El input va envuelto: index.css encoge los botones hermanos de un input. */}
+      <span className="hidden">
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf,application/pdf,image/jpeg,image/jpg,image/png,.jpg,.jpeg,.jpe,.png"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) subirMut.mutate(f);
+            e.target.value = "";
+          }}
+        />
+      </span>
+      {errorLocal && (
+        <p className="max-w-[14rem] truncate text-[10px] font-semibold text-white" title={errorLocal}>
+          ⚠ {errorLocal}
+        </p>
+      )}
+      <button
+        type="button"
+        disabled={subirMut.isPending}
+        onClick={() => inputRef.current?.click()}
+        title="Cargar un PDF, PNG o JPG desde el ordenador para imprimirlo"
+        className="mck-press inline-flex h-8 items-center gap-1.5 rounded-lg border border-white bg-white px-2.5 text-[11px] font-bold text-accent shadow-sm hover:bg-white/90 disabled:opacity-60"
+      >
+        <Icon name="folder" size={13} />
+        {subirMut.isPending ? "Cargando…" : "Cargar del ordenador"}
+      </button>
     </div>
   );
 }
@@ -2677,7 +2789,7 @@ function NavegadorArchivos({
                 onClick={() => irA(null)}
                 className="mr-1 rounded px-1.5 py-0.5 font-semibold text-accent hover:bg-surface-hover"
               >
-                💿 Este equipo
+                <Ico e="💿" /> Este equipo
               </button>
             )}
             {enRaiz ? (
@@ -2743,7 +2855,7 @@ function NavegadorArchivos({
               onClick={() => irA(`${data!.ruta_actual}/${c}`)}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-surface-hover"
             >
-              <span className="text-base">📁</span>
+              <span className="text-base"><Ico e="📁" /></span>
               <span className="font-medium text-ink">{c}</span>
             </button>
           ))}
@@ -2758,7 +2870,7 @@ function NavegadorArchivos({
               onClick={() => onSeleccionar({ nombre: p.nombre, ruta_completa: p.ruta_completa })}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-accent hover:text-white"
             >
-              <span className="text-base">📄</span>
+              <span className="text-base"><Ico e="📄" /></span>
               <span className="flex-1 font-medium">{p.nombre}</span>
               <span className="text-xs opacity-60">{p.tamano_kb} KB</span>
             </button>
@@ -3828,7 +3940,7 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
         headerExtra={
           form.pdf_nombre ? (
             <span className="hidden max-w-[200px] truncate text-[10px] opacity-80 sm:inline">
-              📄 {form.pdf_nombre}
+              <Ico e="📄" /> {form.pdf_nombre}
             </span>
           ) : undefined
         }
@@ -3891,7 +4003,7 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                       onClick={() => setMostrarNavegador(true)}
                       className={`inline-flex h-8 items-center gap-1 rounded border border-border bg-surface px-2.5 ${RIB_FONT_BTN} font-semibold text-ink hover:border-accent hover:text-accent`}
                     >
-                      📂 Elegir PDF
+                      <Ico e="📂" /> Elegir PDF
                     </button>
                     {form.pdf_ruta && (
                       <button
@@ -4189,7 +4301,7 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                 <p className="text-sm font-medium text-muted">Sin PDF asociado</p>
                 <p className="text-xs text-muted">Pestaña <strong>Inicio</strong> → Archivo → Elegir PDF</p>
                 <button type="button" onClick={() => { setTabEditor("inicio"); setMostrarNavegador(true); }} className="mt-2 rounded-lg border-2 border-accent px-4 py-2 text-xs font-bold text-accent hover:bg-accent hover:text-white">
-                  📂 Elegir PDF
+                  <Ico e="📂" /> Elegir PDF
                 </button>
               </div>
             )}
@@ -4807,7 +4919,7 @@ function ChecklistPedidoEtiquetas({
                   )}
                 </button>
                 {item.notas && !editandoNota && (
-                  <p className="mt-1 text-xs italic text-muted">📝 {item.notas}</p>
+                  <p className="mt-1 text-xs italic text-muted"><Ico e="📝" /> {item.notas}</p>
                 )}
               </div>
               <button
@@ -4824,7 +4936,7 @@ function ChecklistPedidoEtiquetas({
                   ${editandoNota || item.notas ? "bg-accent/15 text-accent" : "text-muted hover:bg-surface-hover"}`}
                 title="Anotación"
               >
-                📝
+                <Ico e="📝" />
               </button>
             </div>
             {editandoNota && (
@@ -5110,6 +5222,10 @@ function TabImprimir({
   const [pdfStudioNombre, setPdfStudioNombre] = useState("");
   const [pngImpresion, setPngImpresion] = useState<RecursoPngCatalogo | null>(null);
   const [preparandoPngImpresion, setPreparandoPngImpresion] = useState(false);
+  // Archivo cargado del ordenador: no trae formato del catálogo, así que el
+  // selector de la cinta queda editable para corregir el tamaño a mano.
+  const [archivoDelOrdenador, setArchivoDelOrdenador] = useState(false);
+  const { data: tiposEtiquetaData } = useTiposEtiqueta();
   const tokenTickets = ticketsToken || panelBearerToken();
 
   const { data: solicitudesImprimir = [], refetch: refetchSolicitudesImprimir } = useQuery({
@@ -5261,7 +5377,7 @@ function TabImprimir({
   const imprimirMut = useMutation({
     mutationFn: (payload: ImpresionEtiquetaPayload) =>
       api.post<PrintResult>("/api/etiquetas/imprimir", payload, { timeoutMs: 90_000 }),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
       const err = errorDesdePrintResult(data);
       setErrorImpresion(err);
@@ -5274,7 +5390,10 @@ function TabImprimir({
       ]);
       refetchImpresora();
       void refetchSolicitudesImprimir();
-      if (!err) qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] });
+      if (!err) {
+        qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] });
+        leerTintaTrasImprimir(qc, Number(variables.cantidad) || 1);
+      }
     },
     onError: (err) => {
       const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -5307,6 +5426,7 @@ function TabImprimir({
   }
 
   async function seleccionarDesdeCatalogo(fila: CatalogoStudioFila) {
+    setArchivoDelOrdenador(false);
     setSkuActivoImpresion(fila.sku);
     setFilaActiva(fila);
     setMatchEanPng(null);
@@ -5387,7 +5507,8 @@ function TabImprimir({
     setIncluirLoteExp(Boolean(loteFinal || vencFinal));
   }
 
-  async function abrirPngParaImprimir(item: RecursoPngCatalogo) {
+  async function abrirPngParaImprimir(item: RecursoPngCatalogo, delOrdenador = false) {
+    setArchivoDelOrdenador(delOrdenador);
     setPngImpresion(item);
     setPdfStudioRuta("");
     setPdfStudioNombre("");
@@ -5466,12 +5587,87 @@ function TabImprimir({
     setIncluirLoteExp(Boolean(loteDelMatch || vencDelMatch));
   }
 
+  /** PDF cargado del ordenador: se imprime tal cual; el formato sale del tamaño
+   *  de su página 1 (si coincide con uno del catálogo se usa ese nombre). */
+  function abrirPdfDelOrdenador(item: PdfSubidoImprimir) {
+    setArchivoDelOrdenador(true);
+    setPngImpresion(null);
+    setSkuActivoImpresion("");
+    setFilaActiva(null);
+    setStudioDatos({ ...ETIQUETA_STUDIO_DEFAULT });
+    setLotesRegistrados([]);
+    setMatchEanPng(null);
+    setLote(LOTE_PREFIJO);
+    setVencimiento(EXP_PREFIJO);
+    setIncluirLoteExp(false);
+    setErrorImpresion(null);
+    const ancho = Number(item.ancho_mm);
+    const alto = Number(item.alto_mm);
+    if (ancho > 0 && alto > 0) {
+      const tipos = tiposEtiquetaData?.tipos ?? TIPOS_ETIQUETA_DEFAULT;
+      const igual = tipos.find(
+        (t) => Math.abs(t.ancho_mm - ancho) <= 1.5 && Math.abs(t.alto_mm - alto) <= 1.5,
+      );
+      const next = igual
+        ? { nombre: igual.nombre, anchoMm: igual.ancho_mm, altoMm: igual.alto_mm }
+        : { nombre: nombreTipoPorMedidas(ancho, alto), anchoMm: ancho, altoMm: alto };
+      setFormato(next);
+      setRotacion(rotacionDefaultEtiqueta(next.nombre));
+      if (esFormatoCircularImpresion(next)) setForma("Diecut_Gap");
+    }
+    setPdfStudioRuta(item.ruta_completa);
+    setPdfStudioNombre(item.nombre);
+    setVistaImpresion("documento");
+  }
+
+  const botonCargarDelOrdenador = (
+    <BotonCargarArchivoImprimir
+      onPdf={abrirPdfDelOrdenador}
+      onImagen={(img) =>
+        void abrirPngParaImprimir(
+          {
+            nombre: img.nombre,
+            tipo_etiqueta: img.tipo_etiqueta,
+            ancho_mm: img.ancho_mm,
+            alto_mm: img.alto_mm,
+          },
+          true,
+        )
+      }
+    />
+  );
+
   function volverACatalogoPng() {
+    setArchivoDelOrdenador(false);
     setPngImpresion(null);
     setPdfStudioRuta("");
     setPdfStudioNombre("");
     setVistaImpresion("catalogo");
   }
+
+  // Atrás del navegador / botón atrás de Android y tecla Esc: desde la ventana de
+  // impresión se vuelve a la biblioteca de archivos, no se sale del panel.
+  useEffect(() => {
+    if (vistaImpresion !== "documento") return;
+    return registerNestedBackHandler(() => {
+      volverACatalogoPng();
+      return true;
+    });
+  }, [vistaImpresion]);
+
+  useEffect(() => {
+    if (vistaImpresion !== "documento" || mostrarPedidoEtiquetas || mostrarInstalador) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const el = document.activeElement as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable) return;
+      if (el?.closest('[role="dialog"]')) return;
+      volverACatalogoPng();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [vistaImpresion, mostrarPedidoEtiquetas, mostrarInstalador]);
 
   const productoListo = !!pngImpresion
     || !!pdfStudioRuta
@@ -5603,18 +5799,20 @@ function TabImprimir({
       )}
 
       {vistaImpresion === "catalogo" ? (
-        <div className="mck-card overflow-hidden shadow-paper-sm">
+        <div className="mck-card flex h-[calc(100dvh-7.5rem)] max-h-[calc(100dvh-7.5rem)] flex-col overflow-hidden shadow-paper-sm">
           <ImpresionEtiquetasHeader
             vista="catalogo"
             onVistaChange={setVistaImpresion}
             solicitudesCount={solicitudesImprimir.length}
             onPedidosClick={() => setMostrarPedidoEtiquetas(true)}
             onInstalarClick={() => abrirInstalador("windows10pro")}
+            extra={botonCargarDelOrdenador}
           />
-          <div className="p-4">
+          <NivelesTintaImpresora compact onExpand={onIrInventarioTinta} />
+          <div className="flex min-h-0 flex-1 flex-col">
             <EtiquetasStudioCatalogo
               onSeleccionar={(f) => void seleccionarDesdeCatalogo(f)}
-              onAbrirPng={abrirPngParaImprimir}
+              onAbrirPng={(item) => void abrirPngParaImprimir(item)}
               skuActivo={skuActivoImpresion}
               modoSeleccion="fila"
               accionLabel={null}
@@ -5639,6 +5837,7 @@ function TabImprimir({
           impConectada={impConectada}
           impDeshabilitada={impDeshabilitada}
           avisoRollo={avisoRollo}
+          extra={botonCargarDelOrdenador}
         />
 
         {errorImpresion && (
@@ -5679,7 +5878,8 @@ function TabImprimir({
         <div className="flex flex-shrink-0 flex-wrap items-center gap-y-0.5 border-b border-border bg-surface">
           <RibbonGroup label="Formato">
             <SelectorFormatoEtiqueta
-              readOnly
+              readOnly={!archivoDelOrdenador}
+              onChange={setFormato}
               value={formato}
               inputClass={RIB_INP}
               selectClass={RIB_SEL}
@@ -5698,20 +5898,6 @@ function TabImprimir({
               onOffsetVChange={setOffsetV}
               onOffsetHChange={setOffsetH}
             />
-          </RibbonGroup>
-          <RibbonGroup label="Cantidad">
-            <div className="flex items-center gap-0.5">
-              <button type="button" aria-label="Restar cantidad" onClick={() => setCantidad((c) => Math.max(1, c - 1))} className="h-6 w-5 rounded border border-border text-[11px] font-semibold hover:bg-surface-hover">−</button>
-              <input
-                type="number"
-                min={1}
-                max={999}
-                value={cantidad}
-                onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
-                className={`${RIB_INP} w-10 text-center font-semibold`}
-              />
-              <button type="button" aria-label="Sumar cantidad" onClick={() => setCantidad((c) => Math.min(999, c + 1))} className="h-6 w-5 rounded border border-border text-[11px] font-semibold hover:bg-surface-hover">+</button>
-            </div>
           </RibbonGroup>
           <RibbonGroup label="Trazabilidad">
             <label
@@ -5829,9 +6015,10 @@ function TabImprimir({
                   <button
                     type="button"
                     onClick={volverACatalogoPng}
-                    className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted hover:border-accent hover:text-accent"
+                    title="Volver a la biblioteca de archivos (Esc)"
+                    className="shrink-0 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink-secondary hover:border-accent hover:text-accent"
                   >
-                    Archivos
+                    ✕ Cerrar
                   </button>
                 </div>
                 {matchEanPng === "sin-match" ? (
@@ -5854,6 +6041,7 @@ function TabImprimir({
                   loteYPct={loteYPct}
                   vencXPct={vencXPct}
                   vencYPct={vencYPct}
+                  paginaMm={[formato.anchoMm, formato.altoMm]}
                   imgClassName={PREVIEW_IMG_ETIQUETA_PNG}
                   containerClassName={PREVIEW_CONTAINER_ETIQUETA_PNG}
                   onLotePositionChange={(x, y) => {
@@ -5872,7 +6060,7 @@ function TabImprimir({
               <div className="flex h-full w-full flex-col items-center gap-2">
                 <div className="flex w-full items-center justify-between gap-2 px-1">
                   <p className="min-w-0 truncate text-xs font-semibold text-ink" title={pdfStudioNombre}>
-                    📄 {pdfStudioNombre || "PDF de Studio"}
+                    <Ico e="📄" /> {pdfStudioNombre || "PDF de Studio"}
                   </p>
                   <div className="flex shrink-0 items-center gap-2">
                     {skuParaCodigoPdf && (
@@ -5936,7 +6124,7 @@ function TabImprimir({
               <div className="flex h-full w-full flex-col items-center gap-2">
                 {matchEanPng === "sin-match" ? (
                   <p className="w-full px-1 text-[11px] text-amber-600">
-                    ⚠️ Sin lote registrado para este SKU — el lote no se autocompletó. Regístralo en Fichas
+                    <Ico e="⚠️" /> Sin lote registrado para este SKU — el lote no se autocompletó. Regístralo en Fichas
                     Técnicas (COA) → «Registrar este lote en el historial».
                   </p>
                 ) : matchEanPng ? (
@@ -5953,7 +6141,7 @@ function TabImprimir({
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3 px-6 text-center">
-                <span className="text-4xl opacity-40">🏷️</span>
+                <span className="text-4xl opacity-40"><Ico e="🏷️" /></span>
                 <p className="text-sm font-medium text-muted">Sin producto seleccionado</p>
                 <button
                   type="button"
@@ -5968,8 +6156,8 @@ function TabImprimir({
         </div>
 
         {/* Barra inferior — imprimir (compacta, resalta en verde) */}
-        <div className="flex flex-shrink-0 items-center justify-between gap-2 border-t border-border bg-surface-panel px-2.5 py-1.5">
-          <p className="min-w-0 flex-1 truncate text-[10px] text-muted">
+        <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-surface-panel px-3 py-2">
+          <p className="min-w-[8rem] flex-1 truncate text-xs text-muted">
             {pngImpresion
               ? (pngImpresion.nombre.includes("/") ? pngImpresion.nombre.split("/").pop() : pngImpresion.nombre)
               : pdfStudioRuta
@@ -5979,18 +6167,50 @@ function TabImprimir({
               : "Selecciona un PNG del catálogo"}
             {estadoImpresoraLegible(estadoData) && ` · ${estadoImpresoraLegible(estadoData)}`}
           </p>
+          {/* Copias junto al botón: es lo último que se decide antes de imprimir.
+              El input va dentro de un <span> para que la regla global de
+              "botón junto a input" (index.css) no encoja los botones. */}
+          <div className="flex shrink-0 items-center gap-1" role="group" aria-label="Número de copias">
+            <button
+              type="button"
+              aria-label="Restar copia"
+              onClick={() => setCantidad((c) => Math.max(1, c - 1))}
+              className="mck-press flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface text-lg font-bold text-ink hover:bg-surface-hover"
+            >
+              −
+            </button>
+            <span className="flex flex-col items-center">
+              <input
+                type="number"
+                min={1}
+                max={999}
+                value={cantidad}
+                onChange={(e) => setCantidad(Math.min(999, Math.max(1, parseInt(e.target.value) || 1)))}
+                aria-label="Copias"
+                className="mck-field-lg h-11 w-16 rounded-lg border border-border bg-surface text-center text-base font-bold tabular-nums text-ink outline-none focus:border-accent"
+              />
+            </span>
+            <button
+              type="button"
+              aria-label="Sumar copia"
+              onClick={() => setCantidad((c) => Math.min(999, c + 1))}
+              className="mck-press flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface text-lg font-bold text-ink hover:bg-surface-hover"
+            >
+              +
+            </button>
+          </div>
           <button
             type="button"
             onClick={handleImprimir}
             disabled={imprimirMut.isPending || preparandoPngImpresion || !productoListo}
-            className="mck-press inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-success px-3 text-[11px] font-bold tracking-wide text-white shadow-sm ring-1 ring-success/40 transition hover:brightness-110 disabled:opacity-40"
+            className="mck-press inline-flex h-11 shrink-0 items-center gap-2 rounded-lg bg-success px-6 text-sm font-bold tracking-wide text-white shadow-sm ring-1 ring-success/40 transition hover:brightness-110 disabled:opacity-40"
           >
             {imprimirMut.isPending || preparandoPngImpresion ? (
               "Imprimiendo…"
             ) : (
               <>
-                <Icon name="printer" size={14} />
-                Imprimir
+                <Icon name="printer" size={18} />
+                Imprimir {cantidad} {cantidad === 1 ? "copia" : "copias"}
               </>
             )}
           </button>
@@ -6083,6 +6303,25 @@ async function fetchNivelesTintaUsb(): Promise<NivelesTintaResp> {
   return api.get<NivelesTintaResp>("/api/etiquetas/niveles-tinta?refresh=1", { timeoutMs: 25_000 });
 }
 
+let timerTintaTrasImprimir: ReturnType<typeof setTimeout> | undefined;
+
+/** Tras imprimir, vuelve a leer tinta y caja de mantenimiento cuando la Epson ya
+ *  terminó el trabajo (~15 s + 1 s por etiqueta, máx. 90 s). Otra impresión
+ *  seguida reinicia la espera: se lee una sola vez al final. Módulo, no estado,
+ *  para que la lectura ocurra aunque se cambie de pestaña. */
+function leerTintaTrasImprimir(qc: QueryClient, cantidad: number) {
+  if (timerTintaTrasImprimir) clearTimeout(timerTintaTrasImprimir);
+  const esperaMs = Math.min(90_000, 15_000 + Math.max(1, cantidad) * 1_000);
+  timerTintaTrasImprimir = setTimeout(() => {
+    timerTintaTrasImprimir = undefined;
+    fetchNivelesTintaUsb()
+      .then((fresh) => qc.setQueryData(["etiquetas-niveles-tinta"], fresh))
+      .catch(() => {
+        /* sin USB: queda el último nivel guardado; «↻ Actualizar» muestra el error */
+      });
+  }, esperaMs);
+}
+
 function nivelTintaBarraClase(pct: number | null | undefined): string {
   if (pct == null) return "bg-muted/40";
   if (pct <= 15) return "bg-danger";
@@ -6154,7 +6393,7 @@ function PanelAlertaEstadoImpresora({
     <Banner tone={tone} className="mb-3 text-xs">
       <div className="flex flex-wrap items-start gap-3">
         <span className="text-base leading-none" aria-hidden>
-          {sev === "info" ? "ℹ️" : sev === "warning" ? "⚠️" : "🛑"}
+          {sev === "info" ? "ℹ️" : sev === "warning" ? ico("⚠️") : ico("🛑")}
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold">{alerta.error}</p>
@@ -6291,13 +6530,24 @@ function NivelesTintaImpresora({
             );
           })}
         </div>
+        <button
+          type="button"
+          onClick={() => void leerImpresora()}
+          disabled={leyendoUsb}
+          title={errorUsb ?? `Lee de nuevo tinta y caja de mantenimiento en la Epson${consultado ? ` (última lectura ${consultado})` : ""}`}
+          className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-medium hover:bg-surface-hover disabled:opacity-50 ${
+            errorUsb ? "border-danger/60 text-danger" : "border-border text-muted hover:text-ink"
+          }`}
+        >
+          {leyendoUsb ? "Leyendo…" : "↻ Actualizar"}
+        </button>
         {onExpand && (
           <button
             type="button"
             onClick={onExpand}
             className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted hover:bg-surface-hover hover:text-ink"
           >
-            Inventario
+            Papel y tinta ›
           </button>
         )}
       </div>
@@ -6637,7 +6887,7 @@ function FormularioPapelInventario({
   );
 }
 
-function TabInventarioPapelTinta() {
+function TabInventarioPapelTinta({ onVolver }: { onVolver?: () => void }) {
   const qc = useQueryClient();
   const { data: tiposData } = useTiposEtiqueta();
   const nombresFormatos = useMemo(
@@ -6715,6 +6965,15 @@ function TabInventarioPapelTinta() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 mck-animate-enter">
+      {onVolver && (
+        <button
+          type="button"
+          onClick={onVolver}
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-[12px] font-semibold text-ink hover:border-accent/60 hover:bg-surface-hover"
+        >
+          <span aria-hidden="true">←</span> Volver a Imprimir
+        </button>
+      )}
       <div className="flex items-center gap-3">
         <IllustrationIcon name="package" size={36} tone="leaf" className="mck-illus-icon--hoverable shrink-0" />
         <div>
@@ -7000,10 +7259,12 @@ export default function EtiquetasPanel() {
   const setSolicitudActivaStore = useAppStore((s) => s.setEtiquetasSolicitudActiva);
   const ticketsUser = useTicketsAuth((s) => s.user);
   const verAvanzado = puedeVerEtiquetasAvanzado(ticketsUser);
+  const verPapelTinta = puedeVerPapelTinta(ticketsUser);
   const [tab, setTabLocal] = useState<EtiquetasTab>(() => {
     const t = useAppStore.getState().etiquetasTab;
     const user = useTicketsAuth.getState().user;
-    if (esTabEtiquetasSoloCynthia(t) && !puedeVerEtiquetasAvanzado(user)) return "imprimir";
+    // Sin usuario cargado todavía no se sabe si tiene el Studio: no se expulsa (lo decide el efecto).
+    if (user && !puedeVerTabEtiquetas(user, t)) return "imprimir";
     return t === "imprimir" || t === "inventario" || t === "studio" || t === "codigos_ean"
       ? t
       : "imprimir";
@@ -7015,7 +7276,7 @@ export default function EtiquetasPanel() {
   const [studioInmersivo, setStudioInmersivoLocal] = useState(false);
 
   // Al entrar a Diseño se piden de una vez las etiquetas de todas las pestañas,
-  // para que Imprimir / Studio visual / Papel y tinta / EAN ya estén cargadas
+  // para que Imprimir (con papel y tinta) / Studio visual / EAN ya estén cargadas
   // cuando el operador cambie de pestaña (ver lib/etiquetasPrefetch.ts).
   useEffect(() => {
     precargarDiseno(qcPrecarga, ticketsUser);
@@ -7029,7 +7290,7 @@ export default function EtiquetasPanel() {
   useEffect(() => () => setStudioInmersivoStore(false), [setStudioInmersivoStore]);
 
   useEffect(() => {
-    if (esTabEtiquetasSoloCynthia(storeTab) && !verAvanzado) {
+    if (ticketsUser && !puedeVerTabEtiquetas(ticketsUser, storeTab)) {
       setTabLocal("imprimir");
       setStoreTab("imprimir");
       return;
@@ -7040,7 +7301,7 @@ export default function EtiquetasPanel() {
     }
     setTabLocal("imprimir");
     setStoreTab("imprimir");
-  }, [storeTab, setStoreTab, verAvanzado]);
+  }, [storeTab, setStoreTab, ticketsUser]);
 
   useEffect(() => {
     if (!handoff) return;
@@ -7073,7 +7334,11 @@ export default function EtiquetasPanel() {
         ? "flex h-full min-h-0 flex-1 flex-col"
         : tab === "imprimir"
           ? "mx-auto max-w-[min(100%,1600px)]"
-          : "mx-auto max-w-6xl space-y-5"
+          : tab === "studio"
+            // Studio fija su propio ancho: la portada en 6xl y, con una etiqueta
+            // abierta al lado de las categorías, más ancho para que quepa el editor.
+            ? "mx-auto max-w-[min(100%,1500px)] space-y-5"
+            : "mx-auto max-w-6xl space-y-5"
     }`}>
       {tab === "imprimir" && (
         <TabImprimir
@@ -7081,13 +7346,13 @@ export default function EtiquetasPanel() {
           solicitudInicial={solicitudInicial}
           onPrecargarConsumido={() => setPrecargarImpresion(null)}
           onSolicitudInicialConsumida={() => setSolicitudInicial(null)}
-          onIrInventarioTinta={verAvanzado ? () => setTab("inventario") : undefined}
+          onIrInventarioTinta={verPapelTinta ? () => setTab("inventario") : undefined}
         />
       )}
       {tab === "studio" && verAvanzado && (
         <PlantillasVisualesPanel onInmersivoChange={setStudioInmersivo} />
       )}
-      {tab === "inventario" && verAvanzado && <TabInventarioPapelTinta />}
+      {tab === "inventario" && verPapelTinta && <TabInventarioPapelTinta onVolver={() => setTab("imprimir")} />}
       {tab === "codigos_ean" && verAvanzado && <CodigosEanPanel />}
     </div>
   );

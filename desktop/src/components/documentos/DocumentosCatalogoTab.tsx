@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import ChecklistGuiado from "../ui/ChecklistGuiado";
+import { celebrarAprobacion } from "../../lib/celebracionAprobado";
 
 export interface ProductoDocumentacion {
   ref: string;
@@ -121,7 +122,8 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
   const marcarRevisadoMut = useMutation({
     mutationFn: (body: { producto_ref: string; revisado: boolean; notas?: string }) =>
       api.post<{ ok?: boolean; error?: string }>("/api/documentos/revision-checklist/marcar", body),
-    onSuccess: () => {
+    onSuccess: (_r, body) => {
+      if (body.revisado) celebrarAprobacion({ tipo: "moneda", titulo: "Revisado", detalle: body.producto_ref, mision: "revision_marcada" });
       void qc.invalidateQueries({ queryKey: ["documentos-revision-checklist"] });
     },
   });

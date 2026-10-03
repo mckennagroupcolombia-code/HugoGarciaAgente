@@ -34,7 +34,7 @@
 
     {% if pay_ok %}
     <div id="registrar-envio" style="padding:22px;background:linear-gradient(180deg, rgba(30,92,81,0.1) 0%, #fff 48%);border:2px solid var(--green);border-radius:14px;scroll-margin-top:96px;box-shadow:0 6px 24px rgba(20,61,54,0.1);">
-      <h2 style="font-size:16px;font-weight:800;color:var(--green-dark);margin:0 0 6px;letter-spacing:-0.02em;">Registrar envío (guía)</h2>
+      <h2 style="font-size:16px;font-weight:700;color:var(--green-dark);margin:0 0 6px;letter-spacing:-0.02em;">Registrar envío (guía)</h2>
       <p style="font-size:13px;color:var(--text-muted);margin:0 0 18px;line-height:1.65;">
         El cliente deja de ver «Preparando tu pedido» y pasa a <strong>«En camino»</strong> en seguimiento y en «Mis pedidos». Si hay SMTP configurado, también recibe el correo de despacho.
         {% if (order.shipping_status or 'preparing') == 'shipped' %}
@@ -58,7 +58,7 @@
                  value="{{ order.tracking_carrier or 'Interrapidísimo' }}"
                  placeholder="Interrapidísimo">
         </div>
-        <button type="submit" class="btn btn-primary" style="justify-self:start;font-weight:700;">Guardar guía y marcar enviado</button>
+        <button type="submit" class="btn btn-primary" style="justify-self:start;font-weight:600;">Guardar guía y marcar enviado</button>
       </form>
     </div>
     {% else %}
@@ -70,9 +70,9 @@
     {% endif %}
 
     <div style="padding:20px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
-      <h2 style="font-size:14px;font-weight:800;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Resumen</h2>
+      <h2 style="font-size:14px;font-weight:700;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Resumen</h2>
       <dl style="display:grid;grid-template-columns:auto 1fr;gap:8px 20px;font-size:14px;margin:0;">
-        <dt style="color:var(--text-muted);">Estado pago</dt><dd style="margin:0;font-weight:600;">{{ order.status or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Estado pago</dt><dd style="margin:0;font-weight:500;">{{ order.status or '—' }}</dd>
         <dt style="color:var(--text-muted);">Total</dt><dd style="margin:0;">${{ "{:,.0f}".format(order.total or 0).replace(",", ".") }} COP</dd>
         <dt style="color:var(--text-muted);">MercadoPago</dt><dd style="margin:0;word-break:break-all;">{{ order.payu_ref or '—' }}</dd>
         <dt style="color:var(--text-muted);">Envío</dt><dd style="margin:0;">{{ order.shipping_status or 'preparing' }}{% if order.tracking_number %} · Guía {{ order.tracking_number }}{% endif %}{% if order.tracking_carrier %} ({{ order.tracking_carrier }}){% endif %}</dd>
@@ -84,7 +84,7 @@
     </div>
 
     <div style="padding:20px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
-      <h2 style="font-size:14px;font-weight:800;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Contacto</h2>
+      <h2 style="font-size:14px;font-weight:700;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Contacto</h2>
       <dl style="display:grid;grid-template-columns:auto 1fr;gap:8px 20px;font-size:14px;margin:0;">
         <dt style="color:var(--text-muted);">Nombre</dt><dd style="margin:0;">{{ order.buyer_name or '—' }}</dd>
         <dt style="color:var(--text-muted);">Correo</dt><dd style="margin:0;word-break:break-all;">{{ order.buyer_email or '—' }}</dd>
@@ -95,7 +95,7 @@
 
     {% if order_payload.get('cedula') or order_payload.get('dept') or order_payload.get('address') %}
     <div style="padding:20px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
-      <h2 style="font-size:14px;font-weight:800;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Dirección de envío</h2>
+      <h2 style="font-size:14px;font-weight:700;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Dirección de envío</h2>
       <p style="margin:0;font-size:14px;line-height:1.6;color:var(--text);">
         {% if order_payload.get('cedula') %}<strong>CC/NIT:</strong> {{ order_payload.cedula }}<br>{% endif %}
         {% if order_payload.get('dept') %}<strong>Depto:</strong> {{ order_payload.dept }}<br>{% endif %}
@@ -110,7 +110,7 @@
     {% set bill = order_payload.get('billing') %}
     {% if bill %}
     <div style="padding:20px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
-      <h2 style="font-size:14px;font-weight:800;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Facturación</h2>
+      <h2 style="font-size:14px;font-weight:700;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Facturación</h2>
       <dl style="display:grid;grid-template-columns:auto 1fr;gap:8px 20px;font-size:14px;margin:0;">
         <dt style="color:var(--text-muted);">Razón social</dt><dd style="margin:0;">{{ bill.get('name') or '—' }}</dd>
         <dt style="color:var(--text-muted);">NIT/CC</dt><dd style="margin:0;">{{ bill.get('nit') or '—' }}</dd>
@@ -122,7 +122,7 @@
     {% endif %}
 
     <div style="padding:20px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
-      <h2 style="font-size:14px;font-weight:800;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Líneas</h2>
+      <h2 style="font-size:14px;font-weight:700;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Líneas</h2>
       {% if order_items %}
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">

@@ -618,18 +618,103 @@ def enviar_mensaje_whatsapp_grupo(mensaje):
     print("="*50)
     enviar_whatsapp_reporte(mensaje, numero_destino=GRUPO_COMPRAS)
 
+def registro_compras_activo() -> bool:
+    """Si este módulo puede REGISTRAR la compra, o solo descargar los XML.
+
+    **Apagado desde el 18-sep-2026 por decisión del usuario.** Una compra ahora
+    se contabiliza **antes** de pagarla, desde Contabilidad → Solicitudes de
+    pago → Productos: se eligen las materias primas por su referencia del
+    catálogo y el asiento reproduce la cotización renglón por renglón contra
+    1435, con el IVA a 240810. Registrarla otra vez cuando llega la factura la
+    contaría dos veces, y ese es el orden al revés: el documento llega después
+    de que la plata ya se comprometió.
+
+    Lo que **sigue corriendo** es la descarga de los XML a
+    `facturas_descargadas/`, y no es un detalle: es la fuente de
+    `perfil_tributario_dian.py`, que saca de ahí quién es autorretenedor
+    (O-15) y quién está en el Régimen SIMPLE (O-47). Apagar el módulo entero
+    habría dejado ciego ese perfil sin que nadie lo notara.
+
+    `FACTURAS_COMPRA_REGISTRO_ACTIVO=1` lo vuelve a encender.
+    """
+    return (os.getenv("FACTURAS_COMPRA_REGISTRO_ACTIVO") or "0").strip() not in ("", "0", "false", "False")
+
+
+def descargar_xml_facturas_compra(
+    solo_nit: str | None = None,
+    fecha_desde: str = "2026/01/01",
+) -> dict:
+    """Baja a `facturas_descargadas/` los XML de las facturas del correo. **No
+    registra nada** en Alegra ni en el libro.
+
+    Es la mitad del módulo que sigue viva después de apagar el registro
+    (18-sep-2026), y no es opcional: esos XML son la fuente de
+    `perfil_tributario_dian.py`, que saca de `cbc:TaxLevelCode` quién es
+    autorretenedor (O-15) y quién está en el Régimen SIMPLE (O-47) — el dato
+    que decide cuánto se le retiene a cada proveedor. Apagar el módulo entero
+    habría dejado ese perfil congelado sin que nadie lo notara.
+    """
+    filtro = re.sub(r"[^0-9]", "", solo_nit) if solo_nit else None
+    try:
+        correos = leer_correos_facturas_periodo(fecha_desde=fecha_desde)
+    except GmailAuthError as e:
+        return {"descargados": 0, "revisados": 0, "error": str(e)}
+    service = get_gmail_service()
+    descargados, revisados, fallidos = 0, 0, 0
+    # Cada correo puede traer varios ZIP; `leer_correos_facturas_periodo` ya
+    # omite los adjuntos que constan como descargados, así que esto es
+    # incremental y volver a correrlo cuesta segundos.
+    for correo in correos or []:
+        for adj in correo.get("adjuntos_zip") or []:
+            revisados += 1
+            try:
+                xml_content, _pdf, _nombre = descargar_y_extraer_zip(
+                    service, adj["msg_id"], adj["id"], adj["filename"]
+                )
+            except Exception as e:
+                fallidos += 1
+                print(f"⚠️ No se pudo bajar {adj.get('filename')}: {e}", flush=True)
+                continue
+            if not xml_content:
+                continue
+            if filtro:
+                datos = extraer_datos_xml_dian(xml_content) or {}
+                nit = str(datos.get("nit_proveedor") or datos.get("nit") or "")
+                if re.sub(r"[^0-9]", "", nit) != filtro:
+                    continue
+            descargados += 1
+    print(f"📥 XML descargados: {descargados} de {revisados} adjuntos revisados"
+          + (f" · {fallidos} fallidos" if fallidos else ""))
+    return {"descargados": descargados, "revisados": revisados, "fallidos": fallidos}
+
+
 def sincronizar_facturas_de_compra_siigo(solo_nit: str = None, modo_terminal: bool = False):
     """
     1. Busca facturas en correos (FACTURAS MCKG).
     2. Descarga a carpeta local y extrae ZIP.
     3. Lee XML.
     4. Muestra borrador y pide aprobación (terminal o WhatsApp según modo_terminal).
-    5. Sube a Siigo con PDF adjunto.
+    5. Sube a Siigo con PDF adjunto.  ← APAGADO, ver `registro_compras_activo()`
 
     solo_nit: si se especifica, solo procesa facturas de ese NIT (sin dígito verificación).
               Ej: "800251569" para Interrapidísimo.
     modo_terminal: si True, toda la interacción es por consola (sin WhatsApp).
     """
+    if not registro_compras_activo():
+        # Se apaga el REGISTRO, no la descarga: los XML siguen bajando porque
+        # son la fuente de `perfil_tributario_dian` y el respaldo de la factura.
+        bajados = descargar_xml_facturas_compra(solo_nit=solo_nit)
+        mensaje = (
+            "⛔ El registro de facturas de compra está apagado desde el 18-sep-2026.\n"
+            "   Una compra se contabiliza ANTES de pagarla, en /app → Contabilidad →\n"
+            "   Solicitudes de pago → Productos, con la cotización del proveedor.\n"
+            "   Registrarla otra vez al llegar la factura la contaría dos veces.\n"
+            f"   Sí se descargaron los XML nuevos: {bajados['descargados']} de "
+            f"{bajados['revisados']} correos revisados.\n"
+            "   Para reactivar el registro: FACTURAS_COMPRA_REGISTRO_ACTIVO=1"
+        )
+        print(f"\n{mensaje}")
+        return {"status": "desactivado", "mensaje": mensaje, "facturas_procesadas": 0, **bajados}
     filtro = re.sub(r"[^0-9]", "", solo_nit) if solo_nit else None
     label = f"solo NIT {filtro}" if filtro else "todos los proveedores"
     print(f"\n🚀 Iniciando sincronización de Facturas de Compra ({label})...")

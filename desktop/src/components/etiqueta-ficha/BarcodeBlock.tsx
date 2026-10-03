@@ -3,6 +3,7 @@ import { generarEAN13, svgToDataUrl } from "../../lib/ean13";
 import { useCodigosEan, type CodigoEan } from "../../lib/etiquetasCodigosEan";
 import { filtrarCodigosEanPorTexto } from "../../lib/fichaTecnicaCampos";
 import PopoverFlotante from "./PopoverFlotante";
+import { COLORES_FRANJA_BARRAS, type FranjaBarras } from "./franjaBarras";
 
 /** Código de barras EAN-13 — usa el generador SVG propio del repo (sin
  *  dependencia externa tipo JsBarcode). El SVG ya imprime los dígitos
@@ -20,21 +21,37 @@ export default function BarcodeBlock({
   onChange,
   onElegirCodigo,
   editMode,
+  franja,
   className = "relative flex flex-col items-center justify-center gap-1.5 px-4 py-2.5",
   claseBoton = "",
   claseImagen = "h-auto w-full max-w-[280px]",
+  centrarBarras = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   onElegirCodigo?: (codigo: CodigoEan) => void;
   editMode: boolean;
+  /** Franja de color sobre las barras: se dibuja dentro del propio SVG del
+   *  código, así arranca y acaba justo donde las barras. Cada formato pasa
+   *  su alto; sin ella el código se dibuja pelado, como hasta ahora. */
+  franja?: FranjaBarras;
   /** Clases del contenedor, del botón y de la imagen: la etiqueta de 30 mL
    *  usa el mismo bloque (y el mismo buscador de SKU) con sus medidas. */
   className?: string;
   claseBoton?: string;
   claseImagen?: string;
+  /** Las barras en el centro exacto de la imagen (ver OpcionesEAN13 en lib/ean13). */
+  centrarBarras?: boolean;
 }) {
-  const ean = useMemo(() => generarEAN13(value), [value]);
+  const ean = useMemo(
+    () =>
+      generarEAN13(
+        value,
+        franja ? { colores: COLORES_FRANJA_BARRAS, alto: franja.alto, separacion: franja.separacion } : undefined,
+        { centrado: centrarBarras },
+      ),
+    [value, franja?.alto, franja?.separacion, franja, centrarBarras],
+  );
 
   const { data: codigos } = useCodigosEan();
   const [buscadorAbierto, setBuscadorAbierto] = useState(false);

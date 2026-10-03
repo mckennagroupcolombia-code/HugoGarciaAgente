@@ -1,0 +1,235 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Venta en la tienda web — del carrito a la factura",
+    "output": "04-venta-web.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "lo hace una persona"
+        },
+        "backend": {
+          "label": "lo hace la plataforma"
+        },
+        "database": {
+          "label": "queda guardado"
+        },
+        "cloud": {
+          "label": "sistema externo"
+        },
+        "security": {
+          "label": "hoy no existe o está apagado"
+        },
+        "messagebus": {
+          "label": "mensajería"
+        },
+        "external": {
+          "label": "cliente o tercero"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "camino",
+        "label": "El camino del pedido",
+        "focus": [
+          "pedido",
+          "orden",
+          "aviso",
+          "envio",
+          "entregado",
+          "factura"
+        ],
+        "note": "La web guarda la orden; el grupo de WhatsApp despacha y marca la entrega; ahí se factura."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "cliente",
+      "label": "Cliente"
+    },
+    {
+      "id": "web",
+      "label": "Tienda web :8083"
+    },
+    {
+      "id": "agente",
+      "label": "Agente :8081"
+    },
+    {
+      "id": "grupo",
+      "label": "Grupo pedidos web"
+    },
+    {
+      "id": "fact",
+      "label": "Alegra"
+    }
+  ],
+  "phases": [
+    {
+      "id": "pedido",
+      "label": "Pedido",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "despacho",
+      "label": "Despacho",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "cierre",
+      "label": "Factura",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "pedido",
+    "orden",
+    "aviso",
+    "envio",
+    "entregado",
+    "factura"
+  ],
+  "nodes": [
+    {
+      "id": "pedido",
+      "lane": "cliente",
+      "col": 0,
+      "type": "external",
+      "label": "Arma el carrito",
+      "sublabel": "y paga",
+      "width": 122
+    },
+    {
+      "id": "orden",
+      "lane": "web",
+      "col": 1,
+      "type": "database",
+      "label": "Guarda la orden",
+      "sublabel": "orders.db",
+      "width": 122
+    },
+    {
+      "id": "recupera",
+      "lane": "web",
+      "col": 2,
+      "type": "backend",
+      "label": "Recupera la compra",
+      "sublabel": "correos a no pagados",
+      "width": 142
+    },
+    {
+      "id": "aviso",
+      "lane": "agente",
+      "col": 2,
+      "type": "backend",
+      "label": "Avisa al grupo",
+      "sublabel": "tarjeta del pedido",
+      "width": 115
+    },
+    {
+      "id": "envio",
+      "lane": "grupo",
+      "col": 3,
+      "type": "frontend",
+      "label": "Despacha",
+      "sublabel": "comando: envio <ref>",
+      "width": 124
+    },
+    {
+      "id": "entregado",
+      "lane": "grupo",
+      "col": 4,
+      "type": "frontend",
+      "label": "Marca entregado",
+      "sublabel": "comando: entregado <ref>",
+      "width": 146
+    },
+    {
+      "id": "factura",
+      "lane": "fact",
+      "col": 5,
+      "type": "backend",
+      "label": "Emite la factura",
+      "sublabel": "al entregar · DIAN",
+      "width": 128
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-pedido-orden",
+      "from": "pedido",
+      "to": "orden",
+      "role": "main"
+    },
+    {
+      "id": "e-orden-aviso",
+      "from": "orden",
+      "to": "aviso",
+      "label": "pagada",
+      "role": "main"
+    },
+    {
+      "id": "e-orden-recupera",
+      "from": "orden",
+      "to": "recupera",
+      "label": "sin pagar",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e-aviso-envio",
+      "from": "aviso",
+      "to": "envio",
+      "role": "main"
+    },
+    {
+      "id": "e-envio-entregado",
+      "from": "envio",
+      "to": "entregado",
+      "label": "guía",
+      "role": "main"
+    },
+    {
+      "id": "e-entregado-factura",
+      "from": "entregado",
+      "to": "factura",
+      "label": "dispara",
+      "variant": "emphasis",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Se factura al entregar",
+      "items": [
+        "Menos notas crédito por arrepentimiento",
+        "facturar <ref> sigue como atajo manual"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "La entrega no tiene señal automática",
+      "items": [
+        "El rastreo de Interrapidísimo llega hasta «enviado»",
+        "Por eso «entregado» lo escribe una persona"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Si no paga",
+      "items": [
+        "Máximo 2 correos de recuperación",
+        "Con baja de un clic"
+      ]
+    }
+  ]
+}

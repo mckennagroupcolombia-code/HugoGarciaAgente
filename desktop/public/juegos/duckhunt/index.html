@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="statics/main.css" />
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<title>Duck Hunt</title>
+</head>
+<body>
+	<div id="mainGameSceneContainer" class="gameSceneContainer">
+
+		<!-- HTML-Inlined loader -->
+		<div id="loading-screen" style="border: solid 4px #000; margin: 0 auto; overflow:hidden; width: 512px; height: 448px; position: relative; text-align: center;">
+			<img style="margin-top: 185px;" src="statics/duckhunt_loader.gif" alt="Loader for DuckHunt game." />
+		</div>
+    </div>
+	<script type="text/javascript" src="externalLib/fullYUI3.1.js"></script>
+
+	<script>
+		// Adaptado para el panel McKenna (/app → Agenda → Juegos): la raíz de los assets es la
+		// carpeta de esta página; sin parámetros de URL, sin analítica ni widgets externos.
+		window.AppConf = {
+			"serverRoot": window.location.pathname.replace(/\/[^\/]*$/, ""),
+			"debug": false
+		};
+	</script>
+
+	<script type="text/javascript" src="src/AppConf.js"></script>
+
+	<script type="text/javascript" src="externalLib/cake.js"></script>
+	<script type="text/javascript" src="statics/sounds/sonidos_datos.js"></script>
+	<script type="text/javascript" src="externalLib/sonido_webaudio.js"></script>
+
+	<script type="text/javascript" src="src/ImagePreloader.js"></script>
+	<script type="text/javascript" src="src/FontWriter.js"></script>
+
+	<script type="text/javascript" src="src/Publisher.js"></script>
+	<script type="text/javascript" src="src/SoundManager.js"></script>
+	<script type="text/javascript" src="src/FirstScreen.js"></script>
+	<script type="text/javascript" src="src/Decor.js"></script>
+	<script type="text/javascript" src="src/board/BulletBoard.js"></script>
+	<script type="text/javascript" src="src/board/ScoreBoard.js"></script>
+	<script type="text/javascript" src="src/board/RoundBoard.js"></script>
+	<script type="text/javascript" src="src/board/KilledDucksBoard.js"></script>
+	<script type="text/javascript" src="src/Duck.js"></script>
+	<script type="text/javascript" src="src/Dog.js"></script>
+	<script type="text/javascript" src="src/DuckManager.js"></script>
+	<script type="text/javascript" src="src/MessageManager.js"></script>
+
+	<script type="text/javascript" src="src/GameState.js"></script>
+	<script type="text/javascript" src="src/GameManager.js"></script>
+	<script type="text/javascript" src="src/main.js"></script>
+	<script type="text/javascript" src="src/Tactil.js"></script>
+
+</body>
+</html>

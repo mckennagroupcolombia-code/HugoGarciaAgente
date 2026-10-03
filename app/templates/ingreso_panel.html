@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>McKenna Group</title>
+<link rel="icon" href="/app/favicon.svg">
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 1.5rem;
+         background: #0f1117; color: #e8eaed;
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { width: 100%; max-width: 360px; }
+  h1 { margin: 0 0 .25rem; font-size: 1.35rem; letter-spacing: -.01em; }
+  p.sub { margin: 0 0 1.5rem; color: #9aa0a6; font-size: .9rem; }
+  label { display: block; margin: 0 0 .35rem; font-size: .8rem; font-weight: 600; color: #9aa0a6; }
+  input { width: 100%; margin-bottom: .9rem; padding: .7rem .8rem; border-radius: .6rem;
+          border: 1px solid #2a2f3a; background: #171a21; color: #e8eaed; font-size: 1rem; }
+  input:focus { outline: none; border-color: #0c6069; }
+  button { width: 100%; padding: .75rem; border: 0; border-radius: .6rem; background: #0c6069;
+           color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: default; }
+  a.google { display: block; margin-top: .75rem; padding: .7rem; border: 1px solid #2a2f3a;
+             border-radius: .6rem; color: #e8eaed; text-align: center; text-decoration: none;
+             font-weight: 600; font-size: .95rem; }
+  .error { margin: 0 0 .9rem; padding: .6rem .7rem; border-radius: .5rem; background: #3b1d1d;
+           color: #fca5a5; font-size: .85rem; }
+  .cargando { text-align: center; color: #9aa0a6; }
+</style>
+</head>
+<body>
+<main>
+  <div id="restaurando" class="cargando">Entrando…</div>
+  <form id="forma" hidden>
+    <h1>McKenna Group</h1>
+    <p class="sub">Entra para continuar.</p>
+    <p class="error" id="error" hidden></p>
+    <label for="usuario">Usuario o correo</label>
+    <input id="usuario" name="usuario" autocomplete="username" autocapitalize="none" required>
+    <label for="clave">Contraseña</label>
+    <input id="clave" name="clave" type="password" autocomplete="current-password" required>
+    <button type="submit" id="enviar">Entrar</button>
+    <a class="google" href="/app/auth/google/start">Entrar con Google</a>
+  </form>
+</main>
+<script>
+(function () {
+  var forma = document.getElementById("forma");
+  var restaurando = document.getElementById("restaurando");
+  var error = document.getElementById("error");
+
+  function mostrarForma(msg) {
+    restaurando.hidden = true;
+    forma.hidden = false;
+    if (msg) { error.textContent = msg; error.hidden = false; }
+  }
+
+  function guardado() {
+    // Sesión que el panel ya tenía en este navegador: se revalida sin pedir la
+    // contraseña otra vez (el token vive en localStorage; la cookie no).
+    try {
+      var raw = localStorage.getItem("mckenna-tickets-auth");
+      return raw ? (JSON.parse(raw).state || {}).token || "" : "";
+    } catch (e) { return ""; }
+  }
+
+  // Dentro de la app Android (WebView), Google se abre en una pestaña de Chrome:
+  // sin ?app=android la vuelta se queda en Chrome y la app nunca recibe la
+  // sesión (21/22-sep-2026: Victor y Stella no podían entrar desde la app).
+  if (/McKennaPanelAndroid/i.test(navigator.userAgent)) {
+    document.querySelector("a.google").href = "/app/auth/google/start?app=android";
+  } else if (/McKennaColabAndroid/i.test(navigator.userAgent)) {
+    document.querySelector("a.google").href = "/app/auth/google/start?app=colab";
+  }
+
+  var params = new URLSearchParams(location.search);
+  var authError = params.get("auth_error");
+  var tok = guardado();
+  if (!tok) { mostrarForma(authError ? "No se pudo iniciar sesión: " + authError : ""); return; }
+
+  fetch("/api/tickets/auth/sesion-panel", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: tok }),
+  }).then(function (r) {
+    if (r.ok) { location.replace("/app"); return; }
+    mostrarForma(authError ? "No se pudo iniciar sesión: " + authError : "");
+  }).catch(function () { mostrarForma(""); });
+
+  forma.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var boton = document.getElementById("enviar");
+    boton.disabled = true;
+    error.hidden = true;
+    fetch("/api/tickets/auth/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: document.getElementById("usuario").value.trim(),
+        password: document.getElementById("clave").value,
+      }),
+    }).then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, d: d }; });
+    }).then(function (res) {
+      if (!res.ok || !res.d.token) {
+        boton.disabled = false;
+        error.textContent = res.d.error || "No se pudo entrar";
+        error.hidden = false;
+        return;
+      }
+      // El servidor ya dejó la cookie del panel; el token va en la URL para que
+      // la aplicación lo guarde (el mismo camino que usa el ingreso con Google).
+      location.replace("/app?_token=" + encodeURIComponent(res.d.token));
+    }).catch(function () {
+      boton.disabled = false;
+      error.textContent = "Sin conexión con el servidor";
+      error.hidden = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>

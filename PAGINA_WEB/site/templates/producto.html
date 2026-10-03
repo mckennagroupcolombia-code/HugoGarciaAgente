@@ -1,6 +1,14 @@
 {% extends "base.html" %}
-{% block title %}{{ p.name }} — McKenna Group{% endblock %}
-{% block description %}{% if p.get('is_family') %}{{ p.name }} en {{ p.n_presentaciones }} presentaciones desde {{ p.precio }}.{% elif p.get('is_combo') %}Compra {{ p.name }} (Ref: {{ p.ref }}) al precio de {{ p.precio }}.{% else %}Ficha y referencias de {{ p.name }}. Stock y compra por presentación (combo SIIGO).{% endif %} Despacho a todo Colombia.{% endblock %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block description %}{{ seo.description }}{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block og_image %}{% if fotos %}{{ fotos[0] if fotos[0].startswith('http') else SITE_URL ~ fotos[0] }}{% else %}{{ SITE_URL }}/static/img/og-default.jpg{% endif %}{% endblock %}
+{% block head %}<link rel="canonical" href="{{ seo.canonical }}">{% endblock %}
+{% block jsonld %}
+{{ super() }}
+{% for ld in seo.jsonld %}<script type="application/ld+json">{{ ld | tojson }}</script>
+{% endfor %}
+{% endblock %}
 
 {% block content %}
 <div class="producto-page" style="--cat-accent: {{ color_categoria(p.cat) }}">
@@ -103,7 +111,7 @@
           Agotado temporalmente
         </span>
         <span class="stock-bajo-nota" id="stock-nota" style="margin:0;{% if not (sel.stock is not none and sel.stock <= 3 and sel.get('buyable', True)) %}display:none{% endif %}">
-          Quedan <span id="stock-num">{{ sel.stock }}</span> unidades
+          Quedan <span id="stock-num">{{ sel.stock if sel.stock is not none else '' }}</span> unidades
         </span>
         <a href="{{ wa }}" target="_blank" rel="noopener" class="btn producto-action-btn"
            aria-label="WhatsApp" title="WhatsApp">
@@ -111,6 +119,7 @@
           WhatsApp
         </a>
       </div>
+      {% if doc_completo %}{% with doc=doc_completo %}{% include "_documento_tecnico_descargas.html" %}{% endwith %}{% endif %}
 
       {% if p.desc %}
       <p class="acid-body-text" style="margin-bottom:24px;">{{ p.desc }}</p>
@@ -241,6 +250,7 @@
           WhatsApp
         </a>
       </div>
+      {% if doc_completo %}{% with doc=doc_completo %}{% include "_documento_tecnico_descargas.html" %}{% endwith %}{% endif %}
 
       {% if p.desc %}
       <p class="acid-body-text" style="margin-bottom:24px;">{{ p.desc }}</p>
@@ -299,6 +309,7 @@
           Ver referencias y compra
         </a>
       </div>
+      {% if doc_completo %}{% with doc=doc_completo %}{% include "_documento_tecnico_descargas.html" %}{% endwith %}{% endif %}
 
       {% if p.desc %}
       <div class="acid-section-label">Descripción</div>
@@ -330,7 +341,7 @@
       {% for r in p.referencias %}
       <div style="background:#fff;border:1.5px solid var(--green-pale);padding:20px 24px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;">
         <div>
-          <div class="product-line-name" style="font-weight:700;">{{ r.name }}</div>
+          <div class="product-line-name" style="font-weight:600;">{{ r.name }}</div>
           <div style="font-size:0.85rem;color:var(--text-muted);">Ref. {{ r.ref }}{% if r.precio != '—' %} · {{ r.precio }} web ref.{% endif %}</div>
         </div>
         {% if r.meli_id %}
@@ -356,7 +367,7 @@
       {% for c in p.combos %}
       <div style="border:1.5px solid var(--green-pale);padding:24px;background:var(--green-ultra);display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between;">
         <div>
-          <div class="product-line-name" style="font-weight:800;font-size:1.1rem;">{{ c.name }}</div>
+          <div class="product-line-name" style="font-weight:700;font-size:1.1rem;">{{ c.name }}</div>
           <div style="font-size:0.9rem;color:var(--text-muted);margin-top:6px;">SKU: {{ c.ref }} · {{ c.precio }}</div>
         </div>
         <form method="POST" action="{{ url_for('carrito_agregar') }}" style="display:inline-flex;">
@@ -382,19 +393,8 @@
 </div>
 {% endif %}
 
-<!-- ═══ Documentación técnica (solo descargas) ═══ -->
+<!-- ═══ Documentación técnica: con documento completo va debajo de WhatsApp ═══ -->
 {% if doc_completo %}
-<div style="border-top:2px solid var(--green-pale);background:#fff;">
-  <div class="section producto-docs-section">
-    <div class="producto-docs-header">
-      <span class="section-eyebrow">Documentación técnica</span>
-      <h2 class="section-title">Documentos <em>disponibles</em></h2>
-    </div>
-    {% with doc=doc_completo %}
-      {% include "_documento_tecnico_descargas.html" %}
-    {% endwith %}
-  </div>
-</div>
 {% elif p.ficha %}
 <div style="border-top:2px solid var(--green-pale);background:#fff;">
   <div class="section producto-docs-section">
@@ -436,15 +436,15 @@
   .pa-card { display: grid; gap: 8px; align-content: start; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; text-decoration: none; color: var(--text-dark); transition: border-color .2s, transform .15s; }
   .pa-card:hover { border-color: var(--green); transform: translateY(-2px); }
   .pa-card.guia { grid-column: 1 / -1; grid-template-columns: 1fr auto; align-items: center; background: color-mix(in srgb, var(--green-light) 16%, #fff); }
-  .pa-eyebrow { font-size: .62rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--green); }
-  .pa-card h3 { margin: 0; font-size: 1.02rem; font-weight: 800; line-height: 1.25; }
+  .pa-eyebrow { font-size: .62rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--green); }
+  .pa-card h3 { margin: 0; font-size: 1.02rem; font-weight: 700; line-height: 1.25; }
   .pa-card h3 em { font-style: italic; font-weight: 300; color: var(--green); }
   .pa-card p { margin: 0; font-size: .84rem; color: var(--text-soft); line-height: 1.6; }
   .pa-kpis { display: flex; gap: 8px; flex-wrap: wrap; }
-  .pa-kpi { font-size: .74rem; font-weight: 700; color: var(--green); background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-variant-numeric: tabular-nums; }
+  .pa-kpi { font-size: .74rem; font-weight: 600; color: var(--green); background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-variant-numeric: tabular-nums; }
   .pa-step { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; background: var(--off-white); border-radius: 8px; padding: 10px 12px; font-size: .82rem; color: var(--text-soft); }
   .pa-step b { width: 26px; height: 26px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-size: .66rem; }
-  .pa-cta { font-size: .7rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--green); display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .pa-cta { font-size: .7rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--green); display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; }
   .pa-meta { font-size: .72rem; color: var(--text-muted); }
   @media (max-width: 700px) { .pa-card.guia { grid-template-columns: 1fr; } }
 </style>

@@ -1,0 +1,261 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Venta en MercadoLibre — pregunta, orden, entrega y factura",
+    "output": "03-venta-meli.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "lo hace una persona"
+        },
+        "backend": {
+          "label": "lo hace la plataforma"
+        },
+        "database": {
+          "label": "queda guardado"
+        },
+        "cloud": {
+          "label": "sistema externo"
+        },
+        "security": {
+          "label": "hoy no existe o está apagado"
+        },
+        "messagebus": {
+          "label": "mensajería"
+        },
+        "external": {
+          "label": "cliente o tercero"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "preventa",
+        "label": "Preventa",
+        "focus": [
+          "pregunta",
+          "recibe",
+          "responde",
+          "delega"
+        ],
+        "note": "Con ficha técnica responde la IA; sin ficha, o si la IA falla, responde el grupo."
+      },
+      {
+        "id": "orden",
+        "label": "De la orden a la factura",
+        "focus": [
+          "compra",
+          "stock",
+          "factura",
+          "nota"
+        ],
+        "note": "La orden pagada alinea el stock con la web; se factura al entregar."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "comprador",
+      "label": "Comprador"
+    },
+    {
+      "id": "wh",
+      "label": "Webhook :8080"
+    },
+    {
+      "id": "ia",
+      "label": "IA de preventa"
+    },
+    {
+      "id": "grupo",
+      "label": "Grupo de WhatsApp"
+    },
+    {
+      "id": "fact",
+      "label": "Alegra · Siigo"
+    }
+  ],
+  "phases": [
+    {
+      "id": "preventa",
+      "label": "Preventa",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "orden",
+      "label": "Orden",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "cierre",
+      "label": "Entrega",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "pregunta",
+    "recibe",
+    "responde",
+    "compra",
+    "stock",
+    "factura"
+  ],
+  "nodes": [
+    {
+      "id": "pregunta",
+      "lane": "comprador",
+      "col": 0,
+      "type": "external",
+      "label": "Hace una pregunta",
+      "sublabel": "en la publicación",
+      "width": 135
+    },
+    {
+      "id": "recibe",
+      "lane": "wh",
+      "col": 1,
+      "type": "backend",
+      "label": "Recibe el aviso",
+      "sublabel": "topic questions",
+      "width": 122
+    },
+    {
+      "id": "responde",
+      "lane": "ia",
+      "col": 2,
+      "type": "backend",
+      "label": "Responde con la ficha",
+      "sublabel": "Claude · Gemini de respaldo",
+      "width": 163
+    },
+    {
+      "id": "delega",
+      "lane": "grupo",
+      "col": 2,
+      "type": "messagebus",
+      "label": "Delega al grupo",
+      "sublabel": "sin ficha o si la IA falla",
+      "width": 156
+    },
+    {
+      "id": "compra",
+      "lane": "comprador",
+      "col": 3,
+      "type": "external",
+      "label": "Compra y paga",
+      "sublabel": "orders_v2 · paid",
+      "width": 108
+    },
+    {
+      "id": "stock",
+      "lane": "wh",
+      "col": 4,
+      "type": "backend",
+      "label": "Sincroniza el stock",
+      "sublabel": "MeLi → tienda web",
+      "width": 149
+    },
+    {
+      "id": "nota",
+      "lane": "fact",
+      "col": 4,
+      "type": "backend",
+      "label": "Nota crédito",
+      "sublabel": "si se cancela · cron",
+      "width": 124
+    },
+    {
+      "id": "factura",
+      "lane": "fact",
+      "col": 5,
+      "type": "frontend",
+      "label": "Factura al entregar",
+      "sublabel": "a mano · Facturar ahora",
+      "width": 149
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-pregunta-recibe",
+      "from": "pregunta",
+      "to": "recibe",
+      "role": "main"
+    },
+    {
+      "id": "e-recibe-responde",
+      "from": "recibe",
+      "to": "responde",
+      "label": "con ficha",
+      "role": "main"
+    },
+    {
+      "id": "e-recibe-delega",
+      "from": "recibe",
+      "to": "delega",
+      "label": "sin ficha",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e-responde-compra",
+      "from": "responde",
+      "to": "compra",
+      "label": "resuelve",
+      "role": "main"
+    },
+    {
+      "id": "e-compra-stock",
+      "from": "compra",
+      "to": "stock",
+      "label": "pagada",
+      "role": "main"
+    },
+    {
+      "id": "e-stock-factura",
+      "from": "stock",
+      "to": "factura",
+      "label": "entrega",
+      "role": "main"
+    },
+    {
+      "id": "e-compra-nota",
+      "from": "compra",
+      "to": "nota",
+      "label": "cancela",
+      "variant": "dashed",
+      "role": "error"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Nunca una respuesta genérica",
+      "items": [
+        "Si Claude y Gemini fallan, se delega al grupo",
+        "El grupo responde con: resp <3 dígitos>: texto"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "La autofactura está apagada",
+      "items": [
+        "Facturó a medias y duplicó 41 packs (4–9 sep)",
+        "Hoy: una factura por carrito, con el botón"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Cancelaciones",
+      "items": [
+        "Un cron cruza órdenes canceladas con facturas",
+        "Emite la nota crédito si nadie la hizo en 48 h"
+      ]
+    }
+  ]
+}

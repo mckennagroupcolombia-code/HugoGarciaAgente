@@ -8,7 +8,8 @@ servicios (`servicios`) y los intereses de préstamos (`rendimientos_financieros
 Dos cosas que se equivocan seguido y este módulo resuelve:
 
 1. **La cuantía mínima.** No toda operación lleva retención. Las compras solo la
-   llevan desde 27 UVT y los servicios desde 4 UVT; los rendimientos financieros
+   llevan desde 10 UVT (27 UVT hasta 2025, ver `MINIMO_UVT_DESDE`) y los servicios
+   desde 4 UVT; los rendimientos financieros
    no tienen mínimo. Aplicar retención por debajo del tope es tan incorrecto como
    no aplicarla por encima.
 2. **Declarante vs. no declarante.** Cambia la tarifa (2,5% vs 3,5% en compras,
@@ -27,6 +28,11 @@ import os
 # Valor de la UVT por año (Resolución DIAN anual). Cargar el año nuevo acá
 # cuando salga la resolución, o pasarlo por `UVT_<año>` en el entorno.
 _UVT: dict[int, float] = {
+    # Históricas (para recalcular renta de años ya presentados — Art. 241 ET):
+    # Res. 000084/2019 → 2020; Res. 000111/2020 → 2021; Res. 000140/2021 → 2022.
+    2020: 35_607.0,
+    2021: 36_308.0,
+    2022: 38_004.0,
     2023: 42_412.0,
     2024: 47_065.0,
     2025: 49_799.0,
@@ -48,7 +54,62 @@ CONCEPTOS: dict[str, tuple[float, float, float, str]] = {
     "honorarios": (10.0, 11.0, 0.0, "Art. 392 E.T."),
     # Intereses de préstamos. Tarifa única, sin cuantía mínima.
     "rendimientos_financieros": (7.0, 7.0, 0.0, "Art. 395 E.T."),
+    # Comisiones. Misma norma que honorarios pero SIN cuantía mínima: una
+    # comisión de $50.000 lleva retención y una asesoría de $50.000 también,
+    # mientras que un servicio de $50.000 no (está bajo las 4 UVT).
+    "comisiones": (10.0, 11.0, 0.0, "Art. 392 E.T."),
+    # Transporte de carga (mensajería, fletes, acarreos). Tarifa única: no
+    # distingue declarante.
+    #
+    # Estuvo deliberadamente fuera de esta tabla hasta sep-2026, con el
+    # argumento de que inventar la tarifa le saldría del bolsillo a alguien.
+    # Ya no se está inventando: el propio contador de McKenna certificó este
+    # concepto al 1% —«SERVICIOS 1.0», base $17.377.500, retención $173.775—
+    # en el certificado de retención año gravable 2024 a NEXT ENVIOS S.A.S
+    # (docs/contabilidad/2025/Soportes_Contador/2025-04/certificados/). La
+    # tarifa sale de ahí, no de una lectura nuestra de la norma.
+    #
+    # ⚠️ La mayoría de transportadoras son autorretenedoras y entonces NO se
+    # les retiene. Eso es una propiedad del tercero (`retefuente_exento` en su
+    # ficha), no del concepto: quien paga tiene que saber a quién le está
+    # pagando. Ver `impuestos_por_cuenta.py`, que lo advierte en el wizard.
+    "transporte_carga": (1.0, 1.0, 4.0, "Art. 392 E.T. · DUR 1.2.4.4.14."),
+    # Transporte de pasajeros. Tarifa distinta a la de carga; se deja explícita
+    # para que nadie use la de carga «porque transporte es transporte».
+    "transporte_pasajeros": (3.5, 3.5, 27.0, "Art. 392 E.T. · DUR 1.2.4.4.14."),
+    # Arrendamiento. La tarifa depende de QUÉ se arrienda, no de quién cobra:
+    # un inmueble va al 3,5% desde 27 UVT y un mueble (equipos, vehículos) al
+    # 4% sin mínimo. Son dos conceptos, no uno con dos tarifas.
+    "arrendamiento_inmueble": (3.5, 3.5, 27.0, "Art. 401 E.T."),
+    "arrendamiento_mueble": (4.0, 4.0, 0.0, "Art. 392 E.T."),
+    # Cajón de sastre de la norma: lo que es ingreso tributario gravado y no
+    # encaja en ningún concepto propio. NO es un default cómodo — si un pago
+    # cae acá suele ser que la cuenta del gasto está mal elegida.
+    "otros_ingresos": (2.5, 3.5, 27.0, "Art. 401 E.T."),
 }
+
+
+# Cuantías mínimas que cambiaron con el tiempo: concepto -> {primer año: UVT}.
+# Manda sobre la columna de `CONCEPTOS` desde ese año; los años anteriores siguen
+# con la de la tabla (así se recalculan igual los certificados ya expedidos).
+#
+# Compras a 10 UVT desde 2026: lo confirmó Armando el 24-sep-2026 al revisar a
+# COMERCIALIZADORA INTERNACIONAL C.I., cuya factura CIV2336 (base $1.120.000,
+# bajo 27 UVT) ya descontaba la ReteRenta del 2,5%. Con 27 UVT el sistema no la
+# retenía y el proveedor sí la esperaba. 2025 no se toca: está antes de la fecha
+# de corte contable y lo liquidó el contador.
+MINIMO_UVT_DESDE: dict[str, dict[int, float]] = {
+    "compras": {2026: 10.0},
+}
+
+
+def minimo_uvt(concepto: str, anio: int) -> float:
+    """Cuantía mínima en UVT de `concepto` para el año `anio`."""
+    minimo = CONCEPTOS[concepto][2]
+    for desde, valor in sorted((MINIMO_UVT_DESDE.get(concepto) or {}).items()):
+        if int(anio) >= desde:
+            minimo = valor
+    return minimo
 
 
 def uvt(anio: int) -> float | None:
@@ -84,7 +145,8 @@ def calcular(
             f"Disponibles: {', '.join(sorted(CONCEPTOS))}"
         )
     base = round(float(base or 0), 2)
-    tarifa_dec, tarifa_no_dec, minimo_uvt, norma = CONCEPTOS[concepto]
+    tarifa_dec, tarifa_no_dec, _, norma = CONCEPTOS[concepto]
+    minimo = minimo_uvt(concepto, anio)
     tarifa = tarifa_dec if declarante else tarifa_no_dec
 
     valor_uvt = uvt(anio)
@@ -97,33 +159,33 @@ def calcular(
             "concepto": concepto,
             "norma": norma,
             "uvt": None,
-            "minimo_uvt": minimo_uvt,
+            "minimo_uvt": minimo,
             "minimo_cop": None,
             "motivo": (
                 f"No hay UVT cargada para {anio}, así que no se puede saber si la base "
-                f"supera la cuantía mínima de {minimo_uvt:g} UVT. "
+                f"supera la cuantía mínima de {minimo:g} UVT. "
                 f"Años disponibles: {', '.join(str(a) for a in ANIOS_UVT_CARGADOS)}. "
                 f"Cárgala en `retenciones._UVT` o en la variable UVT_{anio}."
             ),
             "indeterminado": True,
         }
 
-    minimo_cop = round(minimo_uvt * valor_uvt, 2)
+    minimo_cop = round(minimo * valor_uvt, 2)
     if base <= 0:
         return {
             "aplica": False, "retencion": 0.0, "base": base, "tarifa_pct": tarifa,
             "concepto": concepto, "norma": norma, "uvt": valor_uvt,
-            "minimo_uvt": minimo_uvt, "minimo_cop": minimo_cop,
+            "minimo_uvt": minimo, "minimo_cop": minimo_cop,
             "motivo": "La base es cero.", "indeterminado": False,
         }
-    if minimo_uvt > 0 and base < minimo_cop:
+    if minimo > 0 and base < minimo_cop:
         return {
             "aplica": False, "retencion": 0.0, "base": base, "tarifa_pct": tarifa,
             "concepto": concepto, "norma": norma, "uvt": valor_uvt,
-            "minimo_uvt": minimo_uvt, "minimo_cop": minimo_cop,
+            "minimo_uvt": minimo, "minimo_cop": minimo_cop,
             "motivo": (
                 f"No se retiene: la base (${base:,.0f}) está por debajo de la cuantía "
-                f"mínima de {minimo_uvt:g} UVT (${minimo_cop:,.0f} en {anio}). "
+                f"mínima de {minimo:g} UVT (${minimo_cop:,.0f} en {anio}). "
                 f"{norma}"
             ).replace(",", "."),
             "indeterminado": False,
@@ -134,7 +196,7 @@ def calcular(
     return {
         "aplica": True, "retencion": retencion, "base": base, "tarifa_pct": tarifa,
         "concepto": concepto, "norma": norma, "uvt": valor_uvt,
-        "minimo_uvt": minimo_uvt, "minimo_cop": minimo_cop,
+        "minimo_uvt": minimo, "minimo_cop": minimo_cop,
         "motivo": (
             f"Retención de {tarifa:g}% por {concepto} sobre ${base:,.0f} "
             f"(beneficiario {calidad}). {norma}"
@@ -147,7 +209,8 @@ def resumen_conceptos(anio: int) -> list[dict]:
     """Tabla de conceptos vigentes, para mostrarla en el panel."""
     valor_uvt = uvt(anio)
     out = []
-    for concepto, (dec, no_dec, minimo, norma) in sorted(CONCEPTOS.items()):
+    for concepto, (dec, no_dec, _, norma) in sorted(CONCEPTOS.items()):
+        minimo = minimo_uvt(concepto, anio)
         out.append({
             "concepto": concepto,
             "tarifa_declarante_pct": dec,
@@ -196,19 +259,35 @@ def resumen_periodo(anio: int, mes: int) -> dict:
                   JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
                   JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
                   LEFT JOIN cc_terceros t ON t.id = l.tercero_id
-                 WHERE c.codigo = ?
+                 -- 2365 y TODAS sus subcuentas: desde la migración al PUC real
+                 -- (sep-2026) la retención se asienta por concepto —236525
+                 -- servicios, 236535 rendimientos financieros, 236540 compras—
+                 -- y preguntar solo por la 2365 plana devolvía cero justo en el
+                 -- mes en que empezó a usarse el desglose que el 350 necesita.
+                 WHERE (c.codigo = ? OR c.codigo LIKE ?)
                    AND m.fecha BETWEEN ? AND ?
-                   -- El pago del formulario 350 (débito 2365 / crédito Bancos) extingue
+                   -- El pago del formulario 350 (DÉBITO 2365 + crédito Bancos) extingue
                    -- la deuda con la DIAN; no es retención "des-practicada". Contarlo
                    -- restaba $598.000 a agosto-2026 y dejaba el período en negativo.
-                   AND NOT EXISTS (
-                       SELECT 1 FROM cc_movimiento_lineas l2
-                         JOIN cc_plan_cuentas c2 ON c2.id = l2.cuenta_id
-                        WHERE l2.movimiento_id = m.id AND c2.codigo LIKE '11%'
+                   --
+                   -- Se excluye solo esa línea, no todo asiento que toque un 11%: la
+                   -- retención que se practica AL PAGAR acredita 2365 y el banco en el
+                   -- mismo asiento (cuota de préstamo, cualquier pago del wizard), y
+                   -- excluirlos dejaba el período en cero. Con los cuatro préstamos
+                   -- vigentes eso habría escondido toda la retención desde octubre-2026
+                   -- y el ticket mensual no se habría creado.
+                   AND NOT (
+                       l.debito > 0
+                       AND EXISTS (
+                           SELECT 1 FROM cc_movimiento_lineas l2
+                             JOIN cc_plan_cuentas c2 ON c2.id = l2.cuenta_id
+                            WHERE l2.movimiento_id = m.id
+                              AND c2.codigo LIKE '11%' AND l2.credito > 0
+                       )
                    )
                  ORDER BY m.fecha, t.nombre
                 """,
-                (CUENTA_RETENCION_PUC, desde, hasta),
+                (CUENTA_RETENCION_PUC, f"{CUENTA_RETENCION_PUC}__", desde, hasta),
             )
         ]
 

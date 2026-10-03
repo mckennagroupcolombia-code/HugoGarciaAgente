@@ -398,6 +398,38 @@ Rutas principales:
 - Web (`:8083`): el inicio y `/cotizar` incluyen `_ruta_origen.html` + `_cobertura.html` con JSON embebido (`[data-tz-data]`, `[data-co-data]`) que consume `static/js/trazabilidad.js`. `GET /cotizar?q=&linea=` · `POST /cotizar/solicitar` (JSON o form: `producto`, `nombre`, `email`|`telefono` obligatorios; honeypot `website`; 8/h por IP) → `{ok, id}` · `POST /api/oferta/refresh`.
 - Panel: `desktop/src/hooks/useProveedores.ts`, `desktop/src/components/ProveedoresPanel.tsx` (id de panel existente `logistica-proveedores`).
 
+## Canales del producto (Publicar → Canales del producto)
+
+- Backend: `app/routes_canales_producto.py` → `app/services/canales_producto.py`. Solo lectura, sin LLM, sin llamadas vivas salvo `verificar`.
+- Auth: `CHAT_API_TOKEN`, admin o `permisos_secciones` con `canales-producto` / `mapa-sistema` / `publicaciones`. Rutas en `/api/...` y `/app/api/...`.
+- `GET /api/canales-producto/tabla[?refrescar=1]` → `{filas: [{sku, nombre, es_kit, clasificacion, motivos[], saltos: [{panel, motivo, buscar}], canales: {alegra: {estado: ok|inactivo|falta, tipo}, combo, documento, ean: {estado, codigo}, etiqueta, meli: {estado: publicado|pausado|falta, pausada_por_cese, n_publicaciones, meli_id, permalink, relacion}, web: {estado, cat, buyable, stock}, facturable: {estado: si|alias|inactivo|no, alias_destino}}}], total, resumen: {<clasificacion>: n}, sin_senal[], fuentes, generado}`.
+- Clasificaciones (orden = gravedad): `vendible_no_facturable`, `inactivo_publicado`, `inactivo_con_alias`, `pausado_no_facturable`, `discrepancia_canales`, `incompleto`, `suelto`, `completo`.
+- `GET /api/canales-producto/categorias` → `{filas: [{sku, nombre, clasificacion, cat_etiquetas, cat_web, cat_meli: null}], total, generado}` (MeLi sin dato local en v1).
+- `POST /api/canales-producto/verificar/<sku>` → `{ok, sku, facturable, reference?, alias_de?, mensaje}` (llama `alegra.resolver_producto_venta_alegra`). `POST .../invalidar`.
+- Fuentes: copia local Alegra (`alegra_items`, status fiable desde que el sync marca inactivos), `alegra_sku_alias_venta.json`, `relacion_codigos_cache.json`, `meli_pausa_global.json`, `cache.json`/`stock_web.json` de la web, `ean_alegra.enlaces()`, `mapa_producto.anatomia_combos()`.
+
+## Chat del equipo + campana (Agenda → Equipo)
+
+- Backend: `app/routes_canales.py` → `app/services/canales_internos.py` y `notificaciones_panel.py` (tablas en `tickets.db`, creadas al primer uso).
+- Auth: sesión de tickets — `X-Tickets-Token`, `?token=` (imágenes) o Bearer de sesión. El token de API solo NO basta (importa quién escribe).
+- `GET /api/canales[?archivados=1]` → `{canales: [{id, nombre, descripcion, clave, wa_jid, wa_nombre, espejo_salida, archivado, miembros[], no_leidos, ultimo}], puede_administrar, grupos_wa[]}`. Canal sin miembros = todo el equipo.
+- `POST /api/canales {nombre, descripcion, miembros[], wa_jid, espejo_salida}` y `PATCH /api/canales/<id>` (nivel ≥ 2 o admin).
+- `GET /api/canales/<id>/mensajes?despues_de=&antes_de=&limite=` · `POST` (JSON `{texto}` o multipart `texto`+`archivo`, 15 MB) · `POST /<id>/leido` · `DELETE /api/canales/mensajes/<id>` (solo autor/admin, solo origen panel).
+- Archivos: `GET /api/canales/uploads/<f>` (subidos, `uploads/canales/`) y `GET /api/canales/media-wa/<mensaje_id>` (fotos llegadas por el grupo WA, en `comprobantes/`).
+- Espejo: `wa_chats.ingestar_desde_whatsapp` → `canales_internos.espejar_desde_wa` (entrada); con `espejo_salida` el panel reenvía por el puente :3000 con `*Nombre* — panel:`; anti-eco por texto (`texto_wa`, 15 min).
+- Campana: `GET /api/mensajes/resumen` → `{canales_no_leidos, notificaciones_no_leidas}` (polling 10 s) · `GET /api/notificaciones` · `POST /api/notificaciones/leidas {ids?}` · `PUT /api/notificaciones/preferencia {preferencia: ambos|inapp|wa}`. `tickets_notificaciones.enviar_texto_operador` guarda SIEMPRE el aviso y solo manda WhatsApp si la preferencia no es `inapp`.
+- Redirección sin bloqueo: `app/services/redireccion_panel.py` + `app/data/redireccion_panel.json` (`activo` false por defecto).
+
+## Recepción de mercancía (Abastecer → Recibirla)
+
+- Backend: `app/routes_recepciones.py` → `app/services/recepcion_mercancia.py` (`app/data/recepciones.db`, fotos en `app/data/recepcion_uploads/`, ambos gitignored). Sin LLM; no escribe inventario ni contabilidad.
+- Auth: sesión de tickets; admin o `recepcion-mercancia` / `pedidos` / `empaque` / `control-inventario` / `stock` (igual que `panelAccess.ts`).
+- `GET /api/recepciones[?estado=]` → `{recepciones: [{id, proveedor, referencia, origen, estado: abierta|verificada|con_diferencias|anulada, recibido_por_nombre, creada_en, resumen: {total, contados, diferencias, fotos}}]}`.
+- `GET /api/recepciones/compras-por-recibir` → solicitudes de pago `compra_proveedor` sin recepción.
+- `POST /api/recepciones {solicitud_pago_id? | proveedor, referencia, notas, items[]}` → recepción con `items[]` y `fotos[]` (con solicitud, los esperados salen de sus renglones).
+- `POST /<id>/items {descripcion, sku, unidad, cantidad_esperada}` · `PATCH /<id>/items/<item_id> {cantidad_recibida, estado_item: danado?, observacion}` (estado deducido: ok/faltante/sobrante) · `POST /<id>/fotos` (multipart `foto`) · `GET /api/recepciones/fotos/<f>` · `POST /<id>/cerrar {notas}` (exige todo contado) · `POST /<id>/anular {motivo}`.
+- Abrir y cerrar avisan en el canal interno de clave `inventario` (se crea solo).
+
 ## Validacion De Contratos
 
 - `tests/test_smoke.py` cubre contratos puros y rutas criticas sin credenciales.

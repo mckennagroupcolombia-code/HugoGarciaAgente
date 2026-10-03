@@ -1503,6 +1503,7 @@ def process_order_paid_side_effects(reference: str) -> None:
 
     Pipeline idempotente (puede ejecutarse desde ``/pago/respuesta`` y/o IPN ``/pago/confirmacion``):
 
+    0. Asiento en el Libro Mayor propio (``contabilidad_autopost.causar_pedido_web``), en el momento.
     1. Correo de confirmación al comprador (una vez).
     2. WhatsApp al grupo pedidos web con resumen (una vez).
     3. Factura electrónica en Alegra con datos del checkout cuando ``WEB_SIIGO_AUTO_INVOICE`` está activo:
@@ -1525,6 +1526,18 @@ def process_order_paid_side_effects(reference: str) -> None:
         return
     order = _row_dict(row)
     now = datetime.now().isoformat()
+
+    # 0. El asiento en el Libro Mayor, YA — como la solicitud de pago nace con
+    #    el suyo. Antes la venta web entraba al libro cuando pasaba el cron de
+    #    seis horas, y hasta entonces el taller de conciliación no tenía con qué
+    #    calzar la línea del banco. Idempotente: por hash y por referencia del
+    #    pedido. Si falla, no se frena nada de lo demás y el cron la recoge.
+    try:
+        from app.services.contabilidad_autopost import causar_pedido_web
+
+        causar_pedido_web(order)
+    except Exception as e:  # noqa: BLE001 — el libro no puede tumbar la confirmación de un pedido pagado
+        print(f"⚠️ [WEB] No se pudo causar el pedido {ref} en el Libro Mayor: {e}", flush=True)
 
     if not order.get("stock_descontado_at"):
         try:

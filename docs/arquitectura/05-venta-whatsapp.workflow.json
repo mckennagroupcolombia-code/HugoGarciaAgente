@@ -1,0 +1,239 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Venta por WhatsApp — la IA arma, el asesor cierra",
+    "output": "05-venta-whatsapp.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "lo hace una persona"
+        },
+        "backend": {
+          "label": "lo hace la plataforma"
+        },
+        "database": {
+          "label": "queda guardado"
+        },
+        "cloud": {
+          "label": "sistema externo"
+        },
+        "security": {
+          "label": "hoy no existe o está apagado"
+        },
+        "messagebus": {
+          "label": "mensajería"
+        },
+        "external": {
+          "label": "cliente o tercero"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "ia",
+        "label": "Lo que hace la IA",
+        "focus": [
+          "mensaje",
+          "reenvia",
+          "arma",
+          "revisa"
+        ],
+        "note": "El agente arma el pedido con precios de la web y un supervisor revisa cada respuesta de riesgo."
+      },
+      {
+        "id": "humano",
+        "label": "Lo que hace el asesor",
+        "focus": [
+          "cierra",
+          "comprobante",
+          "factura"
+        ],
+        "note": "El asesor confirma el total, comparte los datos de pago y factura desde /app."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "cliente",
+      "label": "Cliente"
+    },
+    {
+      "id": "puente",
+      "label": "Puente Node :3000"
+    },
+    {
+      "id": "ia",
+      "label": "Agente de ventas v2"
+    },
+    {
+      "id": "sup",
+      "label": "Supervisor"
+    },
+    {
+      "id": "asesor",
+      "label": "Asesor"
+    },
+    {
+      "id": "fact",
+      "label": "Facturación /app"
+    }
+  ],
+  "phases": [
+    {
+      "id": "atender",
+      "label": "Atender",
+      "fromCol": 0,
+      "toCol": 3
+    },
+    {
+      "id": "cerrar",
+      "label": "Cerrar la venta",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "emphasis"
+    }
+  ],
+  "mainPath": [
+    "mensaje",
+    "reenvia",
+    "arma",
+    "revisa",
+    "cierra",
+    "factura"
+  ],
+  "nodes": [
+    {
+      "id": "mensaje",
+      "lane": "cliente",
+      "col": 0,
+      "type": "external",
+      "label": "Escribe",
+      "sublabel": "texto o nota de voz",
+      "width": 119
+    },
+    {
+      "id": "reenvia",
+      "lane": "puente",
+      "col": 1,
+      "type": "messagebus",
+      "label": "Reenvía el mensaje",
+      "sublabel": "POST /whatsapp",
+      "width": 142
+    },
+    {
+      "id": "arma",
+      "lane": "ia",
+      "col": 2,
+      "type": "backend",
+      "label": "Arma el pedido",
+      "sublabel": "precios de la web",
+      "width": 115
+    },
+    {
+      "id": "revisa",
+      "lane": "sup",
+      "col": 3,
+      "type": "backend",
+      "label": "Revisa la respuesta",
+      "sublabel": "reglas + revisor IA",
+      "width": 149
+    },
+    {
+      "id": "cierra",
+      "lane": "asesor",
+      "col": 4,
+      "type": "frontend",
+      "label": "Cierra la venta",
+      "sublabel": "total y datos de pago",
+      "width": 129
+    },
+    {
+      "id": "comprobante",
+      "lane": "cliente",
+      "col": 4,
+      "type": "external",
+      "label": "Envía el comprobante",
+      "sublabel": "foto del pago",
+      "width": 156
+    },
+    {
+      "id": "factura",
+      "lane": "fact",
+      "col": 5,
+      "type": "frontend",
+      "label": "Cotiza o factura",
+      "sublabel": "wizard de 5 pasos",
+      "width": 128
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-mensaje-reenvia",
+      "from": "mensaje",
+      "to": "reenvia",
+      "role": "main"
+    },
+    {
+      "id": "e-reenvia-arma",
+      "from": "reenvia",
+      "to": "arma",
+      "role": "main"
+    },
+    {
+      "id": "e-arma-revisa",
+      "from": "arma",
+      "to": "revisa",
+      "role": "main"
+    },
+    {
+      "id": "e-revisa-cierra",
+      "from": "revisa",
+      "to": "cierra",
+      "label": "tarjeta",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e-cierra-comprobante",
+      "from": "cierra",
+      "to": "comprobante",
+      "label": "cobra",
+      "role": "branch"
+    },
+    {
+      "id": "e-cierra-factura",
+      "from": "cierra",
+      "to": "factura",
+      "label": "ok <3 díg>",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "El bot no cierra la venta",
+      "items": [
+        "No comparte datos de pago: alucinó cuentas antes",
+        "Arma el pedido y le pasa la tarjeta al asesor"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Hoy corre en sombra",
+      "items": [
+        "Desde el 11-sep: responde el flujo viejo",
+        "v2 solo deja borradores para comparar"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Se calla si habla un asesor",
+      "items": [
+        "12 horas de silencio tras un mensaje humano",
+        "Agrupa ráfagas de 6 segundos"
+      ]
+    }
+  ]
+}

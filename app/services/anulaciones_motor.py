@@ -528,7 +528,11 @@ def postear_asiento(caso_id: int, *, actor: str = "cron") -> dict:
         from app.services import contabilidad_core as cc
 
         cc._ensure()
-        cuentas = {c["codigo"]: c["id"] for c in cc.listar_plan_cuentas(solo_activas=False)}
+        # Mismo mapa que el auto-posteo: resuelve los códigos migrados a su
+        # cuenta viva. Hoy las tres cuentas de acá (4175/1110/4295) están
+        # activas, pero armar el diccionario a mano deja la trampa puesta para
+        # la próxima migración — así fallaron 8 asientos en agosto-2026.
+        cuentas = cc.mapa_cuentas_por_codigo()
         faltantes = [c for c in (CUENTA_DEVOLUCIONES_VENTAS, CUENTA_BANCOS) if c not in cuentas]
         if faltantes:
             raise ValueError(f"Faltan cuentas PUC {faltantes} (¿corrió la migración de contabilidad_core?)")

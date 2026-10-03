@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import { FUENTES_DISPONIBLES, useTextStyleCtx } from "./TextStyleContext";
 import { EJEMPLO_ETIQUETA } from "./productLabelTypes";
 import { campoRevisaOrtografia } from "../../lib/ortografiaEtiqueta";
+import { useVersionFuentes } from "../etiqueta-30ml/useAjusteTexto";
 
 /** Atributo para reconocer el menú (ya portado a `document.body`) como
  *  "dentro" del campo al detectar clics afuera — ver uso en los
@@ -82,6 +83,25 @@ interface Props {
    *  reservados de los textos descriptivos, que con texto corto quedan en
    *  blanco y no se distinguen. No afecta la vista ni el PNG. */
   marcoVisible?: boolean;
+}
+
+/** Pone un `<textarea>` de la etiqueta al alto justo de su texto. Lo usa el
+ *  propio campo y también `ProductLabelForm`, que al buscar el ancho de
+ *  maquetación necesita los campos ya ajustados ANTES de medir (el
+ *  `ResizeObserver` del campo llegaría un cuadro tarde). */
+export function ajustarAltoTextarea(el: HTMLTextAreaElement): void {
+  el.style.height = "auto";
+  // `scrollHeight` mide contenido + relleno, SIN el borde. Y el campo es
+  // `border-box`, así que la altura que se le pone incluye el borde: con
+  // `height = scrollHeight` el borde se come 2 px por dentro (1 arriba y
+  // 1 abajo) y el texto se queda siempre ese pelo corto — barra de
+  // desplazamiento y último renglón a medias. Hay que sumarlo.
+  const cs = getComputedStyle(el);
+  const borde =
+    cs.boxSizing === "border-box"
+      ? (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0)
+      : 0;
+  el.style.height = `${el.scrollHeight + borde}px`;
 }
 
 /** Menú flotante de tamaño/fuente compartido por `EditableField` (valores
@@ -275,11 +295,25 @@ export default function EditableField({
   const override = estilos[styleKey];
   const menuAbierto = !sinMenuTamano && abierto === styleKey;
 
-  useEffect(() => {
-    if (!multiline || !taRef.current) return;
-    taRef.current.style.height = "auto";
-    taRef.current.style.height = `${taRef.current.scrollHeight}px`;
-  }, [value, multiline, editMode, override?.fontSize, override?.fontFamily]);
+  // El cuadro se estira hasta caber su texto. No basta con hacerlo cuando
+  // cambia el valor: el texto reflúye también cuando termina de cargar la
+  // tipografía web (hasta entonces se mide con la de repuesto, que ocupa
+  // otra cosa) y cuando cambia el ancho de la celda. Si no se vuelve a
+  // medir, el cuadro se queda con el alto viejo y el texto sale cortado con
+  // barra de desplazamiento — es lo que pasaba en Conservación, con 66 px
+  // de cuadro para 68 px de texto. De ahí `useLayoutEffect` (mide antes de
+  // pintar, sin parpadeo), la versión de las fuentes como dependencia y un
+  // ResizeObserver sobre el propio campo.
+  const versionFuentes = useVersionFuentes();
+  useLayoutEffect(() => {
+    const el = taRef.current;
+    if (!multiline || !el) return;
+    const ajustar = () => ajustarAltoTextarea(el);
+    ajustar();
+    const ro = new ResizeObserver(ajustar);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [value, multiline, editMode, override?.fontSize, override?.fontFamily, versionFuentes]);
 
   useEffect(() => {
     if (!menuAbierto) return;

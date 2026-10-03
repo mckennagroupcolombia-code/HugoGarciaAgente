@@ -975,6 +975,11 @@ def actualizar_publicacion(sku: str, campos: dict) -> dict:
     elif sku in overrides:
         del overrides[sku]
     _save_overrides(overrides)
+    if campos.get("meli_item_id") and ov.get("meli_item_id"):
+        # Un ID de MeLi asignado a un SKU debe existir en la Hoja 1 (idempotente, en segundo plano).
+        from app.services.sheet_productos import asegurar_fila_en_segundo_plano
+
+        asegurar_fila_en_segundo_plano(ov["meli_item_id"], sku)
     return {"ok": True, "sku": sku, "override": ov}
 
 
@@ -1185,6 +1190,53 @@ def escanear_imagenes_web(sku: str) -> list[dict]:
             "height": meta["height"],
             "cumple_estandar": meta["cumple_estandar"],
         })
+    return out
+
+
+def fotos_principales_por_sku(skus: list[str]) -> dict[str, dict]:
+    """Foto principal y cantidad de fotos web de muchos SKU a la vez (para listas).
+
+    Mismo criterio que `escanear_imagenes_web` (orden de overrides, siigo_fotos legacy,
+    archivos {sku}.ext / {sku}_N.ext), pero recorre el directorio UNA vez y no abre
+    las imágenes. Si no hay archivo propio, cae a la foto de la vitrina (cache.json),
+    que suele ser la de MeLi. Clave del resultado: SKU en mayúsculas.
+    """
+    archivos: list[str] = []
+    if _IMAGENES_DIR.exists():
+        archivos = sorted(
+            f.name for f in _IMAGENES_DIR.iterdir()
+            if f.is_file() and f.suffix.lower() in _IMG_EXTS_OK
+        )
+    overrides = _load_overrides()
+    siigo = _load_siigo_fotos()
+    vitrina: dict[str, str] = {}
+    try:
+        with open(_REPO_DIR / "PAGINA_WEB" / "site" / "data" / "cache.json", encoding="utf-8") as f:
+            cache = json.load(f)
+        prods = [p for s in cache.get("sections") or [] for p in s.get("products") or []]
+        prods += list(cache.get("combos") or [])
+        for p in prods:
+            ref = str(p.get("ref") or "").strip().upper()
+            if ref and p.get("photo") and ref not in vitrina:
+                vitrina[ref] = str(p["photo"])
+    except Exception:
+        pass
+
+    out: dict[str, dict] = {}
+    for sku in skus:
+        sku = (sku or "").strip()
+        if not sku:
+            continue
+        propios = {n for n in archivos if Path(n).stem == sku or Path(n).stem.startswith(f"{sku}_")}
+        legacy = Path(siigo.get(sku.upper(), "") or "").name
+        if legacy and legacy in archivos:
+            propios.add(legacy)
+        orden = (overrides.get(sku) or {}).get("imagenes_web") or []
+        nombres = sorted(propios, key=lambda n: (0, orden.index(n), n) if n in orden else (1, 0, n))
+        if nombres:
+            out[sku.upper()] = {"foto": _url_imagen_panel(nombres[0]), "fotos_total": len(nombres), "origen": "propia"}
+        elif vitrina.get(sku.upper()):
+            out[sku.upper()] = {"foto": vitrina[sku.upper()], "fotos_total": 0, "origen": "vitrina"}
     return out
 
 

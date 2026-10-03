@@ -45,6 +45,10 @@
       "nota": "Cron seguimiento publicaciones MeLi compliance"
     },
     {
+      "path": "scripts/reenvio_alertas_banco_cron.py",
+      "nota": "Cron copia de abonos Bancolombia a la asesora comercial"
+    },
+    {
       "path": "app/tools/analisis_competencia_precios.py",
       "nota": "Agente competencia de precios MeLi (más vendidos vs títulos similares)"
     },

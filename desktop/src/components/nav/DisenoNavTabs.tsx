@@ -7,12 +7,17 @@ import { guardarUltimoPanelHub } from "../../lib/hubNav";
 import { Icon, type UiIconName } from "../../icons";
 import { HUB_TAB_LABEL, hubTabClass } from "../../lib/hubTabClass";
 import ScrollableTabList from "./ScrollableTabList";
+import { puedeVerSeccionPanel } from "../../lib/panelAccess";
 import { precargarDiseno } from "../../lib/etiquetasPrefetch";
+
+/** En una fila, icono al lado del nombre: apilados ocupaban el doble de alto
+ *  que el resto de botones del cabezote. `!min-h-0` gana a la altura mínima de
+ *  `.mck-hub-tab-etiquetado` en index.css. */
+const COMPACTA = "mck-hub-tab-etiquetado flex-row !min-h-0 !py-1";
 
 const TABS: { id: EtiquetasTab; label: string; shortLabel: string; icon: UiIconName }[] = [
   { id: "imprimir", label: "Imprimir", shortLabel: "Imprimir", icon: "printer" },
   { id: "studio", label: "Studio visual", shortLabel: "Studio", icon: "palette" },
-  { id: "inventario", label: "Papel y tinta", shortLabel: "Inventario", icon: "package" },
   { id: "codigos_ean", label: "Códigos EAN", shortLabel: "EAN", icon: "barcode" },
 ];
 
@@ -28,12 +33,22 @@ export default function DisenoNavTabs() {
   const qc = useQueryClient();
   const allowed = tabsEtiquetasVisibles(user);
   const tabs = TABS.filter((t) => allowed.includes(t.id));
-  const activo = tabs.some((t) => t.id === tab) ? tab : (tabs[0]?.id ?? "imprimir");
+  // Papel y tinta vive dentro de Imprimir (27-sep-2026): la pestaña Imprimir queda marcada en los dos.
+  const tabNav: EtiquetasTab = tab === "inventario" ? "imprimir" : tab;
+  const activo = tabs.some((t) => t.id === tabNav) ? tabNav : (tabs[0]?.id ?? "imprimir");
+  // Documentos técnicos (FT · COA · SDS) es otro panel, pero vive en Diseño desde el 27-sep-2026.
+  const enDocs = panel === "fichas";
+  const verDocs = Boolean(user && puedeVerSeccionPanel(user, "fichas"));
+  // Fórmulas de producto (1-oct-2026): otro panel, con permiso propio (`formulas`).
+  const enFormulas = panel === "formulas";
+  const verFormulas = Boolean(user && puedeVerSeccionPanel(user, "formulas"));
 
   useEffect(() => {
     if (panel === "etiquetas" || panel === "etiquetas-config") {
       guardarUltimoPanelHub("diseno", "etiquetas");
     }
+    if (panel === "fichas") guardarUltimoPanelHub("diseno", "fichas");
+    if (panel === "formulas") guardarUltimoPanelHub("diseno", "formulas");
   }, [panel]);
 
   // Con el hub de Diseño visible ya se pueden pedir las etiquetas de todas las
@@ -42,7 +57,7 @@ export default function DisenoNavTabs() {
     precargarDiseno(qc, user);
   }, [qc, user]);
 
-  if (tabs.length === 0) return null;
+  if (tabs.length === 0 && !verDocs && !verFormulas) return null;
 
   function irAEtiquetas(id: EtiquetasTab) {
     setPanel("etiquetas");
@@ -52,7 +67,7 @@ export default function DisenoNavTabs() {
   return (
     <ScrollableTabList aria-label="Secciones de Diseño" justify="start">
       {tabs.map((t) => {
-        const selected = activo === t.id;
+        const selected = !enDocs && !enFormulas && activo === t.id;
         return (
           <button
             key={t.id}
@@ -64,13 +79,41 @@ export default function DisenoNavTabs() {
             onClick={() => irAEtiquetas(t.id)}
             onMouseEnter={() => precargarDiseno(qc, user)}
             onFocus={() => precargarDiseno(qc, user)}
-            className={hubTabClass(selected, "mck-hub-tab-etiquetado flex-col")}
+            className={hubTabClass(selected, COMPACTA)}
           >
-            <Icon name={t.icon} size={22} weight="bold" className="shrink-0" />
+            <Icon name={t.icon} size={16} weight="bold" className="shrink-0" />
             <span className={HUB_TAB_LABEL}>{t.label}</span>
           </button>
         );
       })}
+      {verDocs && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={enDocs}
+          aria-label="Documentos técnicos"
+          title="Ficha técnica, COA y SDS de cada producto"
+          onClick={() => setPanel("fichas")}
+          className={hubTabClass(enDocs, COMPACTA)}
+        >
+          <Icon name="file" size={16} weight="bold" className="shrink-0" />
+          <span className={HUB_TAB_LABEL}>Documentos técnicos</span>
+        </button>
+      )}
+      {verFormulas && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={enFormulas}
+          aria-label="Fórmulas"
+          title="Fórmulas de producto: ingredientes, porcentajes y procedimiento"
+          onClick={() => setPanel("formulas")}
+          className={hubTabClass(enFormulas, COMPACTA)}
+        >
+          <Icon name="flask" size={16} weight="bold" className="shrink-0" />
+          <span className={HUB_TAB_LABEL}>Fórmulas</span>
+        </button>
+      )}
     </ScrollableTabList>
   );
 }

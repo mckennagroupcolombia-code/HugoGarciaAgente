@@ -74,7 +74,8 @@ def _monitor_postventa_meli_polling():
     from app.utils import obtener_seller_id_meli, refrescar_token_meli
 
     intervalo = int(os.getenv("POSTVENTA_POLL_INTERVALO_SEG", "300"))
-    limite = int(os.getenv("POSTVENTA_POLL_ORDENES_LIMIT", "80"))
+    # MeLi rechaza orders/search con limit > 51 (HTTP 400 limit.maximum_exceeded).
+    limite = min(51, int(os.getenv("POSTVENTA_POLL_ORDENES_LIMIT", "51")))
     time.sleep(45)
     while True:
         try:
@@ -434,6 +435,7 @@ def monitor_loop():
         "informe_mes": -1,
         "recordatorio_tickets_dia": -1,
         "aprendizaje_ia_dia": -1,
+        "catalogo_alegra_dia": -1,
     }
 
     # Esperar 60s al arrancar para que los servicios terminen de iniciar
@@ -478,6 +480,22 @@ def monitor_loop():
                 except Exception as e_sync:
                     print(f"❌ Monitor: error sync programada: {e_sync}")
                 contadores["stock_dia"] = ahora.day
+
+            # 7 AM — espejo local del catálogo Alegra (marca inactivos; ver alegra_catalogo_db)
+            if ahora.hour == 7 and contadores["catalogo_alegra_dia"] != ahora.day:
+
+                def _sync_catalogo():
+                    try:
+                        from app.services.alegra_catalogo_db import sincronizar_catalogo_alegra
+
+                        res = sincronizar_catalogo_alegra(en_hilo=False)
+                        if not res.get("ok"):
+                            print(f"⚠️ Monitor catálogo Alegra: {res.get('error')}")
+                    except Exception as e_cat:
+                        print(f"⚠️ Monitor catálogo Alegra: {e_cat}")
+
+                threading.Thread(target=_sync_catalogo, daemon=True).start()
+                contadores["catalogo_alegra_dia"] = ahora.day
 
             # A las 7 PM (una vez al día)
             if ahora.hour == 19 and contadores["resumen_dia"] != ahora.day:

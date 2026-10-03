@@ -77,7 +77,8 @@ def escanear_hilos_postventa_sin_captura() -> int:
     Retorna cantidad de packs re-procesados.
     """
     umbral_min = int(os.getenv("POSTVENTA_HUECOS_UMBRAL_MIN", "12"))
-    limite = int(os.getenv("POSTVENTA_HUECOS_ORDENES_LIMIT", "60"))
+    # MeLi rechaza orders/search con limit > 51 (HTTP 400 limit.maximum_exceeded).
+    limite = min(51, int(os.getenv("POSTVENTA_HUECOS_ORDENES_LIMIT", "51")))
 
     token = refrescar_token_meli()
     seller_id = obtener_seller_id_meli()

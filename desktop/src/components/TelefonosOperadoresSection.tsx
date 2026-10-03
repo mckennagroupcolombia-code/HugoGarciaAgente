@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 
@@ -194,7 +195,7 @@ export default function TelefonosOperadoresSection({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-            <span>📱</span> Teléfonos — notificaciones del panel
+            <span><Ico e="📱" /></span> Teléfonos — notificaciones del panel
           </h3>
           <p className="text-xs text-muted mt-0.5 max-w-xl">
             Número WhatsApp de cada operador. El panel envía un mensaje de texto corto cuando le

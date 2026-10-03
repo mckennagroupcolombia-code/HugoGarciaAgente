@@ -1,5 +1,6 @@
+import { Ico } from "../icons/Ico";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fragment, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import ComprobanteWidget from "./ComprobanteWidget";
 import TerceroSelect from "./TerceroSelect";
@@ -9,11 +10,16 @@ import { usePanelTheme } from "../stores/panelTheme";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 import { AddIconButton } from "./AddIconButton";
 import { useAppStore } from "../stores/app";
+import { useTicketsAuth } from "../stores/ticketsAuth";
+import { esContador } from "../lib/contadorAccess";
 import "./libroMayor.css";
 
+const TallerLanzador = lazy(() => import("./TallerConciliacion").then((m) => ({ default: m.TallerLanzador })));
 const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
 const CreditosAdquiridosPanel = lazy(() => import("./CreditosAdquiridosPanel"));
-const CuentaSocioPanel = lazy(() => import("./CuentaSocioPanel"));
+const SociosPanel = lazy(() => import("./SociosPanel"));
+const MayorCuentasPanel = lazy(() => import("./MayorCuentasPanel"));
+const DocumentosSoporteTab = lazy(() => import("./DocumentosSoporte"));
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 
@@ -85,6 +91,8 @@ interface Movimiento {
   tercero: Tercero | null;
   soporte_path?: string;
   soporte_nombre?: string;
+  /** Comprobante en Alegra que espeja este asiento, si ya se espejó. */
+  alegra_journal_id?: string;
 }
 
 interface MayorLinea {
@@ -167,14 +175,29 @@ function TIPO_ORIGEN_LABEL(t: string): string {
   return map[t] || t;
 }
 
-const VISTA_KEY = "mckenna-libro-mayor-vista";
+const AMBITO_KEY = "mckenna-libro-mayor-ambito";
+// «-v2»: hasta sep-2026 el libro abría en Conciliar y eso quedó guardado en el
+// navegador de todos; con las claves viejas nadie vería el nuevo punto de
+// partida (el PUC con saldos).
+const GRUPO_KEY = "mckenna-libro-mayor-grupo-v2";
+const SUB_KEY = "mckenna-libro-mayor-sub-v2";
 
-function leerVista(): "simple" | "avanzada" {
+type Ambito = "empresa" | "socios";
+
+function leerLS<T extends string>(key: string, valido: (v: string) => v is T, def: T): T {
   try {
-    const v = localStorage.getItem(VISTA_KEY);
-    return v === "avanzada" ? "avanzada" : "simple";
+    const v = localStorage.getItem(key) || "";
+    return valido(v) ? v : def;
   } catch {
-    return "simple";
+    return def;
+  }
+}
+
+function guardarLS(key: string, v: string) {
+  try {
+    localStorage.setItem(key, v);
+  } catch {
+    /* ignore */
   }
 }
 
@@ -211,51 +234,102 @@ function invalidarTodo(qc: ReturnType<typeof useQueryClient>) {
 /* ─── Panel principal ─────────────────────────────────────────────────────── */
 
 export default function LibroMayorPanel() {
-  const [vista, setVista] = useState<"simple" | "avanzada">(leerVista);
   const skin = usePanelTheme((s) => s.skin);
   const libroMayorBootTab = useAppStore((s) => s.libroMayorBootTab);
   const setLibroMayorBootTab = useAppStore((s) => s.setLibroMayorBootTab);
+  const contador = esContador(useTicketsAuth((s) => s.user));
+  const [ambitoGuardado, setAmbito] = useState<Ambito>(() =>
+    leerLS(AMBITO_KEY, (v): v is Ambito => v === "empresa" || v === "socios", "empresa"),
+  );
+  // La contabilidad personal de los socios no es parte del trabajo del contador de la empresa.
+  const ambito: Ambito = contador ? "empresa" : ambitoGuardado;
 
-  function cambiarVista(v: "simple" | "avanzada") {
-    setVista(v);
-    try {
-      localStorage.setItem(VISTA_KEY, v);
-    } catch {
-      /* ignore */
-    }
+  function cambiarAmbito(a: Ambito) {
+    setAmbito(a);
+    guardarLS(AMBITO_KEY, a);
   }
 
+  // Un atajo externo hacia «Cuenta de Socio» (o «socios») cae en el ámbito Socios;
+  // cualquier otra subvista pertenece al ámbito Empresa.
   useEffect(() => {
-    if (libroMayorBootTab) setVista("avanzada");
+    if (!libroMayorBootTab) return;
+    if (libroMayorBootTab === "cuenta-socio" || libroMayorBootTab === "socios") {
+      cambiarAmbito("socios");
+    } else {
+      cambiarAmbito("empresa");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [libroMayorBootTab]);
 
+  const enfoque = useAppStore((s) => s.libroMayorEnfoque);
+  const setEnfoque = useAppStore((s) => s.setLibroMayorEnfoque);
+  // El enfoque es de esta pantalla: al salir del libro no se queda puesto.
+  useEffect(() => () => setEnfoque(false), [setEnfoque]);
+  useEffect(() => {
+    if (!enfoque) return;
+    const tecla = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape" && !document.querySelector('[role="dialog"][aria-modal="true"]')) setEnfoque(false);
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [enfoque, setEnfoque]);
+  const { ref: raiz, alto } = useAltoDisponible<HTMLDivElement>();
+
   return (
-    <div className="lm-root mx-auto space-y-3 px-0.5 pb-3 sm:px-0" data-skin={skin}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 max-w-xl">
+    <div ref={raiz} style={alto ? { height: alto } : undefined} className="lm-root mx-auto flex min-h-0 flex-col gap-2 px-0.5 pb-1 sm:px-0" data-skin={skin}>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <h2 className="text-base font-bold tracking-tight text-ink">Libro Mayor</h2>
+          <p className="hidden truncate text-xs text-muted xl:block">
+            {ambito === "empresa"
+              ? "Plan de cuentas con saldos, terceros y cada causación."
+              : "Contabilidad personal de cada socio, dentro de la de la empresa."}
+          </p>
+          <button type="button" onClick={() => setEnfoque(!enfoque)} aria-pressed={enfoque}
+            className={`mck-press ml-1 hidden shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold lg:inline-flex ${enfoque ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/50 hover:text-ink"}`}
+            title={enfoque ? "Salir del modo enfoque (Esc)" : "Modo enfoque: sin cabezote ni pestañas, el libro a toda la ventana"}>
+            <Icon name={enfoque ? "collapse" : "expand"} size={13} weight="bold" /> {enfoque ? "Salir del enfoque" : "Enfoque"}
+          </button>
         </div>
-        <div className="inline-flex shrink-0 rounded-xl border border-border bg-surface-panel p-0.5 shadow-paper-sm">
-          {(["simple", "avanzada"] as const).map((v) => (
+        {!contador && (
+        <div
+          className="inline-flex shrink-0 rounded-xl border border-border bg-surface-panel p-0.5 shadow-paper-sm"
+          role="tablist"
+          aria-label="Ámbito"
+        >
+          {(
+            [
+              { id: "empresa", label: "Empresa", icon: "building" },
+              { id: "socios", label: "Socios", icon: "users" },
+            ] as { id: Ambito; label: string; icon: IconName }[]
+          ).map((a) => (
             <button
-              key={v}
+              key={a.id}
               type="button"
-              title={v === "simple" ? "Simple" : "Avanzada"}
-              aria-label={v === "simple" ? "Simple" : "Avanzada"}
-              onClick={() => cambiarVista(v)}
-              className={hubTabClass(vista === v, "mck-hub-tab-etiquetado flex-col")}
+              role="tab"
+              aria-selected={ambito === a.id}
+              title={a.label}
+              aria-label={a.label}
+              onClick={() => cambiarAmbito(a.id)}
+              className={hubTabClass(ambito === a.id, "mck-hub-tab-etiquetado flex-col")}
             >
-              <Icon name={v === "simple" ? "listChecks" : "flask"} size={22} weight="bold" />
-              <span className={HUB_TAB_LABEL}>{v === "simple" ? "Simple" : "Avanzada"}</span>
+              <Icon name={a.icon} size={22} weight="bold" />
+              <span className={HUB_TAB_LABEL}>{a.label}</span>
             </button>
           ))}
         </div>
+        )}
       </div>
 
-      {vista === "simple" ? (
-        <VistaSimple />
+      {ambito === "empresa" ? (
+        <VistaEmpresa
+          bootSub={libroMayorBootTab && libroMayorBootTab !== "socios" && libroMayorBootTab !== "cuenta-socio" ? libroMayorBootTab : null}
+          onBootConsumido={() => setLibroMayorBootTab(null)}
+        />
       ) : (
-        <VistaAvanzada bootSub={libroMayorBootTab} onBootConsumido={() => setLibroMayorBootTab(null)} />
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <SociosPanel embebido />
+        </Suspense>
       )}
     </div>
   );
@@ -313,7 +387,7 @@ function BannerPendientes() {
       className="lm-card flex w-full flex-wrap items-center justify-between gap-2 border-amber-600/40 bg-amber-600/10 px-4 py-3 text-left hover:bg-amber-600/15"
     >
       <span className="text-sm font-bold text-amber-800 dark:text-amber-300">
-        ⚠️ {n} movimiento{n === 1 ? "" : "s"} del banco sin contabilizar (últimos 90 días)
+        <Ico e="⚠️" /> {n} movimiento{n === 1 ? "" : "s"} del banco sin contabilizar (últimos 90 días)
       </span>
       <span className="text-xs font-bold text-amber-800 underline dark:text-amber-300">Clasificarlos →</span>
     </button>
@@ -452,6 +526,76 @@ function SaldoSocioCard({ tercero, onGirar }: { tercero: Tercero; onGirar: () =>
 
 /* ─── Tabla de movimientos (compartida simple/avanzada) ──────────────────── */
 
+/**
+ * El comprobante de este asiento en Alegra: crearlo o anularlo desde acá.
+ *
+ * Existe porque el contador arma las declaraciones con lo que ve en Alegra, no
+ * con el Libro Mayor. Cuando un asiento se anula y se rehace, el comprobante
+ * viejo se queda allá con las cifras equivocadas; hasta el 16-sep-2026 había
+ * que entrar a Alegra a borrarlo a mano, que es el paso que no se hace.
+ */
+function EspejoAlegra({ m }: { m: Movimiento }) {
+  const qc = useQueryClient();
+  const [msg, setMsg] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const anulado = m.estado === "anulado";
+
+  async function llamar(metodo: "post" | "delete", url: string) {
+    setOcupado(true);
+    setMsg(null);
+    try {
+      const r = metodo === "post"
+        ? await api.post<{ status?: string; id?: string; message?: string; error?: string }>(url, {})
+        : await api.delete<{ status?: string; id?: string; message?: string; error?: string }>(url);
+      setMsg(r.error || r.message || (r.status === "success" ? `Alegra #${r.id}` : r.status || "listo"));
+      void qc.invalidateQueries({ queryKey: ["cc-movimientos"] });
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+      {m.alegra_journal_id ? (
+        <>
+          <span className="font-semibold text-emerald-600"><Ico e="🧾" /> Alegra #{m.alegra_journal_id}</span>
+          <button
+            type="button"
+            disabled={ocupado}
+            onClick={() => {
+              const aviso = anulado
+                ? `Anular en Alegra el comprobante #${m.alegra_journal_id} de este asiento.\n\nEl contador dejará de verlo. ¿Continuar?`
+                : `⚠️ El asiento #${m.id} sigue CONFIRMADO.\n\nSi borras su comprobante #${m.alegra_journal_id}, el contador deja de ver este movimiento en Alegra aunque siga vivo en el Libro Mayor. Normalmente primero se anula el asiento.\n\n¿Anular el comprobante de todos modos?`;
+              if (!window.confirm(aviso)) return;
+              void llamar("delete", `/api/alegra/espejo/${m.id}${anulado ? "" : "?forzar=1"}`);
+            }}
+            className="rounded-lg border border-border px-2 py-1 font-semibold text-muted hover:border-danger hover:text-danger disabled:opacity-40"
+          >
+            {ocupado ? "…" : "Anular en Alegra"}
+          </button>
+        </>
+      ) : (
+        <>
+          <span className="text-muted">Sin comprobante en Alegra</span>
+          {!anulado && (
+            <button
+              type="button"
+              disabled={ocupado}
+              onClick={() => void llamar("post", `/api/alegra/espejo/${m.id}`)}
+              className="rounded-lg border border-border px-2 py-1 font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-40"
+            >
+              {ocupado ? "…" : "Espejar a Alegra"}
+            </button>
+          )}
+        </>
+      )}
+      {msg && <span className="text-muted">{msg}</span>}
+    </div>
+  );
+}
+
 function TablaMovimientos({
   movimientos,
   cargando,
@@ -580,6 +724,9 @@ function TablaMovimientos({
                     {m.referencia && (
                       <p className="mt-1 text-[11px] text-muted">Referencia: {m.referencia}</p>
                     )}
+                    <div className="mt-1">
+                      <EspejoAlegra m={m} />
+                    </div>
                     <div className="mt-1">
                       <ComprobanteWidget
                         uploadUrl={`/api/contabilidad/cc/movimientos/${m.id}/comprobante`}
@@ -1156,10 +1303,15 @@ function FormCompraProveedor({
   );
 }
 
-/* ─── Vista avanzada ──────────────────────────────────────────────────────── */
+/* ─── Vista Empresa: jerarquía en cuatro etapas ──────────────────────────── */
 
 type SubvistaAvanzada =
+  | "taller-conciliacion"
   | "diario"
+  | "libro-diario"
+  | "documentos-soporte"
+  | "mayor"
+  | "rapido"
   | "plan-cuentas"
   | "terceros"
   | "movimientos"
@@ -1171,68 +1323,151 @@ type SubvistaAvanzada =
   | "informes"
   | "cuenta-socio";
 
-/** El libro mismo: diario, plan de cuentas, terceros, asientos, cuenta en T, balance. */
-const SUBTABS_LIBRO: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
-  { id: "diario", label: "Diario y conciliación", icon: "receipt" },
-  { id: "plan-cuentas", label: "Plan de cuentas", icon: "book" },
-  { id: "terceros", label: "Terceros", icon: "users" },
-  { id: "movimientos", label: "Movimientos", icon: "listChecks" },
-  { id: "cuentas-t", label: "Cuentas T", icon: "receipt" },
-  { id: "balance", label: "Balance de comprobación", icon: "chartBar" },
-  { id: "asiento-manual", label: "Asiento manual", icon: "pencil" },
-  { id: "informes", label: "Informes", icon: "chartBar" },
-];
+type GrupoId = "conciliar" | "registrar" | "consultar" | "configurar";
 
-/** Sub-libros: alimentan al libro mayor pero capturan datos propios (tasa, plazo, TRM…). */
-const SUBTABS_SUBLIBROS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
-  // Préstamos salió de acá el 2026-09-10: ahora es sección propia de Contabilidad,
-  // al mismo nivel que Compras exterior. Tenerlo en dos sitios confundía sobre
-  // dónde registrar, y el préstamo de un tercero tiene su propio ciclo (contrato,
-  // cronograma, retención, documentos), no es un detalle del libro.
-  { id: "creditos-adquiridos", label: "Créditos adquiridos", icon: "chartBar" },
-  { id: "cuenta-socio", label: "Cuenta de Socio", icon: "users" },
-];
-
-const SUBTABS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
-  ...SUBTABS_LIBRO,
-  ...SUBTABS_SUBLIBROS,
-];
-
-function SubtabButton({ t, activo, onClick }: { t: (typeof SUBTABS)[number]; activo: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      title={t.label}
-      aria-label={t.label}
-      onClick={onClick}
-      className={hubTabClass(activo, "mck-hub-tab-etiquetado flex-col")}
-    >
-      <Icon name={t.icon} size={22} weight="bold" />
-      <span className={HUB_TAB_LABEL}>{t.label}</span>
-    </button>
-  );
+interface Grupo {
+  id: GrupoId;
+  num: number;
+  label: string;
+  desc: string;
+  icon: IconName;
+  subs: { id: SubvistaAvanzada; label: string; icon: IconName; desc: string }[];
 }
 
-function VistaAvanzada({
+/**
+ * Antes había 10 pestañas planas al mismo nivel y nadie sabía por dónde
+ * empezar; luego se ordenaron por etapa con Conciliar primero. Pero lo que se
+ * abre a diario es el libro mismo —el PUC con los saldos de cada cuenta, sus
+ * terceros y cada causación—, como lo ve el contador. Así que ese va primero y
+ * la conciliación del banco, que es un trabajo puntual, queda como apartado.
+ */
+const GRUPOS: Grupo[] = [
+  {
+    id: "consultar",
+    num: 1,
+    label: "Libro Mayor",
+    desc: "PUC, saldos y terceros",
+    icon: "book",
+    subs: [
+      { id: "mayor", label: "Plan de cuentas y saldos", icon: "book", desc: "Árbol del PUC, terceros y extracto por cuenta" },
+      // El Mayor responde «cómo se movió esta cuenta»; el Diario, «qué pasó ese
+      // día»: el asiento completo con el nombre de cada cuenta, débito y crédito.
+      { id: "libro-diario", label: "Libro Diario", icon: "listChecks", desc: "Asientos del día con cuenta, débito y crédito" },
+      // Los documentos soporte de pagos a quien no factura: borradores por
+      // emitir y los ya transmitidos. Se emiten a mano, como en AstroKiller.
+      { id: "documentos-soporte", label: "Documentos soporte", icon: "receipt", desc: "Borradores por emitir y emitidos a la DIAN" },
+      { id: "balance", label: "Balance", icon: "chartBar", desc: "Comprobación débito = crédito" },
+      { id: "movimientos", label: "Asientos", icon: "listChecks", desc: "Todos los comprobantes" },
+      { id: "cuentas-t", label: "Cuentas T", icon: "receipt", desc: "Debe / haber a dos columnas" },
+      { id: "informes", label: "Informes", icon: "chartBar", desc: "Préstamos y pendientes" },
+    ],
+  },
+  {
+    id: "registrar",
+    num: 2,
+    label: "Registrar",
+    desc: "Lo que falta por asentar",
+    icon: "pencil",
+    subs: [
+      { id: "rapido", label: "Acciones rápidas", icon: "lightning", desc: "Ingreso, egreso, socios, proveedor" },
+      { id: "asiento-manual", label: "Asiento manual", icon: "pencil", desc: "Débito / crédito libre" },
+    ],
+  },
+  {
+    id: "conciliar",
+    num: 3,
+    label: "Conciliar banco",
+    desc: "Extracto ↔ libro, paso a paso",
+    icon: "receipt",
+    subs: [
+      // El taller va primero: es donde se resuelve. La tabla completa queda
+      // como consulta, que es para lo que se usa.
+      { id: "taller-conciliacion", label: "Taller de conciliación", icon: "receipt", desc: "Línea del banco contra asiento del libro, una por una" },
+      { id: "diario", label: "Tabla de contabilidad", icon: "listChecks", desc: "Todos los ingresos y egresos del rango" },
+    ],
+  },
+  {
+    id: "configurar",
+    num: 4,
+    label: "Configurar",
+    desc: "Catálogos del libro",
+    icon: "wrench",
+    subs: [
+      { id: "plan-cuentas", label: "Plan de cuentas", icon: "book", desc: "PUC propio" },
+      { id: "terceros", label: "Terceros", icon: "users", desc: "Proveedores, socios, clientes" },
+      { id: "creditos-adquiridos", label: "Créditos adquiridos", icon: "chartBar", desc: "Sub-libro con tasa y plazo" },
+    ],
+  },
+];
+
+/**
+ * El contador externo solo CONSULTA: la etapa «Libro Mayor» completa y los
+ * terceros en solo lectura, donde deja sus indicaciones en el historial.
+ * Registrar, conciliar y configurar no le aparecen (y el backend los niega).
+ */
+const GRUPOS_CONTADOR: Grupo[] = [{
+  ...GRUPOS[0],
+  subs: [
+    ...GRUPOS[0].subs,
+    { id: "terceros", label: "Terceros", icon: "users", desc: "Fichas e historial, con tus indicaciones" },
+  ],
+}];
+const SUBS_CONTADOR = new Set<string>(GRUPOS_CONTADOR[0].subs.map((s) => s.id));
+
+function grupoDeSub(sub: SubvistaAvanzada | null | undefined): GrupoId {
+  for (const g of GRUPOS) if (g.subs.some((x) => x.id === sub)) return g.id;
+  return "consultar";
+}
+
+function subValida(v: string): v is SubvistaAvanzada {
+  return GRUPOS.some((g) => g.subs.some((x) => x.id === v));
+}
+
+function grupoValido(v: string): v is GrupoId {
+  return GRUPOS.some((g) => g.id === v);
+}
+
+function VistaEmpresa({
   bootSub,
   onBootConsumido,
 }: {
   bootSub?: SubvistaAvanzada | null;
   onBootConsumido?: () => void;
 }) {
-  // Si llega una subvista que ya no existe (p.ej. "prestamos", que salió a su
-  // propia sección), caer a "diario" en vez de renderizar una pantalla vacía.
-  const [sub, setSub] = useState<SubvistaAvanzada>(() => {
-    const valido = SUBTABS.some((t) => t.id === bootSub);
-    return valido && bootSub ? bootSub : "diario";
-  });
+  const contador = esContador(useTicketsAuth((s) => s.user));
+  const [subGuardada, setSub] = useState<SubvistaAvanzada>(() =>
+    bootSub && subValida(bootSub) ? bootSub : leerLS(SUB_KEY, subValida, "mayor"),
+  );
+  const [grupoGuardado, setGrupo] = useState<GrupoId>(() =>
+    bootSub && subValida(bootSub) ? grupoDeSub(bootSub) : leerLS(GRUPO_KEY, grupoValido, "consultar"),
+  );
+  // El contador solo tiene la etapa de consulta: cualquier otra subvista
+  // recordada (o pedida por un atajo) cae en el plan de cuentas.
+  const sub: SubvistaAvanzada = contador && !SUBS_CONTADOR.has(subGuardada) ? "mayor" : subGuardada;
+  const grupo: GrupoId = contador ? "consultar" : grupoGuardado;
+  const grupos = contador ? GRUPOS_CONTADOR : GRUPOS;
   const [pendientesSignal, setPendientesSignal] = useState(0);
+  const [cargaSignal, setCargaSignal] = useState(0);
+  const [sugerenciasSignal, setSugerenciasSignal] = useState(0);
   const abrirPendientesBoot = useAppStore((s) => s.libroMayorAbrirPendientes);
   const setAbrirPendientesBoot = useAppStore((s) => s.setLibroMayorAbrirPendientes);
 
+  function irA(next: SubvistaAvanzada) {
+    setSub(next);
+    setGrupo(grupoDeSub(next));
+    guardarLS(SUB_KEY, next);
+    guardarLS(GRUPO_KEY, grupoDeSub(next));
+  }
+
+  function elegirGrupo(g: GrupoId) {
+    const def = grupos.find((x) => x.id === g)!.subs[0].id;
+    // Si la subvista actual ya pertenece al grupo, se conserva.
+    irA(grupoDeSub(sub) === g ? sub : def);
+  }
+
   useEffect(() => {
-    if (bootSub) {
-      setSub(bootSub);
+    if (bootSub && subValida(bootSub)) {
+      irA(bootSub);
       onBootConsumido?.();
     }
     if (bootSub === "diario" && abrirPendientesBoot) {
@@ -1243,36 +1478,74 @@ function VistaAvanzada({
   }, [bootSub, abrirPendientesBoot]);
 
   function irAPendientes() {
-    setSub("diario");
+    irA("diario");
     setPendientesSignal((n) => n + 1);
   }
 
+  const grupoActual = grupos.find((g) => g.id === grupo)!;
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-border pb-2">
-        {SUBTABS_LIBRO.map((t) => (
-          <SubtabButton key={t.id} t={t} activo={sub === t.id} onClick={() => setSub(t.id)} />
-        ))}
-        <span
-          className="mx-1 hidden h-8 w-px shrink-0 bg-border sm:block"
-          aria-hidden
-          title="Sub-libros: alimentan al libro mayor con datos propios"
-        />
-        <span className="w-full text-[10px] font-bold uppercase tracking-wide text-muted sm:hidden">
-          Sub-libros
-        </span>
-        {SUBTABS_SUBLIBROS.map((t) => (
-          <SubtabButton key={t.id} t={t} activo={sub === t.id} onClick={() => setSub(t.id)} />
-        ))}
-      </div>
-      {sub === "diario" && (
-        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
-          <IngresosEgresosPanel abrirPendientesSignal={pendientesSignal} />
+    <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[218px_minmax(0,1fr)]">
+      <Riel grupos={grupos} grupo={grupo} sub={sub} contador={contador} onIr={irA}
+        onGuiar={(paso) => {
+          // El taller ya carga, empareja y clasifica en el mismo sitio; el
+          // balance es la única verificación que vive fuera de él.
+          irA(paso === "verificar" ? "balance" : "taller-conciliacion");
+        }} />
+
+      <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto pr-0.5">
+      {contador && (
+        <p className="rounded-lg border border-sky-500/30 bg-sky-500/5 px-3 py-2 text-xs text-sky-700 dark:text-sky-300">
+          Acceso de contador: consulta de toda la contabilidad y exportaciones. Tus indicaciones quedan en el
+          historial de cada tercero (Terceros → Historial). No se puede modificar nada desde este perfil.
+        </p>
+      )}
+      <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+        {grupoActual.num} · {grupoActual.label} <span className="text-ink">⇢ {grupoActual.subs.find((x) => x.id === sub)?.label ?? ""}</span>
+      </p>
+
+      {/* Nivel 3: contenido */}
+      {sub === "taller-conciliacion" && (
+        // El taller no cabe acá: bajo el cabezote, las pestañas del hub y los dos
+        // niveles del libro, quedaba en el tercio inferior de la pantalla. Se abre
+        // ENCIMA, a ventana completa, como los apartados del Taller de Combos; este
+        // sub deja un lanzador con el avance.
+        <Suspense fallback={<p className="text-sm text-muted">Cargando el taller…</p>}>
+          <TallerLanzador />
         </Suspense>
       )}
+      {sub === "diario" && (
+        <>
+          <ConciliarWizard
+            onCargar={() => setCargaSignal((n) => n + 1)}
+            onEmparejar={() => setSugerenciasSignal((n) => n + 1)}
+            onClasificar={() => setPendientesSignal((n) => n + 1)}
+            onVerificar={() => irA("balance")}
+          />
+          <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+            <IngresosEgresosPanel
+              abrirPendientesSignal={pendientesSignal}
+              abrirCargaSignal={cargaSignal}
+              abrirSugerenciasSignal={sugerenciasSignal}
+            />
+          </Suspense>
+        </>
+      )}
+      {sub === "mayor" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <MayorCuentasPanel />
+        </Suspense>
+      )}
+      {sub === "rapido" && <VistaSimple />}
       {sub === "plan-cuentas" && <PlanCuentasTab />}
-      {sub === "terceros" && <TercerosTab />}
+      {sub === "terceros" && <TercerosTab soloLectura={contador} />}
       {sub === "movimientos" && <MovimientosTab />}
+      {sub === "libro-diario" && <LibroDiarioTab />}
+      {sub === "documentos-soporte" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <DocumentosSoporteTab />
+        </Suspense>
+      )}
       {sub === "cuentas-t" && <CuentasTTab />}
       {sub === "balance" && <BalanceTab />}
       {sub === "asiento-manual" && <AsientoManualTab />}
@@ -1282,11 +1555,288 @@ function VistaAvanzada({
           <CreditosAdquiridosPanel />
         </Suspense>
       )}
-      {sub === "cuenta-socio" && (
-        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
-          <CuentaSocioPanel />
-        </Suspense>
+      </div>
+    </div>
+  );
+}
+
+/* ─── El riel ─────────────────────────────────────────────────────────────── */
+
+/**
+ * Antes de ver contenido había cuatro capas apiladas: cabezote de la app,
+ * pestañas del hub, cuatro tarjetas de etapa y una fila de pestañas de vista.
+ * El contenido quedaba en la mitad inferior y había que desplazar. El riel
+ * reemplaza los dos niveles del libro por una sola columna siempre visible: las
+ * etapas con sus vistas anidadas, el punto de estado real de cada etapa
+ * (sacado del checklist) y, abajo, la guía paso a paso. Un clic lleva a
+ * cualquier vista; nada de «primero la etapa, luego la vista».
+ *
+ * En pantallas angostas se vuelve una franja horizontal sobre el contenido.
+ */
+function Riel({ grupos, grupo, sub, contador, onIr, onGuiar }: {
+  grupos: Grupo[]; grupo: GrupoId; sub: SubvistaAvanzada; contador: boolean;
+  onIr: (s: SubvistaAvanzada) => void; onGuiar: (paso: "cargar" | "emparejar" | "clasificar" | "verificar") => void;
+}) {
+  const checkQ = useQuery<{ items: ChecklistItemApi[] }>({
+    queryKey: ["contabilidad-checklist"],
+    queryFn: () => api.get("/api/contabilidad/checklist"),
+    staleTime: 30_000,
+  });
+  const balQ = useQuery<Balance>({
+    queryKey: ["cc-balance", "wizard"],
+    queryFn: () => api.get("/api/contabilidad/cc/balance-comprobacion"),
+    staleTime: 60_000,
+  });
+  const items = checkQ.data?.items ?? [];
+  const sev = (id: string) => items.find((i) => i.id === id)?.severidad;
+  // El estado de cada etapa: lo que de verdad falta ahí, no un adorno.
+  const estadoGrupo: Record<GrupoId, EstadoPaso> = {
+    consultar: balQ.isLoading ? "cargando" : balQ.data?.cuadra ? "hecho" : "pendiente",
+    registrar: checkQ.isLoading ? "cargando" : items.some((i) => i.severidad !== "ok" && /factur|revision|prestamo/.test(i.id)) ? "parcial" : "hecho",
+    conciliar: checkQ.isLoading ? "cargando" : sev("extractos_pendientes") === "ok" && sev("extracto_sin_cargar") === "ok" ? "hecho" : sev("extractos_pendientes") === "alta" || sev("extracto_sin_cargar") === "alta" ? "pendiente" : "parcial",
+    configurar: "hecho",
+  };
+  const [guiaAbierta, setGuiaAbierta] = useState(true);
+
+  return (
+    <nav aria-label="Etapas del libro" className="lm-card flex min-h-0 flex-col p-2 lg:overflow-y-auto">
+      <div className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0">
+        {grupos.map((g) => {
+          const activo = g.id === grupo;
+          const st = PASO_ESTILO[estadoGrupo[g.id]];
+          return (
+            <div key={g.id} className={`shrink-0 rounded-lg lg:shrink ${activo ? "bg-accent/5" : ""}`}>
+              <button type="button" onClick={() => onIr(grupoDeSub(sub) === g.id ? sub : g.subs[0].id)} aria-current={activo ? "true" : undefined}
+                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition ${activo ? "text-ink" : "text-ink-secondary hover:bg-surface-hover hover:text-ink"}`}>
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${activo ? "bg-accent text-white" : "bg-surface-hover text-ink-secondary"}`}>{g.num}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5 text-[12.5px] font-bold"><Icon name={g.icon} size={13} weight="bold" />{g.label}</span>
+                  <span className="hidden truncate text-[10px] text-muted lg:block">{g.desc}</span>
+                </span>
+                <span className={`h-2 w-2 shrink-0 rounded-full ${st.dot.split(" ")[0]}`} title={g.desc} />
+              </button>
+              {/* Las vistas de la etapa, anidadas y siempre a la vista en el riel vertical. */}
+              <ul className={`${activo ? "flex" : "hidden lg:flex"} gap-1 pb-1 pl-1 lg:flex-col lg:gap-0 lg:pl-8 lg:pr-1`}>
+                {g.subs.map((t) => {
+                  const aqui = sub === t.id;
+                  return (
+                    <li key={t.id} className="shrink-0">
+                      <button type="button" onClick={() => onIr(t.id)} aria-current={aqui ? "page" : undefined} title={t.desc}
+                        className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-[11.5px] transition ${aqui ? "bg-accent text-white font-bold" : "text-ink-secondary hover:bg-surface-hover hover:text-ink"}`}>
+                        <Icon name={t.icon} size={12} weight={aqui ? "bold" : "regular"} />
+                        <span className="truncate">{t.label}</span>
+                        {t.id === "taller-conciliacion" && <span className="ml-auto font-mono text-[9px] opacity-70">⤢</span>}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+
+      {!contador && (
+        <div className="mt-2 hidden border-t border-border pt-2 lg:block">
+          <button type="button" onClick={() => setGuiaAbierta((v) => !v)} aria-expanded={guiaAbierta}
+            className="flex w-full items-center gap-1.5 px-1 font-mono text-[10px] font-bold uppercase tracking-wider text-muted hover:text-ink">
+            <span aria-hidden><Ico e="🧭" /></span> Guiarme <span className="ml-auto">{guiaAbierta ? "▾" : "▸"}</span>
+          </button>
+          {guiaAbierta && (
+            <ConciliarWizard compacto
+              onCargar={() => onGuiar("cargar")} onEmparejar={() => onGuiar("emparejar")}
+              onClasificar={() => onGuiar("clasificar")} onVerificar={() => onGuiar("verificar")} />
+          )}
+        </div>
       )}
+    </nav>
+  );
+}
+
+/* ─── Alto disponible ─────────────────────────────────────────────────────── */
+
+/**
+ * El libro ocupa exactamente lo que queda de ventana bajo lo que tenga encima
+ * (el cabezote y las pestañas del hub, o nada en modo enfoque): la página no
+ * se desplaza; el riel y el contenido tienen su propio scroll. Por debajo de
+ * 1024 px se apila y fluye normal (`null`).
+ */
+function useAltoDisponible<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [alto, setAlto] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const medir = () => {
+      const el = ref.current;
+      if (!el) return;
+      setAlto(window.innerWidth < 1024 ? null : Math.max(440, Math.floor(window.innerHeight - el.getBoundingClientRect().top - 8)));
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    const ro = new ResizeObserver(medir);
+    const cabezote = document.querySelector("header");
+    if (cabezote) ro.observe(cabezote);
+    ro.observe(document.body);
+    return () => { window.removeEventListener("resize", medir); ro.disconnect(); };
+  }, []);
+  return { ref, alto };
+}
+
+/* ─── Wizard de conciliación (estado por paso, calculado en vivo) ───────── */
+
+type EstadoPaso = "hecho" | "parcial" | "pendiente" | "cargando";
+
+interface ChecklistItemApi {
+  id: string;
+  cantidad: number;
+  severidad: "ok" | "media" | "alta";
+  detalle: string;
+}
+
+const PASO_ESTILO: Record<EstadoPaso, { dot: string; wrap: string; txt: string }> = {
+  hecho: { dot: "bg-emerald-600 text-white", wrap: "border-emerald-600/30 bg-emerald-600/5", txt: "text-emerald-700 dark:text-emerald-400" },
+  parcial: { dot: "bg-amber-500 text-white", wrap: "border-amber-600/40 bg-amber-600/10", txt: "text-amber-800 dark:text-amber-300" },
+  pendiente: { dot: "bg-danger text-white", wrap: "border-danger/40 bg-danger/10", txt: "text-danger" },
+  cargando: { dot: "bg-surface-hover text-muted", wrap: "border-border bg-surface-panel", txt: "text-muted" },
+};
+
+/**
+ * Los cuatro pasos de la conciliación bancaria de la empresa, con su estado
+ * real: (1) ¿hay extracto reciente?, (2) ¿quedan emparejamientos automáticos
+ * por confirmar? — se lanza bajo demanda porque el cálculo es pesado —, (3)
+ * ¿cuántas líneas del banco siguen sin asiento?, (4) ¿cuadra el balance? Cada
+ * paso es un botón que ejecuta la acción en el Diario de abajo: el wizard no
+ * duplica nada, solo ordena y enfoca.
+ */
+function ConciliarWizard({
+  onCargar,
+  onEmparejar,
+  onClasificar,
+  onVerificar,
+  compacto = false,
+}: {
+  onCargar: () => void;
+  onEmparejar: () => void;
+  onClasificar: () => void;
+  onVerificar: () => void;
+  /** Versión vertical y corta para el riel: el paso y su estado; el detalle va en el título. */
+  compacto?: boolean;
+}) {
+  const checkQ = useQuery<{ items: ChecklistItemApi[] }>({
+    queryKey: ["contabilidad-checklist"],
+    queryFn: () => api.get("/api/contabilidad/checklist"),
+    staleTime: 30_000,
+  });
+  const balQ = useQuery<Balance>({
+    queryKey: ["cc-balance", "wizard"],
+    queryFn: () => api.get("/api/contabilidad/cc/balance-comprobacion"),
+    staleTime: 60_000,
+  });
+  const items = checkQ.data?.items ?? [];
+  const itExtracto = items.find((i) => i.id === "extracto_sin_cargar");
+  const itPend = items.find((i) => i.id === "extractos_pendientes");
+
+  const est = (it: ChecklistItemApi | undefined, loading: boolean): EstadoPaso => {
+    if (loading) return "cargando";
+    if (!it) return "pendiente";
+    if (it.severidad === "ok") return "hecho";
+    return it.severidad === "alta" ? "pendiente" : "parcial";
+  };
+
+  const pasos: { n: number; label: string; estado: EstadoPaso; detalle: string; accion: string; onClick: () => void }[] = [
+    {
+      n: 1,
+      label: "Cargar extracto",
+      estado: est(itExtracto, checkQ.isLoading),
+      detalle: itExtracto?.detalle ?? "Sube el CSV, Excel o PDF del banco.",
+      accion: "Elegir archivo",
+      onClick: onCargar,
+    },
+    {
+      n: 2,
+      label: "Emparejar automáticamente",
+      estado: checkQ.isLoading ? "cargando" : itPend?.severidad === "ok" ? "hecho" : "parcial",
+      detalle: "Cruza libro y banco por monto y fecha; tú confirmas en bloque.",
+      accion: "Buscar coincidencias",
+      onClick: onEmparejar,
+    },
+    {
+      n: 3,
+      label: "Clasificar pendientes",
+      estado: est(itPend, checkQ.isLoading),
+      detalle: itPend?.detalle ?? "Líneas del banco sin asiento.",
+      accion: "Abrir bandeja",
+      onClick: onClasificar,
+    },
+    {
+      n: 4,
+      label: "Verificar balance",
+      estado: balQ.isLoading ? "cargando" : balQ.data?.cuadra ? "hecho" : "pendiente",
+      detalle: balQ.data
+        ? balQ.data.cuadra
+          ? `Cuadra: ${formatCop(balQ.data.total_debito)} = ${formatCop(balQ.data.total_credito)}`
+          : `No cuadra: ${formatCop(balQ.data.total_debito)} ≠ ${formatCop(balQ.data.total_credito)}`
+        : "Débitos = créditos en todo el libro.",
+      accion: "Ver balance",
+      onClick: onVerificar,
+    },
+  ];
+  const hechos = pasos.filter((p) => p.estado === "hecho").length;
+
+  if (compacto) {
+    const siguiente = pasos.find((p) => p.estado !== "hecho" && p.estado !== "cargando");
+    return (
+      <ol className="mt-1 space-y-0.5">
+        {pasos.map((p) => {
+          const st = PASO_ESTILO[p.estado];
+          const es = siguiente?.n === p.n;
+          return (
+            <li key={p.n}>
+              <button type="button" onClick={p.onClick} title={`${p.detalle} — ${p.accion}`}
+                className={`flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-[11.5px] transition hover:bg-surface-hover ${es ? "text-ink" : "text-ink-secondary"}`}>
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${st.dot}`}>{p.estado === "hecho" ? "✓" : p.n}</span>
+                <span className={`min-w-0 flex-1 truncate ${es ? "font-bold" : ""}`}>{p.label}</span>
+                {es && <span className="shrink-0 font-mono text-[9px] font-bold text-accent">→</span>}
+              </button>
+            </li>
+          );
+        })}
+        <li className="px-1.5 pt-1 font-mono text-[9.5px] text-muted">{hechos}/{pasos.length} listos</li>
+      </ol>
+    );
+  }
+
+  return (
+    <div className="lm-card space-y-2 px-3 py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-bold text-ink">Conciliación paso a paso</h3>
+        <span className="text-xs font-bold text-ink-secondary">{hechos}/{pasos.length} listos</span>
+      </div>
+      <div className="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-surface-hover">
+        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${(hechos / pasos.length) * 100}%` }} />
+      </div>
+      <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {pasos.map((p) => {
+          const st = PASO_ESTILO[p.estado];
+          return (
+            <li key={p.n} className={`flex flex-col gap-1.5 rounded-xl border px-3 py-2 ${st.wrap}`}>
+              <div className="flex items-center gap-2">
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${st.dot}`}>
+                  {p.estado === "hecho" ? "✓" : p.n}
+                </span>
+                <span className="text-sm font-bold text-ink">{p.label}</span>
+              </div>
+              <p className={`text-[11px] leading-snug ${st.txt}`}>{p.detalle}</p>
+              <button
+                type="button"
+                onClick={p.onClick}
+                className="mt-auto self-start rounded-md border border-border bg-surface-panel px-2 py-1 text-[11px] font-bold text-ink hover:border-accent hover:text-accent"
+              >
+                {p.accion} →
+              </button>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
@@ -1414,13 +1964,14 @@ function emptyTerceroForm() {
   };
 }
 
-function TercerosTab() {
+function TercerosTab({ soloLectura = false }: { soloLectura?: boolean } = {}) {
   const qc = useQueryClient();
   const terceros = useTerceros();
   const cuentasQ = usePlanCuentas();
   const [showForm, setShowForm] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [form, setForm] = useState(emptyTerceroForm);
+  const [historialDe, setHistorialDe] = useState<number | null>(null);
   const usuariosQ = useUsuariosLogin(showForm && form.tipo === "socio");
 
   const pasivos = (cuentasQ.data?.cuentas ?? []).filter((c) => c.activa && c.tipo === "pasivo");
@@ -1447,7 +1998,7 @@ function TercerosTab() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted">{lista.length} terceros registrados.</p>
-        <AddIconButton title="Nuevo tercero" open={showForm} onClick={() => setShowForm((v) => !v)} />
+        {!soloLectura && <AddIconButton title="Nuevo tercero" open={showForm} onClick={() => setShowForm((v) => !v)} />}
       </div>
       {msg && <p className="text-xs font-semibold text-emerald-600">{msg}</p>}
       {showForm && (
@@ -1549,7 +2100,11 @@ function TercerosTab() {
                 <td className="px-3 py-2 text-muted">{t.telefono || "—"}</td>
                 <td className="px-3 py-2 text-muted">{t.activo ? "Activo" : "Inactivo"}</td>
                 <td className="px-3 py-2 text-right">
-                  {t.activo && (
+                  <button type="button" onClick={() => setHistorialDe(t.id)}
+                          className="mr-3 text-[10px] font-bold text-accent hover:underline">
+                    Historial
+                  </button>
+                  {t.activo && !soloLectura && (
                     <button type="button" onClick={() => toggleMut.mutate(t.id)} className="text-[10px] font-bold text-danger hover:underline">
                       Desactivar
                     </button>
@@ -1559,6 +2114,145 @@ function TercerosTab() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {historialDe !== null && (
+        <HistorialTercero terceroId={historialDe} onCerrar={() => setHistorialDe(null)} comoContador={soloLectura} />
+      )}
+    </div>
+  );
+}
+
+/* ─── Historial de un tercero ──────────────────────────────────────────────
+ *
+ * La ficha guarda el ESTADO —que está exento, que es del SIMPLE, a qué cuenta
+ * va su gasto—; esto guarda el PORQUÉ y lo que le ha pasado. Es lo que hace
+ * falta cuando alguien abre un tercero seis meses después y tiene que decidir
+ * si lo que ve sigue vigente.
+ *
+ * Junta el log propio con lo que ya registran otros módulos —documentos
+ * soporte, solicitudes de pago— sin copiarlo: una copia se desactualiza y
+ * entonces hay dos versiones de lo que pasó.
+ */
+interface EventoTercero {
+  fecha: string; tipo: string; tipo_label: string; titulo: string;
+  detalle: string; referencia: string; monto: number | null; origen: string; por?: string;
+}
+interface HistorialData {
+  tercero: Record<string, unknown> & { nombre: string; identificacion: string };
+  perfil_tributario: string[];
+  eventos: EventoTercero[];
+  total_eventos: number;
+}
+
+const COLOR_EVENTO: Record<string, string> = {
+  incidente: "border-l-red-500",
+  contador: "border-l-amber-500",
+  decision: "border-l-accent",
+  fiscal: "border-l-emerald-500",
+  documento: "border-l-border",
+  nota: "border-l-border",
+};
+
+function HistorialTercero({ terceroId, onCerrar, comoContador = false }: {
+  terceroId: number; onCerrar: () => void; comoContador?: boolean;
+}) {
+  const qc = useQueryClient();
+  const [abierto, setAbierto] = useState<number | null>(null);
+  const [nota, setNota] = useState({ titulo: "", detalle: "", tipo: "nota" });
+
+  const hQ = useQuery<HistorialData>({
+    queryKey: ["cc-tercero-historial", terceroId],
+    queryFn: () => api.get(`/api/contabilidad/cc/terceros/${terceroId}/historial`),
+  });
+  const agregarMut = useMutation({
+    mutationFn: () => api.post(`/api/contabilidad/cc/terceros/${terceroId}/historial`, nota),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["cc-tercero-historial", terceroId] });
+      setNota({ titulo: "", detalle: "", tipo: "nota" });
+    },
+  });
+  const h = hQ.data;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4">
+      <div className="lm-card my-8 w-full max-w-3xl p-5">
+        <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
+          <div className="min-w-0">
+            <p className="text-base font-extrabold text-ink">{h?.tercero.nombre ?? "Cargando…"}</p>
+            <p className="text-xs text-muted">{h?.tercero.identificacion}</p>
+          </div>
+          <button type="button" onClick={onCerrar} className="text-sm text-muted hover:text-ink">✕</button>
+        </div>
+
+        {h && h.perfil_tributario.length > 0 && (
+          <div className="mt-3 rounded-lg border border-border bg-surface px-3 py-2">
+            <p className="text-xs font-bold uppercase text-muted">Perfil tributario</p>
+            <ul className="mt-1 space-y-0.5">
+              {h.perfil_tributario.map((p, i) => (
+                <li key={i} className="text-sm text-ink">· {p}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-4 space-y-1.5">
+          {hQ.isLoading && <p className="py-6 text-center text-sm text-muted">Cargando el historial…</p>}
+          {h?.eventos.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted">Todavía no hay nada registrado.</p>
+          )}
+          {h?.eventos.map((e, i) => (
+            <div key={i}
+                 className={`border-l-4 ${COLOR_EVENTO[e.tipo] ?? "border-l-border"} rounded-r-lg bg-surface px-3 py-2`}>
+              <button type="button" onClick={() => setAbierto(abierto === i ? null : i)}
+                      className="flex w-full flex-wrap items-baseline gap-x-2 text-left">
+                <span className="font-mono text-xs tabular-nums text-muted">{e.fecha}</span>
+                <span className="text-[10px] font-bold uppercase text-muted">{e.tipo_label}</span>
+                <span className="min-w-0 flex-1 text-sm font-bold text-ink">{e.titulo}</span>
+                {e.monto ? <span className="text-sm font-bold tabular-nums text-ink">{formatCop(e.monto)}</span> : null}
+              </button>
+              {abierto === i && (e.detalle || e.referencia) && (
+                <div className="mt-1.5 border-t border-border/50 pt-1.5">
+                  {e.detalle && <p className="text-sm leading-snug text-muted">{e.detalle}</p>}
+                  {e.referencia && <p className="mt-1 font-mono text-[10px] text-muted">{e.referencia}</p>}
+                  {e.por && <p className="mt-0.5 text-[10px] text-muted">registrado por {e.por}</p>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 space-y-2 rounded-lg border border-dashed border-border p-3">
+          <p className="text-xs font-bold uppercase text-muted">Anotar algo</p>
+          <div className="flex flex-wrap gap-2">
+            {comoContador ? (
+              <span className="rounded bg-sky-500/10 px-2 py-1 text-sm font-bold text-sky-600">Indicación del contador</span>
+            ) : (
+            <select value={nota.tipo} onChange={(e) => setNota({ ...nota, tipo: e.target.value })}
+                    className="rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink">
+              <option value="nota">Nota</option>
+              <option value="decision">Decisión</option>
+              <option value="contador">Indicación del contador</option>
+              <option value="incidente">Incidente</option>
+              <option value="fiscal">Cambio de perfil tributario</option>
+            </select>
+            )}
+            <input value={nota.titulo} onChange={(e) => setNota({ ...nota, titulo: e.target.value })}
+                   placeholder="Qué pasó, en una línea"
+                   className="min-w-[14rem] flex-1 rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" />
+          </div>
+          <textarea value={nota.detalle} onChange={(e) => setNota({ ...nota, detalle: e.target.value })}
+                    placeholder="El porqué, para quien lo lea dentro de seis meses" rows={2}
+                    className="w-full rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" />
+          <button type="button" disabled={!nota.titulo.trim() || agregarMut.isPending}
+                  onClick={() => agregarMut.mutate()}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white disabled:opacity-40">
+            Anotar
+          </button>
+          <p className="text-[10px] text-muted">
+            El historial no se edita ni se borra: uno que se puede cambiar no sirve para responder qué pasó.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -1611,6 +2305,138 @@ function MovimientosTab() {
         onAnular={(id) => anularMut.mutate(id)}
         onEliminar={(id) => eliminarMut.mutate(id)}
       />
+    </div>
+  );
+}
+
+/* ─── Libro Diario ─────────────────────────────────────────────────────────
+ *
+ * El Mayor responde «cómo se movió esta cuenta»; el Diario responde «qué pasó
+ * ese día»: cada asiento completo, con el código y el NOMBRE de cada cuenta, el
+ * débito y el crédito. Antes había que abrir asiento por asiento desde la lista
+ * de movimientos, y esta es la vista que el contador espera recorrer de corrido.
+ *
+ * Va en orden ascendente —del más viejo al más nuevo, como se lleva un diario—
+ * al revés que la lista de movimientos, donde se busca lo que acaba de pasar.
+ */
+interface LineaDiario {
+  cuenta_codigo: string; cuenta_nombre: string; cuenta_tipo: string;
+  debito: number; credito: number; descripcion: string; tercero_nombre: string | null;
+}
+interface AsientoDiario {
+  id: number; fecha: string; concepto: string; referencia: string;
+  tipo_origen: string; estado: string;
+  tercero: { id: number; nombre: string; identificacion: string } | null;
+  lineas: LineaDiario[]; debito: number; credito: number; cuadra: boolean;
+}
+interface Diario {
+  asientos: AsientoDiario[]; total_asientos: number; hay_mas: boolean;
+  total_debito: number; total_credito: number; cuadra: boolean; descuadrados: number[];
+}
+
+function LibroDiarioTab() {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const mes = hoy.slice(0, 8) + "01";
+  const [desde, setDesde] = useState(mes);
+  const [hasta, setHasta] = useState(hoy);
+  const [q, setQ] = useState("");
+  const [cuenta, setCuenta] = useState("");
+  const [limit, setLimit] = useState(100);
+
+  const dQ = useQuery<Diario>({
+    queryKey: ["cc-libro-diario", desde, hasta, q, cuenta, limit],
+    queryFn: () => api.get(
+      `/api/contabilidad/cc/diario?desde=${desde}&hasta=${hasta}&limit=${limit}` +
+      `${q ? `&q=${encodeURIComponent(q)}` : ""}${cuenta ? `&cuenta=${encodeURIComponent(cuenta)}` : ""}`),
+  });
+  const d = dQ.data;
+
+  return (
+    <div className="space-y-3">
+      <div className="lm-card flex flex-wrap items-end gap-2 p-3">
+        <label className="text-xs font-bold text-muted">Desde
+          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)}
+                 className="mt-0.5 block rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" /></label>
+        <label className="text-xs font-bold text-muted">Hasta
+          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)}
+                 className="mt-0.5 block rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" /></label>
+        <label className="text-xs font-bold text-muted">Cuenta
+          <input value={cuenta} onChange={(e) => setCuenta(e.target.value)} placeholder="1110"
+                 className="mt-0.5 block w-24 rounded border border-border bg-surface-input px-2 py-1 font-mono text-sm text-ink" /></label>
+        <label className="flex-1 text-xs font-bold text-muted">Buscar
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="concepto o referencia…"
+                 className="mt-0.5 block w-full rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" /></label>
+        <a href={`/api/contabilidad/cc/diario?formato=csv&desde=${desde}&hasta=${hasta}&limit=1000`}
+           className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-ink hover:border-accent">
+          Descargar CSV
+        </a>
+      </div>
+
+      {d && (
+        <div className="lm-card flex flex-wrap items-center gap-4 px-3 py-2 text-sm">
+          <span className="text-muted">{d.total_asientos} asientos</span>
+          <span className="text-ink">Débitos <b className="tabular-nums">{formatCop(d.total_debito)}</b></span>
+          <span className="text-ink">Créditos <b className="tabular-nums">{formatCop(d.total_credito)}</b></span>
+          <span className={d.cuadra ? "font-bold text-emerald-600" : "font-bold text-red-600"}>
+            {d.cuadra ? "✓ cuadra" : `✗ descuadre de ${formatCop(Math.abs(d.total_debito - d.total_credito))}`}
+          </span>
+          {d.descuadrados.length > 0 && (
+            <span className="font-bold text-red-600">asientos descuadrados: {d.descuadrados.join(", ")}</span>
+          )}
+        </div>
+      )}
+
+      {dQ.isLoading && <p className="px-3 py-6 text-sm text-muted">Cargando el diario…</p>}
+      {d?.asientos.length === 0 && (
+        <p className="lm-card px-4 py-8 text-center text-sm text-muted">No hay asientos en ese rango.</p>
+      )}
+
+      <div className="space-y-2">
+        {d?.asientos.map((a) => (
+          <div key={a.id} className={`lm-card overflow-hidden ${a.estado === "anulado" ? "opacity-60" : ""}`}>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border bg-surface px-3 py-1.5">
+              <span className="font-mono text-sm font-bold text-accent">#{a.id}</span>
+              <span className="font-mono text-sm tabular-nums text-ink">{a.fecha}</span>
+              <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{a.concepto}</span>
+              {a.tercero && <span className="text-xs text-muted">{a.tercero.nombre}</span>}
+              {a.referencia && <span className="font-mono text-[10px] text-muted">{a.referencia}</span>}
+              {!a.cuadra && <span className="text-xs font-bold text-red-600">no cuadra</span>}
+              {a.estado === "anulado" && <span className="text-xs font-bold text-red-600">ANULADO</span>}
+            </div>
+            <table className="min-w-full text-sm">
+              <tbody>
+                {a.lineas.map((l, i) => (
+                  <tr key={i} className="border-t border-border/30">
+                    <td className="w-24 px-3 py-1 font-mono font-bold tabular-nums text-ink">{l.cuenta_codigo}</td>
+                    <td className="px-2 py-1 text-ink">
+                      {l.cuenta_nombre}
+                      {l.descripcion && <span className="block text-xs text-muted">{l.descripcion}</span>}
+                    </td>
+                    <td className="w-28 px-2 py-1 text-right tabular-nums text-ink">
+                      {l.debito ? formatCop(l.debito) : ""}
+                    </td>
+                    <td className="w-28 px-3 py-1 text-right tabular-nums text-ink">
+                      {l.credito ? formatCop(l.credito) : ""}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-border bg-surface/60 text-xs font-bold">
+                  <td className="px-3 py-1" colSpan={2} />
+                  <td className="px-2 py-1 text-right tabular-nums text-ink">{formatCop(a.debito)}</td>
+                  <td className="px-3 py-1 text-right tabular-nums text-ink">{formatCop(a.credito)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+
+      {d?.hay_mas && (
+        <button type="button" onClick={() => setLimit((n) => n + 100)}
+                className="w-full rounded-lg border border-border py-2 text-sm font-bold text-ink hover:border-accent">
+          Ver más asientos ({d.total_asientos - d.asientos.length} restantes)
+        </button>
+      )}
     </div>
   );
 }

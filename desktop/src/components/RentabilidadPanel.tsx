@@ -4,6 +4,7 @@ import { useAppStore } from "../stores/app";
 import { ConsultarFacturaPorProducto } from "./FacturasCompraPanel";
 import FloatingToolWindow, { defaultFloatRect } from "./FloatingToolWindow";
 import { AddIconButton } from "./AddIconButton";
+import PreciosTrmTab from "./PreciosTrmTab";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -2603,7 +2604,7 @@ function TabGanancia() {
 
 // ─── Panel principal ──────────────────────────────────────────────────────────
 
-type Tab = "combos" | "nomina" | "servicios" | "periodo" | "cobros-meli" | "ganancia";
+type Tab = "combos" | "nomina" | "servicios" | "periodo" | "cobros-meli" | "ganancia" | "precios-trm";
 
 interface ComponenteSinCosto {
   nombre: string;
@@ -3038,6 +3039,7 @@ export default function RentabilidadPanel() {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "ganancia", label: "Ganancia" },
+    { id: "precios-trm", label: "Precios TRM" },
     { id: "cobros-meli", label: "Cobros MeLi" },
     { id: "combos", label: "Costo real producto" },
     { id: "nomina", label: "Nómina" },
@@ -3074,6 +3076,7 @@ export default function RentabilidadPanel() {
         {tab === "combos" && <TabCombos />}
         {tab === "cobros-meli" && <TabCobrosMeli />}
         {tab === "ganancia" && <TabGanancia />}
+        {tab === "precios-trm" && <PreciosTrmTab />}
         {tab === "nomina" && <TabNomina />}
         {tab === "servicios" && <TabServicios />}
         {tab === "periodo" && <TabPeriodo />}

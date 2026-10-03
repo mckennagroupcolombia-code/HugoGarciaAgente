@@ -175,9 +175,15 @@ def saldo_socios(tercero_id: int | None = None) -> list[dict]:
     """
     import app.services.contabilidad_core as cc
 
+    from app.services.puc_colombia import marcadores_sql
+
     cc._ensure()
+    # La deuda con socios vive hoy en 2355; hasta la migración estuvo en 2380.
+    # Preguntar por un solo código devolvía VACÍO —no error— y el panel mostraba
+    # cero donde había $3,7M.
+    cods_socio, cods_params = marcadores_sql("2355")
     where = "AND t.id = ?" if tercero_id else ""
-    params = [int(tercero_id)] if tercero_id else []
+    params = [*cods_params] + ([int(tercero_id)] if tercero_id else [])
     with cc._conn() as con:
         filas = [
             dict(r)
@@ -192,7 +198,7 @@ def saldo_socios(tercero_id: int | None = None) -> list[dict]:
                   JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
                   JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
                   JOIN cc_terceros t ON t.id = l.tercero_id
-                 WHERE c.codigo = '2380' {where}
+                 WHERE c.codigo IN ({cods_socio}) {where}
                  GROUP BY t.id
                 HAVING ROUND(SUM(l.credito - l.debito), 2) <> 0
                  ORDER BY saldo DESC
@@ -213,21 +219,24 @@ def detalle_pendiente_socio(tercero_id: int) -> dict:
     pagando y para conciliar después contra el extracto."""
     import app.services.contabilidad_core as cc
 
+    from app.services.puc_colombia import marcadores_sql
+
     cc._ensure()
+    cods_socio, cods_params2 = marcadores_sql("2355")
     with cc._conn() as con:
         movs = [
             dict(r)
             for r in con.execute(
-                """
+                f"""
                 SELECT m.id, m.fecha, m.concepto, m.tipo_origen, m.referencia,
                        l.debito, l.credito
                   FROM cc_movimiento_lineas l
                   JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
                   JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
-                 WHERE c.codigo = '2380' AND l.tercero_id = ?
+                 WHERE c.codigo IN ({cods_socio}) AND l.tercero_id = ?
                  ORDER BY m.fecha, m.id
                 """,
-                (int(tercero_id),),
+                (*cods_params2, int(tercero_id)),
             )
         ]
     saldos = saldo_socios(tercero_id)

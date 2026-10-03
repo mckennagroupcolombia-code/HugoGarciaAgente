@@ -18,8 +18,8 @@
 
   <div class="cart-row" style="padding:24px;flex-direction:column;align-items:stretch;gap:16px;border-radius:12px;border:1px solid rgba(20,61,54,0.12);">
     <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Pago</div>
-      <div style="font-size:1.15rem;font-weight:700;margin-top:6px;color:{% if order.status == 'approved' %}var(--green){% else %}var(--text-muted){% endif %};">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Pago</div>
+      <div style="font-size:1.15rem;font-weight:600;margin-top:6px;color:{% if order.status == 'approved' %}var(--green){% else %}var(--text-muted){% endif %};">
         {% if order.status == 'approved' %}✓ Confirmado
         {% elif order.status == 'declined' %}Rechazado
         {% elif order.status == 'pending' %}Pendiente
@@ -28,8 +28,8 @@
     </div>
 
     <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Envío</div>
-      <div style="font-size:1.15rem;font-weight:700;margin-top:6px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Envío</div>
+      <div style="font-size:1.15rem;font-weight:600;margin-top:6px;">
         {% set ss = order.shipping_status or 'preparing' %}
         {% if ss == 'shipped' %}
           <span style="color:var(--green);">En camino</span>
@@ -57,8 +57,8 @@
     </div>
 
     <div style="padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Total</div>
-      <div style="font-size:1.25rem;font-weight:800;color:var(--green);margin-top:6px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Total</div>
+      <div style="font-size:1.25rem;font-weight:700;color:var(--green);margin-top:6px;">
         ${{ "{:,.0f}".format(order.total).replace(",", ".") }} COP
       </div>
     </div>

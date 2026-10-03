@@ -31,7 +31,33 @@ function buildBits(digits: string): string {
 
 export interface EAN13Result { svg: string; digits: string; }
 
-export function generarEAN13(input: string): EAN13Result | null {
+/**
+ * Franja de color sobre las barras. Se dibuja DENTRO del SVG, y no como una
+ * capa aparte en el DOM, porque es la única forma de que empiece y acabe
+ * exactamente donde las barras: la zona muda del EAN-13 es asimétrica (11
+ * módulos a la izquierda, 7 a la derecha), así que el centro de las barras
+ * no es el centro de la imagen, y encima `object-fit: contain` recorta de
+ * forma distinta en cada formato. Aquí comparten sistema de coordenadas y
+ * el encaje es exacto a cualquier escala, también en el PNG y la impresión.
+ */
+export interface FranjaEAN13 {
+  /** Colores de los tramos, repartidos por igual a lo ancho de las barras. */
+  colores: readonly string[];
+  /** Alto en unidades del SVG (no en px de pantalla: el código se escala). */
+  alto?: number;
+  /** Aire entre la franja y lo alto de las barras, en unidades del SVG. */
+  separacion?: number;
+}
+
+export interface OpcionesEAN13 {
+  /** Margen derecho igual al izquierdo (11 módulos, no 7): las barras quedan en
+   *  el centro exacto de la imagen. La zona muda estándar es asimétrica porque
+   *  el primer dígito se imprime en la de la izquierda; una etiqueta que centra
+   *  el código en su columna necesita este equilibrio o lo ve corrido. */
+  centrado?: boolean;
+}
+
+export function generarEAN13(input: string, franja?: FranjaEAN13, opciones?: OpcionesEAN13): EAN13Result | null {
   const raw = input.replace(/\D/g, "");
   if (raw.length < 12 || raw.length > 13) return null;
 
@@ -41,23 +67,46 @@ export function generarEAN13(input: string): EAN13Result | null {
   // Layout constants (all in px) — mw=3 gives 339×112px for good print resolution
   const mw = 3;       // module width
   const qzL = 11;     // quiet zone left modules
-  const qzR = 7;      // quiet zone right modules
+  const qzR = opciones?.centrado ? qzL : 7;      // quiet zone right modules
   const dataH = 80;   // data bar height
   const gExt = 12;    // guard bar extra height below data bars
   const textH = 20;   // text row height
   const padTop = 2;
   const totalW = (qzL + 95 + qzR) * mw;   // 339px
-  const totalH = padTop + dataH + gExt + textH; // 108px
+
+  // La franja, si la hay, se lleva su alto por encima de todo lo demás: el
+  // resto del código baja en bloque y el SVG crece justo eso.
+  const altoFranja = franja && franja.colores.length ? (franja.alto ?? 14) : 0;
+  const sepFranja = altoFranja ? (franja?.separacion ?? 6) : 0;
+  const techo = padTop + altoFranja + sepFranja;
+  const totalH = techo + dataH + gExt + textH; // 108px sin franja
 
   let bars = "";
   for (let i = 0; i < 95; i++) {
     if (bits[i] === "1") {
       const h = GUARD_IDX.has(i) ? dataH + gExt : dataH;
-      bars += `<rect x="${(qzL + i) * mw}" y="${padTop}" width="${mw}" height="${h}" fill="black"/>`;
+      bars += `<rect x="${(qzL + i) * mw}" y="${techo}" width="${mw}" height="${h}" fill="black"/>`;
     }
   }
 
-  const textY = padTop + dataH + gExt + textH - 2;
+  // De la primera barra a la última: mismo tramo exacto que ocupan las barras.
+  let franjaSvg = "";
+  if (altoFranja) {
+    const x0 = qzL * mw;
+    const ancho = 95 * mw;
+    const tramo = ancho / franja!.colores.length;
+    franjaSvg = franja!.colores
+      .map((c, i) => {
+        // El último tramo cierra en el borde exacto: repartir por división
+        // deja una rendija blanca de arrastre al final.
+        const xi = x0 + i * tramo;
+        const xf = i === franja!.colores.length - 1 ? x0 + ancho : x0 + (i + 1) * tramo;
+        return `<rect x="${xi.toFixed(2)}" y="${padTop}" width="${(xf - xi).toFixed(2)}" height="${altoFranja}" fill="${c}"/>`;
+      })
+      .join("");
+  }
+
+  const textY = totalH - 2;
   const fz = 17;
   // digit 1 left of start guard
   const xD1 = (qzL - 1) * mw;
@@ -68,6 +117,7 @@ export function generarEAN13(input: string): EAN13Result | null {
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}">` +
     `<rect width="${totalW}" height="${totalH}" fill="white"/>` +
+    franjaSvg +
     bars +
     `<text x="${xD1}" y="${textY}" text-anchor="middle" font-family="monospace" font-size="${fz}" fill="black">${digits[0]}</text>` +
     `<text x="${xLeft}" y="${textY}" text-anchor="middle" font-family="monospace" font-size="${fz}" fill="black">${digits.slice(1, 7)}</text>` +

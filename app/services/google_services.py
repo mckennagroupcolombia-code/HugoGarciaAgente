@@ -2,6 +2,7 @@
 import os
 import unicodedata
 import gspread
+import requests
 
 # TODO: La ruta a las credenciales debería venir de una configuración central
 # en lugar de ser importada directamente desde otro módulo.
@@ -125,14 +126,32 @@ def buscar_ficha_tecnica_producto(nombre_producto: str):
             print(f"❌ [G-SHEETS] Credenciales no encontradas en {CREDS_PATH}")
             return None
 
-        gc = gspread.service_account(filename=CREDS_PATH)
-        workbook = gc.open_by_key(SPREADSHEET_ID)
-        try:
-            sheet = workbook.worksheet("BASE DE DATOS MCKENNA GROUP S.A.S")
-        except gspread.exceptions.WorksheetNotFound:
-            sheet = workbook.sheet1
+        # Un 503/429 pasajero de Sheets no es «sin ficha»: sin reintento la preventa
+        # delegaba al grupo sin borrador IA aunque la ficha existiera (27-sep, lecitina).
+        import time
 
-        all_values = sheet.get_all_values()
+        all_values = None
+        for intento in range(3):
+            try:
+                gc = gspread.service_account(filename=CREDS_PATH)
+                workbook = gc.open_by_key(SPREADSHEET_ID)
+                try:
+                    sheet = workbook.worksheet("BASE DE DATOS MCKENNA GROUP S.A.S")
+                except gspread.exceptions.WorksheetNotFound:
+                    sheet = workbook.sheet1
+                all_values = sheet.get_all_values()
+                break
+            except gspread.exceptions.APIError as e:
+                codigo = getattr(getattr(e, "response", None), "status_code", 0) or 0
+                if intento == 2 or not (codigo == 429 or codigo >= 500):
+                    raise
+                print(f"⚠️ [G-SHEETS] {codigo} leyendo fichas (intento {intento + 1}/3), reintentando…")
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                if intento == 2:
+                    raise
+                print(f"⚠️ [G-SHEETS] Error de red leyendo fichas (intento {intento + 1}/3): {e}")
+            time.sleep(2 * (intento + 1))
+
         if not all_values:
             return None
 
@@ -142,9 +161,16 @@ def buscar_ficha_tecnica_producto(nombre_producto: str):
 
         nombre_norm = normalizar(nombre_producto)
         excluir = {'para', 'con', 'del', 'los', 'las', 'una', 'unos', 'unas', 'por'}
-        palabras = [p for p in nombre_norm.split() if len(p) > 4 and p not in excluir]
-        if not palabras:
-            palabras = nombre_norm.split()
+
+        # Palabras que distinguen el producto: 3+ letras, sin cantidades («500», «250ml»).
+        # Antes eran 5+ letras: «neem» o «coco» no contaban, «ACEITE DE NEEM» quedaba en
+        # solo «aceite» y el ACEITE DE LIMÓN y el de COCO recibían la ficha del neem.
+        def distintivas(texto_norm: str) -> list[str]:
+            w = [p for p in texto_norm.split()
+                 if len(p) >= 3 and p not in excluir and not any(ch.isdigit() for ch in p)]
+            return w if w else texto_norm.split()
+
+        palabras = distintivas(nombre_norm)
 
         # Exigir que TODAS las palabras distintivas del título MeLi estén en el nombre del Sheet
         # (evita falsos positivos cuando el catálogo es más corto que la publicación).
@@ -166,9 +192,7 @@ def buscar_ficha_tecnica_producto(nombre_producto: str):
 
         # Fallback: títulos MeLi suelen traer sufijos (marca, envío, pack). Si todas las
         # palabras distintivas del nombre en Sheets aparecen en el título MeLi, es el mismo SKU.
-        def palabras_distintivas_de_fila(fila_norm: str) -> list[str]:
-            w = [p for p in fila_norm.split() if len(p) > 4 and p not in excluir]
-            return w if w else fila_norm.split()
+        palabras_distintivas_de_fila = distintivas
 
         candidatos: list[tuple[int, str]] = []
         for row in rows:

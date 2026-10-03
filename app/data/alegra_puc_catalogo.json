@@ -1,0 +1,7916 @@
+{
+ "cuentas": {
+  "1": {
+   "id": "5299",
+   "nombre": "Activo",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": null
+  },
+  "11": {
+   "id": "5307",
+   "nombre": "Disponible",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1"
+  },
+  "1125": {
+   "id": "6292",
+   "nombre": "Fondos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "11"
+  },
+  "112515": {
+   "id": "6293",
+   "nombre": "Especiales moneda nacional",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1125"
+  },
+  "1105": {
+   "id": "5350",
+   "nombre": "Caja",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "11"
+  },
+  "110505": {
+   "id": "5555",
+   "nombre": "Caja general",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1105"
+  },
+  "11050501": {
+   "id": "6001",
+   "nombre": "Caja general",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "110505"
+  },
+  "110510": {
+   "id": "5556",
+   "nombre": "Cajas menores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1105"
+  },
+  "11051001": {
+   "id": "6002",
+   "nombre": "Caja chica",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "110510"
+  },
+  "110515": {
+   "id": "5557",
+   "nombre": "Moneda extranjera",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1105"
+  },
+  "1110": {
+   "id": "5351",
+   "nombre": "Bancos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "11"
+  },
+  "111005": {
+   "id": "5558",
+   "nombre": "Moneda nacional",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1110"
+  },
+  "11100501": {
+   "id": "6003",
+   "nombre": "Banco 1",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "111005"
+  },
+  "111010": {
+   "id": "5559",
+   "nombre": "Moneda extranjera",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1110"
+  },
+  "1115": {
+   "id": "5352",
+   "nombre": "Remesas en tránsito",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "11"
+  },
+  "111505": {
+   "id": "5560",
+   "nombre": "Moneda nacional",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1115"
+  },
+  "111510": {
+   "id": "5561",
+   "nombre": "Moneda extranjera",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1115"
+  },
+  "1120": {
+   "id": "5353",
+   "nombre": "Cuentas de ahorro",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "11"
+  },
+  "112005": {
+   "id": "5562",
+   "nombre": "Bancos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1120"
+  },
+  "11200501": {
+   "id": "6004",
+   "nombre": "Bancos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "112005"
+  },
+  "12": {
+   "id": "5308",
+   "nombre": "Inversiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "1"
+  },
+  "1205": {
+   "id": "5354",
+   "nombre": "Acciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "120505": {
+   "id": "5563",
+   "nombre": "Acciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1205"
+  },
+  "120535": {
+   "id": "5564",
+   "nombre": "Comercio al por mayor y al por menor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1205"
+  },
+  "12053501": {
+   "id": "6005",
+   "nombre": "Comercio al por mayor y al por menor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "120535"
+  },
+  "12053502": {
+   "id": "6006",
+   "nombre": "Método de participación",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "120535"
+  },
+  "1210": {
+   "id": "5355",
+   "nombre": "Cuotas o partes de interés social",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "1215": {
+   "id": "5356",
+   "nombre": "Bonos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "121505": {
+   "id": "5565",
+   "nombre": "Bonos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1215"
+  },
+  "1220": {
+   "id": "5357",
+   "nombre": "Cédulas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "1225": {
+   "id": "5358",
+   "nombre": "Certificados",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "122505": {
+   "id": "5566",
+   "nombre": "Certificados",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1225"
+  },
+  "1230": {
+   "id": "5359",
+   "nombre": "Papeles comerciales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "123005": {
+   "id": "5567",
+   "nombre": "Papeles comerciales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1230"
+  },
+  "1235": {
+   "id": "5360",
+   "nombre": "Títulos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "1240": {
+   "id": "5361",
+   "nombre": "Aceptaciones bancarias o financieras",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "1250": {
+   "id": "5362",
+   "nombre": "Derechos de recompra de inversiones negociadas (repos)",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "1255": {
+   "id": "5363",
+   "nombre": "Obligatorias",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "1260": {
+   "id": "5568",
+   "nombre": "Cuentas en participación",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1260"
+  },
+  "1295": {
+   "id": "5365",
+   "nombre": "Otras inversiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "12"
+  },
+  "129505": {
+   "id": "5569",
+   "nombre": "Otras inversiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1295"
+  },
+  "13": {
+   "id": "5309",
+   "nombre": "Deudores comerciales y otras cuentas por cobrar",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "1"
+  },
+  "1305": {
+   "id": "5366",
+   "nombre": "Clientes",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "13"
+  },
+  "130505": {
+   "id": "5570",
+   "nombre": "Clientes nacionales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1305"
+  },
+  "13050501": {
+   "id": "6007",
+   "nombre": "Clientes nacionales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "130505"
+  },
+  "130510": {
+   "id": "5571",
+   "nombre": "Clientes del exterior",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1305"
+  },
+  "13051001": {
+   "id": "6008",
+   "nombre": "Clientes del exterior",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "130510"
+  },
+  "130515": {
+   "id": "5572",
+   "nombre": "Deudores del sistema",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1305"
+  },
+  "1310": {
+   "id": "5367",
+   "nombre": "Cuentas corrientes comerciales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "131005": {
+   "id": "5573",
+   "nombre": "Casa matriz",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1310"
+  },
+  "131010": {
+   "id": "5574",
+   "nombre": "Compañías vinculadas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1310"
+  },
+  "131015": {
+   "id": "5575",
+   "nombre": "Accionistas o socios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1310"
+  },
+  "131020": {
+   "id": "5576",
+   "nombre": "Particulares",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1310"
+  },
+  "131095": {
+   "id": "5577",
+   "nombre": "Otras",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1310"
+  },
+  "13109501": {
+   "id": "6009",
+   "nombre": "Otros deudores y cuentas por cobrar",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "131095"
+  },
+  "1315": {
+   "id": "5368",
+   "nombre": "Cuentas por cobrar a casa matriz",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "131505": {
+   "id": "5578",
+   "nombre": "Ventas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1315"
+  },
+  "131510": {
+   "id": "5579",
+   "nombre": "Pagos a nombre de casa matriz",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1315"
+  },
+  "131515": {
+   "id": "5580",
+   "nombre": "Valores recibidos por casa matriz",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1315"
+  },
+  "131520": {
+   "id": "5581",
+   "nombre": "Préstamos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1315"
+  },
+  "1320": {
+   "id": "5369",
+   "nombre": "Cuentas por cobrar a vinculados económicos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "132005": {
+   "id": "5582",
+   "nombre": "Filiales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1320"
+  },
+  "132010": {
+   "id": "5583",
+   "nombre": "Subsidiarias",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1320"
+  },
+  "132015": {
+   "id": "5584",
+   "nombre": "Sucursales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1320"
+  },
+  "1323": {
+   "id": "5370",
+   "nombre": "Cuentas por cobrar a directores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "1325": {
+   "id": "5371",
+   "nombre": "Cuentas por cobrar a socios y accionistas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "132505": {
+   "id": "5585",
+   "nombre": "A socios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1325"
+  },
+  "13250501": {
+   "id": "6010",
+   "nombre": "A socios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "132505"
+  },
+  "132510": {
+   "id": "5586",
+   "nombre": "A accionistas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1325"
+  },
+  "13251001": {
+   "id": "6011",
+   "nombre": "A accionistas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "132510"
+  },
+  "1328": {
+   "id": "5372",
+   "nombre": "Aportes por cobrar",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "1330": {
+   "id": "5373",
+   "nombre": "Anticipos y avances",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "13"
+  },
+  "133005": {
+   "id": "5587",
+   "nombre": "A proveedores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1330"
+  },
+  "13300501": {
+   "id": "6012",
+   "nombre": "A proveedores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "133005"
+  },
+  "133010": {
+   "id": "5588",
+   "nombre": "A contratistas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1330"
+  },
+  "13301001": {
+   "id": "6013",
+   "nombre": "A contratistas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "133010"
+  },
+  "133015": {
+   "id": "5589",
+   "nombre": "A trabajadores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1330"
+  },
+  "13301501": {
+   "id": "6014",
+   "nombre": "A trabajadores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "133015"
+  },
+  "13301502": {
+   "id": "6239",
+   "nombre": "Eventos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "13301501"
+  },
+  "133090": {
+   "id": "5590",
+   "nombre": "Anticipo de nómina",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1330"
+  },
+  "13309001": {
+   "id": "6015",
+   "nombre": "Anticipo de nómina",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "133090"
+  },
+  "1332": {
+   "id": "5374",
+   "nombre": "Cuentas de operación conjunta",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "1335": {
+   "id": "5375",
+   "nombre": "Depósitos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "1345": {
+   "id": "5376",
+   "nombre": "Ingresos por cobrar",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "134510": {
+   "id": "5591",
+   "nombre": "Intereses",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "1345"
+  },
+  "1350": {
+   "id": "5377",
+   "nombre": "Retención sobre contratos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "135005": {
+   "id": "5592",
+   "nombre": "De construcción",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1350"
+  },
+  "135010": {
+   "id": "5593",
+   "nombre": "De prestación de servicios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1350"
+  },
+  "1355": {
+   "id": "5594",
+   "nombre": "Anticipo de impuestos y contribuciones o saldos a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "135505": {
+   "id": "6016",
+   "nombre": "Anticipo de impuestos de renta y complementarios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "135510": {
+   "id": "6017",
+   "nombre": "Anticipo de impuestos de industria y comercio",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "135515": {
+   "id": "6240",
+   "nombre": "Retención en la fuente",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "13551501": {
+   "id": "6274",
+   "nombre": "Retención en la fuente 2,5%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135515"
+  },
+  "13551502": {
+   "id": "6275",
+   "nombre": "Retención en la fuente 4%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135515"
+  },
+  "13551503": {
+   "id": "6276",
+   "nombre": "Retención en la fuente 6%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135515"
+  },
+  "13551504": {
+   "id": "6277",
+   "nombre": "Retención en la fuente 10%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135515"
+  },
+  "13551505": {
+   "id": "6278",
+   "nombre": "Retención en la fuente 11%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135515"
+  },
+  "13551506": {
+   "id": "6279",
+   "nombre": "Retención en la fuente 3,5%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135515"
+  },
+  "13551507": {
+   "id": "6280",
+   "nombre": "Retención en la fuente 2%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135515"
+  },
+  "13551508": {
+   "id": "6281",
+   "nombre": "Retencion en la Fuente 1.5%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135515"
+  },
+  "135517": {
+   "id": "6019",
+   "nombre": "Impuesto a las ventas retenido",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "13551701": {
+   "id": "6241",
+   "nombre": "Impuesto a las ventas retenido",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135517"
+  },
+  "13551702": {
+   "id": "6282",
+   "nombre": "Devolución impuesto a las ventas retenido",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "13551701"
+  },
+  "135518": {
+   "id": "6020",
+   "nombre": "Impuesto de industria y comercio retenido",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "13551801": {
+   "id": "6242",
+   "nombre": "Rete Ica 11.04",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135518"
+  },
+  "13551802": {
+   "id": "6243",
+   "nombre": "Rete Ica 13.08",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135518"
+  },
+  "13551803": {
+   "id": "6244",
+   "nombre": "Rete Ica 9.66",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135518"
+  },
+  "13551804": {
+   "id": "6245",
+   "nombre": "Rete Ica 8",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135518"
+  },
+  "13551805": {
+   "id": "6246",
+   "nombre": "Rete Ica 7",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135518"
+  },
+  "13551806": {
+   "id": "6247",
+   "nombre": "Rete Ica 6.9",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135518"
+  },
+  "13551807": {
+   "id": "6248",
+   "nombre": "Rete Ica 4",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135518"
+  },
+  "13551808": {
+   "id": "6249",
+   "nombre": "Autorretencion impuesto de industria y comercio",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "135518"
+  },
+  "135519": {
+   "id": "6021",
+   "nombre": "Otras retenciones a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "135520": {
+   "id": "6022",
+   "nombre": "Sobrantes en liquidación privada de impuestos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "135525": {
+   "id": "6023",
+   "nombre": "Contribuciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "135530": {
+   "id": "6024",
+   "nombre": "Impuestos descontables",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "13553005": {
+   "id": "6250",
+   "nombre": "Devolución de impuestos descontables",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "135530"
+  },
+  "135590": {
+   "id": "6025",
+   "nombre": "Impuesto nacional al consumo a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "135595": {
+   "id": "6026",
+   "nombre": "Otros impuestos descontables",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1355"
+  },
+  "1365": {
+   "id": "5379",
+   "nombre": "Cuentas por cobrar a trabajadores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "136510": {
+   "id": "5595",
+   "nombre": "Vehículos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1365"
+  },
+  "136515": {
+   "id": "5596",
+   "nombre": "Educación",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1365"
+  },
+  "13651501": {
+   "id": "6027",
+   "nombre": "Educación",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "136515"
+  },
+  "136520": {
+   "id": "5597",
+   "nombre": "Médicos, odontológicos y similares",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1365"
+  },
+  "13652001": {
+   "id": "6028",
+   "nombre": "Médicos, odontológicos y similares",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "136520"
+  },
+  "136525": {
+   "id": "5598",
+   "nombre": "Calamidad doméstica",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1365"
+  },
+  "13652501": {
+   "id": "6029",
+   "nombre": "Calamidad doméstica",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "136525"
+  },
+  "1370": {
+   "id": "5380",
+   "nombre": "Préstamos a particulares",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "137005": {
+   "id": "5599",
+   "nombre": "Con garantía real",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1370"
+  },
+  "137010": {
+   "id": "5600",
+   "nombre": "Con garantía personal",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1370"
+  },
+  "1380": {
+   "id": "5381",
+   "nombre": "Deudores varios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "138005": {
+   "id": "5601",
+   "nombre": "Depositarios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1380"
+  },
+  "138010": {
+   "id": "5602",
+   "nombre": "Comisionistas de bolsas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1380"
+  },
+  "138015": {
+   "id": "5603",
+   "nombre": "Fondo de inversión",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1380"
+  },
+  "138020": {
+   "id": "5604",
+   "nombre": "Cuentas por cobrar de terceros",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1380"
+  },
+  "138025": {
+   "id": "5605",
+   "nombre": "Pagos por cuenta de terceros",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1380"
+  },
+  "138035": {
+   "id": "5606",
+   "nombre": "Devoluciones a proveedores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1380"
+  },
+  "13803501": {
+   "id": "6030",
+   "nombre": "Devoluciones a proveedores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "138035"
+  },
+  "138095": {
+   "id": "5607",
+   "nombre": "Incapacidades",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1380"
+  },
+  "1390": {
+   "id": "5382",
+   "nombre": "Deudas de difícil cobro",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "1399": {
+   "id": "5383",
+   "nombre": "Provisiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "13"
+  },
+  "139905": {
+   "id": "5608",
+   "nombre": "Clientes",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139910": {
+   "id": "5609",
+   "nombre": "Cuentas corrientes comerciales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139915": {
+   "id": "5610",
+   "nombre": "Cuentas por cobrar a casa matriz",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139920": {
+   "id": "5611",
+   "nombre": "Cuentas por cobrar a vinculados económicos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139925": {
+   "id": "5612",
+   "nombre": "Cuentas por cobrar a socios y accionistas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139930": {
+   "id": "5613",
+   "nombre": "Anticipos y avances",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139932": {
+   "id": "5614",
+   "nombre": "Cuentas de operación conjunta",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139935": {
+   "id": "5615",
+   "nombre": "Depósitos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139940": {
+   "id": "5616",
+   "nombre": "Promesas de compraventa",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139945": {
+   "id": "5617",
+   "nombre": "Ingresos por cobrar",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139960": {
+   "id": "5618",
+   "nombre": "Cuentas por cobrar a trabajadores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139965": {
+   "id": "5619",
+   "nombre": "Préstamos a particulares",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "139975": {
+   "id": "5620",
+   "nombre": "Deudores varios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1399"
+  },
+  "14": {
+   "id": "5310",
+   "nombre": "Inventarios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1"
+  },
+  "1430": {
+   "id": "5384",
+   "nombre": "Productos terminados",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "14"
+  },
+  "143005": {
+   "id": "5621",
+   "nombre": "Productos manufacturados",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1430"
+  },
+  "143010": {
+   "id": "5622",
+   "nombre": "Productos extraídos y/o procesados",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1430"
+  },
+  "1435": {
+   "id": "5385",
+   "nombre": "Mercancías no fabricadas por la empresa",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "14"
+  },
+  "143505": {
+   "id": "5623",
+   "nombre": "Mercancias no fabricadas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "1435"
+  },
+  "14350501": {
+   "id": "6031",
+   "nombre": "Mercancias no fabricadas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "143505"
+  },
+  "1455": {
+   "id": "5386",
+   "nombre": "Materiales, repuestos y accesorios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "14"
+  },
+  "15": {
+   "id": "5311",
+   "nombre": "Propiedades, planta y equipo",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1"
+  },
+  "1504": {
+   "id": "5387",
+   "nombre": "Terrenos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "150405": {
+   "id": "5624",
+   "nombre": "Urbanos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1504"
+  },
+  "15040501": {
+   "id": "6032",
+   "nombre": "Urbanos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "150405"
+  },
+  "150410": {
+   "id": "5625",
+   "nombre": "Rurales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1504"
+  },
+  "1508": {
+   "id": "5388",
+   "nombre": "Construcciones en curso",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "150805": {
+   "id": "5626",
+   "nombre": "Construcciones y edificaciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1508"
+  },
+  "1512": {
+   "id": "5389",
+   "nombre": "Maquinaria y equipos en montaje",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "1516": {
+   "id": "5390",
+   "nombre": "Construcciones y edificaciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "151605": {
+   "id": "5627",
+   "nombre": "Edificios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1516"
+  },
+  "15160501": {
+   "id": "6033",
+   "nombre": "Edificios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "151605"
+  },
+  "1520": {
+   "id": "5391",
+   "nombre": "Maquinaria y equipo",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "1524": {
+   "id": "5392",
+   "nombre": "Equipo de oficina",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "152405": {
+   "id": "5628",
+   "nombre": "Muebles y enseres",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1524"
+  },
+  "15240501": {
+   "id": "6034",
+   "nombre": "Muebles y enseres",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "152405"
+  },
+  "152410": {
+   "id": "5629",
+   "nombre": "Equipos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1524"
+  },
+  "15241001": {
+   "id": "6035",
+   "nombre": "Equipos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "152410"
+  },
+  "1528": {
+   "id": "5393",
+   "nombre": "Equipo de computación y comunicación",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "152805": {
+   "id": "5630",
+   "nombre": "Equipos de procesamiento de datos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1528"
+  },
+  "15280501": {
+   "id": "6036",
+   "nombre": "Equipos de procesamiento de datos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "152805"
+  },
+  "1540": {
+   "id": "6251",
+   "nombre": "Flota y equipo de transporte",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "15280501"
+  },
+  "154005": {
+   "id": "6283",
+   "nombre": "Vehículos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1540"
+  },
+  "15400501": {
+   "id": "6284",
+   "nombre": "Vehículos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "154005"
+  },
+  "15400502": {
+   "id": "6285",
+   "nombre": "Vehículos en leasing",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "154005"
+  },
+  "1592": {
+   "id": "5394",
+   "nombre": "Depreciación acumulada",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "159205": {
+   "id": "5631",
+   "nombre": "Construcciones y edificaciones",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "1592"
+  },
+  "15920501": {
+   "id": "6037",
+   "nombre": "Construcciones y edificaciones",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "159205"
+  },
+  "159210": {
+   "id": "5632",
+   "nombre": "Maquinaria y equipo",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "1592"
+  },
+  "15921001": {
+   "id": "6038",
+   "nombre": "Maquinaria y equipo",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "159210"
+  },
+  "159215": {
+   "id": "5633",
+   "nombre": "Equipo de oficina",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "1592"
+  },
+  "15921501": {
+   "id": "6039",
+   "nombre": "Equipo de oficina",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "159215"
+  },
+  "159220": {
+   "id": "5634",
+   "nombre": "Equipo de computación y comunicación",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "1592"
+  },
+  "15922001": {
+   "id": "6040",
+   "nombre": "Equipo de computación y comunicación",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "159220"
+  },
+  "159235": {
+   "id": "5635",
+   "nombre": "Flota y equipo de transporte",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "1592"
+  },
+  "15923501": {
+   "id": "6041",
+   "nombre": "Flota y equipo de transporte",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "159235"
+  },
+  "1595": {
+   "id": "5395",
+   "nombre": "Propiedad, planta y equipo (Impuestos descontables)",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "15"
+  },
+  "1596": {
+   "id": "5396",
+   "nombre": "Depreciación diferida",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "159605": {
+   "id": "5636",
+   "nombre": "Exceso fiscal sobre la contable",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1596"
+  },
+  "159610": {
+   "id": "5637",
+   "nombre": "Defecto fiscal sobre la contable (CR)",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "1596"
+  },
+  "1597": {
+   "id": "5397",
+   "nombre": "Amortización acumulada",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "1599": {
+   "id": "5398",
+   "nombre": "Provisiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "15"
+  },
+  "16": {
+   "id": "5312",
+   "nombre": "Intangibles",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "1"
+  },
+  "1610": {
+   "id": "5399",
+   "nombre": "Marcas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "16"
+  },
+  "161005": {
+   "id": "5638",
+   "nombre": "Adquiridas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1610"
+  },
+  "161010": {
+   "id": "5639",
+   "nombre": "Formadas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1610"
+  },
+  "1615": {
+   "id": "5400",
+   "nombre": "Patentes",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "16"
+  },
+  "161505": {
+   "id": "5640",
+   "nombre": "Adquiridas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1615"
+  },
+  "161510": {
+   "id": "5641",
+   "nombre": "Formadas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1615"
+  },
+  "1620": {
+   "id": "5401",
+   "nombre": "Concesiones y franquicias",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "16"
+  },
+  "162005": {
+   "id": "5642",
+   "nombre": "Concesiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1620"
+  },
+  "162010": {
+   "id": "5643",
+   "nombre": "Franquicias",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1620"
+  },
+  "1625": {
+   "id": "5402",
+   "nombre": "Derechos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "16"
+  },
+  "162505": {
+   "id": "5644",
+   "nombre": "Derechos de autor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1625"
+  },
+  "1630": {
+   "id": "5403",
+   "nombre": "Know how",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "16"
+  },
+  "1635": {
+   "id": "5404",
+   "nombre": "Licencias",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "16"
+  },
+  "1698": {
+   "id": "5405",
+   "nombre": "Depreciación y/o amortización acumulada",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "16"
+  },
+  "169810": {
+   "id": "5645",
+   "nombre": "Marcas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1698"
+  },
+  "169815": {
+   "id": "5646",
+   "nombre": "Patentes",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1698"
+  },
+  "169820": {
+   "id": "5647",
+   "nombre": "Concesiones y franquicias",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1698"
+  },
+  "169830": {
+   "id": "5648",
+   "nombre": "Derechos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1698"
+  },
+  "169835": {
+   "id": "5649",
+   "nombre": "Know how",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1698"
+  },
+  "169840": {
+   "id": "5650",
+   "nombre": "Licencias",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1698"
+  },
+  "1699": {
+   "id": "5406",
+   "nombre": "Provisiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "16"
+  },
+  "17": {
+   "id": "5313",
+   "nombre": "Otros activos no financieros",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "1"
+  },
+  "1705": {
+   "id": "5407",
+   "nombre": "Gastos pagados por anticipado",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "17"
+  },
+  "170505": {
+   "id": "5651",
+   "nombre": "Intereses",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1705"
+  },
+  "170510": {
+   "id": "5652",
+   "nombre": "Honorarios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1705"
+  },
+  "170515": {
+   "id": "5653",
+   "nombre": "Comisiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1705"
+  },
+  "170520": {
+   "id": "5654",
+   "nombre": "Seguros y fianzas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1705"
+  },
+  "170525": {
+   "id": "5655",
+   "nombre": "Arrendamientos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1705"
+  },
+  "170530": {
+   "id": "5656",
+   "nombre": "Bodegajes",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1705"
+  },
+  "170535": {
+   "id": "5657",
+   "nombre": "Mantenimiento equipos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1705"
+  },
+  "170540": {
+   "id": "5658",
+   "nombre": "Servicios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1705"
+  },
+  "170545": {
+   "id": "5659",
+   "nombre": "Suscripciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1705"
+  },
+  "1710": {
+   "id": "5408",
+   "nombre": "Cargos diferidos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "17"
+  },
+  "171004": {
+   "id": "5660",
+   "nombre": "Organización y preoperativos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171008": {
+   "id": "5661",
+   "nombre": "Remodelaciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171012": {
+   "id": "5662",
+   "nombre": "Estudios, investigaciones y proyectos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171016": {
+   "id": "5663",
+   "nombre": "Programas para computador (software)",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171020": {
+   "id": "5664",
+   "nombre": "Útiles y papelería",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171024": {
+   "id": "5665",
+   "nombre": "Mejoras a propiedades ajenas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171028": {
+   "id": "5666",
+   "nombre": "Contribuciones y afiliaciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171032": {
+   "id": "5667",
+   "nombre": "Entrenamiento de personal",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171036": {
+   "id": "5668",
+   "nombre": "Ferias y exposiciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171040": {
+   "id": "5669",
+   "nombre": "Licencias",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171044": {
+   "id": "5670",
+   "nombre": "Publicidad, propaganda y promoción",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171048": {
+   "id": "5671",
+   "nombre": "Elementos de aseo y cafetería",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171060": {
+   "id": "5672",
+   "nombre": "Dotación y suministro a trabajadores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171076": {
+   "id": "5673",
+   "nombre": "Impuesto de renta diferido ?débitos? por diferencias temporales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "171080": {
+   "id": "5674",
+   "nombre": "Concursos y licitaciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1710"
+  },
+  "1798": {
+   "id": "5409",
+   "nombre": "Amortización acumulada",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "17"
+  },
+  "1790": {
+   "id": "5410",
+   "nombre": "Deterioro acumulado de valor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "17"
+  },
+  "18": {
+   "id": "5314",
+   "nombre": "Otros activos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "1"
+  },
+  "1805": {
+   "id": "5411",
+   "nombre": "Bienes de arte y cultura",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "18"
+  },
+  "1895": {
+   "id": "5412",
+   "nombre": "Diversos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "18"
+  },
+  "1899": {
+   "id": "5413",
+   "nombre": "Otros activos financieros",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "18"
+  },
+  "19": {
+   "id": "5315",
+   "nombre": "Otros activos financieros",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "1"
+  },
+  "1945": {
+   "id": "5414",
+   "nombre": "De inversiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "19"
+  },
+  "194510": {
+   "id": "5675",
+   "nombre": "De inversiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "1945"
+  },
+  "19451001": {
+   "id": "6042",
+   "nombre": "De inversiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "194510"
+  },
+  "2": {
+   "id": "5300",
+   "nombre": "Pasivo",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": null
+  },
+  "24": {
+   "id": "5319",
+   "nombre": "Impuestos, gravámenes y tasas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2"
+  },
+  "2404": {
+   "id": "5443",
+   "nombre": "De renta y complementarios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "24"
+  },
+  "240405": {
+   "id": "5721",
+   "nombre": "Vigencia fiscal corriente",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2404"
+  },
+  "24040501": {
+   "id": "6087",
+   "nombre": "Vigencia fiscal corriente",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "240405"
+  },
+  "240410": {
+   "id": "5722",
+   "nombre": "Vigencias fiscales anteriores",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2404"
+  },
+  "2408": {
+   "id": "5444",
+   "nombre": "Impuesto sobre las ventas por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "24"
+  },
+  "240805": {
+   "id": "5723",
+   "nombre": "IVA generado",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2408"
+  },
+  "24080501": {
+   "id": "6088",
+   "nombre": "IVA generado",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "240805"
+  },
+  "24080502": {
+   "id": "6089",
+   "nombre": "Devolución de IVA generado",
+   "tipo": "liability",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "240805"
+  },
+  "240810": {
+   "id": "5724",
+   "nombre": "IVA descontable por compras",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2408"
+  },
+  "24081001": {
+   "id": "6090",
+   "nombre": "IVA descontable por compras",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "240810"
+  },
+  "24081002": {
+   "id": "6091",
+   "nombre": "Devolución de IVA descontable",
+   "tipo": "liability",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "240810"
+  },
+  "240815": {
+   "id": "5725",
+   "nombre": "Descontable por servicios",
+   "tipo": "liability",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "2408"
+  },
+  "24081501": {
+   "id": "6092",
+   "nombre": "Descontable por servicios",
+   "tipo": "liability",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "240815"
+  },
+  "240820": {
+   "id": "5726",
+   "nombre": "Descontable por devoluciones",
+   "tipo": "liability",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "2408"
+  },
+  "24082001": {
+   "id": "6093",
+   "nombre": "Descontable por devoluciones",
+   "tipo": "liability",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "240820"
+  },
+  "2412": {
+   "id": "5445",
+   "nombre": "De industria y comercio",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "24"
+  },
+  "241205": {
+   "id": "5727",
+   "nombre": "De industria y comercio",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2412"
+  },
+  "24120501": {
+   "id": "6094",
+   "nombre": "Impuesto de industria y comercio por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "241205"
+  },
+  "2436": {
+   "id": "5446",
+   "nombre": "De vehículos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "24"
+  },
+  "2485": {
+   "id": "5447",
+   "nombre": "Impuesto nacional al consumo",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "24"
+  },
+  "248505": {
+   "id": "5728",
+   "nombre": "Impuesto nacional al consumo",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2485"
+  },
+  "24850501": {
+   "id": "6095",
+   "nombre": "Impuesto nacional al consumo por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "248505"
+  },
+  "2495": {
+   "id": "5448",
+   "nombre": "Otros impuestos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "24"
+  },
+  "249505": {
+   "id": "5729",
+   "nombre": "Otros impuestos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2495"
+  },
+  "24950501": {
+   "id": "6096",
+   "nombre": "Otro tipo de impuesto por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "249505"
+  },
+  "25": {
+   "id": "5320",
+   "nombre": "Obligaciones laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2"
+  },
+  "2505": {
+   "id": "5449",
+   "nombre": "Salarios por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "25"
+  },
+  "250505": {
+   "id": "5730",
+   "nombre": "Salarios por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2505"
+  },
+  "25050501": {
+   "id": "6097",
+   "nombre": "Salarios por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "250505"
+  },
+  "2510": {
+   "id": "5450",
+   "nombre": "Cesantías consolidadas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "25"
+  },
+  "251005": {
+   "id": "5731",
+   "nombre": "Cesantías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2510"
+  },
+  "25100501": {
+   "id": "6098",
+   "nombre": "Cesantías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "251005"
+  },
+  "2515": {
+   "id": "5451",
+   "nombre": "Intereses sobre cesantías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "25"
+  },
+  "251505": {
+   "id": "5732",
+   "nombre": "Intereses sobre cesantías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2515"
+  },
+  "25150501": {
+   "id": "6099",
+   "nombre": "Intereses sobre cesantías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "251505"
+  },
+  "2520": {
+   "id": "5452",
+   "nombre": "Prima de servicios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "25"
+  },
+  "252005": {
+   "id": "5733",
+   "nombre": "Prima de servicios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2520"
+  },
+  "25200501": {
+   "id": "6100",
+   "nombre": "Prima de servicios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "252005"
+  },
+  "2525": {
+   "id": "5453",
+   "nombre": "Vacaciones consolidadas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "25"
+  },
+  "252505": {
+   "id": "5734",
+   "nombre": "Vacaciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2525"
+  },
+  "25250501": {
+   "id": "6101",
+   "nombre": "Vacaciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "252505"
+  },
+  "2530": {
+   "id": "5454",
+   "nombre": "Prestaciones extralegales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "25"
+  },
+  "253005": {
+   "id": "5735",
+   "nombre": "Primas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2530"
+  },
+  "253010": {
+   "id": "5736",
+   "nombre": "Auxilios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2530"
+  },
+  "253015": {
+   "id": "5737",
+   "nombre": "Dotación y suministro a trabajadores",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2530"
+  },
+  "253020": {
+   "id": "5738",
+   "nombre": "Bonificaciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2530"
+  },
+  "253025": {
+   "id": "5739",
+   "nombre": "Seguros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2530"
+  },
+  "253095": {
+   "id": "5740",
+   "nombre": "Otras",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2530"
+  },
+  "25309501": {
+   "id": "6102",
+   "nombre": "Otras obligaciones laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "253095"
+  },
+  "2532": {
+   "id": "5455",
+   "nombre": "Pensiones por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "25"
+  },
+  "2535": {
+   "id": "5456",
+   "nombre": "Cuotas partes pensiones de jubilación",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "25"
+  },
+  "2540": {
+   "id": "5457",
+   "nombre": "Indemnizaciones laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "25"
+  },
+  "22": {
+   "id": "5317",
+   "nombre": "Proveedores",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2"
+  },
+  "2205": {
+   "id": "5425",
+   "nombre": "Nacionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "22"
+  },
+  "220505": {
+   "id": "5695",
+   "nombre": "Proveedores nacionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2205"
+  },
+  "22050501": {
+   "id": "6045",
+   "nombre": "Cuentas por pagar a proveedores nacionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "220505"
+  },
+  "2210": {
+   "id": "5426",
+   "nombre": "Del exterior",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "22"
+  },
+  "221005": {
+   "id": "5696",
+   "nombre": "Proveedores del exterior",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2210"
+  },
+  "22100501": {
+   "id": "6046",
+   "nombre": "Cuentas por pagar a proveedores del exterior",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "221005"
+  },
+  "2215": {
+   "id": "5427",
+   "nombre": "Cuentas corrientes comerciales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "22"
+  },
+  "2220": {
+   "id": "5428",
+   "nombre": "Casa matriz",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "22"
+  },
+  "2225": {
+   "id": "5429",
+   "nombre": "Compañías vinculadas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "22"
+  },
+  "23": {
+   "id": "5318",
+   "nombre": "Cuentas por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2"
+  },
+  "2305": {
+   "id": "5430",
+   "nombre": "Cuentas corrientes comerciales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "23"
+  },
+  "230505": {
+   "id": "5697",
+   "nombre": "Cuentas corrientes comerciales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2305"
+  },
+  "23050501": {
+   "id": "6047",
+   "nombre": "Cuentas corrientes comerciales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "230505"
+  },
+  "2310": {
+   "id": "5431",
+   "nombre": "A casa matriz",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "23"
+  },
+  "2315": {
+   "id": "5432",
+   "nombre": "A compañías vinculadas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "23"
+  },
+  "2320": {
+   "id": "5433",
+   "nombre": "A contratistas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "23"
+  },
+  "2330": {
+   "id": "5434",
+   "nombre": "Órdenes de compra por utilizar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "23"
+  },
+  "2335": {
+   "id": "5435",
+   "nombre": "Costos y gastos por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "23"
+  },
+  "233505": {
+   "id": "5698",
+   "nombre": "Gastos financieros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "23350501": {
+   "id": "6048",
+   "nombre": "Gastos financieros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "233505"
+  },
+  "233510": {
+   "id": "5699",
+   "nombre": "Gastos legales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "23351001": {
+   "id": "6049",
+   "nombre": "Gastos legales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "233510"
+  },
+  "233515": {
+   "id": "5700",
+   "nombre": "Libros, periódicos y revistas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "233520": {
+   "id": "5701",
+   "nombre": "Comisiones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "233525": {
+   "id": "5702",
+   "nombre": "Honorarios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "23352501": {
+   "id": "6050",
+   "nombre": "Honorarios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "233525"
+  },
+  "233530": {
+   "id": "5703",
+   "nombre": "Servicios técnicos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "233535": {
+   "id": "5704",
+   "nombre": "Servicios de mantenimiento",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "23353501": {
+   "id": "6051",
+   "nombre": "Servicios de mantenimiento",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "233535"
+  },
+  "233540": {
+   "id": "5705",
+   "nombre": "Arrendamientos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "23354001": {
+   "id": "6052",
+   "nombre": "Arrendamientos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "233540"
+  },
+  "233545": {
+   "id": "5706",
+   "nombre": "Transportes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "233550": {
+   "id": "5707",
+   "nombre": "Servicios públicos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "233555": {
+   "id": "5708",
+   "nombre": "Seguros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "23355501": {
+   "id": "6053",
+   "nombre": "Seguros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "233555"
+  },
+  "233560": {
+   "id": "5709",
+   "nombre": "Gastos de viaje",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "233565": {
+   "id": "5710",
+   "nombre": "Gastos de representación y relaciones públicas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "233570": {
+   "id": "5711",
+   "nombre": "Servicios aduaneros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2335"
+  },
+  "2340": {
+   "id": "5436",
+   "nombre": "Instalamentos por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "23"
+  },
+  "2345": {
+   "id": "5437",
+   "nombre": "Acreedores oficiales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "23"
+  },
+  "2350": {
+   "id": "5438",
+   "nombre": "Regalías por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "23"
+  },
+  "2355": {
+   "id": "5439",
+   "nombre": "Deudas con accionistas o socios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "23"
+  },
+  "235510": {
+   "id": "6294",
+   "nombre": "Socios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2355"
+  },
+  "2357": {
+   "id": "5440",
+   "nombre": "Deudas con directores",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "23"
+  },
+  "2360": {
+   "id": "5441",
+   "nombre": "Dividendos o participaciones por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "23"
+  },
+  "236005": {
+   "id": "5712",
+   "nombre": "Dividendos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2360"
+  },
+  "236010": {
+   "id": "5713",
+   "nombre": "Participaciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2360"
+  },
+  "2365": {
+   "id": "5714",
+   "nombre": "Retención en la fuente",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "23"
+  },
+  "236505": {
+   "id": "6054",
+   "nombre": "Salarios y pagos laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2365"
+  },
+  "23650501": {
+   "id": "6252",
+   "nombre": "Salarios y pagos laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236505"
+  },
+  "236510": {
+   "id": "6055",
+   "nombre": "Dividendos y/o participaciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2365"
+  },
+  "236515": {
+   "id": "6056",
+   "nombre": "Honorarios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2365"
+  },
+  "23651501": {
+   "id": "6253",
+   "nombre": "Retenciones honorarios y comisiones 10% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236515"
+  },
+  "23651502": {
+   "id": "6254",
+   "nombre": "Retenciones honorarios y comisiones 11% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236515"
+  },
+  "236520": {
+   "id": "6057",
+   "nombre": "Comisiones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2365"
+  },
+  "236525": {
+   "id": "6058",
+   "nombre": "Servicios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2365"
+  },
+  "23652501": {
+   "id": "6255",
+   "nombre": "Retenciones servicios 4% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236525"
+  },
+  "23652502": {
+   "id": "6256",
+   "nombre": "Retenciones servicios 6% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236525"
+  },
+  "236530": {
+   "id": "6059",
+   "nombre": "Arrendamientos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2365"
+  },
+  "23653001": {
+   "id": "6257",
+   "nombre": "Retenciones arriendo 3.5% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236530"
+  },
+  "236535": {
+   "id": "6060",
+   "nombre": "Rendimientos financieros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2365"
+  },
+  "236540": {
+   "id": "6061",
+   "nombre": "Compras",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2365"
+  },
+  "23654001": {
+   "id": "6258",
+   "nombre": "Retenciones compra 2.5% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236540"
+  },
+  "236550": {
+   "id": "6062",
+   "nombre": "Por pagos al exterior",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2365"
+  },
+  "236555": {
+   "id": "6063",
+   "nombre": "Por ingresos obtenidos en el exterior",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2365"
+  },
+  "236560": {
+   "id": "6064",
+   "nombre": "Enajenación propiedades planta y equipo",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2365"
+  },
+  "236565": {
+   "id": "6065",
+   "nombre": "Por impuesto de timbre",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2365"
+  },
+  "236570": {
+   "id": "6066",
+   "nombre": "Otras retenciones y patrimonio",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2365"
+  },
+  "236575": {
+   "id": "6067",
+   "nombre": "Autorretenciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2365"
+  },
+  "2367": {
+   "id": "5715",
+   "nombre": "Impuesto a las ventas retenido",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "23"
+  },
+  "236705": {
+   "id": "6068",
+   "nombre": "Impuesto a las ventas retenido",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2367"
+  },
+  "23670501": {
+   "id": "6259",
+   "nombre": "Retención de IVA por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236705"
+  },
+  "2368": {
+   "id": "5716",
+   "nombre": "Impuesto de industria y comercio retenido",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "23"
+  },
+  "236805": {
+   "id": "6069",
+   "nombre": "Impuesto de industria y comercio retenido",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2368"
+  },
+  "23680501": {
+   "id": "6260",
+   "nombre": "Rete Ica 11.04",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236805"
+  },
+  "23680502": {
+   "id": "6261",
+   "nombre": "Rete Ica 13.08",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236805"
+  },
+  "23680503": {
+   "id": "6262",
+   "nombre": "Rete Ica 9.66",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236805"
+  },
+  "23680504": {
+   "id": "6263",
+   "nombre": "Rete Ica 8",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236805"
+  },
+  "23680505": {
+   "id": "6264",
+   "nombre": "Rete Ica 7",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236805"
+  },
+  "23680506": {
+   "id": "6265",
+   "nombre": "Rete Ica 6.9",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236805"
+  },
+  "23680507": {
+   "id": "6266",
+   "nombre": "Rete Ica 4",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "236805"
+  },
+  "2369": {
+   "id": "5717",
+   "nombre": "Otro tipo de retención por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "23"
+  },
+  "2370": {
+   "id": "5718",
+   "nombre": "Retenciones y aportes de nómina",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "23"
+  },
+  "237005": {
+   "id": "6070",
+   "nombre": "Aportes a entidades promotoras de salud",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2370"
+  },
+  "23700501": {
+   "id": "6267",
+   "nombre": "Aportes a entidades promotoras de salud",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "237005"
+  },
+  "237006": {
+   "id": "6071",
+   "nombre": "Aportes a administradoras de riesgos profesionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2370"
+  },
+  "23700601": {
+   "id": "6268",
+   "nombre": "Aportes a administradoras de riesgos profesionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "237006"
+  },
+  "237010": {
+   "id": "6072",
+   "nombre": "Aportes al ICBF",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2370"
+  },
+  "23701001": {
+   "id": "6269",
+   "nombre": "Aportes al ICBF",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "237010"
+  },
+  "237015": {
+   "id": "6073",
+   "nombre": "Aportes al FIC",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2370"
+  },
+  "237025": {
+   "id": "6074",
+   "nombre": "Embargos judiciales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2370"
+  },
+  "237030": {
+   "id": "6075",
+   "nombre": "Libranzas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2370"
+  },
+  "23703001": {
+   "id": "6270",
+   "nombre": "Libranzas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "237030"
+  },
+  "237035": {
+   "id": "6076",
+   "nombre": "Sindicatos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2370"
+  },
+  "237040": {
+   "id": "6077",
+   "nombre": "Cooperativas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2370"
+  },
+  "237045": {
+   "id": "6078",
+   "nombre": "Fondos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2370"
+  },
+  "23704501": {
+   "id": "6271",
+   "nombre": "Fondos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "237045"
+  },
+  "2375": {
+   "id": "5719",
+   "nombre": "Cuotas por devolver",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "23"
+  },
+  "2380": {
+   "id": "5720",
+   "nombre": "Acreedores varios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "23"
+  },
+  "238005": {
+   "id": "6079",
+   "nombre": "Depositarios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2380"
+  },
+  "238010": {
+   "id": "6080",
+   "nombre": "Comisionistas de bolsas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2380"
+  },
+  "238015": {
+   "id": "6081",
+   "nombre": "Sociedad administradora-Fondos de inversión",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2380"
+  },
+  "238020": {
+   "id": "6082",
+   "nombre": "Reintegros por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2380"
+  },
+  "238025": {
+   "id": "6083",
+   "nombre": "Fondo de perseverancia",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2380"
+  },
+  "238030": {
+   "id": "6084",
+   "nombre": "Fondos de cesantías y/o pensiones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2380"
+  },
+  "23803001": {
+   "id": "6272",
+   "nombre": "Fondos de cesantías y/o pensiones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "238030"
+  },
+  "238035": {
+   "id": "6085",
+   "nombre": "Donaciones asignadas por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2380"
+  },
+  "238090": {
+   "id": "6086",
+   "nombre": "Devoluciones de clientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2380"
+  },
+  "23809001": {
+   "id": "6273",
+   "nombre": "Devoluciones de clientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "238090"
+  },
+  "26": {
+   "id": "5321",
+   "nombre": "Pasivos estimados y provisiones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2"
+  },
+  "2605": {
+   "id": "5458",
+   "nombre": "Para costos y gastos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "26"
+  },
+  "260505": {
+   "id": "5741",
+   "nombre": "Intereses",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2605"
+  },
+  "260510": {
+   "id": "5742",
+   "nombre": "Comisiones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2605"
+  },
+  "260515": {
+   "id": "5743",
+   "nombre": "Honorarios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2605"
+  },
+  "260520": {
+   "id": "5744",
+   "nombre": "Servicios técnicos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2605"
+  },
+  "260525": {
+   "id": "5745",
+   "nombre": "Transportes, fletes y acarreos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2605"
+  },
+  "260530": {
+   "id": "5746",
+   "nombre": "Gastos de viaje",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2605"
+  },
+  "260535": {
+   "id": "5747",
+   "nombre": "Servicios públicos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2605"
+  },
+  "260540": {
+   "id": "5748",
+   "nombre": "Regalías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2605"
+  },
+  "260545": {
+   "id": "5749",
+   "nombre": "Garantías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2605"
+  },
+  "260550": {
+   "id": "5750",
+   "nombre": "Materiales y repuestos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2605"
+  },
+  "2610": {
+   "id": "5459",
+   "nombre": "Para obligaciones laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "26"
+  },
+  "261005": {
+   "id": "5751",
+   "nombre": "Cesantías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2610"
+  },
+  "261010": {
+   "id": "5752",
+   "nombre": "Intereses sobre cesantías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2610"
+  },
+  "261015": {
+   "id": "5753",
+   "nombre": "Vacaciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2610"
+  },
+  "261020": {
+   "id": "5754",
+   "nombre": "Prima de servicios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2610"
+  },
+  "261025": {
+   "id": "5755",
+   "nombre": "Prestaciones extralegales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2610"
+  },
+  "261030": {
+   "id": "5756",
+   "nombre": "Viáticos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2610"
+  },
+  "2615": {
+   "id": "5460",
+   "nombre": "Para obligaciones fiscales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "26"
+  },
+  "261505": {
+   "id": "5757",
+   "nombre": "De renta y complementarios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2615"
+  },
+  "261510": {
+   "id": "5758",
+   "nombre": "De industria y comercio",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2615"
+  },
+  "261515": {
+   "id": "5759",
+   "nombre": "Tasa por utilización de puertos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2615"
+  },
+  "261520": {
+   "id": "5760",
+   "nombre": "De vehículos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2615"
+  },
+  "261525": {
+   "id": "5761",
+   "nombre": "De hidrocarburos y minas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2615"
+  },
+  "2620": {
+   "id": "5461",
+   "nombre": "Pensiones de jubilación",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "26"
+  },
+  "262005": {
+   "id": "5762",
+   "nombre": "Cálculo actuarial pensiones de jubilación",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2620"
+  },
+  "262010": {
+   "id": "5763",
+   "nombre": "Pensiones de jubilación por amortizar (DB)",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2620"
+  },
+  "2625": {
+   "id": "5462",
+   "nombre": "Para obras de urbanismo",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "26"
+  },
+  "2630": {
+   "id": "5463",
+   "nombre": "Para mantenimiento y reparaciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "26"
+  },
+  "2635": {
+   "id": "5464",
+   "nombre": "Para contingencias",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "26"
+  },
+  "2640": {
+   "id": "5465",
+   "nombre": "Para obligaciones de garantías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "26"
+  },
+  "2695": {
+   "id": "5466",
+   "nombre": "Provisiones diversas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "26"
+  },
+  "27": {
+   "id": "5322",
+   "nombre": "Diferidos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2"
+  },
+  "2705": {
+   "id": "5467",
+   "nombre": "Ingresos recibidos por anticipado",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "27"
+  },
+  "270505": {
+   "id": "5764",
+   "nombre": "Intereses",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2705"
+  },
+  "270510": {
+   "id": "5765",
+   "nombre": "Comisiones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2705"
+  },
+  "270515": {
+   "id": "5766",
+   "nombre": "Arrendamientos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2705"
+  },
+  "270520": {
+   "id": "5767",
+   "nombre": "Honorarios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2705"
+  },
+  "270525": {
+   "id": "5768",
+   "nombre": "Servicios técnicos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2705"
+  },
+  "270530": {
+   "id": "5769",
+   "nombre": "De suscriptores",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2705"
+  },
+  "270535": {
+   "id": "5770",
+   "nombre": "Transportes, fletes y acarreos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2705"
+  },
+  "270540": {
+   "id": "5771",
+   "nombre": "Mercancía en tránsito ya vendida",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2705"
+  },
+  "270545": {
+   "id": "5772",
+   "nombre": "Matrículas y pensiones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2705"
+  },
+  "270550": {
+   "id": "5773",
+   "nombre": "Cuotas de administración",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2705"
+  },
+  "2710": {
+   "id": "5468",
+   "nombre": "Abonos diferidos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "27"
+  },
+  "2715": {
+   "id": "5469",
+   "nombre": "Utilidad diferida en ventas a plazos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "27"
+  },
+  "2720": {
+   "id": "5470",
+   "nombre": "Crédito por corrección monetaria diferida",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "27"
+  },
+  "2725": {
+   "id": "5471",
+   "nombre": "Impuestos diferidos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "27"
+  },
+  "28": {
+   "id": "5323",
+   "nombre": "Pasivos no financieros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2"
+  },
+  "2805": {
+   "id": "5472",
+   "nombre": "Anticipos y avances recibidos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "28"
+  },
+  "280505": {
+   "id": "5774",
+   "nombre": "Avances y anticipos recibidos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2805"
+  },
+  "28050501": {
+   "id": "6103",
+   "nombre": "Avances y anticipos recibidos de clientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "280505"
+  },
+  "280510": {
+   "id": "5775",
+   "nombre": "Sobre contratos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2805"
+  },
+  "280515": {
+   "id": "5776",
+   "nombre": "Para obras en proceso",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2805"
+  },
+  "2810": {
+   "id": "5473",
+   "nombre": "Depósitos recibidos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "28"
+  },
+  "2815": {
+   "id": "5474",
+   "nombre": "Ingresos recibidos para terceros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "28"
+  },
+  "281505": {
+   "id": "5777",
+   "nombre": "Valores recibidos para terceros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2815"
+  },
+  "28150501": {
+   "id": "6104",
+   "nombre": "Valores recibidos para terceros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "281505"
+  },
+  "281510": {
+   "id": "5778",
+   "nombre": "Venta por cuenta de terceros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2815"
+  },
+  "2820": {
+   "id": "5475",
+   "nombre": "Cuentas de operación conjunta",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "28"
+  },
+  "2830": {
+   "id": "5476",
+   "nombre": "Embargos judiciales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "28"
+  },
+  "283005": {
+   "id": "5779",
+   "nombre": "Indemnizaciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2830"
+  },
+  "283010": {
+   "id": "5780",
+   "nombre": "Depósitos judiciales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2830"
+  },
+  "2895": {
+   "id": "5477",
+   "nombre": "Diversos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "28"
+  },
+  "29": {
+   "id": "5324",
+   "nombre": "Bonos y papeles comerciales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2"
+  },
+  "2905": {
+   "id": "5478",
+   "nombre": "Bonos en circulación",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "29"
+  },
+  "2910": {
+   "id": "5479",
+   "nombre": "Bonos obligatoriamente convertibles en acciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "29"
+  },
+  "2915": {
+   "id": "5480",
+   "nombre": "Papeles comerciales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "29"
+  },
+  "2920": {
+   "id": "5481",
+   "nombre": "Bonos pensionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "29"
+  },
+  "292005": {
+   "id": "5781",
+   "nombre": "Valor bonos pensionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2920"
+  },
+  "292010": {
+   "id": "5782",
+   "nombre": "Bonos pensionales por amortizar (DB)",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2920"
+  },
+  "292015": {
+   "id": "5783",
+   "nombre": "Intereses causados sobre bonos pensionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2920"
+  },
+  "21": {
+   "id": "5316",
+   "nombre": "Obligaciones financieras",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2"
+  },
+  "2110": {
+   "id": "5416",
+   "nombre": "Bancos del exterior",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "21"
+  },
+  "211005": {
+   "id": "5682",
+   "nombre": "Sobregiros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2110"
+  },
+  "211010": {
+   "id": "5683",
+   "nombre": "Pagarés",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2110"
+  },
+  "211015": {
+   "id": "5684",
+   "nombre": "Cartas de crédito",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2110"
+  },
+  "211020": {
+   "id": "5685",
+   "nombre": "Aceptaciones bancarias",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2110"
+  },
+  "2115": {
+   "id": "5417",
+   "nombre": "Corporaciones financieras",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "21"
+  },
+  "211505": {
+   "id": "5686",
+   "nombre": "Pagarés",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2115"
+  },
+  "211510": {
+   "id": "5687",
+   "nombre": "Aceptaciones financieras",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2115"
+  },
+  "211515": {
+   "id": "5688",
+   "nombre": "Cartas de crédito",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2115"
+  },
+  "211520": {
+   "id": "5689",
+   "nombre": "Contratos de arrendamiento financiero (leasing)",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2115"
+  },
+  "2120": {
+   "id": "5418",
+   "nombre": "Compañías de financiamiento comercial",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "21"
+  },
+  "212005": {
+   "id": "5690",
+   "nombre": "Pagarés",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2120"
+  },
+  "212010": {
+   "id": "5691",
+   "nombre": "Aceptaciones financieras",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2120"
+  },
+  "212020": {
+   "id": "5692",
+   "nombre": "Contratos de arrendamiento financiero (leasing)",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2120"
+  },
+  "2125": {
+   "id": "5419",
+   "nombre": "Corporaciones de ahorro y vivienda",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "21"
+  },
+  "2130": {
+   "id": "5420",
+   "nombre": "Entidades financieras del exterior",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "21"
+  },
+  "2135": {
+   "id": "5421",
+   "nombre": "Compromisos de recompra de inversiones negociadas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "21"
+  },
+  "2140": {
+   "id": "5422",
+   "nombre": "Compromisos de recompra de cartera negociada",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "21"
+  },
+  "2145": {
+   "id": "5423",
+   "nombre": "Obligaciones gubernamentales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "21"
+  },
+  "214505": {
+   "id": "5693",
+   "nombre": "Gobierno Nacional",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2145"
+  },
+  "214510": {
+   "id": "5694",
+   "nombre": "Entidades oficiales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2145"
+  },
+  "2195": {
+   "id": "5424",
+   "nombre": "Otras obligaciones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "21"
+  },
+  "219505": {
+   "id": "6295",
+   "nombre": "Particulares",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2195"
+  },
+  "2105": {
+   "id": "5415",
+   "nombre": "Bancos nacionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "21"
+  },
+  "210505": {
+   "id": "5676",
+   "nombre": "Sobregiros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2105"
+  },
+  "210510": {
+   "id": "5677",
+   "nombre": "Pagarés",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2105"
+  },
+  "210515": {
+   "id": "5678",
+   "nombre": "Cartas de crédito",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2105"
+  },
+  "210520": {
+   "id": "5679",
+   "nombre": "Aceptaciones bancarias",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2105"
+  },
+  "210525": {
+   "id": "5680",
+   "nombre": "Tarjetas con entidades bancarias",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "2105"
+  },
+  "210530": {
+   "id": "5681",
+   "nombre": "Préstamos bancarios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "2105"
+  },
+  "21053001": {
+   "id": "6044",
+   "nombre": "Préstamos bancarios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "210530"
+  },
+  "3": {
+   "id": "5301",
+   "nombre": "Patrimonio",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": null
+  },
+  "31": {
+   "id": "5325",
+   "nombre": "Capital social",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "3"
+  },
+  "3105": {
+   "id": "5482",
+   "nombre": "Capital suscrito y pagado",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "31"
+  },
+  "310505": {
+   "id": "5784",
+   "nombre": "Capital suscrito y pagado",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3105"
+  },
+  "31050501": {
+   "id": "6105",
+   "nombre": "Capital autorizado",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "310505"
+  },
+  "310510": {
+   "id": "5785",
+   "nombre": "Capital por suscribir (DB)",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "3105"
+  },
+  "31051001": {
+   "id": "6106",
+   "nombre": "Capital por suscribir (DB)",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "310510"
+  },
+  "310515": {
+   "id": "5786",
+   "nombre": "Capital suscrito por cobrar (DB)",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "3105"
+  },
+  "31051501": {
+   "id": "6107",
+   "nombre": "Capital suscrito por cobrar (DB)",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "310515"
+  },
+  "3120": {
+   "id": "5483",
+   "nombre": "Capital asignado",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "31"
+  },
+  "3125": {
+   "id": "5484",
+   "nombre": "Inversión suplementaria al capital asignado",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "31"
+  },
+  "3135": {
+   "id": "5485",
+   "nombre": "Aportes del Estado",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "31"
+  },
+  "32": {
+   "id": "5326",
+   "nombre": "Superávit de capital",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "3"
+  },
+  "3205": {
+   "id": "5486",
+   "nombre": "Prima en colocación de acciones, cuotas o partes de interés social",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "32"
+  },
+  "320505": {
+   "id": "5787",
+   "nombre": "Prima en colocación de acciones",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3205"
+  },
+  "32050501": {
+   "id": "6108",
+   "nombre": "Prima en colocación de acciones",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "320505"
+  },
+  "320510": {
+   "id": "5788",
+   "nombre": "Prima en colocación de acciones por cobrar (DB)",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "3205"
+  },
+  "32051001": {
+   "id": "6109",
+   "nombre": "Prima en colocación de acciones por cobrar (DB)",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "320510"
+  },
+  "320525": {
+   "id": "5789",
+   "nombre": "Superávit método de participación",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "3205"
+  },
+  "32052501": {
+   "id": "6110",
+   "nombre": "Superávit método de participación",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "320525"
+  },
+  "3210": {
+   "id": "5487",
+   "nombre": "Donaciones",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "32"
+  },
+  "33": {
+   "id": "5327",
+   "nombre": "Reservas",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "3"
+  },
+  "3305": {
+   "id": "5488",
+   "nombre": "Reservas obligatorias",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "33"
+  },
+  "330505": {
+   "id": "5790",
+   "nombre": "Reservas obligatorias",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3305"
+  },
+  "33050501": {
+   "id": "6111",
+   "nombre": "Reserva legal",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "330505"
+  },
+  "330515": {
+   "id": "5791",
+   "nombre": "Reserva para readquisición de acciones",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3305"
+  },
+  "330516": {
+   "id": "5792",
+   "nombre": "Acciones propias readquiridas (DB)",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "3305"
+  },
+  "3310": {
+   "id": "5489",
+   "nombre": "Reservas estatutarias",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "33"
+  },
+  "3315": {
+   "id": "5490",
+   "nombre": "Reservas ocasionales",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "33"
+  },
+  "34": {
+   "id": "5328",
+   "nombre": "Revalorización del patrimonio",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "3"
+  },
+  "3405": {
+   "id": "5491",
+   "nombre": "Ajustes por inflación",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "34"
+  },
+  "340505": {
+   "id": "5793",
+   "nombre": "De capital social",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3405"
+  },
+  "340510": {
+   "id": "5794",
+   "nombre": "De superávit de capital",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3405"
+  },
+  "340515": {
+   "id": "5795",
+   "nombre": "De reservas",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3405"
+  },
+  "340520": {
+   "id": "5796",
+   "nombre": "De resultados de ejercicios anteriores",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3405"
+  },
+  "340545": {
+   "id": "5797",
+   "nombre": "Superávit método de participación",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3405"
+  },
+  "35": {
+   "id": "5329",
+   "nombre": "Dividendos o participaciones decretados en acciones, cuotas o partes d",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "3"
+  },
+  "3505": {
+   "id": "5492",
+   "nombre": "Dividendos decretados en acciones",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "35"
+  },
+  "3510": {
+   "id": "5493",
+   "nombre": "Participaciones decretadas en cuotas o partes de interés social",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "35"
+  },
+  "36": {
+   "id": "5330",
+   "nombre": "Resultados del ejercicio",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "3"
+  },
+  "3605": {
+   "id": "5494",
+   "nombre": "Utilidad del ejercicio",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "36"
+  },
+  "360505": {
+   "id": "5798",
+   "nombre": "Utilidad del ejercicio",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3605"
+  },
+  "36050501": {
+   "id": "6112",
+   "nombre": "Utilidad del ejercicio",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "360505"
+  },
+  "3610": {
+   "id": "5495",
+   "nombre": "Pérdida del ejercicio",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "36"
+  },
+  "361005": {
+   "id": "5799",
+   "nombre": "Pérdida del ejercicio",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "3610"
+  },
+  "36100501": {
+   "id": "6113",
+   "nombre": "Pérdida del ejercicio",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "361005"
+  },
+  "37": {
+   "id": "5331",
+   "nombre": "Resultados de ejercicios anteriores",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3"
+  },
+  "3705": {
+   "id": "5496",
+   "nombre": "Utilidades acumuladas",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "37"
+  },
+  "370505": {
+   "id": "5800",
+   "nombre": "Utilidades acumuladas",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3705"
+  },
+  "37050501": {
+   "id": "6114",
+   "nombre": "Utilidades acumuladas",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "370505"
+  },
+  "3710": {
+   "id": "5497",
+   "nombre": "Pérdidas acumuladas",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "37"
+  },
+  "371005": {
+   "id": "5801",
+   "nombre": "Pérdidas acumuladas",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3710"
+  },
+  "37100501": {
+   "id": "6115",
+   "nombre": "Pérdidas acumuladas",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "371005"
+  },
+  "38": {
+   "id": "5332",
+   "nombre": "Superávit por valorizaciones",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "3"
+  },
+  "3805": {
+   "id": "5498",
+   "nombre": "De inversiones",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "38"
+  },
+  "380505": {
+   "id": "5802",
+   "nombre": "Acciones",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3805"
+  },
+  "3810": {
+   "id": "5499",
+   "nombre": "De propiedades, planta y equipo",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "38"
+  },
+  "3895": {
+   "id": "5500",
+   "nombre": "De otros activos",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "38"
+  },
+  "39": {
+   "id": "5333",
+   "nombre": "Ajustes por saldos iniciales",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "3"
+  },
+  "3905": {
+   "id": "5501",
+   "nombre": "Ajustes por saldos iniciales",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "39"
+  },
+  "390505": {
+   "id": "5803",
+   "nombre": "Ajustes iniciales",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "3905"
+  },
+  "39050501": {
+   "id": "6116",
+   "nombre": "Ajustes iniciales en bancos",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "390505"
+  },
+  "39050502": {
+   "id": "6117",
+   "nombre": "Ajustes iniciales en inventario",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "390505"
+  },
+  "4": {
+   "id": "5302",
+   "nombre": "Ingresos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": null
+  },
+  "41": {
+   "id": "5334",
+   "nombre": "Ingresos de actividades ordinarias",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4"
+  },
+  "4101": {
+   "id": "5502",
+   "nombre": "Ingresos por ventas",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "41"
+  },
+  "413505": {
+   "id": "5804",
+   "nombre": "Ingresos por ventas",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4101"
+  },
+  "41350101": {
+   "id": "6118",
+   "nombre": "Ventas",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "413505"
+  },
+  "4175": {
+   "id": "5503",
+   "nombre": "Devoluciones en ventas",
+   "tipo": "income",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "41"
+  },
+  "417505": {
+   "id": "5805",
+   "nombre": "Devoluciones en ventas",
+   "tipo": "income",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "4175"
+  },
+  "41750501": {
+   "id": "6119",
+   "nombre": "Devoluciones en ventas",
+   "tipo": "income",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "417505"
+  },
+  "42": {
+   "id": "5335",
+   "nombre": "Otros ingresos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4"
+  },
+  "4205": {
+   "id": "5504",
+   "nombre": "Otras ventas",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4210": {
+   "id": "5505",
+   "nombre": "Financieros",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "421005": {
+   "id": "5806",
+   "nombre": "Intereses",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4210"
+  },
+  "42100501": {
+   "id": "6120",
+   "nombre": "Intereses",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "421005"
+  },
+  "421010": {
+   "id": "5807",
+   "nombre": "Reajuste monetario-UPAC (hoy UVR)",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4210"
+  },
+  "421015": {
+   "id": "5808",
+   "nombre": "Descuentos amortizados",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4210"
+  },
+  "421020": {
+   "id": "5809",
+   "nombre": "Diferencia en cambio",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4210"
+  },
+  "42102001": {
+   "id": "6121",
+   "nombre": "Diferencia en cambio",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "421020"
+  },
+  "421025": {
+   "id": "5810",
+   "nombre": "Financiación vehículos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4210"
+  },
+  "421045": {
+   "id": "5811",
+   "nombre": "Descuentos bancarios",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4210"
+  },
+  "421050": {
+   "id": "5812",
+   "nombre": "Comisiones cheques de otras plazas",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4210"
+  },
+  "4215": {
+   "id": "5506",
+   "nombre": "Dividendos y participaciones",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4218": {
+   "id": "5507",
+   "nombre": "Ingresos método de participación",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4220": {
+   "id": "5508",
+   "nombre": "Arrendamientos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4225": {
+   "id": "5509",
+   "nombre": "Comisiones",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4230": {
+   "id": "5510",
+   "nombre": "Honorarios",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4235": {
+   "id": "5511",
+   "nombre": "Servicios",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4245": {
+   "id": "5512",
+   "nombre": "Utilidad en venta de propiedades, planta y equipo",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "42"
+  },
+  "424505": {
+   "id": "5813",
+   "nombre": "Utilidad en venta de propiedades, planta y equipo",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4245"
+  },
+  "42450501": {
+   "id": "6122",
+   "nombre": "Utilidad en venta de activos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "424505"
+  },
+  "4248": {
+   "id": "5513",
+   "nombre": "Utilidad en venta de otros bienes",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4250": {
+   "id": "5514",
+   "nombre": "Recuperaciones",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4255": {
+   "id": "5515",
+   "nombre": "Indemnizaciones",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4260": {
+   "id": "5516",
+   "nombre": "Participaciones en concesiones",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "4295": {
+   "id": "5517",
+   "nombre": "Diversos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "42"
+  },
+  "429581": {
+   "id": "5814",
+   "nombre": "Ajuste al peso",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "4295"
+  },
+  "42958101": {
+   "id": "6123",
+   "nombre": "Ajustes por aproximaciones en cálculos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "429581"
+  },
+  "47": {
+   "id": "5336",
+   "nombre": "Ajustes por inflación",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "4"
+  },
+  "4705": {
+   "id": "5518",
+   "nombre": "Corrección monetaria",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": "47"
+  },
+  "5": {
+   "id": "5303",
+   "nombre": "Gastos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": null
+  },
+  "52": {
+   "id": "5338",
+   "nombre": "Operacionales de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "5"
+  },
+  "5295": {
+   "id": "6290",
+   "nombre": "Diversos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "52"
+  },
+  "529505": {
+   "id": "6291",
+   "nombre": "Comisiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5295"
+  },
+  "5235": {
+   "id": "6287",
+   "nombre": "Servicios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "52"
+  },
+  "523550": {
+   "id": "6296",
+   "nombre": "Transporte, fletes y acarreos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5235"
+  },
+  "523560": {
+   "id": "6289",
+   "nombre": "Publicidad, propaganda y promoción",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5235"
+  },
+  "5205": {
+   "id": "5534",
+   "nombre": "Gastos de personal",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "52"
+  },
+  "520503": {
+   "id": "5918",
+   "nombre": "Salario integral",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52050301": {
+   "id": "6190",
+   "nombre": "Salario integral",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520503"
+  },
+  "520506": {
+   "id": "5919",
+   "nombre": "Sueldos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52050601": {
+   "id": "6191",
+   "nombre": "Sueldos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520506"
+  },
+  "520512": {
+   "id": "5920",
+   "nombre": "Jornales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "520515": {
+   "id": "5921",
+   "nombre": "Horas extras y recargos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52051501": {
+   "id": "6192",
+   "nombre": "Horas extras y recargos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520515"
+  },
+  "520518": {
+   "id": "5922",
+   "nombre": "Comisiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52051801": {
+   "id": "6193",
+   "nombre": "Comisiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520518"
+  },
+  "520521": {
+   "id": "5923",
+   "nombre": "Viáticos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "520524": {
+   "id": "5924",
+   "nombre": "Incapacidades",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52052401": {
+   "id": "6194",
+   "nombre": "Incapacidades",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520524"
+  },
+  "520527": {
+   "id": "5925",
+   "nombre": "Auxilio de transporte",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52052701": {
+   "id": "6195",
+   "nombre": "Auxilio de transporte",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520527"
+  },
+  "520530": {
+   "id": "5926",
+   "nombre": "Cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52053001": {
+   "id": "6196",
+   "nombre": "Cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520530"
+  },
+  "520533": {
+   "id": "5927",
+   "nombre": "Intereses sobre cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52053301": {
+   "id": "6197",
+   "nombre": "Intereses sobre cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520533"
+  },
+  "520536": {
+   "id": "5928",
+   "nombre": "Prima de servicios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52053601": {
+   "id": "6198",
+   "nombre": "Prima de servicios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520536"
+  },
+  "520539": {
+   "id": "5929",
+   "nombre": "Vacaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52053901": {
+   "id": "6199",
+   "nombre": "Vacaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520539"
+  },
+  "520542": {
+   "id": "5930",
+   "nombre": "Primas extralegales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "520545": {
+   "id": "5931",
+   "nombre": "Auxilios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "520548": {
+   "id": "5932",
+   "nombre": "Bonificaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "520551": {
+   "id": "5933",
+   "nombre": "Dotación y suministro a trabajadores",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52055101": {
+   "id": "6200",
+   "nombre": "Dotación y suministro a trabajadores",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520551"
+  },
+  "520554": {
+   "id": "5934",
+   "nombre": "Seguros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "520560": {
+   "id": "5935",
+   "nombre": "Indemnizaciones laborales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "520563": {
+   "id": "5936",
+   "nombre": "Capacitación al personal",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "520566": {
+   "id": "5937",
+   "nombre": "Gastos deportivos y de recreación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "520568": {
+   "id": "5938",
+   "nombre": "Aportes a administradoras de riesgos laborales, ARL",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52056801": {
+   "id": "6201",
+   "nombre": "Aportes a ARL personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520568"
+  },
+  "520569": {
+   "id": "5939",
+   "nombre": "Aportes a entidades promotoras de salud, EPS",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52056901": {
+   "id": "6202",
+   "nombre": "Aportes a EPS personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520569"
+  },
+  "520570": {
+   "id": "5940",
+   "nombre": "Aportes a fondos de pensiones y/o cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52057001": {
+   "id": "6203",
+   "nombre": "Aportes fondo de pensiones y cesantías personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520570"
+  },
+  "520572": {
+   "id": "5941",
+   "nombre": "Aportes cajas de compensación familiar",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52057201": {
+   "id": "6204",
+   "nombre": "Aportes cajas de compensación familiar personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520572"
+  },
+  "520575": {
+   "id": "5942",
+   "nombre": "Aportes ICBF",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52057501": {
+   "id": "6205",
+   "nombre": "Aportes ICBF personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520575"
+  },
+  "520578": {
+   "id": "5943",
+   "nombre": "Aportes SENA",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52057801": {
+   "id": "6206",
+   "nombre": "Aportes SENA personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520578"
+  },
+  "520584": {
+   "id": "5944",
+   "nombre": "Gastos médicos y drogas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "520595": {
+   "id": "5945",
+   "nombre": "Otros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5205"
+  },
+  "52059501": {
+   "id": "6207",
+   "nombre": "Otros gastos del personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "520595"
+  },
+  "53": {
+   "id": "5339",
+   "nombre": "No operacionales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5"
+  },
+  "5305": {
+   "id": "5535",
+   "nombre": "Financieros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "53"
+  },
+  "530505": {
+   "id": "5946",
+   "nombre": "Gastos bancarios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5305"
+  },
+  "53050501": {
+   "id": "6208",
+   "nombre": "Gastos por Intereses financieros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "530505"
+  },
+  "530510": {
+   "id": "5947",
+   "nombre": "Reajuste monetario-UPAC (hoy UVR)",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5305"
+  },
+  "530515": {
+   "id": "5948",
+   "nombre": "Comisiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5305"
+  },
+  "53051501": {
+   "id": "6209",
+   "nombre": "Comisiones bancarias",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "530515"
+  },
+  "530520": {
+   "id": "5949",
+   "nombre": "Intereses",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5305"
+  },
+  "53052001": {
+   "id": "6210",
+   "nombre": "Gastos por Intereses de mora",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "530520"
+  },
+  "530525": {
+   "id": "5950",
+   "nombre": "Diferencia en cambio",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5305"
+  },
+  "53052501": {
+   "id": "6211",
+   "nombre": "Pérdida por diferencia en cambio",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "530525"
+  },
+  "530530": {
+   "id": "5951",
+   "nombre": "Gastos en negociación certificados de cambio",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5305"
+  },
+  "530535": {
+   "id": "5952",
+   "nombre": "Descuentos comerciales condicionados",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5305"
+  },
+  "530540": {
+   "id": "5953",
+   "nombre": "Gastos manejo y emisión de bonos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5305"
+  },
+  "530545": {
+   "id": "5954",
+   "nombre": "Prima amortizada",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5305"
+  },
+  "5310": {
+   "id": "5536",
+   "nombre": "Pérdida en venta y retiro de bienes",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "53"
+  },
+  "531005": {
+   "id": "5955",
+   "nombre": "Venta de inversiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5310"
+  },
+  "531010": {
+   "id": "5956",
+   "nombre": "Venta de cartera",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5310"
+  },
+  "531015": {
+   "id": "5957",
+   "nombre": "Venta de propiedades, planta y equipo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5310"
+  },
+  "53101501": {
+   "id": "6212",
+   "nombre": "Pérdida en venta de Activos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "531015"
+  },
+  "531020": {
+   "id": "5958",
+   "nombre": "Venta de intangibles",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5310"
+  },
+  "531025": {
+   "id": "5959",
+   "nombre": "Venta de otros activos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5310"
+  },
+  "531030": {
+   "id": "5960",
+   "nombre": "Retiro de propiedades, planta y equipo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5310"
+  },
+  "53103001": {
+   "id": "6213",
+   "nombre": "Pérdida por disposición de activos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "531030"
+  },
+  "531035": {
+   "id": "5961",
+   "nombre": "Retiro de otros activos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5310"
+  },
+  "531040": {
+   "id": "5962",
+   "nombre": "Pérdidas por siniestros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5310"
+  },
+  "5313": {
+   "id": "5537",
+   "nombre": "Pérdidas método de participación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "53"
+  },
+  "5315": {
+   "id": "5538",
+   "nombre": "Gastos extraordinarios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "53"
+  },
+  "531505": {
+   "id": "5963",
+   "nombre": "Costas y procesos judiciales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5315"
+  },
+  "531510": {
+   "id": "5964",
+   "nombre": "Actividades culturales y cívicas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5315"
+  },
+  "531515": {
+   "id": "5965",
+   "nombre": "Costos y gastos de ejercicios anteriores",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5315"
+  },
+  "531520": {
+   "id": "5966",
+   "nombre": "Impuestos asumidos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5315"
+  },
+  "5395": {
+   "id": "5539",
+   "nombre": "Gastos diversos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "53"
+  },
+  "539505": {
+   "id": "5967",
+   "nombre": "Demandas laborales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5395"
+  },
+  "539510": {
+   "id": "5968",
+   "nombre": "Demandas por incumplimiento de contratos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5395"
+  },
+  "539515": {
+   "id": "5969",
+   "nombre": "Indemnizaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5395"
+  },
+  "539520": {
+   "id": "5970",
+   "nombre": "Multas, sanciones y litigios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5395"
+  },
+  "539525": {
+   "id": "5971",
+   "nombre": "Donaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5395"
+  },
+  "539530": {
+   "id": "5972",
+   "nombre": "Constitución de garantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5395"
+  },
+  "539535": {
+   "id": "5973",
+   "nombre": "Amortización de bienes entregados en comodato",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5395"
+  },
+  "539540": {
+   "id": "5974",
+   "nombre": "Ajustes por aproximaciones en cálculos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5395"
+  },
+  "53954001": {
+   "id": "6214",
+   "nombre": "Ajustes por aproximaciones en cálculos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "539540"
+  },
+  "54": {
+   "id": "5340",
+   "nombre": "Impuesto de renta y complementarios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5"
+  },
+  "5405": {
+   "id": "5540",
+   "nombre": "Impuesto de renta y complementarios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "54"
+  },
+  "540505": {
+   "id": "5975",
+   "nombre": "Impuesto de renta y complementarios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5405"
+  },
+  "5410": {
+   "id": "5541",
+   "nombre": "Impuestos no acreditables",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "54"
+  },
+  "541005": {
+   "id": "5976",
+   "nombre": "Impuestos no acreditables",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5410"
+  },
+  "54100501": {
+   "id": "6215",
+   "nombre": "Gastos por impuestos no acreditables",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "541005"
+  },
+  "5415": {
+   "id": "5542",
+   "nombre": "Retención en la fuente asumida",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "54"
+  },
+  "541505": {
+   "id": "5977",
+   "nombre": "Retención en la fuente asumida",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5415"
+  },
+  "54150501": {
+   "id": "6216",
+   "nombre": "Retención en la fuente asumida",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "541505"
+  },
+  "59": {
+   "id": "5341",
+   "nombre": "Ganancias y pérdidas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "5"
+  },
+  "5905": {
+   "id": "5543",
+   "nombre": "Ganancias y pérdidas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "59"
+  },
+  "590505": {
+   "id": "5978",
+   "nombre": "Ganancias y pérdidas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5905"
+  },
+  "51": {
+   "id": "5337",
+   "nombre": "Operacionales de administración",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "5"
+  },
+  "5145": {
+   "id": "5527",
+   "nombre": "Mantenimiento y reparaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "514505": {
+   "id": "5882",
+   "nombre": "Terrenos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5145"
+  },
+  "514510": {
+   "id": "5883",
+   "nombre": "Construcciones y edificaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5145"
+  },
+  "51451001": {
+   "id": "6169",
+   "nombre": "Construcciones y edificaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "514510"
+  },
+  "514515": {
+   "id": "5884",
+   "nombre": "Maquinaria y equipo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5145"
+  },
+  "51451501": {
+   "id": "6170",
+   "nombre": "Maquinaria y equipo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "514515"
+  },
+  "514520": {
+   "id": "5885",
+   "nombre": "Equipo de oficina",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5145"
+  },
+  "51452001": {
+   "id": "6171",
+   "nombre": "Equipo de oficina",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "514520"
+  },
+  "514525": {
+   "id": "5886",
+   "nombre": "Equipo de computación y comunicación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5145"
+  },
+  "51452501": {
+   "id": "6172",
+   "nombre": "Equipo de computación y comunicación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "514525"
+  },
+  "5150": {
+   "id": "5528",
+   "nombre": "Adecuación e instalación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "515005": {
+   "id": "5887",
+   "nombre": "Instalaciones eléctricas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5150"
+  },
+  "515015": {
+   "id": "5888",
+   "nombre": "Reparaciones locativas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5150"
+  },
+  "5155": {
+   "id": "5529",
+   "nombre": "Gastos de viaje",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "515505": {
+   "id": "5889",
+   "nombre": "Alojamiento y manutención",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5155"
+  },
+  "51550501": {
+   "id": "6173",
+   "nombre": "Alojamiento y manutención",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "515505"
+  },
+  "515510": {
+   "id": "5890",
+   "nombre": "Pasajes fluviales y/o marítimos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5155"
+  },
+  "515515": {
+   "id": "5891",
+   "nombre": "Pasajes aéreos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5155"
+  },
+  "51551501": {
+   "id": "6174",
+   "nombre": "Pasajes aéreos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "515515"
+  },
+  "515520": {
+   "id": "5892",
+   "nombre": "Pasajes terrestres",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5155"
+  },
+  "515525": {
+   "id": "5893",
+   "nombre": "Pasajes férreos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5155"
+  },
+  "5160": {
+   "id": "5530",
+   "nombre": "Depreciaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "516005": {
+   "id": "5894",
+   "nombre": "Construcciones y edificaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5160"
+  },
+  "51600501": {
+   "id": "6175",
+   "nombre": "Construcciones y edificaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "516005"
+  },
+  "516010": {
+   "id": "5895",
+   "nombre": "Maquinaria y equipo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5160"
+  },
+  "51601001": {
+   "id": "6176",
+   "nombre": "Maquinaria y equipo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "516010"
+  },
+  "516015": {
+   "id": "5896",
+   "nombre": "Equipo de oficina",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5160"
+  },
+  "51601501": {
+   "id": "6177",
+   "nombre": "Equipo de oficina",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "516015"
+  },
+  "51601502": {
+   "id": "6178",
+   "nombre": "Muebles y enseres",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "516015"
+  },
+  "516020": {
+   "id": "5897",
+   "nombre": "Equipo de computación y comunicación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5160"
+  },
+  "51602001": {
+   "id": "6179",
+   "nombre": "Equipo de computación y comunicación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "516020"
+  },
+  "516035": {
+   "id": "5898",
+   "nombre": "Flota y equipo de transporte",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5160"
+  },
+  "51603501": {
+   "id": "6180",
+   "nombre": "Flota y equipo de transporte",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "516035"
+  },
+  "5165": {
+   "id": "5531",
+   "nombre": "Amortizaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "516510": {
+   "id": "5899",
+   "nombre": "Intangibles",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5165"
+  },
+  "51651001": {
+   "id": "6181",
+   "nombre": "Intangibles",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "516510"
+  },
+  "516515": {
+   "id": "5900",
+   "nombre": "Cargos diferidos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5165"
+  },
+  "5195": {
+   "id": "5532",
+   "nombre": "Diversos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "519505": {
+   "id": "5901",
+   "nombre": "Comisiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "519510": {
+   "id": "5902",
+   "nombre": "Libros, suscripciones, periódicos y revistas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "519520": {
+   "id": "5903",
+   "nombre": "Gastos de representación y relaciones públicas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "51952001": {
+   "id": "6182",
+   "nombre": "Gastos de representación y relaciones públicas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "519520"
+  },
+  "519525": {
+   "id": "5904",
+   "nombre": "Elementos de aseo y cafetería",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "51952501": {
+   "id": "6183",
+   "nombre": "Elementos de aseo y cafetería",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "519525"
+  },
+  "519530": {
+   "id": "5905",
+   "nombre": "Útiles, papelería y fotocopias",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "51953001": {
+   "id": "6184",
+   "nombre": "Útiles, papelería y fotocopias",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "519530"
+  },
+  "519535": {
+   "id": "5906",
+   "nombre": "Combustibles y lubricantes",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "51953501": {
+   "id": "6185",
+   "nombre": "Combustibles y lubricantes",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "519535"
+  },
+  "519540": {
+   "id": "5907",
+   "nombre": "Envases y empaques",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "519545": {
+   "id": "5908",
+   "nombre": "Taxis y buses",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "51954501": {
+   "id": "6186",
+   "nombre": "Taxis y buses",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "519545"
+  },
+  "519550": {
+   "id": "5909",
+   "nombre": "Estampillas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "519560": {
+   "id": "5910",
+   "nombre": "Casino y restaurante",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "519565": {
+   "id": "5911",
+   "nombre": "Parqueaderos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "51956501": {
+   "id": "6187",
+   "nombre": "Parqueaderos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "519565"
+  },
+  "519570": {
+   "id": "5912",
+   "nombre": "Indemnización por daños a terceros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "519595": {
+   "id": "5913",
+   "nombre": "Servicios Online",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5195"
+  },
+  "51959501": {
+   "id": "6188",
+   "nombre": "Software contables",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "519595"
+  },
+  "5199": {
+   "id": "5533",
+   "nombre": "Provisiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "519905": {
+   "id": "5914",
+   "nombre": "Inversiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5199"
+  },
+  "519910": {
+   "id": "5915",
+   "nombre": "Deudores",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5199"
+  },
+  "51991001": {
+   "id": "6189",
+   "nombre": "Deudores",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "519910"
+  },
+  "519915": {
+   "id": "5916",
+   "nombre": "Propiedades, planta y equipo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5199"
+  },
+  "519995": {
+   "id": "5917",
+   "nombre": "Otros activos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5199"
+  },
+  "5105": {
+   "id": "5519",
+   "nombre": "Gastos de personal",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "510503": {
+   "id": "5815",
+   "nombre": "Salario integral",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51050301": {
+   "id": "6124",
+   "nombre": "Salario integral",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510503"
+  },
+  "510506": {
+   "id": "5816",
+   "nombre": "Sueldos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51050601": {
+   "id": "6125",
+   "nombre": "Sueldos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510506"
+  },
+  "510512": {
+   "id": "5817",
+   "nombre": "Jornales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "510515": {
+   "id": "5818",
+   "nombre": "Horas extras y recargos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51051501": {
+   "id": "6126",
+   "nombre": "Horas extras y recargos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510515"
+  },
+  "510518": {
+   "id": "5819",
+   "nombre": "Comisiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51051801": {
+   "id": "6127",
+   "nombre": "Comisiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510518"
+  },
+  "510521": {
+   "id": "5820",
+   "nombre": "Viáticos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "510524": {
+   "id": "5821",
+   "nombre": "Incapacidades",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51052401": {
+   "id": "6128",
+   "nombre": "Incapacidades",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510524"
+  },
+  "510527": {
+   "id": "5822",
+   "nombre": "Auxilio de transporte",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51052701": {
+   "id": "6129",
+   "nombre": "Auxilio de transporte",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510527"
+  },
+  "510530": {
+   "id": "5823",
+   "nombre": "Cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51053001": {
+   "id": "6130",
+   "nombre": "Cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510530"
+  },
+  "510533": {
+   "id": "5824",
+   "nombre": "Intereses sobre cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51053301": {
+   "id": "6131",
+   "nombre": "Intereses sobre cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510533"
+  },
+  "510536": {
+   "id": "5825",
+   "nombre": "Prima de servicios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51053601": {
+   "id": "6132",
+   "nombre": "Prima de servicios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510536"
+  },
+  "510539": {
+   "id": "5826",
+   "nombre": "Vacaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51053901": {
+   "id": "6133",
+   "nombre": "Vacaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510539"
+  },
+  "510542": {
+   "id": "5827",
+   "nombre": "Primas extralegales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "510545": {
+   "id": "5828",
+   "nombre": "Auxilios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "510548": {
+   "id": "5829",
+   "nombre": "Bonificaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "510551": {
+   "id": "5830",
+   "nombre": "Dotación y suministro a trabajadores",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51055101": {
+   "id": "6134",
+   "nombre": "Dotación y suministro a trabajadores",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510551"
+  },
+  "510554": {
+   "id": "5831",
+   "nombre": "Seguros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "510560": {
+   "id": "5832",
+   "nombre": "Indemnizaciones laborales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "510563": {
+   "id": "5833",
+   "nombre": "Capacitación al personal",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "510566": {
+   "id": "5834",
+   "nombre": "Gastos deportivos y de recreación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "510568": {
+   "id": "5835",
+   "nombre": "Aportes a administradoras de riesgos laborales, ARL",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51056801": {
+   "id": "6135",
+   "nombre": "Aportes a ARL",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510568"
+  },
+  "510569": {
+   "id": "5836",
+   "nombre": "Aportes a entidades promotoras de salud, EPS",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51056901": {
+   "id": "6136",
+   "nombre": "Aportes a EPS",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510569"
+  },
+  "510570": {
+   "id": "5837",
+   "nombre": "Aportes a fondos de pensiones y/o cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51057001": {
+   "id": "6137",
+   "nombre": "Aportes fondo de pensiones y cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510570"
+  },
+  "510572": {
+   "id": "5838",
+   "nombre": "Aportes cajas de compensación familiar",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51057201": {
+   "id": "6138",
+   "nombre": "Aportes cajas de compensación familiar",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510572"
+  },
+  "510575": {
+   "id": "5839",
+   "nombre": "Aportes ICBF",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51057501": {
+   "id": "6139",
+   "nombre": "Aportes ICBF",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510575"
+  },
+  "510578": {
+   "id": "5840",
+   "nombre": "Aportes SENA",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51057801": {
+   "id": "6140",
+   "nombre": "Aportes SENA",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510578"
+  },
+  "510584": {
+   "id": "5841",
+   "nombre": "Gastos médicos y drogas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "510595": {
+   "id": "5842",
+   "nombre": "Otros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5105"
+  },
+  "51059501": {
+   "id": "6141",
+   "nombre": "Otros gastos del personal administrativo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "510595"
+  },
+  "5110": {
+   "id": "5520",
+   "nombre": "Honorarios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "511005": {
+   "id": "5843",
+   "nombre": "Junta directiva",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5110"
+  },
+  "51100501": {
+   "id": "6142",
+   "nombre": "Junta directiva",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "511005"
+  },
+  "511010": {
+   "id": "5844",
+   "nombre": "Revisoría fiscal",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5110"
+  },
+  "511015": {
+   "id": "5845",
+   "nombre": "Auditoría externa",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5110"
+  },
+  "511020": {
+   "id": "5846",
+   "nombre": "Avalúos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5110"
+  },
+  "511025": {
+   "id": "5847",
+   "nombre": "Asesoría jurídica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5110"
+  },
+  "51102501": {
+   "id": "6143",
+   "nombre": "Asesoría jurídica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "511025"
+  },
+  "511030": {
+   "id": "5848",
+   "nombre": "Asesoría financiera",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5110"
+  },
+  "51103001": {
+   "id": "6144",
+   "nombre": "Asesoría financiera",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "511030"
+  },
+  "511035": {
+   "id": "5849",
+   "nombre": "Asesoría técnica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5110"
+  },
+  "51103501": {
+   "id": "6145",
+   "nombre": "Asesoría técnica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "511035"
+  },
+  "511095": {
+   "id": "5850",
+   "nombre": "Otros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5110"
+  },
+  "51109501": {
+   "id": "6146",
+   "nombre": "Otros honorarios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "511095"
+  },
+  "5115": {
+   "id": "5521",
+   "nombre": "Impuestos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "511505": {
+   "id": "5851",
+   "nombre": "Industria y comercio",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5115"
+  },
+  "51150501": {
+   "id": "6147",
+   "nombre": "Industria y comercio",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "511505"
+  },
+  "511510": {
+   "id": "5852",
+   "nombre": "De timbres",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5115"
+  },
+  "511515": {
+   "id": "5853",
+   "nombre": "A la propiedad raíz",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5115"
+  },
+  "511540": {
+   "id": "5854",
+   "nombre": "De vehículos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5115"
+  },
+  "511570": {
+   "id": "5855",
+   "nombre": "IVA descontable",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5115"
+  },
+  "51157001": {
+   "id": "6148",
+   "nombre": "IVA descontable",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "511570"
+  },
+  "5120": {
+   "id": "5522",
+   "nombre": "Arrendamientos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "512005": {
+   "id": "5856",
+   "nombre": "Arrendamiento",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5120"
+  },
+  "51200501": {
+   "id": "6149",
+   "nombre": "Arrendamiento de equipos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "512005"
+  },
+  "51200502": {
+   "id": "6150",
+   "nombre": "Arrendamiento de Oficinas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "512005"
+  },
+  "5125": {
+   "id": "5523",
+   "nombre": "Contribuciones y afiliaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "512505": {
+   "id": "5857",
+   "nombre": "Contribuciones y afiliaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5125"
+  },
+  "51250501": {
+   "id": "6151",
+   "nombre": "Cuotas y suscripciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "512505"
+  },
+  "5130": {
+   "id": "5524",
+   "nombre": "Seguros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "513020": {
+   "id": "5858",
+   "nombre": "Vida colectiva",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5130"
+  },
+  "51302001": {
+   "id": "6152",
+   "nombre": "Vida colectiva",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513020"
+  },
+  "513025": {
+   "id": "5859",
+   "nombre": "Incendio",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5130"
+  },
+  "51302501": {
+   "id": "6153",
+   "nombre": "Incendio",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513025"
+  },
+  "513030": {
+   "id": "5860",
+   "nombre": "Terremoto",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5130"
+  },
+  "513035": {
+   "id": "5861",
+   "nombre": "Sustracción y hurto",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5130"
+  },
+  "513040": {
+   "id": "5862",
+   "nombre": "Flota y equipo de transporte",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5130"
+  },
+  "51304001": {
+   "id": "6154",
+   "nombre": "Flota y equipo de transporte",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513040"
+  },
+  "513060": {
+   "id": "5863",
+   "nombre": "Responsabilidad civil y extracontractual",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5130"
+  },
+  "513075": {
+   "id": "5864",
+   "nombre": "Obligatorio accidente de tránsito",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5130"
+  },
+  "51307501": {
+   "id": "6155",
+   "nombre": "Obligatorio accidente de tránsito",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513075"
+  },
+  "513080": {
+   "id": "5865",
+   "nombre": "Lucro cesante",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5130"
+  },
+  "513085": {
+   "id": "5866",
+   "nombre": "Transporte de mercancía",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5130"
+  },
+  "5135": {
+   "id": "5525",
+   "nombre": "Servicios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "513505": {
+   "id": "5867",
+   "nombre": "Aseo y vigilancia",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "51350501": {
+   "id": "6156",
+   "nombre": "Aseo y vigilancia",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513505"
+  },
+  "513510": {
+   "id": "5868",
+   "nombre": "Temporales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "513515": {
+   "id": "5869",
+   "nombre": "Asistencia técnica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "51351501": {
+   "id": "6157",
+   "nombre": "Asistencia técnica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513515"
+  },
+  "513520": {
+   "id": "5870",
+   "nombre": "Procesamiento electrónico de datos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "513525": {
+   "id": "5871",
+   "nombre": "Acueducto y alcantarillado",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "51352501": {
+   "id": "6158",
+   "nombre": "Acueducto y alcantarillado",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513525"
+  },
+  "513530": {
+   "id": "5872",
+   "nombre": "Energía eléctrica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "51353001": {
+   "id": "6159",
+   "nombre": "Energía eléctrica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513530"
+  },
+  "513535": {
+   "id": "5873",
+   "nombre": "Teléfono",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "51353501": {
+   "id": "6160",
+   "nombre": "Teléfono",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513535"
+  },
+  "513540": {
+   "id": "5874",
+   "nombre": "Correo, portes y telegramas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "513550": {
+   "id": "5875",
+   "nombre": "Transporte, fletes y acarreos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "51355001": {
+   "id": "6161",
+   "nombre": "Transporte, fletes y acarreos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513550"
+  },
+  "513555": {
+   "id": "5876",
+   "nombre": "Gas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "51355501": {
+   "id": "6162",
+   "nombre": "Gas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513555"
+  },
+  "513595": {
+   "id": "5877",
+   "nombre": "Otros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5135"
+  },
+  "51359501": {
+   "id": "6163",
+   "nombre": "Agua",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513595"
+  },
+  "51359502": {
+   "id": "6164",
+   "nombre": "Propaganda y publicidad",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513595"
+  },
+  "51359503": {
+   "id": "6165",
+   "nombre": "Otros servicios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "513595"
+  },
+  "5140": {
+   "id": "5526",
+   "nombre": "Gastos legales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "51"
+  },
+  "514010": {
+   "id": "5879",
+   "nombre": "Registro mercantil",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5140"
+  },
+  "51401001": {
+   "id": "6167",
+   "nombre": "Registro mercantil",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "514010"
+  },
+  "514015": {
+   "id": "5880",
+   "nombre": "Trámites y licencias",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5140"
+  },
+  "51401501": {
+   "id": "6168",
+   "nombre": "Trámites y licencias",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "514015"
+  },
+  "514020": {
+   "id": "5881",
+   "nombre": "Aduaneros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5140"
+  },
+  "514005": {
+   "id": "5878",
+   "nombre": "Notariales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5140"
+  },
+  "51400501": {
+   "id": "6166",
+   "nombre": "Notariales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "514005"
+  },
+  "6": {
+   "id": "5304",
+   "nombre": "Costos de ventas",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": null
+  },
+  "61": {
+   "id": "5342",
+   "nombre": "Costo de ventas y de prestación de servicios",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "6"
+  },
+  "6101": {
+   "id": "5544",
+   "nombre": "Costos de ventas",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "61"
+  },
+  "610105": {
+   "id": "5979",
+   "nombre": "Costos de la mercancía vendida",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "6101"
+  },
+  "61010501": {
+   "id": "6217",
+   "nombre": "Costo del inventario",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "610105"
+  },
+  "6102": {
+   "id": "5545",
+   "nombre": "Costos de servicios",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "61"
+  },
+  "610205": {
+   "id": "5980",
+   "nombre": "Costos de servicios",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "6102"
+  },
+  "61020501": {
+   "id": "6218",
+   "nombre": "Costo de los servicios vendidos",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "610205"
+  },
+  "6135": {
+   "id": "5546",
+   "nombre": "Comercio al por mayor y al por menor",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "61"
+  },
+  "6180": {
+   "id": "5547",
+   "nombre": "Ajustes",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "61"
+  },
+  "618005": {
+   "id": "5981",
+   "nombre": "Ajustes de inventario",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "6180"
+  },
+  "61800501": {
+   "id": "6219",
+   "nombre": "Ajustes de inventario",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "618005"
+  },
+  "618010": {
+   "id": "5982",
+   "nombre": "Descuentos financieros",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "6180"
+  },
+  "61801001": {
+   "id": "6220",
+   "nombre": "Descuentos financieros",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "618010"
+  },
+  "62": {
+   "id": "5343",
+   "nombre": "Compras",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "6"
+  },
+  "6205": {
+   "id": "5548",
+   "nombre": "De mercancías",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "62"
+  },
+  "6210": {
+   "id": "5549",
+   "nombre": "De materias primas",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "62"
+  },
+  "6215": {
+   "id": "5550",
+   "nombre": "De materiales indirectos",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "62"
+  },
+  "6220": {
+   "id": "5551",
+   "nombre": "Compra de energía",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "62"
+  },
+  "6225": {
+   "id": "5552",
+   "nombre": "Devoluciones en compras (CR)",
+   "tipo": "cost",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "62"
+  },
+  "622505": {
+   "id": "5983",
+   "nombre": "Devoluciones en compras",
+   "tipo": "cost",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "6225"
+  },
+  "62250501": {
+   "id": "6221",
+   "nombre": "Devoluciones en compras de inventario",
+   "tipo": "cost",
+   "naturaleza": "credit",
+   "movimiento": true,
+   "padre": "622505"
+  },
+  "7": {
+   "id": "5305",
+   "nombre": "Costos de producción",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": null
+  },
+  "71": {
+   "id": "5344",
+   "nombre": "Costos de producción o de operación",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "7"
+  },
+  "7105": {
+   "id": "5553",
+   "nombre": "Costos de producción o de operación",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "71"
+  },
+  "710505": {
+   "id": "5984",
+   "nombre": "Costos de producción o de operación",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "7105"
+  },
+  "71050501": {
+   "id": "6222",
+   "nombre": "Materia prima",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "710505"
+  },
+  "72": {
+   "id": "5345",
+   "nombre": "Mano de obra directa",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "7"
+  },
+  "7205": {
+   "id": "5554",
+   "nombre": "Mano de obra directa",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "72"
+  },
+  "720506": {
+   "id": "5985",
+   "nombre": "Sueldos personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72050601": {
+   "id": "6223",
+   "nombre": "Sueldos personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720506"
+  },
+  "720515": {
+   "id": "5986",
+   "nombre": "Horas extras y recargos personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72051501": {
+   "id": "6224",
+   "nombre": "Horas extras y recargos personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720515"
+  },
+  "720524": {
+   "id": "5987",
+   "nombre": "Incapacidades personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72052401": {
+   "id": "6225",
+   "nombre": "Incapacidades personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720524"
+  },
+  "720527": {
+   "id": "5988",
+   "nombre": "Auxilio de transporte personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72052701": {
+   "id": "6226",
+   "nombre": "Auxilio de transporte personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720527"
+  },
+  "720530": {
+   "id": "5989",
+   "nombre": "Cesantías personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72053001": {
+   "id": "6227",
+   "nombre": "Cesantías personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720530"
+  },
+  "720533": {
+   "id": "5990",
+   "nombre": "Intereses sobre cesantías personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72053301": {
+   "id": "6228",
+   "nombre": "Intereses sobre cesantías personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720533"
+  },
+  "720536": {
+   "id": "5991",
+   "nombre": "Prima de servicios personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72053601": {
+   "id": "6229",
+   "nombre": "Prima de servicios personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720536"
+  },
+  "720539": {
+   "id": "5992",
+   "nombre": "Vacaciones personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72053901": {
+   "id": "6230",
+   "nombre": "Vacaciones personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720539"
+  },
+  "720551": {
+   "id": "5993",
+   "nombre": "Dotación a trabajadores personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72055101": {
+   "id": "6231",
+   "nombre": "Dotación a trabajadores personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720551"
+  },
+  "720568": {
+   "id": "5994",
+   "nombre": "Aportes a ARL personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72056801": {
+   "id": "6232",
+   "nombre": "Aportes a ARL personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720568"
+  },
+  "720569": {
+   "id": "5995",
+   "nombre": "Aportes a EPS personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72056901": {
+   "id": "6233",
+   "nombre": "Aportes a EPS personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720569"
+  },
+  "720570": {
+   "id": "5996",
+   "nombre": "Aportes fondo de pensiones y cesantías personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72057001": {
+   "id": "6234",
+   "nombre": "Aportes fondo de pensiones y cesantías personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720570"
+  },
+  "720572": {
+   "id": "5997",
+   "nombre": "Aportes cajas de compensación familiar personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72057201": {
+   "id": "6235",
+   "nombre": "Aportes cajas de compensación familiar personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720572"
+  },
+  "720575": {
+   "id": "5998",
+   "nombre": "Aportes ICBF personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72057501": {
+   "id": "6236",
+   "nombre": "Aportes ICBF personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720575"
+  },
+  "720578": {
+   "id": "5999",
+   "nombre": "Aportes SENA personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72057801": {
+   "id": "6237",
+   "nombre": "Aportes SENA personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720578"
+  },
+  "720595": {
+   "id": "6000",
+   "nombre": "Otros gastos del personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "7205"
+  },
+  "72059501": {
+   "id": "6238",
+   "nombre": "Otros gastos del personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "720595"
+  },
+  "73": {
+   "id": "5346",
+   "nombre": "Costos indirectos",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "7"
+  },
+  "74": {
+   "id": "5347",
+   "nombre": "Contratos de servicios",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "movimiento": false,
+   "padre": "7"
+  },
+  "8": {
+   "id": "5306",
+   "nombre": "Cuentas de orden",
+   "tipo": "order",
+   "naturaleza": "credit",
+   "movimiento": false,
+   "padre": null
+  }
+ }
+}

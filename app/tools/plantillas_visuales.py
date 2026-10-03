@@ -330,6 +330,31 @@ def guardar_plantilla(body: dict) -> dict:
     return entry
 
 
+def renombrar_plantilla(pid: str, nombre_nuevo: str) -> dict:
+    """Cambia solo el título de una plantilla guardada, sin tocar su diseño.
+
+    Va aparte de `guardar_plantilla` porque esa reescribe la entrada completa:
+    un POST que solo llevara el nombre dejaría formato y elementos vacíos.
+    """
+    pid = (pid or "").strip()
+    if not pid:
+        raise ValueError("Falta el id de la plantilla")
+    nombre_nuevo = " ".join((nombre_nuevo or "").split())[:120]
+    if not nombre_nuevo:
+        raise ValueError("El nombre no puede quedar vacío")
+
+    items = _load_all()
+    entry = next((p for p in items if p.get("id") == pid), None)
+    if entry is None:
+        raise ValueError("Plantilla no encontrada")
+    if entry.get("nombre") == nombre_nuevo:
+        return entry
+    entry["nombre"] = nombre_nuevo
+    entry["updated_at"] = _now()
+    _save_all(items)
+    return entry
+
+
 def eliminar_plantilla(pid: str) -> bool:
     pid = (pid or "").strip()
     if not pid:

@@ -33,6 +33,8 @@ export default function FacturacionPanel() {
   const { user } = useTicketsAuth();
   const panel = useAppStore((s) => s.panel);
   const setFacturasBootVista = useAppStore((s) => s.setFacturasBootVista);
+  // Cotizar/Facturar sin menú: se ocultan también estas pestañas.
+  const cotizarEnfoque = useAppStore((s) => s.cotizarEnfoque);
 
   const puedeSync = Boolean(puedeVerModuloContabilidad(user, "sync"));
   const puedeFacturas = Boolean(puedeVerModuloContabilidad(user, "facturas"));
@@ -99,7 +101,8 @@ export default function FacturacionPanel() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className={`flex min-h-0 flex-1 flex-col ${cotizarEnfoque && sub === "directo" ? "" : "gap-4"}`}>
+      {!(cotizarEnfoque && sub === "directo") && (
       <div
         className="flex flex-wrap gap-1 rounded-xl border border-border bg-surface-panel p-1"
         role="tablist"
@@ -125,8 +128,9 @@ export default function FacturacionPanel() {
           );
         })}
       </div>
+      )}
 
-      <div className="min-h-0 flex-1">
+      <div className={cotizarEnfoque && sub === "directo" ? "flex min-h-0 flex-1 flex-col overflow-y-auto" : "min-h-0 flex-1"}>
         <Suspense fallback={<Cargando />}>
           {sub === "sync" ? (
             <SyncPanel />

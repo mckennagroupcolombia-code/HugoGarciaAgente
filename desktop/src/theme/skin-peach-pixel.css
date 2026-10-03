@@ -1,0 +1,272 @@
+/*
+ * «Princesa Peach» (26-sep-2026; reemplaza a Sakura, que se retiró): interfaz de videojuego retro
+ * en pastel, como el menú de una consola puesto sobre un tablero de organización.
+ * La forma base (esquinas, bordes de 2 px, sombras de bloque) viene de skin-pixel.css; aquí va lo
+ * propio: la paleta, las ventanas con marco doble, los detalles de consola y el papel cuadriculado.
+ * El acento (#A8486E) viaja en línea sobre <html> (theme/applyTheme.ts).
+ * Va después de skin-pixel.css (main.tsx) y sin @layer: manda sobre index.css.
+ *
+ *   Rosa empolvado   #F4C2D0   protagonista: menú, cabezote, hover
+ *   Rosa ciruela     #A8486E   acento: botones y pestaña activa (letra blanca 5,4:1)
+ *   Azul cielo       #A7D8F0   pestañas al pasar, encabezados, selección
+ *   Mantequilla      #FFE9A0   contadores, resaltes, corona
+ *   Crema / marfil   #FFF8EC   papel y ventanas
+ *   Ciruela oscuro   #4A2040   textos, bordes y sombras
+ */
+
+/* ─── Claro ────────────────────────────────────────────────────────────────── */
+html[data-mck-skin="peach"]:not(.dark) {
+  --mck-surface: 255 250 240;
+  --mck-surface-panel: 255 253 247;
+  --mck-surface-input: 255 255 255;
+  --mck-surface-hover: 252 226 234;
+  --mck-ink: 74 32 64;
+  --mck-ink-secondary: 110 53 96;
+  --mck-ink-muted: 128 78 110;
+  --mck-muted: 128 78 110;
+  --mck-border: 74 32 64;
+  --mck-border-strong: 74 32 64;
+  --mck-title: 74 32 64;
+  --mck-subtitle: 128 78 110;
+  /* Estos también se usan como TEXTO: tonos que se leen sobre el marfil. */
+  --mck-accent-rose: 168 72 110;
+  --mck-accent-plum: 74 32 64;
+  --mck-accent-sun: 143 69 0;
+  --mck-accent-sky: 31 104 148;
+  --mck-success: 0 107 63;
+  --mck-sombra: 74 32 64;
+  --mck-shadow-paper: 3px 3px 0 rgb(74 32 64);
+  --mck-shadow-paper-sm: 2px 2px 0 rgb(74 32 64);
+  --mck-shadow-paper-lg: 5px 5px 0 rgb(74 32 64);
+  --mck-cuadricula: 250 234 239;
+  --mck-menu-bg: 244 194 208;
+  --mck-menu-text: 74 32 64;
+  --mck-menu-active-bg: 168 72 110;
+  --mck-menu-active-text: 255 255 255;
+  --mck-submenu-bg: 252 228 236;
+  --mck-submenu-text: 74 32 64;
+  --mck-card-bg: 255 253 247;
+  --mck-section-bg: 253 240 244;
+  /* Propios del tema */
+  --peach-rosa: 244 194 208;
+  --peach-cielo: 167 216 240;
+  --peach-mantequilla: 255 233 160;
+  --peach-crema: 255 248 236;
+  --peach-marco: 232 160 180;
+  --peach-camino: 74 32 64;
+}
+
+/* ─── Oscuro: el castillo de noche, contornos rosa empolvado ──────────────── */
+html[data-mck-skin="peach"].dark {
+  --mck-surface: 30 14 28;
+  --mck-surface-panel: 52 25 48;
+  --mck-surface-input: 40 19 37;
+  --mck-surface-hover: 80 38 72;
+  --mck-ink: 255 240 232;
+  --mck-ink-secondary: 244 194 208;
+  --mck-ink-muted: 214 170 190;
+  --mck-muted: 214 170 190;
+  --mck-border: 232 160 180;
+  --mck-border-strong: 244 194 208;
+  --mck-title: 255 233 160;
+  --mck-subtitle: 214 170 190;
+  --mck-accent-rose: 244 160 190;
+  --mck-accent-plum: 244 160 190;
+  --mck-accent-sun: 255 233 160;
+  --mck-accent-sky: 167 216 240;
+  --mck-success: 120 220 150;
+  --mck-sombra: 12 4 11;
+  --mck-shadow-paper: 3px 3px 0 rgb(12 4 11);
+  --mck-shadow-paper-sm: 2px 2px 0 rgb(12 4 11);
+  --mck-shadow-paper-lg: 5px 5px 0 rgb(12 4 11);
+  --mck-cuadricula: 46 22 42;
+  --mck-menu-bg: 44 20 40;
+  --mck-menu-text: 244 194 208;
+  --mck-menu-active-bg: 168 72 110;
+  --mck-menu-active-text: 255 255 255;
+  --mck-submenu-bg: 30 14 28;
+  --mck-submenu-text: 244 194 208;
+  --mck-card-bg: 52 25 48;
+  --mck-section-bg: 30 14 28;
+  --peach-rosa: 110 53 96;
+  --peach-cielo: 46 74 107;
+  --peach-mantequilla: 255 233 160;
+  --peach-crema: 52 25 48;
+  --peach-marco: 110 53 96;
+  --peach-camino: 232 160 180;
+}
+
+/* ─── Fondo: papel marfil cuadriculado, líneas rosadas muy tenues ─────────── */
+html[data-mck-skin="peach"] body,
+html[data-mck-skin="peach"].dark body {
+  background:
+    linear-gradient(rgb(var(--mck-cuadricula)) 1px, transparent 1px) 0 0 / 20px 20px,
+    linear-gradient(90deg, rgb(var(--mck-cuadricula)) 1px, transparent 1px) 0 0 / 20px 20px,
+    rgb(var(--mck-surface));
+}
+
+/* Esquinas CASI cuadradas (la base pixel las deja en 0). */
+html[data-mck-skin="peach"] [class*="rounded"]:not(.rounded-full),
+html[data-mck-skin="peach"] .rounded-full[class*="px-"],
+html[data-mck-skin="peach"] :is(.mck-card, .lm-card, .mck-nav-item, .mck-hub-tab, .mck-btn) {
+  border-radius: 3px !important;
+}
+
+/* ─── Ventanas retro: marco doble y sombra corta desplazada ────────────────── */
+/* Contorno ciruela + filete interior rosa separado por una línea de papel. */
+html[data-mck-skin="peach"] :is(.mck-card, .lm-card, :is(.rounded-2xl, .rounded-3xl).border),
+html[data-mck-skin="peach"].dark :is(.mck-card, .lm-card, :is(.rounded-2xl, .rounded-3xl).border) {
+  border: 2px solid rgb(var(--mck-border));
+  box-shadow:
+    inset 0 0 0 2px rgb(var(--mck-card-bg)),
+    inset 0 0 0 4px rgb(var(--peach-marco)),
+    4px 4px 0 rgb(var(--mck-sombra));
+}
+html[data-mck-skin="peach"] .mck-card-interactive:hover {
+  transform: translate(-1px, -1px);
+  box-shadow:
+    inset 0 0 0 2px rgb(var(--mck-card-bg)),
+    inset 0 0 0 4px rgb(var(--peach-mantequilla)),
+    5px 5px 0 rgb(var(--mck-sombra));
+}
+
+/* ─── Composición de mapa: etapas unidas por línea discontinua y flecha ──── */
+/* Tarjetas apiladas una tras otra: entre ellas, el camino al siguiente nivel. */
+html[data-mck-skin="peach"] :is(.space-y-4, .space-y-5, .space-y-6) > .mck-card:not(.overflow-hidden) + .mck-card:not(.overflow-hidden) {
+  position: relative;
+}
+html[data-mck-skin="peach"] :is(.space-y-4, .space-y-5, .space-y-6) > .mck-card:not(.overflow-hidden) + .mck-card:not(.overflow-hidden)::before {
+  content: "";
+  position: absolute;
+  left: 28px;
+  top: -16px;
+  width: 0;
+  height: 12px;
+  border-left: 2px dashed rgb(var(--peach-camino));
+  pointer-events: none;
+}
+html[data-mck-skin="peach"] :is(.space-y-4, .space-y-5, .space-y-6) > .mck-card:not(.overflow-hidden) + .mck-card:not(.overflow-hidden)::after {
+  content: "";
+  position: absolute;
+  left: 25px;
+  top: -6px;
+  border: 4px solid transparent;
+  border-top: 5px solid rgb(var(--peach-camino));
+  border-bottom: 0;
+  pointer-events: none;
+}
+/* Separadores y bordes punteados: el trazo discontinuo del mapa. */
+html[data-mck-skin="peach"] hr { border: 0; border-top: 2px dashed rgb(var(--mck-border) / 0.55); }
+html[data-mck-skin="peach"] .border-dashed { border-color: rgb(var(--mck-border) / 0.7); }
+/* La miga de pan como recorrido de etapas. */
+html[data-mck-skin="peach"] .mck-flujo-miga::before { content: "▶ "; color: rgb(var(--mck-accent)); }
+
+/* ─── Cabezote y menú: rosa empolvado ──────────────────────────────────────── */
+html[data-mck-skin="peach"] .mck-header-glass {
+  background: rgb(var(--peach-rosa));
+  backdrop-filter: none;
+  border-bottom: 3px solid rgb(var(--mck-sombra));
+  box-shadow: 0 3px 0 rgb(var(--peach-marco));
+}
+html[data-mck-skin="peach"].dark .mck-header-glass { background: rgb(var(--mck-surface-panel)); }
+html[data-mck-skin="peach"] aside.mck-sidebar {
+  background: rgb(var(--mck-menu-bg));
+  border-right: 3px solid rgb(var(--mck-sombra));
+}
+
+/* Títulos: mayúsculas en negrita, con una corona pixel delante en vez del cuadrito. */
+html[data-mck-skin="peach"] :is(.mck-header-glass h1, .mck-title) {
+  text-transform: uppercase;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em;
+}
+html[data-mck-skin="peach"] .mck-title::before,
+html[data-mck-skin="peach"] main[data-piso] .mck-title::before {
+  width: 18px;
+  height: 14px;
+  margin-right: 12px;
+  vertical-align: -1px;
+  box-shadow: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 7' shape-rendering='crispEdges'%3E%3Cpath fill='%23FFD95A' d='M0 1h1v4H0zM4 0h1v5H4zM8 1h1v4H8zM1 3h7v2H1zM0 5h9v2H0z'/%3E%3Cpath fill='%23E8A0B4' d='M4 5h1v1H4z'/%3E%3Cpath fill='%23A7D8F0' d='M2 5h1v1H2zM6 5h1v1H6z'/%3E%3C/svg%3E") center / contain no-repeat !important;
+  filter:
+    drop-shadow(1px 0 0 #4A2040) drop-shadow(-1px 0 0 #4A2040)
+    drop-shadow(0 1px 0 #4A2040) drop-shadow(0 -1px 0 #4A2040)
+    drop-shadow(2px 2px 0 #4A2040);
+}
+html[data-mck-skin="peach"].dark :is(.mck-header-glass h1, .mck-title) {
+  background: none;
+  color: rgb(var(--mck-title));
+  -webkit-text-fill-color: currentColor;
+}
+
+/* ─── Botones compactos, como los de un menú de consola ───────────────────── */
+html[data-mck-skin="peach"] :is(.mck-btn-primary, :is(button, a, label).bg-accent),
+html[data-mck-skin="peach"].dark :is(.mck-btn-primary, :is(button, a, label).bg-accent) {
+  background-color: rgb(var(--mck-accent));
+  color: #fff;
+  border: 2px solid rgb(var(--mck-sombra));
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.18), 3px 3px 0 rgb(var(--mck-sombra));
+}
+html[data-mck-skin="peach"] :is(.mck-btn, .mck-btn-primary) {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 800;
+}
+html[data-mck-skin="peach"] main button.border:not(.rounded-full):not(:disabled):not(.bg-accent):hover {
+  background-color: rgb(var(--peach-mantequilla));
+  color: #4A2040;
+}
+
+/* Menú lateral: la opción activa lleva el cursor ▶ de un menú de juego. */
+html[data-mck-skin="peach"] .mck-nav-item.is-active,
+html[data-mck-skin="peach"].dark .mck-nav-item.is-active {
+  background: rgb(var(--mck-accent)) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 5' shape-rendering='crispEdges'%3E%3Cpath fill='%23FFE9A0' d='M0 0h1v5H0zM1 1h1v3H1zM2 2h1v1H2z'/%3E%3C/svg%3E") 4px center / 5px 8px no-repeat;
+  color: #fff;
+  box-shadow: 2px 2px 0 rgb(var(--mck-sombra));
+}
+html[data-mck-skin="peach"] .mck-nav-item:not(.is-active):hover { background: rgb(var(--peach-mantequilla)); color: #4A2040; }
+
+/* Pestañas: crema; al pasar, azul cielo; la activa, rosa ciruela. */
+html[data-mck-skin="peach"] .mck-hub-tab:not(.is-active) { background: rgb(var(--peach-crema)); }
+html[data-mck-skin="peach"] .mck-hub-tab:not(.is-active):hover { background: rgb(var(--peach-cielo)); }
+html[data-mck-skin="peach"] .mck-hub-tab.is-active { background: rgb(var(--mck-accent)); color: #fff; }
+
+/* ─── Detalles monoespaciados: contadores, encabezados, placas ──────────────── */
+html[data-mck-skin="peach"] :is(thead th, .mck-piso-placa, .mck-flujo-conteo, .mck-flujo-miga, kbd, code) {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+html[data-mck-skin="peach"] thead th {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgb(var(--peach-cielo) / 0.45);
+  color: rgb(var(--mck-ink));
+  border-bottom: 2px solid rgb(var(--mck-sombra));
+}
+/* Indicadores numéricos: casilla mantequilla con contorno ciruela, como un contador de monedas. */
+html[data-mck-skin="peach"] .mck-flujo-conteo {
+  border-radius: 0 !important;
+  background: rgb(255 233 160);
+  color: #4A2040;
+  border: 1.5px solid #4A2040;
+  box-shadow: 1px 1px 0 #4A2040;
+}
+html[data-mck-skin="peach"] .mck-piso-placa { background: #4A2040; color: #FFE9A0; }
+
+/* ─── Foco, selección y desplazamiento ────────────────────────────────────── */
+html[data-mck-skin="peach"] :is(input, select, textarea, button, a):focus-visible {
+  outline: 3px solid #FFD95A;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 5px rgb(var(--mck-sombra));
+}
+html[data-mck-skin="peach"] ::selection { background: #A7D8F0; color: #4A2040; }
+html[data-mck-skin="peach"] ::-webkit-scrollbar-thumb {
+  background: rgb(232 160 180);
+  border: 2px solid rgb(var(--mck-surface));
+}
+
+/* En oscuro, el acento como TEXTO va en rosa claro (el #A8486E es para fondos). */
+html[data-mck-skin="peach"].dark :is(.text-accent, .hover\:text-accent:hover) { color: #F4A0BE; }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-mck-skin="peach"] .mck-card-interactive:hover { transform: none; }
+}

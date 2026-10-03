@@ -96,7 +96,7 @@ SIIGO_FOTOS_FILE = Path(__file__).parent / "data/siigo_fotos.json"
 EXTRA_SIIGO_WEB_FILE = Path(__file__).parent / "data/catalogo_extra_siigo.json"
 PUB_OVERRIDES_FILE = ROOT / "app" / "data" / "publicaciones_overrides.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
-CATALOG_CACHE_VERSION = 15      # v15 = tienda solo con publicaciones MeLi (activas o pausadas)
+CATALOG_CACHE_VERSION = 17      # v17 = familias y nombres del Árbol del producto, orden alfabético (v15: solo publicaciones MeLi)
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
@@ -150,7 +150,26 @@ def cotizar_envio_web(ciudad: str, depto: str, cart: dict) -> dict:
     return _cotizar_envio_ir(ciudad, depto, peso_kg=peso_carrito_kg(cart))
 
 # ── MercadoPago Colombia ─────────────────────────────────
-MP_ACCESS_TOKEN   = os.getenv("MP_ACCESS_TOKEN", "")       # APP_USR-...
+# El token se puede cambiar desde /app → Sistemas → Conexiones, que lo escribe en
+# .env: se relee de ahí (solo cuando el archivo cambia) para no tener que
+# reiniciar la tienda. Si .env no lo trae, vale el del entorno del servicio.
+_mp_token_cache = {"mtime": None, "token": ""}
+
+
+def _mp_token() -> str:
+    env = ROOT / ".env"
+    try:
+        mtime = env.stat().st_mtime
+    except OSError:
+        return os.getenv("MP_ACCESS_TOKEN", "")
+    if _mp_token_cache["mtime"] != mtime:
+        from dotenv import dotenv_values
+
+        _mp_token_cache["token"] = (dotenv_values(env).get("MP_ACCESS_TOKEN") or "").strip()
+        _mp_token_cache["mtime"] = mtime
+    return _mp_token_cache["token"] or os.getenv("MP_ACCESS_TOKEN", "")
+
+
 MP_API            = "https://api.mercadopago.com"
 
 # ── DB órdenes ───────────────────────────────────────────
@@ -218,7 +237,7 @@ CATEGORY_MAP = [
       "prfn"],                                                     "Ceras y Mantecas"),
     (["alcctl","btms","btncc","crlnt","ccmd","tsscc","tsci",
       "pls20","polisb","polsorb","cocamid"],                       "Emulsionantes y Surfactantes"),
-    (["alnt","frbsgl","glc","hyal","niac","dprp",
+    (["alnt","frbsgl","glc","hyal","niac","dprp","dpg",
       "srb500","urcsm"],                                           "Humectantes"),
     (["arc"],                                                      "Arcillas"),
     (["bcarna","ctrca","ctmg","ctrmg","clrmg","ctrzn","salmg",
@@ -226,8 +245,11 @@ CATEGORY_MAP = [
     (["oltk","lctca","gmxtn","gmxnt","brxlben","slfcul"],          "Minerales"),
     (["dpnt","vtmb","vtmc","vtma","vtmd","vtme"],                  "Vitaminas"),
     (["bcaa","clgnhd","crtnmnh","els","gltssnbr","prtasl",
-      "gelat","albhv","larg","lglt","lisl","lprl",
+      "gelat","albhv","albhue","larg","lglt","lisl","lprl",
       "ltrp","trn250"],                                            "Suplementarios"),
+    (["almnat","arades","cocdeshil","mannattos","nuebra",
+      "pistos","semcal"],                                          "Frutos secos y semillas"),
+    (["salmar","salros"],                                          "Especias, sales y condimentos"),
     (["cfn","extalvr","extgsn","extmlt","extemtc","mltdxtr",
       "mltdxlb","algna","cmcph","cmclb","coloid","extmat",
       "gmsn","actnalb","agag","almyc","cpsvcglt","dxdtlb",
@@ -281,6 +303,8 @@ CAT_A_LINEA: dict[str, str] = {
     "Excipientes": "Alimentario",
     "Edulcorantes": "Alimentario",
     "Saborizantes": "Alimentario",
+    "Frutos secos y semillas": "Alimentario",
+    "Especias, sales y condimentos": "Alimentario",
     "Minerales": "Industria",
     "Conservantes": "Industria",
     "Antisépticos": "Industria",
@@ -1807,16 +1831,29 @@ def _dedupe_by_presentation(items: list[dict]) -> tuple[list[dict], dict[str, di
     return ordered, alias_to_kept
 
 
+_SIGLAS_CATALOGO = {"BCAA", "USP", "EDTA", "MSM", "PEG", "DHA", "EPA", "HPMC", "CMC", "SLS", "SLES", "AHA", "BHA", "PH", "EP", "NF"}
+
+
 def _title_catalog_es(nombre: str) -> str:
     small = {"de", "del", "la", "el", "los", "las", "y", "en", "con", "para", "o", "a"}
     parts = (nombre or "").strip().split()
     out = []
+
+    def _cap(w: str) -> str:
+        # «L-ARGININA» → «L-Arginina», «(M)» → «(M)», siglas («BCAA») intactas.
+        if w.strip("()").upper() in _SIGLAS_CATALOGO:
+            return w.upper().replace("PH", "pH")
+        return "-".join(
+            (t[:1].upper() + t[1:].lower()) if not t.startswith("(") else "(" + t[1:2].upper() + t[2:].lower()
+            for t in w.split("-")
+        )
+
     for i, w in enumerate(parts):
         low = w.lower()
         if i > 0 and low in small:
             out.append(low)
         else:
-            out.append(low[:1].upper() + low[1:] if low else w)
+            out.append(_cap(w) if w else w)
     return " ".join(out)
 
 
@@ -1996,12 +2033,132 @@ def _mark_combo_family_meta(combo: dict, *, family_slug: str, has_siblings: bool
     combo["canonical_pres_slug"] = canonical_slug
 
 
+# Familias del Árbol del producto (Studio): materia prima + título del documento técnico.
+# Lo escribe app/services/arbol_producto.py cada vez que se calcula el árbol; si no existe,
+# la tienda agrupa por nombre como antes.
+FAMILIAS_ARBOL_FILE = Path(__file__).parent / "data/familias_arbol.json"
+
+
+def _familias_arbol() -> dict[str, dict]:
+    try:
+        raw = json.loads(FAMILIAS_ARBOL_FILE.read_text(encoding="utf-8"))
+        return raw if isinstance(raw, dict) else {}
+    except Exception:
+        return {}
+
+
+def _orden_alfabetico(txt: str) -> str:
+    """Orden de diccionario: «Ácido ascórbico» va con las «A», no después de la «Z»."""
+    t = unicodedata.normalize("NFD", txt or "")
+    return "".join(c for c in t if unicodedata.category(c) != "Mn").lower()
+
+
+def _con_concentracion(nombre: str, combos: list[dict]) -> str:
+    """El árbol nombra la materia prima («Ácido Láctico»); si todas las presentaciones
+    dicen la misma concentración («85%»), la tarjeta la conserva: al comprador le importa."""
+    pcts = {
+        m.replace(",", ".").replace(" ", "")
+        for c in combos
+        for m in re.findall(r"\d+(?:[.,]\d+)?\s*%", c.get("name") or "")
+    }
+    if len(pcts) == 1:
+        pct = pcts.pop()
+        if pct not in (nombre or "").replace(" ", ""):
+            return f"{nombre} {pct}"
+    return nombre
+
+
+_COLORES_VARIANTE = {"amarilla", "amarillo", "blanca", "blanco", "negra", "negro", "roja", "rojo",
+                     "rosada", "rosado", "verde", "azul", "transparente", "morada", "dorada"}
+
+
+def _unir_por_familia_arbol(
+    groups: dict[str, list[dict]],
+) -> tuple[dict[str, list[dict]], dict[str, str], set[str]]:
+    """El Árbol del producto solo UNE y RENOMBRA: junta grupos por nombre que el árbol
+    trata como la misma materia prima («ACISAL100g» con «Ácido salicílico 500g») y les pone
+    el nombre del árbol. Nunca separa lo que ya estaba junto: si un combo no está en el árbol
+    (alias sin «C-», combo nuevo) sigue con su grupo por nombre."""
+    arbol = _familias_arbol()
+    if not arbol:
+        return groups, {}, set()
+    padre = {k: k for k in groups}
+
+    def raiz(k: str) -> str:
+        while padre[k] != k:
+            padre[k] = padre[padre[k]]
+            k = padre[k]
+        return k
+
+    # Tamaños de cada grupo: si dos grupos comparten uno («L-Carnitina 100g» y «L-Teanina
+    # 100g» con la misma materia prima por un error de receta), unirlos haría que el dedupe
+    # por presentación borre uno de la tienda. En ese caso NO se unen.
+    tamanos: dict[str, set] = {
+        k: {_presentation_label(c.get("name", ""), c.get("ref", "")).lower() for c in items}
+        for k, items in groups.items()
+    }
+    dueno: dict[str, str] = {}
+    familias_de: dict[str, set] = defaultdict(set)
+    for key, items in groups.items():
+        for c in items:
+            fa = arbol.get((c.get("ref") or "").strip().upper()) or {}
+            if not fa.get("familia"):
+                continue
+            fam = (c.get("cat") or "", fa["familia"])
+            if fam not in dueno:
+                dueno[fam] = key
+                familias_de[key].add((fam, fa.get("nombre") or ""))
+                continue
+            a, b = raiz(key), raiz(dueno[fam])
+            if a == b:
+                familias_de[key].add((fam, fa.get("nombre") or ""))
+            elif tamanos[a] & tamanos[b]:
+                log.warning("Árbol: no se une %s con %s (mismo tamaño %s; ¿receta cruzada?)",
+                            c.get("ref"), dueno[fam], sorted(tamanos[a] & tamanos[b]))
+            else:
+                padre[a] = b
+                tamanos[b] |= tamanos[a]
+                familias_de[key].add((fam, fa.get("nombre") or ""))
+
+    unidos: dict[str, list[dict]] = defaultdict(list)
+    fams_unidas: dict[str, set] = defaultdict(set)
+    n_grupos: Counter = Counter()
+    for key, items in groups.items():
+        r = raiz(key)
+        unidos[r].extend(items)
+        fams_unidas[r] |= familias_de.get(key, set())
+        n_grupos[r] += 1
+
+    nombres: dict[str, str] = {}
+    for r, fams in fams_unidas.items():
+        if len({f for f, _ in fams}) != 1:
+            continue  # varias materias primas o ninguna: se queda el nombre de la web
+        nombre = next(iter(fams))[1]
+        if not nombre:
+            continue
+        nombre = _title_catalog_es(nombre)
+        # La variante de color vive en el nombre del combo, no siempre en el del árbol.
+        colores = {
+            w for c in unidos[r] for w in _presentation_family_key(c.get("name", "")).split()
+            if w in _COLORES_VARIANTE
+        }
+        faltan = sorted(w for w in colores if w not in _orden_alfabetico(nombre).split())
+        if len(colores) == 1 and faltan:
+            nombre = f"{nombre} {faltan[0].capitalize()}"
+        nombres[r] = nombre
+    fusionados = {r for r, n in n_grupos.items() if n > 1}
+    return dict(unidos), nombres, fusionados
+
+
 def _agrupar_combos_por_presentacion(
     combo_flat: list[dict], used_slugs: set[str]
 ) -> list[dict]:
     """
     Agrupa combos SIIGO con el mismo título (distinto tamaño) en una ficha.
     Combos únicos quedan como tarjeta is_combo individual.
+
+    Después el Árbol del producto une los grupos de una misma materia prima y les pone su
+    nombre (_unir_por_familia_arbol): así la web y el árbol se leen igual.
     """
     groups: dict[str, list[dict]] = defaultdict(list)
     for c in combo_flat:
@@ -2009,6 +2166,7 @@ def _agrupar_combos_por_presentacion(
         if not key or len(key) < 3:
             key = f"sku:{(c.get('ref') or '').lower()}"
         groups[key].append(c)
+    groups, nombre_grupo, fusionados = _unir_por_familia_arbol(groups)
 
     cards: list[dict] = []
     for key, items in groups.items():
@@ -2020,6 +2178,19 @@ def _agrupar_combos_por_presentacion(
         unique, alias_to_kept = _dedupe_by_presentation(unique_refs)
         if len(unique) >= 2:
             card = _build_family_card(unique, used_slugs)
+            if key in nombre_grupo:
+                card["name"] = _con_concentracion(nombre_grupo[key], unique)
+                if key in fusionados:
+                    # Ficha nueva (el árbol juntó nombres distintos, p. ej. «ACISAL100g» +
+                    # «Ácido salicílico 500g»): URL legible desde el nombre del árbol en vez
+                    # de la del código («acisal»); si la de siempre ya dice más
+                    # («tensoactivo-sci» frente a «sci») se queda la de siempre.
+                    legible = _slug_from_key(_orden_alfabetico(card["name"]))
+                    if len(legible) > len(card["slug"]) and legible not in used_slugs:
+                        used_slugs.add(legible)
+                        card["slug"] = card["family_slug"] = legible
+                        for c in unique:
+                            c["family_slug"] = legible
             for orig in unique_refs:
                 kept = alias_to_kept.get((orig.get("ref") or "").upper()) or unique[0]
                 _mark_combo_family_meta(
@@ -2042,6 +2213,12 @@ def _agrupar_combos_por_presentacion(
                     has_siblings=False,
                     canonical_slug=only.get("slug", ""),
                 )
+            if key in nombre_grupo:
+                # Copia: el combo original conserva su nombre (cache.json y el cruce con MeLi
+                # dependen de él); la tarjeta muestra «Ácido Azelaico 10g» como el árbol.
+                etiqueta = only.get("presentacion_label") or ""
+                nombre = _con_concentracion(nombre_grupo[key], [only])
+                only = {**only, "name": f"{nombre} {etiqueta}".strip()}
             cards.append(only)
     return cards
 
@@ -2193,6 +2370,39 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
     sku_base = re.sub(r"[^A-Za-z0-9]", "", sku_base)
     nombre_clean = _finalize_catalog_name(nombre or "")
     n = _normalizar_match_producto(nombre_clean)
+    # Frutos secos, semillas y frutas deshidratadas: no tenían categoría propia y caían en
+    # «Otros» (almendra, maní, nuez, chía, dátiles, uvas pasas…). Un aceite o extracto DE
+    # semilla (aceite de semilla de uva) sigue siendo aceite: por eso el guardia del inicio.
+    if not n.startswith(("aceite", "extracto", "manteca", "cera ")) and (
+        "almendra" in n
+        or ("nuez" in n and "moscada" not in n)
+        or "nueces" in n
+        or "maranon" in n
+        or "pistacho" in n
+        or "avellana" in n
+        or "macadamia" in n
+        or n.startswith("mani ")
+        or "cacahuate" in n
+        or "pecan" in n
+        or "ajonjoli" in n
+        or "arandano" in n
+        or "cranberry" in n
+        or "coco deshidratado" in n
+        or "semilla" in n
+        or "psyllium" in n
+        or "amaranto" in n
+        or "quinua" in n
+        or "quinoa" in n
+        or "datil" in n
+        or "albaricoque" in n
+        or "goji" in n
+        or "uvas pasas" in n
+        or "uva pasa" in n
+    ):
+        return "Frutos secos y semillas"
+    # Sal de cocina y condimentos: no son «Sales Minerales» (citratos, cloruros de uso técnico).
+    if n.startswith(("sal marina", "sal rosada", "sal de mar")) or "himalaya" in n:
+        return "Especias, sales y condimentos"
     if "aceite esencial" in n or n.startswith("aceite arbol") or "esencial" in n:
         return "Aceites Esenciales"
     if "bomba de vacio" in n or "bomba de vacío" in n:
@@ -2222,7 +2432,16 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         return "Minerales"
     if "colorante" in n:
         return "Saborizantes"
-    if "gotero" in n or "beaker" in n or "revolvedor" in n or "envase de vidrio" in n:
+    if (
+        "gotero" in n
+        or "beaker" in n
+        or "revolvedor" in n
+        or "envase de vidrio" in n
+        or "vaso de precipitado" in n
+        or "espatula" in n
+        or "balanza" in n
+        or "gramera" in n
+    ):
         return "Equipos y Materiales"
     if n.startswith("aceite ") or n.startswith("acete ") or " sebo " in f" {n} " or n.startswith("sebo "):
         return "Aceites"
@@ -2261,6 +2480,7 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "alantoina" in n
         or n.startswith("urea")
         or "sorbitol" in n
+        or "dipropilenglicol" in n
     ):
         return "Humectantes"
     if "arcilla" in n or "caolin" in n or "dioxido titanio" in n or "oxido zinc" in n:
@@ -2275,6 +2495,8 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "taurina" in n
         or "glutamina" in n
         or "prolina" in n
+        or "albumina" in n
+        or "glicina" in n
     ):
         return "Suplementarios"
     if (
@@ -2282,6 +2504,7 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "sorbato" in n
         or "glutaraldehido" in n
         or "sharomix" in n
+        or "metabisulfito" in n
     ):
         return "Conservantes"
     if (
@@ -2303,6 +2526,8 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "embrion pato" in n
         or "elastina" in n
         or "gusano seda" in n
+        or "gusano de seda" in n
+        or "carbon activado" in n
         or "extracto" in n
         or "flores secas" in n
     ):
@@ -2313,8 +2538,12 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "inulina" in n
         or "glutamato" in n
         or "agua destilada" in n
+        or ("alginato" in n and "calcio" not in n)  # alginato + calcio = kit de esferificación
+        or "celulosa microcristalina" in n
     ):
         return "Excipientes"
+    if n.startswith("vaselina"):
+        return "Aceites"
     if n.startswith("vitamina ") or "cianocobalamina" in n:
         return "Vitaminas"
     if "sabor " in n:
@@ -2327,6 +2556,7 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
     by_stem = {
         "ACDASC": "Ácidos",
         "ACDKJC": "Ácidos",
+        "ACISAL": "Ácidos",
         "ACDASCTMG": "Sales Minerales",
         "ACIDESTEARICO": "Ácidos",
         "ACDLACTICO": "Ácidos",
@@ -2742,24 +2972,16 @@ def _catalog_sections_from_combos(combo_flat: list[dict]) -> list[dict]:
     for card in catalog_cards:
         families_by_cat[card.get("cat") or "Otros"].append(card)
 
-    orden = [cat for _, cat in CATEGORY_MAP] + ["Saborizantes", "Otros"]
-    seen_ord, orden_final = set(), []
-    for c in orden:
-        if c not in seen_ord:
-            seen_ord.add(c)
-            orden_final.append(c)
-
+    # Mismo orden que el Árbol del producto: categorías y fichas alfabéticas (sin que la
+    # tilde mande «Ácidos» al final); «Otros» siempre de último.
     result = []
-    for cat in orden_final:
-        if cat in families_by_cat and families_by_cat[cat]:
-            prods = sorted(families_by_cat[cat], key=lambda p: p["name"].lower())
-            result.append({"name": cat, "color": color_categoria(cat), "products": prods})
-    for cat, prods in families_by_cat.items():
-        if cat not in seen_ord and prods:
+    for cat in sorted(families_by_cat, key=lambda c: (c == "Otros", _orden_alfabetico(c))):
+        prods = families_by_cat[cat]
+        if prods:
             result.append({
                 "name": cat,
                 "color": color_categoria(cat),
-                "products": sorted(prods, key=lambda p: p["name"].lower()),
+                "products": sorted(prods, key=lambda p: _orden_alfabetico(p["name"])),
             })
 
     total_f = sum(len(s["products"]) for s in result)
@@ -2904,7 +3126,73 @@ def _rebuild_product_index(data: list, combo_flat: list) -> None:
 
 def get_catalog(force=False) -> list:
     with _catalog_lock:
-        return _get_catalog_locked(force)
+        data = _get_catalog_locked(force)
+    return _catalogo_desplegado(data)
+
+
+# ── Despliegue gradual tras el cese (27-sep-2026, app/services/despliegue_ventas.py) ──
+# Mientras el despliegue esté activo la tienda solo muestra y vende los SKUs que hoy se
+# facturan en Alegra. Se aplica como vista sobre el catálogo en memoria (cache.json no
+# cambia): ampliar la lista se ve en la siguiente petición, sin reconstruir nada.
+_despliegue_memo: dict = {"clave": None, "data": None}
+
+
+def _skus_desplegados() -> set | None:
+    try:
+        from app.services.despliegue_ventas import skus_habilitados
+
+        return skus_habilitados()
+    except Exception as exc:
+        log.warning("Despliegue de ventas ilegible (%s): la tienda se muestra completa", exc)
+        return None
+
+
+def _vista_despliegue(p: dict | None, permitidos: set | None = None) -> dict | None:
+    """El producto tal como debe verse con el despliegue activo, o None si queda oculto.
+    Una familia conserva solo sus presentaciones desplegadas."""
+    if not p:
+        return p
+    if permitidos is None:
+        permitidos = _skus_desplegados()
+    if permitidos is None:
+        return p
+    if not p.get("is_family"):
+        return p if str(p.get("ref") or "").strip().upper() in permitidos else None
+    combos = [c for c in p.get("combos") or [] if str(c.get("ref") or "").strip().upper() in permitidos]
+    if not combos:
+        return None
+    if len(combos) == len(p.get("combos") or []):
+        return p
+    q = dict(p)
+    q["combos"] = combos
+    q["n_presentaciones"] = len(combos)
+    if str(q.get("rep_sku") or "").strip().upper() not in permitidos:
+        rep = min(combos, key=lambda c: float(c.get("precio_num") or 0) or float("inf"))
+        for k in ("ref", "precio_meli", "precio_num", "lista_num", "ahorro", "ahorro_num", "stock", "photo", "photos", "meli_id"):
+            if k in rep:
+                q[k] = rep[k]
+        q["rep_sku"] = rep.get("ref")
+        q["precio"] = ("Desde " if len(combos) > 1 else "") + str(rep.get("precio") or "")
+    elif len(combos) == 1:
+        q["precio"] = str(combos[0].get("precio") or q.get("precio") or "")
+    q["buyable"] = any(c.get("buyable", True) for c in combos)
+    return q
+
+
+def _catalogo_desplegado(data: list) -> list:
+    permitidos = _skus_desplegados()
+    if permitidos is None or not data:
+        return data
+    clave = (id(data), frozenset(permitidos))
+    if _despliegue_memo["clave"] == clave and _despliegue_memo.get("src") is data:
+        return _despliegue_memo["data"]
+    out = []
+    for s in data:
+        prods = [v for v in (_vista_despliegue(p, permitidos) for p in s.get("products") or []) if v]
+        if prods:
+            out.append({**s, "products": prods})
+    _despliegue_memo.update({"clave": clave, "data": out, "src": data})
+    return out
 
 
 def _get_catalog_locked(force=False) -> list:
@@ -3006,10 +3294,10 @@ def find_product(slug_or_sku: str) -> dict | None:
     sl = slug_or_sku.strip().lower()
     p = _product_index.get(sl)
     if p:
-        return p
+        return _vista_despliegue(p)
     for c in _combo_products:
         if c["ref"].lower() == sl:
-            return c
+            return _vista_despliegue(c)
     for x in get_all_products():
         if x["ref"].lower() == sl:
             return x
@@ -3183,7 +3471,7 @@ def mp_crear_preferencia(ref: str, cart: dict, total: float, shipping: float = 0
             f"{MP_API}/checkout/preferences",
             json=payload,
             headers={
-                "Authorization": f"Bearer {MP_ACCESS_TOKEN}",
+                "Authorization": f"Bearer {_mp_token()}",
                 "Content-Type": "application/json",
                 "X-Idempotency-Key": ref,
             },
@@ -3421,13 +3709,21 @@ def _modo_mantenimiento():
         return jsonify({"ok": False, "estado": "mantenimiento"}), 503
     if request.path == "/pago/confirmacion":
         return None  # el IPN de MercadoPago se procesa igual: es dinero ya cobrado
+    # Con «cese» dentro de la bandera (scripts/cese_actividades.py) la página dice que no
+    # se reciben pedidos, en vez de «volvemos en unos minutos».
     try:
-        cuerpo = _MANTENIMIENTO_HTML.read_text(encoding="utf-8")
+        es_cese = "cese" in _MANTENIMIENTO_FLAG.read_text(encoding="utf-8").lower()
+    except OSError:
+        es_cese = False
+    html = _MANTENIMIENTO_HTML.with_name("cese.html") if es_cese else _MANTENIMIENTO_HTML
+    try:
+        cuerpo = html.read_text(encoding="utf-8")
     except OSError:
         cuerpo = "<p>Estamos en mantenimiento. Vuelve en unos minutos.</p>"
     from flask import Response
 
-    return Response(cuerpo, status=503, mimetype="text/html", headers={"Retry-After": "120", "Cache-Control": "no-store"})
+    reintento = "3600" if es_cese else "120"
+    return Response(cuerpo, status=503, mimetype="text/html", headers={"Retry-After": reintento, "Cache-Control": "no-store"})
 
 
 @app.route("/checkout/reanudar/<token>")
@@ -4393,7 +4689,7 @@ def confianza_portada(ruta_origen: dict, colombia: dict) -> list[dict]:
     n_dep = int((colombia or {}).get("n_alcanzados") or 0)
     tot_dep = int((colombia or {}).get("total_departamentos") or 33)
     return [
-        {"icono": "certificate", "titulo": "Importación legal", "cifra": "VUCE + COA por lote", "texto": "Visto bueno INVIMA"},
+        {"icono": "certificate", "titulo": "Importación legal", "cifra": "COA y ficha técnica de lote", "texto": "Permisos según el producto"},
         {"icono": "file-text", "titulo": "Documentación", "cifra": f"{n_tds} fichas técnicas · {n_coa} COA", "texto": "Publicadas en la web"},
         {"icono": "truck", "titulo": "Despachos", "cifra": f"{n_dep} de {tot_dep} departamentos", "texto": "Interrapidísimo con guía"},
         {"icono": "lock", "titulo": "Pago seguro", "cifra": "PSE · tarjetas · Nequi", "texto": "Mercado Pago"},
@@ -4558,10 +4854,144 @@ def _fotos_de_producto(p: dict) -> list[str]:
     return [foto] if foto else []
 
 
+# ── SEO de la ficha de producto ─────────────────────────────────────────────
+# Título, meta descripción y schema.org/Product se arman aquí (no en Jinja) para
+# que el JSON-LD salga con escape correcto. Un producto puntual puede afinar su
+# título/descripción en data/seo_productos.json ({slug: {title, description}});
+# "{precio}" dentro del texto se reemplaza por el precio vigente.
+# Sin gtin a propósito: los EAN de etiquetas son internos (770 + consecutivo
+# propio, no asignados por GS1) y Google Merchant los marca como GTIN inválido.
+SEO_PRODUCTOS_FILE = Path(__file__).parent / "data/seo_productos.json"
+
+
+def _seo_override(slug: str) -> dict:
+    try:
+        raw = json.loads(SEO_PRODUCTOS_FILE.read_text(encoding="utf-8"))
+        ov = raw.get(slug) or {}
+        return ov if isinstance(ov, dict) else {}
+    except Exception:
+        return {}
+
+
+def _url_absoluta(u: str) -> str:
+    u = (u or "").strip()
+    if not u or u.startswith(("http://", "https://")):
+        return u
+    return f"{SITE_URL}/{u.lstrip('/')}"
+
+
+def _producto_seo(p: dict, fotos: list[str]) -> dict:
+    """title, description, canonical y jsonld (lista) de /producto/<slug>."""
+    slug = p.get("slug") or ""
+    nombre = p.get("name") or ""
+    canonical = f"{SITE_URL}/producto/{slug}"
+    precio_num = p.get("precio_num") or 0
+    if p.get("is_family"):
+        combos = [c for c in p.get("combos") or [] if c.get("precio_num")]
+        precios = [float(c["precio_num"]) for c in combos]
+        precio_min = min(precios) if precios else float(precio_num or 0)
+    else:
+        combos, precios, precio_min = [], [], float(precio_num or 0)
+    precio_txt = _fmt_precio(precio_min) if precio_min else ""
+
+    if p.get("is_family"):
+        desc = f"{nombre} en {p.get('n_presentaciones') or len(combos)} presentaciones"
+        desc += f" desde {precio_txt}." if precio_txt else "."
+    elif p.get("is_combo"):
+        desc = f"Compra {nombre} (Ref: {p.get('ref', '')})"
+        desc += f" a {precio_txt}." if precio_txt else "."
+    else:
+        desc = f"Ficha y referencias de {nombre}."
+    desc += " Materia prima con ficha técnica y COA por lote. Despacho a todo Colombia."
+    title = f"{nombre} — Comprar en Colombia | McKenna Group"
+
+    ov = _seo_override(slug)
+    if ov.get("title"):
+        title = str(ov["title"]).replace("{precio}", precio_txt)
+    if ov.get("description"):
+        desc = str(ov["description"]).replace("{precio}", precio_txt)
+
+    cat = p.get("cat") or ""
+    migas = [("Inicio", f"{SITE_URL}/"), ("Catálogo", f"{SITE_URL}/catalogo")]
+    if cat:
+        migas.append((cat, f"{SITE_URL}/catalogo?cat={requests.utils.quote(cat)}"))
+    migas.append((nombre, canonical))
+    jsonld: list[dict] = [{
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": i, "name": n, "item": u}
+            for i, (n, u) in enumerate(migas, start=1)
+        ],
+    }]
+
+    # Google exige offers (o reseñas) en un Product: sin precio no se declara.
+    if precio_min:
+        disponibilidad = (
+            "https://schema.org/InStock" if p.get("buyable", True)
+            else "https://schema.org/OutOfStock"
+        )
+        vendedor = {"@type": "Organization", "name": "McKenna Group S.A.S."}
+        if p.get("is_family") and len(precios) > 1:
+            offers = {
+                "@type": "AggregateOffer",
+                "priceCurrency": "COP",
+                "lowPrice": round(min(precios)),
+                "highPrice": round(max(precios)),
+                "offerCount": len(precios),
+                "availability": disponibilidad,
+                "url": canonical,
+                "seller": vendedor,
+            }
+        else:
+            offers = {
+                "@type": "Offer",
+                "priceCurrency": "COP",
+                "price": round(precio_min),
+                "availability": disponibilidad,
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": canonical,
+                "seller": vendedor,
+            }
+        producto_ld = {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": nombre,
+            "description": (p.get("desc") or "").strip() or desc,
+            "sku": p.get("ref") or p.get("rep_sku") or "",
+            "brand": {"@type": "Brand", "name": "McKenna Group"},
+            "category": cat,
+            "url": canonical,
+            "offers": offers,
+        }
+        imagenes = [_url_absoluta(f) for f in fotos if f][:6]
+        if imagenes:
+            producto_ld["image"] = imagenes
+        jsonld.append(producto_ld)
+
+    return {"title": title, "description": desc, "canonical": canonical, "jsonld": jsonld}
+
+
+def _slug_familia_antigua(slug: str) -> str | None:
+    """Fichas cuyo slug salía de agrupar por nombre («aceite-ricino», «vaselina») y que
+    desde el 28-sep agrupan por la familia del Árbol del producto: el enlace viejo (Google,
+    blog, WhatsApp) lleva a la ficha nueva en vez de dar 404."""
+    sl = (slug or "").strip().lower()
+    for c in _combo_products:
+        if _slug_from_key(_presentation_family_key(c.get("name", ""))) == sl:
+            destino = c.get("family_slug") or c.get("slug")
+            if destino and destino.lower() != sl:
+                return destino
+    return None
+
+
 @app.route("/producto/<slug>")
 def producto(slug):
     p = find_product(slug)
     if not p:
+        destino = _slug_familia_antigua(slug)
+        if destino and find_product(destino):
+            return redirect(url_for("producto", slug=destino), code=301)
         abort(404)
 
     # Combo hermano o alias SKU → ficha de familia / presentación canónica
@@ -4572,20 +5002,28 @@ def producto(slug):
         and fam_slug
         and fam_slug != p.get("slug")
     ):
-        fam = _product_index.get(str(fam_slug).lower())
+        fam = _vista_despliegue(_product_index.get(str(fam_slug).lower()))
         if fam and fam.get("is_family") and len(fam.get("combos") or []) > 1:
             return redirect(
                 url_for("producto", slug=fam["slug"], pres=canon_pres),
                 code=302,
             )
     if p.get("is_combo") and canon_pres and canon_pres != p.get("slug"):
-        dest = _product_index.get(str(canon_pres).lower())
+        dest = _vista_despliegue(_product_index.get(str(canon_pres).lower()))
         if dest and dest.get("slug") != p.get("slug"):
             return redirect(url_for("producto", slug=dest["slug"]), code=302)
 
     # Familia: aplicar presentación seleccionada (?pres=slug-combo)
     selected = None
     if p.get("is_family") and p.get("combos"):
+        # Cada botón de presentación con la misma prioridad que la galería principal
+        # (override del panel → foto web local del SKU → MeLi): sin esto, al elegir
+        # otra presentación se veía la foto de MeLi, que lleva la etiqueta desenfocada.
+        p = dict(p)
+        p["combos"] = [
+            {**c, "photos": f, "photo": f[0]} if (f := _fotos_de_producto(c)) else c
+            for c in p["combos"]
+        ]
         pres = (request.args.get("pres") or "").strip().lower()
         if pres:
             selected = next(
@@ -4645,7 +5083,8 @@ def producto(slug):
         relacionados=relacionados,
         wa=wa_link(p),
         doc_completo=doc_completo,
-        contenido=contenido)
+        contenido=contenido,
+        seo=_producto_seo(p, fotos))
 
 
 # ── Cotizar: oferta cotizable de la red de proveedores (sin stock) ─────────
@@ -5462,6 +5901,52 @@ def checkout():
     )
 
 
+@app.route("/registro-bono", methods=["POST"])
+def registro_bono():
+    """Ventana «Regístrate» (templates/_popup_bono.html): guarda el registro con la
+    autorización de datos y devuelve el código de primera compra."""
+    from app.tools import cupones_web
+
+    body = request.get_json(silent=True) or {}
+    if not body.get("acepta"):
+        return jsonify({"ok": False, "error": "Necesitamos tu autorización de datos para enviarte el bono."})
+    cupon, motivo = cupones_web.registrar(
+        body.get("nombre", ""), body.get("email", ""), body.get("celular", ""),
+        origen=str(body.get("origen") or ""),
+    )
+    if not cupon:
+        return jsonify({"ok": False, "error": motivo})
+    if cupon["nuevo"]:
+        threading.Thread(
+            target=cupones_web.enviar_correo_bono,
+            args=(body.get("nombre", ""), body.get("email", "").strip().lower()),
+            daemon=True,
+        ).start()
+    return jsonify({"ok": True, "codigo": cupon["codigo"], "pct": cupon["pct"]})
+
+
+@app.route("/checkout/cupon", methods=["POST"])
+def checkout_cupon():
+    """Valida un código de descuento contra el carrito de la sesión (casilla del checkout).
+    Solo informa: el descuento real se vuelve a calcular en /checkout/pagar."""
+    from app.tools import cupones_web
+
+    cart = session.get("cart", {})
+    body = request.get_json(silent=True) or {}
+    cupon, motivo = cupones_web.validar(
+        body.get("codigo", ""),
+        email=body.get("email", ""),
+        cedula=body.get("cedula", ""),
+        celular=body.get("celular", ""),
+    )
+    if not cupon or not cart:
+        return jsonify({"ok": False, "error": motivo or "Tu carrito está vacío."})
+    _, descuento = cupones_web.aplicar(cart, cupon)
+    return jsonify({"ok": True, "codigo": cupon["codigo"], "pct": cupon["pct"],
+                    "texto": cupon.get("texto", ""), "descuento": descuento,
+                    "subtotal": cart_total(cart) - descuento})
+
+
 @app.route("/checkout/pagar", methods=["POST"])
 def checkout_pagar():
     """Recibe el formulario de datos del comprador, crea preferencia MP y redirige."""
@@ -5501,6 +5986,20 @@ def checkout_pagar():
             return redirect(url_for("checkout"))
         buyer_email = logged_email
     buyer_phone   = request.form.get("buyer_phone", "").strip()
+    # Código de descuento: se valida de nuevo aquí (la casilla del checkout solo avisa).
+    cupon_info = None
+    codigo_cupon = request.form.get("cupon", "").strip()
+    if codigo_cupon:
+        from app.tools import cupones_web
+
+        cupon, motivo = cupones_web.validar(codigo_cupon, email=buyer_email, cedula=buyer_cedula, celular=buyer_phone)
+        if not cupon:
+            flash(f"Código {cupones_web.normalizar_codigo(codigo_cupon)}: {motivo}", "error")
+            return redirect(url_for("checkout"))
+        cart, descuento = cupones_web.aplicar(cart, cupon)
+        cupon_info = {"codigo": cupon["codigo"], "pct": cupon["pct"], "descuento": descuento,
+                      "subtotal_lista": subtotal}
+        subtotal = cart_total(cart)
     buyer_city    = request.form.get("buyer_city", "").strip()
     buyer_dept    = request.form.get("buyer_dept", "").strip()
     buyer_addr    = request.form.get("buyer_address", "").strip()
@@ -5548,6 +6047,7 @@ def checkout_pagar():
                  "address": buyer_addr,
                  "notes": buyer_notes,
                  "shipping": shipping_cost,
+                 **({"cupon": cupon_info} if cupon_info else {}),
                  "billing": {"name": bill_name, "nit": bill_nit, "city": bill_city,
                               "address": bill_addr, "email": bill_email},
              }, ensure_ascii=False),
@@ -5558,7 +6058,7 @@ def checkout_pagar():
     except Exception as e:
         log.warning(f"checkout_pagar DB: {e}")
 
-    if not MP_ACCESS_TOKEN:
+    if not _mp_token():
         # Sin token configurado: mostrar página de confirmación manual
         return render_template("checkout_sin_mp.html",
             ref=ref, total=total,
@@ -5576,12 +6076,12 @@ def checkout_pagar():
 
 def _mp_consultar_pago(payment_id: str) -> dict:
     """GET /v1/payments/{id}. Retorna dict vacío si falla."""
-    if not payment_id or not MP_ACCESS_TOKEN:
+    if not payment_id or not _mp_token():
         return {}
     try:
         res = requests.get(
             f"{MP_API}/v1/payments/{payment_id}",
-            headers={"Authorization": f"Bearer {MP_ACCESS_TOKEN}"},
+            headers={"Authorization": f"Bearer {_mp_token()}"},
             timeout=10,
         )
         if res.status_code == 200:

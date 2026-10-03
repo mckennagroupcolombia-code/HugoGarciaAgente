@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useEffect, useMemo, useState } from "react";
 import { asignarAutorCommit, useGitLog, type GitAutoCommitEstado } from "../hooks/useGitLog";
 import { asignarAutorRecap, useTeamRecaps, type TeamRecap } from "../hooks/useTeamRecaps";
@@ -704,12 +705,12 @@ export default function ControlVersionesPanel() {
           vistazo al abrir el panel. El árbol de commits (más técnico) queda
           debajo, para quien quiera profundizar. */}
       <section>
-        <h3 className="text-sm font-semibold text-ink mb-3">📋 Cambios recientes</h3>
+        <h3 className="text-sm font-semibold text-ink mb-3"><Ico e="📋" /> Cambios recientes</h3>
         <TabRecaps />
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-ink mb-3">🌳 Árbol de commits</h3>
+        <h3 className="text-sm font-semibold text-ink mb-3"><Ico e="🌳" /> Árbol de commits</h3>
         <TabCommits />
       </section>
     </div>

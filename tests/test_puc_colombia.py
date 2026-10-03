@@ -1,0 +1,328 @@
+"""Migración del libro al PUC real (Decreto 2650).
+
+Lo que se protege: que ningún código inventado quede en uso, que mover una
+cuenta no descuadre la partida doble, y sobre todo el **código reutilizado** —
+`529505` deja de ser publicidad y pasa a ser comisiones, así que el orden de la
+migración decide si los $105M de publicidad y los $52M de comisiones terminan
+en su cuenta o revueltos en una sola.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+
+@pytest.fixture()
+def libro(monkeypatch, tmp_path):
+    db = str(tmp_path / "contabilidad_test.db")
+    import app.services.contabilidad_core as cc
+    import app.services.puc_colombia as puc
+
+    monkeypatch.setattr(cc, "_DB_PATH", db)
+    monkeypatch.setattr(cc, "_initialized", False)
+    cc.init_db()
+    # El libro real tiene 529505 con el nombre viejo («Publicidad en plataformas
+    # de venta»): no lo siembra `_migrar_cuentas_v2`, lo creó a mano el script de
+    # Product Ads. Sin reproducirlo acá, el caso del código reutilizado —el único
+    # que puede revolver $105M con $52M— no se estaría probando.
+    with cc._conn() as con:
+        con.execute(
+            "UPDATE cc_plan_cuentas SET nombre=? WHERE codigo='529505'",
+            ("Publicidad en plataformas de venta",),
+        )
+    return cc, puc
+
+
+def _codigo_de(cc, mov_id: int) -> list[str]:
+    with cc._conn() as con:
+        return [
+            r["codigo"]
+            for r in con.execute(
+                """SELECT p.codigo FROM cc_movimiento_lineas l
+                     JOIN cc_plan_cuentas p ON p.id = l.cuenta_id
+                    WHERE l.movimiento_id=? ORDER BY l.orden""",
+                (mov_id,),
+            )
+        ]
+
+
+def test_el_orden_vacia_un_codigo_antes_de_reutilizarlo(libro):
+    _cc, puc = libro
+    orden = puc._orden_migracion()
+    pos = {origen: i for i, (origen, _) in enumerate(orden)}
+    # 529505 (publicidad → 523560) tiene que salir antes de que 5299 traiga las
+    # comisiones a 529505. Al revés, las comisiones se irían a publicidad.
+    assert pos["529505"] < pos["5299"]
+    assert len(orden) == len(puc.ALIAS)
+
+
+def test_publicidad_y_comisiones_no_se_revuelven(libro):
+    """El caso que motivó el orden: dos cuentas que se cruzan en un mismo código."""
+    cc, puc = libro
+    with cc._conn() as con:
+        publicidad = cc._cuenta_id_por_codigo(con, "529505")
+        comisiones = cc._cuenta_id_por_codigo(con, "5299")
+        banco = cc._cuenta_id_por_codigo(con, "1110")
+    m_pub = cc.crear_movimiento(
+        fecha="2026-08-01", concepto="Product Ads MeLi",
+        lineas=[{"cuenta_id": publicidad, "debito": 105_000, "credito": 0},
+                {"cuenta_id": banco, "debito": 0, "credito": 105_000}],
+    )["id"]
+    m_com = cc.crear_movimiento(
+        fecha="2026-08-02", concepto="Comisión de venta MeLi",
+        lineas=[{"cuenta_id": comisiones, "debito": 52_000, "credito": 0},
+                {"cuenta_id": banco, "debito": 0, "credito": 52_000}],
+    )["id"]
+
+    puc.migrar(dry_run=False)
+
+    assert _codigo_de(cc, m_pub)[0] == "523560"   # publicidad, propaganda y promoción
+    assert _codigo_de(cc, m_com)[0] == "529505"   # comisiones
+
+
+def test_el_codigo_reutilizado_queda_activo_y_con_el_nombre_del_decreto(libro):
+    cc, puc = libro
+    puc.migrar(dry_run=False)
+    with cc._conn() as con:
+        fila = dict(con.execute("SELECT * FROM cc_plan_cuentas WHERE codigo='529505'").fetchone())
+    assert fila["activa"] == 1
+    assert fila["nombre"] == "Comisiones"
+    assert "publicidad" in fila["notas"].lower()
+
+
+def test_el_codigo_abandonado_se_desactiva_pero_no_se_borra(libro):
+    cc, puc = libro
+    puc.migrar(dry_run=False)
+    with cc._conn() as con:
+        fila = dict(con.execute("SELECT * FROM cc_plan_cuentas WHERE codigo='2380'").fetchone())
+    assert fila["activa"] == 0
+    assert "2355" in fila["notas"]
+
+
+def test_el_codigo_viejo_sigue_resolviendo_despues_de_migrar(libro):
+    """Los ~60 call-sites que dicen "2380" no se rompen el día de la migración."""
+    cc, puc = libro
+    puc.migrar(dry_run=False)
+    with cc._conn() as con:
+        via_alias = cc._cuenta_id_por_codigo(con, "2380")
+        directo = cc._cuenta_id_por_codigo(con, "2355")
+        assert via_alias == directo
+        assert cc._cuenta_id_por_codigo(con, "2295") == cc._cuenta_id_por_codigo(con, "2195")
+        # 2367 NO está en esa lista a propósito: su alias se retiró una vez la
+        # migración corrió. El libro lo usaba mal («costos y gastos por pagar»,
+        # que es 2335), pero en el decreto es «Impuesto a las ventas retenido»
+        # y McKenna lo necesita para el reteIVA. Mantener el alias habría
+        # secuestrado un código que el negocio sí usa.
+        assert cc._cuenta_id_por_codigo(con, "2367") != cc._cuenta_id_por_codigo(con, "2335")
+
+
+def test_migrar_no_descuadra_la_partida_doble(libro):
+    cc, puc = libro
+    with cc._conn() as con:
+        socios = cc._cuenta_id_por_codigo(con, "2380")
+        inventario = cc._cuenta_id_por_codigo(con, "1435")
+    cc.crear_movimiento(
+        fecha="2026-08-10", concepto="Compra del socio",
+        lineas=[{"cuenta_id": inventario, "debito": 300_000, "credito": 0},
+                {"cuenta_id": socios, "debito": 0, "credito": 300_000}],
+    )
+    antes = cc.balance_comprobacion()
+    puc.migrar(dry_run=False)
+    despues = cc.balance_comprobacion()
+
+    assert antes["cuadra"] and despues["cuadra"]
+    assert despues["total_debito"] == antes["total_debito"]
+    assert despues["total_credito"] == antes["total_credito"]
+
+
+def test_dry_run_no_escribe_nada(libro):
+    cc, puc = libro
+    with cc._conn() as con:
+        socios = cc._cuenta_id_por_codigo(con, "2380")
+        inventario = cc._cuenta_id_por_codigo(con, "1435")
+    mid = cc.crear_movimiento(
+        fecha="2026-08-10", concepto="Compra del socio",
+        lineas=[{"cuenta_id": inventario, "debito": 300_000, "credito": 0},
+                {"cuenta_id": socios, "debito": 0, "credito": 300_000}],
+    )["id"]
+
+    plan = puc.migrar(dry_run=True)
+    assert plan["dry_run"] is True
+    assert any(m["de"] == "2380" and m["lineas"] == 1 for m in plan["movimientos"])
+    assert "2380" in _codigo_de(cc, mid)   # sigue donde estaba
+
+
+def test_repetir_la_migracion_no_se_lleva_las_comisiones_a_publicidad(libro):
+    """El caso que casi cuesta $52M.
+
+    Tras la primera corrida, `529505` ya NO es publicidad: es Comisiones, y
+    tiene adentro lo que vino de 5299. Volver a aplicar el alias
+    `529505 → 523560` se llevaría esas comisiones a publicidad. El estado del
+    plan no basta para detectarlo —la cuenta quedó activa, con otro nombre,
+    idéntica a una que nunca se migró— así que la migración deja constancia de
+    qué alias ya aplicó y los salta.
+    """
+    cc, puc = libro
+    with cc._conn() as con:
+        publicidad = cc._cuenta_id_por_codigo(con, "529505")
+        comisiones = cc._cuenta_id_por_codigo(con, "5299")
+        banco = cc._cuenta_id_por_codigo(con, "1110")
+    cc.crear_movimiento(
+        fecha="2026-08-01", concepto="Product Ads",
+        lineas=[{"cuenta_id": publicidad, "debito": 105_000, "credito": 0},
+                {"cuenta_id": banco, "debito": 0, "credito": 105_000}],
+    )
+    m_com = cc.crear_movimiento(
+        fecha="2026-08-02", concepto="Comisión de venta",
+        lineas=[{"cuenta_id": comisiones, "debito": 52_000, "credito": 0},
+                {"cuenta_id": banco, "debito": 0, "credito": 52_000}],
+    )["id"]
+
+    puc.migrar(dry_run=False)
+    assert _codigo_de(cc, m_com)[0] == "529505"
+    assert "529505" in puc.alias_aplicados()
+
+    # Segunda y tercera corrida: las comisiones se quedan donde están.
+    for _ in range(2):
+        r = puc.migrar(dry_run=False)
+        assert r["lineas_afectadas"] == 0
+        assert _codigo_de(cc, m_com)[0] == "529505"
+
+
+def test_migrar_dos_veces_no_cambia_nada(libro):
+    cc, puc = libro
+    with cc._conn() as con:
+        socios = cc._cuenta_id_por_codigo(con, "2380")
+        inventario = cc._cuenta_id_por_codigo(con, "1435")
+    mid = cc.crear_movimiento(
+        fecha="2026-08-10", concepto="Compra del socio",
+        lineas=[{"cuenta_id": inventario, "debito": 300_000, "credito": 0},
+                {"cuenta_id": socios, "debito": 0, "credito": 300_000}],
+    )["id"]
+    puc.migrar(dry_run=False)
+    primero = _codigo_de(cc, mid)
+    segunda = puc.migrar(dry_run=False)
+
+    assert _codigo_de(cc, mid) == primero == ["1435", "2355"]
+    assert segunda["lineas_afectadas"] == 0
+
+
+def test_la_retencion_tiene_subcuenta_por_concepto(libro):
+    _cc, puc = libro
+    assert puc.cuenta_retencion("servicios") == "236525"
+    assert puc.cuenta_retencion("honorarios") == "236515"
+    assert puc.cuenta_retencion("compras") == "236540"
+    # El 7% de los préstamos de particulares. 236515 NO es esto — es honorarios.
+    assert puc.cuenta_retencion("rendimientos_financieros") == "236535"
+    assert puc.cuenta_retencion("lo_que_sea") == "236595"
+
+
+def test_ningun_alias_apunta_a_un_codigo_que_no_este_en_el_puc(libro):
+    _cc, puc = libro
+    codigos = {c for c, _, _ in puc.PUC_MCKENNA}
+    faltantes = [d for d in puc.ALIAS.values() if d not in codigos]
+    assert faltantes == []
+
+
+def test_el_mapa_del_autopost_resuelve_codigos_migrados_sin_pisar_los_vivos(libro):
+    """Dos trampas a la vez, las dos vistas en producción.
+
+    (a) Tras migrar, `2380` queda INACTIVA y el mapa la devolvía igual: el
+        asiento se rechazaba con «cuenta inactiva» y 8 compras de socios
+        fallaron en el backfill de agosto.
+    (b) `529505` sí sigue viva —dejó de ser publicidad y hoy es Comisiones—, así
+        que aplicarle su alias mandaría las comisiones a publicidad.
+    """
+    cc, puc = libro
+    from app.services.contabilidad_autopost import _mapa_cuentas
+
+    puc.migrar(dry_run=False)
+    mapa = _mapa_cuentas(cc)
+
+    with cc._conn() as con:
+        id_2355 = con.execute("SELECT id FROM cc_plan_cuentas WHERE codigo='2355'").fetchone()["id"]
+        id_529505 = con.execute("SELECT id FROM cc_plan_cuentas WHERE codigo='529505'").fetchone()["id"]
+        id_523560 = con.execute("SELECT id FROM cc_plan_cuentas WHERE codigo='523560'").fetchone()["id"]
+
+    assert mapa["2380"] == id_2355          # el código muerto resuelve al vivo
+    assert mapa["529505"] == id_529505      # y el vivo se queda donde está
+    assert mapa["529505"] != id_523560
+
+
+# ─── La guía de cada cuenta (18-sep-2026) ──────────────────────────────────
+
+def test_toda_cuenta_del_plan_tiene_descripcion():
+    """La guía va pegada a la cuenta, no en un documento aparte: un manual en
+    otra parte es un manual que nadie abre."""
+    from app.services.puc_colombia import PUC_MCKENNA, descripcion
+
+    sin_guia = [c for c, _n, _t in PUC_MCKENNA if not descripcion(c)]
+    assert sin_guia == [], f"cuentas sin descripción: {sin_guia}"
+
+
+def test_una_subcuenta_nueva_hereda_la_guia_de_su_mayor():
+    from app.services.puc_colombia import descripcion
+
+    assert descripcion("513599") == descripcion("5135")
+    assert descripcion("999999") == ""
+
+
+def test_la_guia_avisa_donde_la_cuenta_se_usa_distinto_de_su_nombre():
+    """511095 se llama «Honorarios — otros» y es donde van las quincenas de
+    prestación de servicios; 5195 es el cajón de sastre. Son los dos sitios
+    donde alguien se equivoca, y la descripción tiene que decirlo."""
+    from app.services.puc_colombia import descripcion
+
+    assert "QUINCENAS" in descripcion("511095")
+    assert "SERVICIOS" in descripcion("511095")
+    assert "Cajón de sastre" in descripcion("5195")
+    assert "523550" in descripcion("513550")     # remite a la cuenta correcta
+
+
+def test_la_guia_viaja_con_la_cuenta_hasta_el_libro(monkeypatch, tmp_path):
+    import app.services.contabilidad_core as cc
+
+    monkeypatch.setattr(cc, "_DB_PATH", str(tmp_path / "t.db"))
+    monkeypatch.setattr(cc, "_initialized", False)
+    cc._ensure()
+    cuenta = next(c for c in cc.listar_plan_cuentas() if c["codigo"] == "523550")
+    assert "cliente" in cuenta["descripcion"]
+    assert cuenta["concepto_retencion"] == "transporte_carga"
+    assert cuenta["ica_por_mil"] == 4.14
+
+
+def test_equivalentes_cubre_los_dos_sentidos(libro):
+    """Una consulta SQL por código tiene que seguir encontrando el dato.
+
+    `WHERE c.codigo = '2380'` dejó de devolver nada el día de la migración y el
+    panel de saldos con socios mostró CERO donde había $3,7M. No falló: devolvió
+    vacío, que es la forma más cara de fallar.
+    """
+    _cc, puc = libro
+
+    assert set(puc.equivalentes("2380")) == {"2380", "2355"}
+    assert set(puc.equivalentes("2355")) == {"2355", "2380"}   # también al revés
+    marcadores, params = puc.marcadores_sql("2355")
+    assert marcadores == "?,?" and set(params) == {"2355", "2380"}
+
+
+def test_el_saldo_con_socios_sobrevive_a_la_migracion(libro):
+    cc, puc = libro
+    from app.services import compras_socios
+
+    socio = cc.crear_tercero({"nombre": "Socio Uno", "tipo": "socio"})
+    with cc._conn() as con:
+        inventario = cc._cuenta_id_por_codigo(con, "1435")
+        pasivo = cc._cuenta_id_por_codigo(con, "2380")
+    cc.crear_movimiento(
+        fecha="2026-08-10", concepto="Compra del socio",
+        lineas=[{"cuenta_id": inventario, "debito": 500_000, "credito": 0},
+                {"cuenta_id": pasivo, "debito": 0, "credito": 500_000,
+                 "tercero_id": socio["id"]}],
+    )
+    antes = {s["nombre"]: s["saldo"] for s in compras_socios.saldo_socios()}
+    puc.migrar(dry_run=False)
+    despues = {s["nombre"]: s["saldo"] for s in compras_socios.saldo_socios()}
+
+    assert antes == {"Socio Uno": 500_000.0}
+    assert despues == antes      # el saldo no puede desaparecer al migrar

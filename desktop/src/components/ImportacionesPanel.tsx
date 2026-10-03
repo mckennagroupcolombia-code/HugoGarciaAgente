@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useState } from "react";
 import { useAppStore } from "../stores/app";
 import { Icon } from "../icons";
@@ -75,7 +76,7 @@ function FichaAliado({ aliado }: { aliado: Aliado }) {
 
       {pendienteConfirmar && aliado.aplicabilidad_nota && (
         <div className="mt-3 rounded-paper border-2 border-orange-300 bg-orange-50 p-3 text-xs text-orange-800 dark:border-orange-700/50 dark:bg-orange-950/30 dark:text-orange-200">
-          ⚠️ {aliado.aplicabilidad_nota}
+          <Ico e="⚠️" /> {aliado.aplicabilidad_nota}
         </div>
       )}
 
@@ -233,7 +234,7 @@ export default function ImportacionesPanel() {
       {/* Guía de modalidad: DDP vs Ordinaria */}
       {guia && (
         <section className="rounded-paper border-2 border-red-300 bg-red-50 p-6 shadow-paper-sm dark:border-red-700/50 dark:bg-red-950/20">
-          <h2 className="text-base font-bold text-ink">⚖️ {guia.titulo}</h2>
+          <h2 className="text-base font-bold text-ink"><Ico e="⚖️" /> {guia.titulo}</h2>
           <p className="mt-2 text-sm text-ink-secondary">{guia.resumen}</p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -259,7 +260,7 @@ export default function ImportacionesPanel() {
             <p className="font-bold text-ink">Riesgos del DDP</p>
             <ul className="mt-1 space-y-0.5 text-ink-secondary">
               {guia.riesgos_ddp.map((x, i) => (
-                <li key={i}>⚠️ {x}</li>
+                <li key={i}><Ico e="⚠️" /> {x}</li>
               ))}
             </ul>
           </div>
@@ -405,7 +406,7 @@ export default function ImportacionesPanel() {
                 {cotizacion.advertencias.length > 0 && (
                   <ul className="mt-2 space-y-1 text-xs text-orange-700 dark:text-orange-300">
                     {cotizacion.advertencias.map((a, i) => (
-                      <li key={i}>⚠️ {a}</li>
+                      <li key={i}><Ico e="⚠️" /> {a}</li>
                     ))}
                   </ul>
                 )}

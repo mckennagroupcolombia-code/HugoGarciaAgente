@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Cadena del producto — dónde se rompe",
+    "output": "cadena-producto.html",
+    "quality_profile": "showcase",
+    "viewBox": [1070, 500],
+    "views": [
+      { "id": "cadena", "label": "La cadena completa", "focus": ["combo", "ean", "etiqueta", "cliente"], "note": "Del SKU de venta nace el código EAN y del código la etiqueta. 200 de 243 combos la recorren entera." },
+      { "id": "eslabon-debil", "label": "El eslabón débil", "focus": ["materia", "documento", "combo"], "note": "Solo 14 combos llegan a su documento por SKU; 211 se unen por parecido de nombre: ahí nacen los duplicados." },
+      { "id": "huerfanos", "label": "El caso propionato", "focus": ["huerfanos", "documento"], "note": "101 documentos están escritos pero ningún combo los usa: sin combo no hay SKU de venta, ni código, ni etiqueta." }
+    ]
+  },
+  "stages": [
+    { "label": "Alegra" },
+    { "label": "Documento" },
+    { "label": "Código" },
+    { "label": "Etiqueta" },
+    { "label": "Cliente" }
+  ],
+  "nodes": [
+    { "id": "combo", "type": "backend", "label": "Combo de venta", "sublabel": "243 kits", "stage": 0, "row": 0, "tag": "C-CREMON500g", "width": 140, "height": 58 },
+    { "id": "materia", "type": "database", "label": "Materia prima", "sublabel": "en la receta", "stage": 0, "row": 1, "tag": "AMICREMONg", "width": 140, "height": 58 },
+    { "id": "documento", "type": "database", "label": "Documento técnico", "sublabel": "248 YAML", "stage": 1, "row": 1, "tag": "TDS · COA · SDS", "width": 140, "height": 58 },
+    { "id": "huerfanos", "type": "security", "label": "Sin combo", "sublabel": "101 documentos", "stage": 2, "row": 2, "tag": "propionato", "width": 140, "height": 58 },
+    { "id": "ean", "type": "backend", "label": "Código EAN", "sublabel": "211 de 243", "stage": 2, "row": 0, "tag": "por SKU de venta", "width": 140, "height": 58 },
+    { "id": "etiqueta", "type": "frontend", "label": "Etiqueta", "sublabel": "200 por código", "stage": 3, "row": 0, "tag": "Studio visual", "width": 140, "height": 58 },
+    { "id": "cliente", "type": "frontend", "label": "Publicación", "sublabel": "web y MeLi", "stage": 4, "row": 0, "tag": "lo que se ve", "width": 140, "height": 58 }
+  ],
+  "flows": [
+    { "id": "materia-doc", "from": "materia", "to": "documento", "label": "14 por SKU", "route": "straight", "labelDy": -48, "classification": "211 por nombre" },
+    { "id": "doc-huerfanos", "from": "documento", "to": "huerfanos", "label": "nadie los vende", "variant": "dashed", "classification": "falta el combo" },
+    { "id": "combo-ean", "from": "combo", "to": "ean", "label": "genera el código", "variant": "emphasis", "classification": "32 sin código" },
+    { "id": "ean-etiqueta", "from": "ean", "to": "etiqueta", "label": "sin código no nace", "route": "straight", "labelDy": -48, "classification": "lote" },
+    { "id": "etiqueta-cliente", "from": "etiqueta", "to": "cliente", "label": "28 sin ella", "route": "straight", "labelDy": -48, "classification": "se publica igual" }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "Por qué propionato no tiene etiqueta", "items": ["Su documento está completo, pero ningún combo lo usa", "Sin combo no hay SKU de venta, ni código, ni etiqueta"] },
+    { "dot": "amber", "title": "El eslabón débil es documento ↔ combo", "items": ["Solo 25 de 248 documentos declaran su SKU", "211 combos se unen por parecido de nombre"] },
+    { "dot": "cyan", "title": "Lo que permite el error", "items": ["Publicar no exige etiqueta: 28 combos sin ella", "Unir por nombre es lo que hace duplicar documentos"] }
+  ]
+}

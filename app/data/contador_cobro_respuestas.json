@@ -1,0 +1,24 @@
+{
+  "cobros": {
+    "<DM6PR02MB4233C2AC3F9D717697DAFFBAC88C2@DM6PR02MB4233.namprd02.prod.outlook.com>": {
+      "periodo": "2026-09",
+      "monto": 1200000.0,
+      "correo": "2026-09-29",
+      "estado": "soporte_enviado",
+      "solicitud_id": 38,
+      "documento": "DSMG2",
+      "asiento": 5590,
+      "adjuntos": [
+        "Soporte_pago_honorarios_2026-09.pdf",
+        "Documento_soporte_DSMG2.xml"
+      ],
+      "enviado_a": "williamfer94@hotmail.com",
+      "enviado_at": "2026-09-29T15:38:00"
+    }
+  },
+  "vistos": [
+    "<DM6PR02MB423365DF7618DF06990CC99FC88D2@DM6PR02MB4233.namprd02.prod.outlook.com>",
+    "<DM6PR02MB4233C2AC3F9D717697DAFFBAC88C2@DM6PR02MB4233.namprd02.prod.outlook.com>",
+    "<DM6PR02MB4233D171A264F4B28BDB6D6AC88C2@DM6PR02MB4233.namprd02.prod.outlook.com>"
+  ]
+}

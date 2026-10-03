@@ -4,6 +4,7 @@ import {
   dataUrlABlob,
   type RegionDesenfoque,
 } from "../../lib/plantillasVisualesExport";
+import { detectarMarcaPorOcr } from "../../lib/ocrMarca";
 
 type Props = {
   open: boolean;
@@ -15,7 +16,28 @@ type Props = {
   formato: "png" | "jpeg";
   /** Se llama con el Blob resultante cuando el usuario confirma "Usar esta versión". */
   onAplicado: (blob: Blob) => void;
+  /** Título y texto de ayuda de la cabecera (por defecto, los de MeLi). */
+  titulo?: string;
+  subtitulo?: string;
+  /** Radio de desenfoque con que abre (por defecto 28). */
+  radioInicial?: number;
+  /** Motor alternativo: recibe el original y las zonas y devuelve la imagen
+   *  desenfocada. Sin él se usa el endpoint del servidor. */
+  desenfocar?: (
+    blob: Blob,
+    regiones: RegionDesenfoque[],
+    opts: { radio: number; formato: "png" | "jpeg" },
+  ) => Promise<Blob>;
 };
+
+function blobADataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result || ""));
+    fr.onerror = () => reject(new Error("No se pudo leer la imagen desenfocada"));
+    fr.readAsDataURL(blob);
+  });
+}
 
 function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
@@ -27,10 +49,11 @@ function regionPie(pct: number): RegionDesenfoque {
 }
 
 /**
- * Marca rectángulos sobre la etiqueta ya exportada (teléfono, web, "McKenna
- * Group"…) y aplica GaussianBlur del lado del servidor antes de descargar/subir
- * a la biblioteca — así la imagen queda apta para MeLi, que rechaza fotos con
- * datos de contacto o de empresa impresos.
+ * Desenfoca la marca de la etiqueta ya exportada antes de descargar/subir a la
+ * biblioteca — así la imagen queda apta para MeLi, que rechaza fotos con datos
+ * de contacto o de empresa impresos. Al abrir, un OCR busca "MCKENNA GROUP"
+ * (logo, web, correo) y deja el preview listo; los recuadros a mano y el pie
+ * quedan para lo que el OCR no vea (teléfono, NIT…).
  */
 export default function DesenfoquePlantillaModal({
   open,
@@ -39,6 +62,10 @@ export default function DesenfoquePlantillaModal({
   imageUrl,
   formato,
   onAplicado,
+  titulo,
+  subtitulo,
+  desenfocar,
+  radioInicial = 28,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -46,12 +73,92 @@ export default function DesenfoquePlantillaModal({
 
   const [regiones, setRegiones] = useState<RegionDesenfoque[]>([]);
   const [piePct, setPiePct] = useState(0.15);
-  const [radio, setRadio] = useState(28);
+  const [radio, setRadio] = useState(radioInicial);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [msg, setMsg] = useState("");
   const [imgReady, setImgReady] = useState(false);
   const [cargando, setCargando] = useState(false);
+  const [detectando, setDetectando] = useState(false);
+  const [info, setInfo] = useState("");
+  /** Cada apertura / re-detección invalida las respuestas de OCR anteriores. */
+  const turnoOcrRef = useRef(0);
+  const regionesRef = useRef(regiones);
+  regionesRef.current = regiones;
+
+  const generarPreview = useCallback(
+    async (zonas: RegionDesenfoque[], turno?: number) => {
+      const vigente = () => turno === undefined || turno === turnoOcrRef.current;
+      setMsg("");
+      if (turno === undefined) setInfo("");
+      if (zonas.length === 0) {
+        setMsg("Agrega el pie o dibuja al menos un rectángulo.");
+        return;
+      }
+      setCargando(true);
+      try {
+        let b: Blob;
+        let url: string;
+        if (desenfocar) {
+          b = await desenfocar(blobOriginal, zonas, { radio, formato });
+          url = await blobADataUrl(b);
+        } else {
+          const res = await desenfocarBlobPlantilla(blobOriginal, zonas, { radio, formato });
+          if (!res.ok || !res.preview_base64) {
+            if (vigente()) setMsg(res.error || "No se pudo generar el preview");
+            return;
+          }
+          url = res.preview_base64;
+          b = dataUrlABlob(res.preview_base64);
+        }
+        if (!vigente()) return;
+        setPreviewUrl(url);
+        setPreviewBlob(b);
+      } catch (err) {
+        if (vigente()) setMsg(err instanceof Error ? err.message : "Error al desenfocar");
+      } finally {
+        setCargando(false);
+      }
+    },
+    [blobOriginal, desenfocar, formato, radio],
+  );
+
+  /** OCR → zonas de "MCKENNA GROUP" → preview, sin que el usuario marque nada. */
+  const detectarMarca = useCallback(async () => {
+    const turno = ++turnoOcrRef.current;
+    setDetectando(true);
+    setMsg("");
+    setInfo("");
+    try {
+      const zonas = await detectarMarcaPorOcr(blobOriginal);
+      if (turno !== turnoOcrRef.current) return;
+      if (zonas.length === 0) {
+        setMsg('El OCR no encontró "MCKENNA GROUP" en la imagen. Marca las zonas a mano.');
+        return;
+      }
+      // Conserva lo marcado a mano; lo que pise una zona del OCR (p. ej. la
+      // detección anterior) se reemplaza en vez de duplicarse.
+      const pisa = (a: RegionDesenfoque, b: RegionDesenfoque) =>
+        a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      const todas = [...zonas, ...regionesRef.current.filter((r) => !zonas.some((z) => pisa(r, z)))];
+      setRegiones(todas);
+      setPreviewUrl(null);
+      setPreviewBlob(null);
+      setInfo(
+        `OCR: ${zonas.length} ${zonas.length === 1 ? "zona" : "zonas"} con "MCKENNA GROUP". Revisa el preview y pulsa "Usar esta versión".`,
+      );
+      await generarPreview(todas, turno);
+    } catch (err) {
+      if (turno !== turnoOcrRef.current) return;
+      setMsg(
+        `No se pudo ejecutar el OCR (${err instanceof Error ? err.message : "error"}). Marca las zonas a mano.`,
+      );
+    } finally {
+      if (turno === turnoOcrRef.current) setDetectando(false);
+    }
+  }, [blobOriginal, generarPreview]);
+  const detectarMarcaRef = useRef(detectarMarca);
+  detectarMarcaRef.current = detectarMarca;
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -84,11 +191,14 @@ export default function DesenfoquePlantillaModal({
     if (!open) return;
     setRegiones([]);
     setPiePct(0.15);
-    setRadio(28);
+    setRadio(radioInicial);
     setPreviewUrl(null);
     setPreviewBlob(null);
     setMsg("");
+    setInfo("");
     setImgReady(false);
+    regionesRef.current = [];
+    void detectarMarcaRef.current();
     const img = new Image();
     img.onload = () => {
       imgRef.current = img;
@@ -98,6 +208,10 @@ export default function DesenfoquePlantillaModal({
       setMsg("No se pudo cargar la imagen para marcar zonas.");
     };
     img.src = imageUrl;
+    return () => {
+      turnoOcrRef.current++;
+      setDetectando(false);
+    };
   }, [open, imageUrl]);
 
   useEffect(() => {
@@ -158,28 +272,6 @@ export default function DesenfoquePlantillaModal({
     setPreviewBlob(null);
   }
 
-  async function handlePreview() {
-    setMsg("");
-    if (regiones.length === 0) {
-      setMsg("Agrega el pie o dibuja al menos un rectángulo.");
-      return;
-    }
-    setCargando(true);
-    try {
-      const res = await desenfocarBlobPlantilla(blobOriginal, regiones, { radio, formato });
-      if (!res.ok || !res.preview_base64) {
-        setMsg(res.error || "No se pudo generar el preview");
-        return;
-      }
-      setPreviewUrl(res.preview_base64);
-      setPreviewBlob(dataUrlABlob(res.preview_base64));
-    } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Error al desenfocar");
-    } finally {
-      setCargando(false);
-    }
-  }
-
   function usarEstaVersion() {
     if (!previewBlob) return;
     onAplicado(previewBlob);
@@ -199,9 +291,9 @@ export default function DesenfoquePlantillaModal({
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="text-sm font-bold text-ink">Desenfocar datos de contacto</h3>
+            <h3 className="text-sm font-bold text-ink">{titulo ?? "Desenfocar datos de contacto"}</h3>
             <p className="text-[11px] text-muted">
-              Marca teléfono, web o datos de empresa antes de subir a MeLi · radio {radio}
+              {subtitulo ?? "Marca teléfono, web o datos de empresa antes de subir a MeLi"} · radio {radio}
             </p>
           </div>
           <button
@@ -214,6 +306,15 @@ export default function DesenfoquePlantillaModal({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={cargando || detectando}
+            onClick={() => void detectarMarca()}
+            title='Busca por OCR el texto "MCKENNA GROUP" (logo, web, correo) y lo desenfoca'
+            className="rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40"
+          >
+            {detectando ? "Buscando…" : "Detectar MCKENNA GROUP"}
+          </button>
           <button
             type="button"
             disabled={cargando}
@@ -273,7 +374,7 @@ export default function DesenfoquePlantillaModal({
         </div>
 
         <p className="text-[11px] text-muted">
-          Arrastra sobre la imagen para marcar otra zona (ej. teléfono o página web fuera del pie).
+          La marca se detecta sola al abrir. Arrastra sobre la imagen para sumar otra zona (ej. teléfono o NIT).
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -301,7 +402,7 @@ export default function DesenfoquePlantillaModal({
               <img src={previewUrl} alt="Preview desenfoque" className="mx-auto max-h-80 object-contain" />
             ) : (
               <div className="flex h-48 items-center justify-center text-xs text-muted">
-                Preview del desenfoque
+                {detectando ? 'Buscando "MCKENNA GROUP" por OCR…' : "Preview del desenfoque"}
               </div>
             )}
           </div>
@@ -311,7 +412,7 @@ export default function DesenfoquePlantillaModal({
           <button
             type="button"
             disabled={cargando || regiones.length === 0}
-            onClick={() => void handlePreview()}
+            onClick={() => void generarPreview(regiones)}
             className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-900 disabled:opacity-40"
           >
             {cargando ? "Generando…" : "Ver preview"}
@@ -326,6 +427,7 @@ export default function DesenfoquePlantillaModal({
           </button>
         </div>
 
+        {info && previewUrl && !msg && <p className="text-xs text-muted">{info}</p>}
         {msg && <p className="text-xs text-danger">{msg}</p>}
       </div>
     </div>

@@ -4,6 +4,8 @@ import json
 import sqlite3
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeout
 from typing import Any
 import gspread
 import requests
@@ -1240,35 +1242,68 @@ def obtener_estado_stock_meli(
             )
             sku_map[id_meli] = str(row[1]).strip() if len(row) > 1 else ""
 
-    if not ml_ids:
+    headers = {"Authorization": f"Bearer {token}"}
+    t0 = time.time()
+
+    # Primero el universo completo de códigos (Sheet + MeLi) y DESPUÉS el detalle.
+    # Antes se consultaban las filas del Sheet y al final las publicaciones que no
+    # están en la hoja: con MeLi lento, el corte por tiempo caía siempre sobre ese
+    # segundo bloque y el panel perdía ~200 publicaciones de una vez (el carbonato
+    # de calcio agotado, entre ellas) sin avisar.
+    ids_extra = _ids_meli_fuera_de_sheets(headers, set(ml_ids))
+    solo_meli = set(ids_extra)
+    if not ml_ids and not ids_extra:
         return []
 
-    headers = {"Authorization": f"Bearer {token}"}
+    # Intercalados (uno del Sheet, uno de fuera): si igual hay corte, recorta un
+    # poco de cada lado en vez de dejar por fuera todo lo que no está en la hoja.
+    lotes_sheet = [ml_ids[i : i + 20] for i in range(0, len(ml_ids), 20)]
+    lotes_extra = [ids_extra[i : i + 20] for i in range(0, len(ids_extra), 20)]
+    lotes = []
+    for n in range(max(len(lotes_sheet), len(lotes_extra))):
+        lotes.extend(grupo[n] for grupo in (lotes_sheet, lotes_extra) if n < len(grupo))
+
+    def _leer_lote(lote: list[str]) -> list[dict]:
+        resp = requests.get(
+            f"https://api.mercadolibre.com/items?ids={','.join(lote)}",
+            headers=headers,
+            timeout=timeout_lote,
+        )
+        resp.raise_for_status()
+        res = resp.json()
+        return res if isinstance(res, list) else []
+
+    # En paralelo: 24 lotes en serie tardan ~7 s con MeLi sano y pasan de 22 s
+    # cuando está lento. Con 6 a la vez el corte ya no se alcanza en la práctica.
+    respuestas: dict[int, list[dict]] = {}
+    lotes_sin_leer = 0
+    pool = ThreadPoolExecutor(max_workers=6)
+    futuros = {pool.submit(_leer_lote, lote): n for n, lote in enumerate(lotes)}
+    # Piso de 8 s: si el listado de arriba se comió el presupuesto, igual se leen
+    # lotes; un resumen vacío es peor que pasarse unos segundos del tope.
+    restante = None if max_seconds is None else max(8.0, max_seconds - (time.time() - t0))
+    try:
+        for fut in as_completed(futuros, timeout=restante):
+            n = futuros[fut]
+            try:
+                respuestas[n] = fut.result()
+            except Exception as e:
+                lotes_sin_leer += 1
+                print(f"⚠️ [STOCK] lote MeLi {lotes[n][0]}… falló: {e}")
+    except FuturesTimeout:
+        pendientes = len(lotes) - len(respuestas) - lotes_sin_leer
+        lotes_sin_leer += pendientes
+        print(
+            f"⚠️ [STOCK] corte por tiempo ({max_seconds:.0f}s): {pendientes} de "
+            f"{len(lotes)} lotes sin leer; esas publicaciones faltan en el resumen."
+        )
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+
     items = []
     omitidas_cerradas = 0
-    t0 = time.time()
-    for i in range(0, len(ml_ids), 20):
-        if max_seconds is not None and (time.time() - t0) >= max_seconds:
-            print(
-                f"⚠️ [STOCK] corte por tiempo ({max_seconds:.0f}s) "
-                f"tras {len(items)} ítems; el resto se omite."
-            )
-            break
-        lote = ml_ids[i : i + 20]
-        try:
-            resp = requests.get(
-                f"https://api.mercadolibre.com/items?ids={','.join(lote)}",
-                headers=headers,
-                timeout=timeout_lote,
-            )
-            resp.raise_for_status()
-            res = resp.json()
-        except Exception as e:
-            print(f"⚠️ [STOCK] lote MeLi {lote[0]}… falló: {e}")
-            continue
-        if not isinstance(res, list):
-            continue
-        for r in res:
+    for n in sorted(respuestas):
+        for r in respuestas[n]:
             if r.get("code") != 200:
                 continue
             item = r["body"]
@@ -1306,7 +1341,7 @@ def obtener_estado_stock_meli(
             nombre_sheets = (nombre_map.get(ml_id) or "").strip()
             # Título MeLi = nombre de la publicación (lo que el operador espera ver).
             # La col D de Sheets a menudo trae el código/SKU, no el nombre comercial.
-            items.append({
+            fila = {
                 "meli_id": ml_id,
                 # Preferir SKU vivo de MeLi; Sheets solo si MeLi no trae código
                 "sku": (sku_meli_vivo or sku_map.get(ml_id, "")),
@@ -1319,109 +1354,65 @@ def obtener_estado_stock_meli(
                 "permalink": item.get("permalink", ""),
                 "precio": item.get("price"),
                 "moneda": item.get("currency_id") or "COP",
-            })
+            }
+            if str(ml_id or "").upper() in solo_meli:
+                fila["solo_meli"] = True
+            items.append(fila)
+
     if omitidas_cerradas:
         print(
             f"ℹ️ [STOCK] Omitidas {omitidas_cerradas} publicaciones closed/inactive "
             f"(ya no operables en MeLi)."
         )
+    if ids_extra:
+        print(
+            f"ℹ️ [STOCK] +{sum(1 for it in items if it.get('solo_meli'))} publicaciones "
+            f"activas/pausadas MeLi no listadas en Sheets añadidas al resumen."
+        )
+    if lotes_sin_leer:
+        print(
+            f"⚠️ [STOCK] {lotes_sin_leer} lote(s) sin leer: resumen incompleto "
+            f"({len(items)} publicaciones)."
+        )
+    return items
 
-    # Incluir activas/pausadas de MeLi que no están en Sheets — p.ej. publicaciones
-    # nuevas o desactualizadas en la hoja (la hoja no es el universo real de MeLi).
-    if max_seconds is not None and (time.time() - t0) >= max_seconds:
-        return items
+
+def _ids_meli_fuera_de_sheets(headers: dict, en_sheets: set[str]) -> list[str]:
+    """Publicaciones activas/pausadas del vendedor que no están en la col A del
+    Sheet (la hoja no es el universo real de MeLi: publicaciones nuevas o que
+    nadie agregó). Son unas pocas llamadas de listado, sin el detalle del ítem."""
+    extra: list[str] = []
     try:
         me = requests.get(
             "https://api.mercadolibre.com/users/me", headers=headers, timeout=15
         ).json()
         seller_id = me.get("id")
-        ids_extra: list[str] = []
-        seen_ids = {str(it.get("meli_id") or "").upper() for it in items}
-        if seller_id:
-            for estado_busqueda in ("active", "paused"):
-                offset = 0
-                while True:
-                    r = requests.get(
-                        f"https://api.mercadolibre.com/users/{seller_id}/items/search",
-                        params={"status": estado_busqueda, "limit": 100, "offset": offset},
-                        headers=headers,
-                        timeout=30,
-                    ).json()
-                    batch_ids = r.get("results") or []
-                    if not batch_ids:
-                        break
-                    for iid in batch_ids:
-                        su = str(iid).strip().upper()
-                        if su and su not in seen_ids:
-                            seen_ids.add(su)
-                            ids_extra.append(str(iid).strip())
-                    offset += len(batch_ids)
-                    if offset >= (r.get("paging") or {}).get("total", 0):
-                        break
-
-        for i in range(0, len(ids_extra), 20):
-            if max_seconds is not None and (time.time() - t0) >= max_seconds:
-                break
-            lote = ids_extra[i : i + 20]
-            try:
-                resp = requests.get(
-                    f"https://api.mercadolibre.com/items?ids={','.join(lote)}",
+        if not seller_id:
+            return []
+        vistos = set(en_sheets)
+        for estado_busqueda in ("active", "paused"):
+            offset = 0
+            while True:
+                r = requests.get(
+                    f"https://api.mercadolibre.com/users/{seller_id}/items/search",
+                    params={"status": estado_busqueda, "limit": 100, "offset": offset},
                     headers=headers,
-                    timeout=min(timeout_lote, 40.0),
-                )
-                resp.raise_for_status()
-                res = resp.json()
-            except Exception as e:
-                print(f"⚠️ [STOCK] lote pausadas {lote[0]}… falló: {e}")
-                continue
-            if not isinstance(res, list):
-                continue
-            for r in res:
-                if r.get("code") != 200:
-                    continue
-                item = r["body"]
-                ml_id = item.get("id")
-                estado = (item.get("status") or "").strip().lower()
-                if estado in _NO_OPERABLES:
-                    continue
-                stock = (
-                    sum(v.get("available_quantity", 0) for v in item.get("variations", []))
-                    if item.get("variations")
-                    else item.get("available_quantity", 0)
-                )
-                sku_meli_vivo = ""
-                for a in item.get("attributes") or []:
-                    if a.get("id") == "SELLER_SKU":
-                        sku_meli_vivo = (a.get("value_name") or "").strip()
-                        break
-                if not sku_meli_vivo:
-                    sku_meli_vivo = (item.get("seller_custom_field") or "").strip()
-                es_full = (item.get("shipping") or {}).get("logistic_type") == "fulfillment"
-                items.append(
-                    {
-                        "meli_id": ml_id,
-                        "sku": sku_meli_vivo,
-                        "nombre": item.get("title") or "Sin nombre",
-                        "stock": stock,
-                        "fila": None,
-                        "estado_meli": item.get("status", ""),
-                        "es_full": es_full,
-                        "sync_bloqueado": item.get("status") != "active",
-                        "permalink": item.get("permalink", ""),
-                        "precio": item.get("price"),
-                        "moneda": item.get("currency_id") or "COP",
-                        "solo_meli": True,
-                    }
-                )
-        if ids_extra:
-            print(
-                f"ℹ️ [STOCK] +{len(ids_extra)} publicaciones activas/pausadas MeLi "
-                f"no listadas en Sheets añadidas al resumen."
-            )
+                    timeout=30,
+                ).json()
+                batch_ids = r.get("results") or []
+                if not batch_ids:
+                    break
+                for iid in batch_ids:
+                    su = str(iid).strip().upper()
+                    if su and su not in vistos:
+                        vistos.add(su)
+                        extra.append(su)
+                offset += len(batch_ids)
+                if offset >= (r.get("paging") or {}).get("total", 0):
+                    break
     except Exception as e:
-        print(f"⚠️ [STOCK] No se pudieron añadir ítems MeLi fuera de Sheets: {e}")
-
-    return items
+        print(f"⚠️ [STOCK] No se pudieron listar publicaciones MeLi fuera de Sheets: {e}")
+    return extra
 
 
 _VENTAS_YTD_CACHE_PATH = os.path.join(

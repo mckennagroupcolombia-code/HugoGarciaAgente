@@ -1,3 +1,4 @@
+import { Ico } from "../../icons/Ico";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -605,7 +606,7 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
               carpetaHoverDrop === "" ? "bg-accent/15 text-accent" : ""
             }`}
           >
-            📁 Raíz
+            <Ico e="📁" /> Raíz
           </button>
           {segmentosRuta.map((seg, i) => {
             const rel = segmentosRuta.slice(0, i + 1).join("/");
@@ -688,7 +689,7 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
                     disabled={carpetaActual === ""}
                     className="block w-full px-3 py-1.5 text-left font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
                   >
-                    📁 Raíz
+                    <Ico e="📁" /> Raíz
                   </button>
                   {(carpetasTodasData?.carpetas ?? [])
                     .filter((c) => c !== carpetaActual)
@@ -700,7 +701,7 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
                         className="block w-full truncate px-3 py-1.5 text-left text-ink hover:bg-surface-hover"
                         title={c}
                       >
-                        📁 {c}
+                        <Ico e="📁" /> {c}
                       </button>
                     ))}
                 </div>
@@ -768,7 +769,7 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
             className="shrink-0 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
             title="Selecciona una carpeta para subir todas sus imágenes JPG/PNG"
           >
-            📁 Carpeta
+            <Ico e="📁" /> Carpeta
           </button>
         </div>
 
@@ -883,7 +884,7 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
                     >
                       ✎
                     </button>
-                    <span className="text-xl">📁</span>
+                    <span className="text-xl"><Ico e="📁" /></span>
                     <span className="w-full truncate text-[9px] text-ink">{nombreCarpeta}</span>
                   </div>
                 );

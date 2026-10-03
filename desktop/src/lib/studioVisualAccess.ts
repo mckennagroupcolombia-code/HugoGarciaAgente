@@ -60,11 +60,21 @@ export function puedeVerEtiquetasAvanzado(user: TicketsUser | null | undefined):
   return false;
 }
 
+/** Solo Papel y tinta, sin Studio visual ni EAN (10 = Jenniffer Garcia). Igual en tickets_db.py. */
+const PAPEL_TINTA_USER_IDS = new Set<number>([10]);
+
+export function puedeVerPapelTinta(user: TicketsUser | null | undefined): boolean {
+  if (puedeVerEtiquetasAvanzado(user)) return true;
+  const uid = Number(user?.id);
+  return Number.isFinite(uid) && PAPEL_TINTA_USER_IDS.has(uid);
+}
+
 export function puedeVerTabEtiquetas(
   user: TicketsUser | null | undefined,
   tab: EtiquetasTab,
 ): boolean {
   if (!esTabEtiquetasSoloCynthia(tab)) return true;
+  if (tab === "inventario") return puedeVerPapelTinta(user);
   return puedeVerEtiquetasAvanzado(user);
 }
 
@@ -80,7 +90,6 @@ export function puedeEliminarPngEtiquetas(user: TicketsUser | null | undefined):
 
 /** Lista de pestañas visibles para el usuario actual. */
 export function tabsEtiquetasVisibles(user: TicketsUser | null | undefined): EtiquetasTab[] {
-  const avanzado = puedeVerEtiquetasAvanzado(user);
   const todas: EtiquetasTab[] = ["imprimir", "studio", "inventario", "codigos_ean"];
-  return todas.filter((t) => !esTabEtiquetasSoloCynthia(t) || avanzado);
+  return todas.filter((t) => puedeVerTabEtiquetas(user, t));
 }

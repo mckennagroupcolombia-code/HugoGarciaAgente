@@ -35,6 +35,7 @@ no es un simple Excel por generar.
 import base64
 import json
 import os
+import threading
 from datetime import datetime, timedelta
 
 import requests
@@ -168,6 +169,15 @@ def listar_centros_costo_alegra() -> tuple[list | None, str | None]:
     return centros, None
 
 
+def _solo_referencia_exacta(items, codigo: str) -> list:
+    """Alegra filtra `?reference=` por «contiene»: pedir C-MANTOSPAR devuelve
+    C-MANTOSPAR250g y C-MANTOSPAR500g. Quedarse con `[0]` renombraba, ajustaba o
+    facturaba otro producto; aquí solo pasa el que tiene ese código exacto
+    (sin distinguir mayúsculas)."""
+    c = (codigo or "").strip().lower()
+    return [it for it in (items or []) if isinstance(it, dict)
+            and str(it.get("reference") or "").strip().lower() == c]
+
 def buscar_producto_alegra_por_referencia(sku: str):
     """Busca un producto en Alegra por su `reference` (equivalente al `code` de Siigo).
     Retorna {"id":..., "name":..., "price": float} o None si no existe."""
@@ -179,11 +189,11 @@ def buscar_producto_alegra_por_referencia(sku: str):
     headers = _alegra_headers()
     res = requests.get(
         f"{_ALEGRA_BASE}/items", headers=headers,
-        params={"reference": sku, "limit": 5}, timeout=15,
+        params={"reference": sku, "limit": 30}, timeout=15,
     )
     if res.status_code != 200:
         return None
-    resultados = res.json() or []
+    resultados = _solo_referencia_exacta(res.json(), sku)
     if not resultados:
         return None
     # Preferir el ítem ACTIVO. Alegra acepta ítems inactivos en una factura
@@ -247,9 +257,14 @@ def resolver_producto_venta_alegra(sku: str):
     Solo para facturar VENTAS: no usar al crear/liberar productos, donde un
     alias haría pasar por existente un código que en realidad no existe."""
     prod = buscar_producto_alegra_por_referencia(sku)
-    if prod:
-        return prod
     ref = _alias_sku_venta().get((sku or "").strip().upper())
+    # Un SKU retirado sigue existiendo en Alegra, pero INACTIVO: si tiene
+    # equivalencia, manda la equivalencia. Caso real (20-sep-2026): C-ALBHV500g se
+    # unificó en C-ALBHUE500g; los pedidos de MeLi hechos antes del cambio siguen
+    # trayendo el SKU viejo y se habrían facturado contra un ítem inactivo.
+    inactivo = bool(prod) and str(prod.get("status") or "").strip().lower() == "inactive"
+    if prod and not (inactivo and ref):
+        return prod
     if not ref:
         return None
     prod = buscar_producto_alegra_por_referencia(ref)
@@ -285,14 +300,14 @@ def _liberar_reference_alegra_para_recrear(
         res = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": codigo, "limit": 5},
+            params={"reference": codigo, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"liberado": False, "motivo": f"red: {e}"}
     if res.status_code != 200:
         return {"liberado": False, "motivo": f"GET {res.status_code}"}
-    hallados = res.json() or []
+    hallados = _solo_referencia_exacta(res.json(), codigo)
     if not hallados:
         return {"liberado": False, "motivo": "libre"}
 
@@ -322,10 +337,10 @@ def _liberar_reference_alegra_para_recrear(
         chk = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": cand, "limit": 1},
+            params={"reference": cand, "limit": 30},
             timeout=12,
         )
-        if chk.status_code == 200 and not (chk.json() or []):
+        if chk.status_code == 200 and not _solo_referencia_exacta(chk.json(), cand):
             legacy = cand
             break
 
@@ -383,6 +398,24 @@ def _precio_base_con_impuesto(precio_final: float, tax_rate_total: float) -> flo
     return float(base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
+def normalizar_email_factura(email: str) -> tuple[str, str | None]:
+    """Correo del cliente listo para la DIAN: sin espacios y en minúsculas.
+
+    Devuelve (correo, error). Un correo vacío es válido (la factura sale sin él).
+    Nació de RED CHOCOLATE SAS (28-sep-2026): el cliente escribió
+    «facturacion @redchocolate.net» por WhatsApp, la DIAN lo rechazó y cada
+    reintento dejó una factura creada en Alegra (FE711-716, FE908, FE910).
+    """
+    import re
+
+    e = re.sub(r"\s+", "", str(email or "")).strip(".,;").lower()
+    if not e:
+        return "", None
+    if not re.fullmatch(r"[a-z0-9._%+\-]+@[a-z0-9\-]+(\.[a-z0-9\-]+)*\.[a-z]{2,}", e):
+        return e, f"El correo del cliente «{email}» no es válido: corrígelo antes de facturar."
+    return e, None
+
+
 def _nombre_object_persona(nombre: str) -> dict:
     """Alegra exige `nameObject` (firstName/lastName) para kindOfPerson
     PERSON_ENTITY — `name` solo no basta (confirmado en vivo 2026-09-04:
@@ -396,12 +429,26 @@ def _nombre_object_persona(nombre: str) -> dict:
     return {"firstName": partes[0], "lastName": partes[1]}
 
 
+def _tipo_persona_contacto(id_type: str, identificacion: str, nombre: str) -> dict:
+    """kindOfPerson (+ nameObject si es persona natural) para /contacts.
+
+    Un NIT de 9 dígitos que empieza por 8 o 9 es de persona jurídica (800…, 830…,
+    860…, 890…, 900…, 901…); los de personas naturales son su cédula. Antes todo
+    contacto salía PERSON_ENTITY: RED CHOCOLATE SAS quedó con nombre «RED» y
+    apellido «CHOCOLATE SAS» (28-sep-2026)."""
+    if id_type == "NIT" and len(identificacion) == 9 and identificacion[:1] in ("8", "9"):
+        return {"kindOfPerson": "LEGAL_ENTITY"}
+    return {"kindOfPerson": "PERSON_ENTITY", "nameObject": _nombre_object_persona(nombre)}
+
+
 def _resolver_o_crear_contacto_alegra(
     *, nombre: str, identificacion: str, email: str = "", telefono: str = "", direccion: str = "",
-    tipo_documento: str = "",
+    tipo_documento: str = "", resultado: dict | None = None,
 ) -> tuple[str | None, str]:
     """Busca un contacto por identificación; si no existe, lo crea. Retorna
-    (id_de_alegra, error) — error vacío si ok. El detalle de error se propaga
+    (id_de_alegra, error) — error vacío si ok. Si se pasa `resultado` (dict),
+    deja en él `creado=True/False` para que el llamador pueda decir «ya
+    existía en Alegra» en vez de «creado» (panel Cotizar/Facturar → Cliente). El detalle de error se propaga
     al operador (panel Cotizar/Facturar) en vez de quedarse solo en el print
     de consola, que se puede perder si el proceso se reinicia justo después.
 
@@ -437,6 +484,18 @@ def _resolver_o_crear_contacto_alegra(
         # MeLi ya trae el DV pegado; Alegra lo quiere aparte.
         identificacion = identificacion[:-1]
 
+    # El NIT genérico de consumidor final es UN contacto compartido por todas las
+    # ventas sin datos de facturación: nunca se le cambia nombre ni tipo. Antes se
+    # actualizaba con los datos del comprador — FE308 lo renombró «Diana Orozco»
+    # (NIT) y FE486 «Jaiver Quintero pinzon» (NIT); desde ahí las facturas a
+    # consumidor final salían a nombre de esa persona, y Alegra rechazaba anular
+    # las anteriores (error 9228: el tipo de identificación cambió). 22-sep-2026.
+    es_consumidor_final = identificacion == "".join(ch for ch in NIT_CONSUMIDOR_FINAL_MELI if ch.isdigit())
+    if es_consumidor_final:
+        nombre, id_type, email, telefono, direccion = NOMBRE_CONSUMIDOR_FINAL_MELI, "CC", "", "", ""
+
+    if resultado is not None:
+        resultado["creado"] = False
     if identificacion in _contacto_cache:
         return _contacto_cache[identificacion], ""
 
@@ -464,12 +523,11 @@ def _resolver_o_crear_contacto_alegra(
             # aunque no cambien — no es un PATCH parcial real (confirmado en vivo).
             update_payload: dict = {
                 "name": nombre or NOMBRE_CONSUMIDOR_FINAL_MELI,
-                "nameObject": _nombre_object_persona(nombre),
                 "identificationObject": {
                     "type": id_type,
                     "number": identificacion,
                 },
-                "kindOfPerson": "PERSON_ENTITY",
+                **_tipo_persona_contacto(id_type, identificacion, nombre),
                 "regime": "SIMPLIFIED_REGIME",
             }
             if email:
@@ -483,7 +541,7 @@ def _resolver_o_crear_contacto_alegra(
                 # sin departamento, así que se guarda en observations en vez de
                 # bloquear la creación/actualización del contacto.
                 update_payload["observations"] = f"Dirección: {direccion}"
-            if update_payload:
+            if update_payload and not es_consumidor_final:
                 try:
                     requests.put(f"{_ALEGRA_BASE}/contacts/{cid}", headers=headers, json=update_payload, timeout=15)
                 except requests.RequestException:
@@ -500,12 +558,11 @@ def _resolver_o_crear_contacto_alegra(
 
     payload = {
         "name": nombre or NOMBRE_CONSUMIDOR_FINAL_MELI,
-        "nameObject": _nombre_object_persona(nombre),
         "identificationObject": {
             "type": id_type,
             "number": identificacion,
         },
-        "kindOfPerson": "PERSON_ENTITY",
+        **_tipo_persona_contacto(id_type, identificacion, nombre),
         "regime": "SIMPLIFIED_REGIME",
     }
     if email:
@@ -526,6 +583,9 @@ def _resolver_o_crear_contacto_alegra(
         return None, f"Alegra rechazó el contacto (HTTP {res.status_code}): {detalle}"
     cid = str(res.json().get("id"))
     _contacto_cache[identificacion] = cid
+    invalidar_cache_contactos()  # el nuevo contacto debe aparecer ya en el buscador
+    if resultado is not None:
+        resultado["creado"] = True
     return cid, ""
 
 
@@ -648,6 +708,18 @@ def crear_factura_venta_alegra(
     if not nombre_cliente or not identificacion_digits:
         return {"ok": False, "error": "Faltan nombre o identificación del cliente."}
 
+    # Antes de tocar Alegra: un correo mal escrito hace que la DIAN rechace la
+    # factura DESPUÉS de que Alegra ya la creó (ver normalizar_email_factura).
+    email, error_email = normalizar_email_factura(email)
+    if error_email:
+        return {"ok": False, "error": error_email}
+    if email:
+        # El contacto puede estar en caché con el correo viejo: se vuelve a
+        # consultar para que el PUT le deje el correo corregido.
+        _contacto_cache.pop(identificacion_digits, None)
+        if len(identificacion_digits) == 10:
+            _contacto_cache.pop(identificacion_digits[:-1], None)
+
     contacto_id, error_contacto = _resolver_o_crear_contacto_alegra(
         nombre=nombre_cliente, identificacion=identificacion_digits,
         email=email, telefono=telefono, direccion=direccion_envio,
@@ -702,6 +774,13 @@ def crear_factura_venta_alegra(
             "price": precio_base,
             "quantity": cantidad,
         }
+        # Nombre real en la línea cuando se factura contra un producto genérico
+        # (VENTA-VARIO-*): el ítem de Alegra se llama "Producto vario", pero la
+        # factura debe mostrar lo que pidió el cliente. Solo cuando la línea lo
+        # trae — las ventas normales siguen mostrando el nombre del producto.
+        descripcion_linea = str(p.get("descripcion") or "").strip()
+        if descripcion_linea:
+            item["description"] = descripcion_linea[:500]
         # OJO: la unidad de medida NO se resuelve por un campo en la línea de factura —
         # confirmado en vivo (2026-09-02) que Alegra la lee de la ficha del producto
         # (`inventory.unit`). Si el producto no la tiene, el timbrado falla con
@@ -760,61 +839,125 @@ def crear_factura_venta_alegra(
     try:
         res = requests.post(f"{_ALEGRA_BASE}/invoices", headers=headers, json=payload, timeout=20)
         if res.status_code not in (200, 201):
-            return {
+            # OJO: cuando la DIAN rechaza (ej. code 3051, correo inválido) Alegra
+            # responde 400 pero la factura YA QUEDÓ CREADA (con su número y el
+            # pago registrado), y la trae en `invoice`. Si el llamador lo toma
+            # como «no se creó» y reintenta, sale otra: RED CHOCOLATE SAS acumuló
+            # 8 así (FE711-716, FE908, FE910). Se devuelve el id para que nadie
+            # emita otra encima.
+            creada: dict = {}
+            mensaje = ""
+            try:
+                cuerpo = res.json() or {}
+                creada = cuerpo.get("invoice") or {}
+                import re
+
+                mensaje = re.sub(r"<[^>]+>", " ", str((cuerpo.get("error") or {}).get("message") or ""))
+                mensaje = re.sub(r"\s+", " ", mensaje).strip()
+            except ValueError:
+                pass
+            out = {
                 "ok": False,
                 "status_code": res.status_code,
-                "error": f"Error al crear factura en Alegra: {res.text[:1000]}",
+                "error": f"Error al crear factura en Alegra: {mensaje or res.text[:1000]}",
                 "payload": payload,
             }
+            if creada.get("id"):
+                numero_creada = (creada.get("numberTemplate") or {}).get("fullNumber") or creada.get("number")
+                out["error"] += (f" — OJO: Alegra dejó creada la factura {numero_creada} (id {creada.get('id')}) "
+                                 "sin timbrar; no reintentar sin revisarla o saldrá otra.")
+                out.update({
+                    "creada_sin_timbrar": True,
+                    "invoice_id": creada.get("id"),
+                    "number": numero_creada,
+                    "url": f"https://app.alegra.com/invoice/view/id/{creada.get('id')}",
+                })
+            return out
 
-        factura = res.json()
-        factura_id = factura.get("id")
-        factura_numero = factura.get("numberTemplate", {}).get("fullNumber") or factura.get("number")
-
-        stamp = factura.get("stamp") or {}
-        # OJO: el stamp de Alegra trae `legalStatus`, no `status` — leyendo la clave
-        # equivocada toda factura reportaba "closed" y las notificaciones de la DIAN
-        # (ej. FAZ09) quedaban invisibles para el panel y los reportes de WhatsApp.
-        estado = (stamp.get("legalStatus") or stamp.get("status") or factura.get("status") or "").strip()
-        cufe = stamp.get("cufe") or stamp.get("uuid") or ""
-
-        pdf_path = None
-        pdf_b64 = None
-        if descargar_pdf and factura_id:
-            pdf_b64 = descargar_factura_pdf_alegra(str(factura_id))
-            if pdf_b64:
-                pdf_dir = "facturas_descargadas"
-                os.makedirs(pdf_dir, exist_ok=True)
-                pdf_path = os.path.join(pdf_dir, f"Factura_{factura_numero or factura_id}.pdf")
-                try:
-                    with open(pdf_path, "wb") as f:
-                        f.write(base64.b64decode(pdf_b64))
-                except Exception as e:
-                    print(f"⚠️ No se pudo guardar PDF Alegra {factura_id}: {e}")
-                    pdf_path = None
-
-        return {
-            "ok": True,
-            "invoice_id": factura_id,
-            "number": factura_numero,
-            "status": estado,
-            "cufe": cufe,
-            "stamp": stamp,
-            # Notificaciones DIAN: la factura es válida pero trae observaciones
-            # (ej. FAZ09 por ítems sin código UNSPSC). No es un error de emisión.
-            "avisos_dian": list(stamp.get("warnings") or []),
-            "url": f"https://app.alegra.com/invoice/view/id/{factura_id}" if factura_id else "",
-            "pdf_path": pdf_path,
-            # Base64 crudo (mismo que queda en pdf_path) — para call-sites que necesitan
-            # subirlo a otro sistema (ej. subir_factura_meli) sin releer el archivo local.
-            "pdf_base64": pdf_b64,
-            "data": factura,
-            "payload": payload,
-        }
+        return _resultado_factura_alegra(res.json(), descargar_pdf=descargar_pdf, payload=payload)
     except requests.RequestException as e:
         return {"ok": False, "error": f"Error de red con Alegra: {e}"}
     except Exception as e:
         return {"ok": False, "error": f"Error crítico creando factura Alegra: {e}"}
+
+
+def _resultado_factura_alegra(factura: dict, *, descargar_pdf: bool = True, payload: dict | None = None) -> dict:
+    """Forma común del resultado de una factura ya creada en Alegra (PDF incluido):
+    la usan `crear_factura_venta_alegra` y `timbrar_factura_existente_alegra`."""
+    factura_id = factura.get("id")
+    factura_numero = factura.get("numberTemplate", {}).get("fullNumber") or factura.get("number")
+
+    stamp = factura.get("stamp") or {}
+    # OJO: el stamp de Alegra trae `legalStatus`, no `status` — leyendo la clave
+    # equivocada toda factura reportaba "closed" y las notificaciones de la DIAN
+    # (ej. FAZ09) quedaban invisibles para el panel y los reportes de WhatsApp.
+    estado = (stamp.get("legalStatus") or stamp.get("status") or factura.get("status") or "").strip()
+    cufe = stamp.get("cufe") or stamp.get("uuid") or ""
+
+    pdf_path = None
+    pdf_b64 = None
+    if descargar_pdf and factura_id:
+        pdf_b64 = descargar_factura_pdf_alegra(str(factura_id))
+        if pdf_b64:
+            pdf_dir = "facturas_descargadas"
+            os.makedirs(pdf_dir, exist_ok=True)
+            pdf_path = os.path.join(pdf_dir, f"Factura_{factura_numero or factura_id}.pdf")
+            try:
+                with open(pdf_path, "wb") as f:
+                    f.write(base64.b64decode(pdf_b64))
+            except Exception as e:
+                print(f"⚠️ No se pudo guardar PDF Alegra {factura_id}: {e}")
+                pdf_path = None
+
+    return {
+        "ok": True,
+        "invoice_id": factura_id,
+        "number": factura_numero,
+        "status": estado,
+        "cufe": cufe,
+        "stamp": stamp,
+        # Notificaciones DIAN: la factura es válida pero trae observaciones
+        # (ej. FAZ09 por ítems sin código UNSPSC). No es un error de emisión.
+        "avisos_dian": list(stamp.get("warnings") or []),
+        "url": f"https://app.alegra.com/invoice/view/id/{factura_id}" if factura_id else "",
+        "pdf_path": pdf_path,
+        # Base64 crudo (mismo que queda en pdf_path) — para call-sites que necesitan
+        # subirlo a otro sistema (ej. subir_factura_meli) sin releer el archivo local.
+        "pdf_base64": pdf_b64,
+        "data": factura,
+        "payload": payload,
+    }
+
+
+def timbrar_factura_existente_alegra(factura_id: str, *, descargar_pdf: bool = True) -> dict:
+    """Timbra ante la DIAN una factura que Alegra dejó creada sin timbrar (la DIAN
+    la rechazó al crearla, p. ej. por el correo del cliente). Se corrige el dato y
+    se timbra ESA factura: emitir otra deja un duplicado (RED CHOCOLATE SAS, 28-sep-2026).
+    Si ya estaba timbrada, solo devuelve su resultado. Mismo shape que crear_factura_venta_alegra."""
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+    url = f"{_ALEGRA_BASE}/invoices/{factura_id}"
+    try:
+        factura = requests.get(url, headers=headers, timeout=30).json() or {}
+        if factura.get("status") == "void":
+            return {"ok": False, "error": f"La factura {factura_id} está anulada en Alegra."}
+        if not (factura.get("stamp") or {}).get("cufe"):
+            res = requests.post(f"{_ALEGRA_BASE}/invoices/stamp", headers=headers,
+                                json={"ids": [int(factura_id)]}, timeout=90)
+            fila = ((res.json() or {}).get("data") or [{}])[0] if res.status_code == 200 else {}
+            if not fila.get("success"):
+                import re
+
+                detalle = re.sub(r"<[^>]+>", " ", str(fila.get("message") or res.text[:600]))
+                detalle = re.sub(r"\s+", " ", detalle).strip()
+                return {"ok": False, "error": f"La DIAN volvió a rechazar la factura: {detalle}",
+                        "creada_sin_timbrar": True, "invoice_id": factura_id}
+            factura = requests.get(url, headers=headers, timeout=30).json() or {}
+    except (requests.RequestException, ValueError) as e:
+        return {"ok": False, "error": f"Error de red con Alegra: {e}", "creada_sin_timbrar": True, "invoice_id": factura_id}
+    return _resultado_factura_alegra(factura, descargar_pdf=descargar_pdf)
 
 
 def _resolver_template_nota_credito_alegra(headers: dict) -> str | None:
@@ -1308,31 +1451,50 @@ def obtener_facturas_alegra_paginadas(fecha_inicio: str, estricto: bool = False)
     except RuntimeError:
         return []
 
+    # Alegra tarda ~15 s por página de /invoices (medido en vivo 2026-09-18,
+    # 448 facturas desde el corte = 15 páginas ≈ 225 s en serie). Se piden en
+    # tandas paralelas; el corte es el mismo que en serie (primera página con
+    # error o con menos de 30), así que el resultado no cambia.
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _pagina(n: int):
+        params = {"date_afterEqual": fecha_inicio, "limit": 30, "start": n * 30}
+        res = requests.get(f"{_ALEGRA_BASE}/invoices", headers=headers, params=params, timeout=40)
+        if res.status_code == 429:
+            import time as _t
+
+            _t.sleep(3)
+            res = requests.get(f"{_ALEGRA_BASE}/invoices", headers=headers, params=params, timeout=40)
+        return res
+
     todas = []
     pagina = 0
-    while True:
-        try:
-            res = requests.get(
-                f"{_ALEGRA_BASE}/invoices",
-                headers=headers,
-                params={"date_afterEqual": fecha_inicio, "limit": 30, "start": pagina * 30},
-                timeout=20,
-            )
-        except requests.RequestException:
-            if estricto:
-                raise
-            break
-        if res.status_code != 200:
-            break
-        resultados = res.json() or []
-        if not resultados:
-            break
-        for f in resultados:
-            f["purchase_order"] = f.get("anotation") or ""
-            todas.append(f)
-        if len(resultados) < 30:
-            break
-        pagina += 1
+    tanda = 6
+    with ThreadPoolExecutor(max_workers=tanda) as ex:
+        while True:
+            futuros = [ex.submit(_pagina, n) for n in range(pagina, pagina + tanda)]
+            fin = False
+            for fut in futuros:
+                try:
+                    res = fut.result()
+                except requests.RequestException:
+                    if estricto:
+                        raise
+                    fin = True
+                    break
+                if res.status_code != 200:
+                    fin = True
+                    break
+                resultados = res.json() or []
+                for f in resultados:
+                    f["purchase_order"] = f.get("anotation") or ""
+                    todas.append(f)
+                if len(resultados) < 30:
+                    fin = True
+                    break
+            if fin:
+                break
+            pagina += tanda
     return todas
 
 
@@ -1486,12 +1648,12 @@ def actualizar_precio_alegra_producto(code: str, nuevo_precio: float) -> dict:
         return {"ok": False, "msg": str(e)}
 
     try:
-        res = requests.get(f"{_ALEGRA_BASE}/items", headers=headers, params={"reference": code, "limit": 5}, timeout=15)
+        res = requests.get(f"{_ALEGRA_BASE}/items", headers=headers, params={"reference": code, "limit": 30}, timeout=15)
     except requests.RequestException as e:
         return {"ok": False, "msg": f"Error de red obteniendo producto: {e}"}
     if res.status_code != 200:
         return {"ok": False, "msg": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
-    productos = res.json() or []
+    productos = _solo_referencia_exacta(res.json(), code)
     if not productos:
         return {"ok": False, "msg": f"Producto {code} no existe en Alegra"}
 
@@ -1507,6 +1669,18 @@ def actualizar_precio_alegra_producto(code: str, nuevo_precio: float) -> dict:
         return {"ok": False, "msg": f"Alegra PUT error {res2.status_code}: {res2.text[:200]}"}
     return {"ok": True, "msg": f"Precio de {code} actualizado a {nuevo_precio}"}
 
+
+def _espejo_local(reference: str, **campos) -> None:
+    """Lleva a la copia local del catálogo (`alegra_catalogo_db`) lo que se acaba
+    de guardar en Alegra. Sin esto el buscador del panel, que lee esa copia,
+    seguía mostrando el nombre viejo hasta la sincronización de las 7 AM y
+    parecía que el cambio no se había guardado."""
+    try:
+        from app.services.alegra_catalogo_db import actualizar_campos_locales
+
+        actualizar_campos_locales(reference, **campos)
+    except Exception as e:
+        print(f"[alegra] espejo local {reference}: {e}")
 
 def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
     """Actualiza el `name` de un producto/kit Alegra por su `reference`.
@@ -1530,14 +1704,14 @@ def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
         res = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": codigo, "limit": 5},
+            params={"reference": codigo, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"ok": False, "msg": f"Error de red obteniendo producto: {e}"}
     if res.status_code != 200:
         return {"ok": False, "msg": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
-    productos = res.json() or []
+    productos = _solo_referencia_exacta(res.json(), codigo)
     if not productos:
         return {"ok": False, "msg": f"Producto {codigo} no existe en Alegra"}
 
@@ -1547,6 +1721,7 @@ def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
         return {"ok": False, "msg": f"Producto {codigo} sin id en Alegra"}
     nombre_actual = str(item.get("name") or "")
     if nombre_actual == nombre_ok:
+        _espejo_local(codigo, name=nombre_ok)
         return {
             "ok": True,
             "msg": "Sin cambios",
@@ -1567,6 +1742,7 @@ def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
         return {"ok": False, "msg": f"Alegra PUT error {res2.status_code}: {res2.text[:200]}"}
 
     _producto_cache.pop(codigo, None)
+    _espejo_local(codigo, name=nombre_ok)
     return {
         "ok": True,
         "msg": f"Nombre de {codigo} actualizado",
@@ -1608,14 +1784,14 @@ def actualizar_referencia_alegra_producto(codigo_actual: str, nuevo_codigo: str)
         res = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": codigo_actual, "limit": 5},
+            params={"reference": codigo_actual, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"ok": False, "error": f"Error de red obteniendo producto: {e}"}
     if res.status_code != 200:
         return {"ok": False, "error": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
-    productos = res.json() or []
+    productos = _solo_referencia_exacta(res.json(), codigo_actual)
     if not productos:
         return {"ok": False, "error": f"Producto {codigo_actual} no existe en Alegra"}
 
@@ -1640,12 +1816,12 @@ def actualizar_referencia_alegra_producto(codigo_actual: str, nuevo_codigo: str)
         res_dup = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": nuevo_limpio, "limit": 1},
+            params={"reference": nuevo_limpio, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"ok": False, "error": f"Error de red verificando SKU nuevo: {e}"}
-    if res_dup.status_code == 200 and (res_dup.json() or []):
+    if res_dup.status_code == 200 and _solo_referencia_exacta(res_dup.json(), nuevo_limpio):
         return {"ok": False, "error": f"El SKU {nuevo_limpio} ya existe en Alegra"}
 
     try:
@@ -1706,14 +1882,14 @@ def eliminar_producto_alegra(codigo: str, *, inactivar_si_bloqueado: bool = True
         res = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": codigo, "limit": 5},
+            params={"reference": codigo, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"ok": False, "msg": f"Error de red obteniendo producto: {e}"}
     if res.status_code != 200:
         return {"ok": False, "msg": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
-    productos = res.json() or []
+    productos = _solo_referencia_exacta(res.json(), codigo)
     if not productos:
         return {"ok": False, "msg": f"Producto {codigo} no existe en Alegra", "no_encontrado": True}
 
@@ -1889,14 +2065,14 @@ def actualizar_combo_alegra(
         res = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": codigo_limpio, "limit": 5},
+            params={"reference": codigo_limpio, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"ok": False, "error": f"Error de red obteniendo combo: {e}"}
     if res.status_code != 200:
         return {"ok": False, "error": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
-    productos = res.json() or []
+    productos = _solo_referencia_exacta(res.json(), codigo_limpio)
     if not productos:
         return {"ok": False, "error": f"Combo {codigo_limpio} no existe en Alegra"}
 
@@ -1982,6 +2158,12 @@ def actualizar_combo_alegra(
     _producto_cache.pop(codigo_limpio, None)
     _combos_alegra_cache = []
     _combos_alegra_cache_ts = 0.0
+    _espejo_local(
+        codigo_limpio,
+        name=payload.get("name"),
+        precio_lista=payload.get("price"),
+        componentes=comps_out,
+    )
 
     nombre_final = payload.get("name") or (item.get("name") or "")
     return {
@@ -2178,6 +2360,20 @@ def _resolver_referencia_item_alegra(item_id: str) -> dict:
         return {}
     if item_id in _item_referencia_cache:
         return _item_referencia_cache[item_id]
+    # Primero el espejo local del catálogo (contabilidad.db → alegra_items):
+    # sobrevive a los reinicios y evita ~1 s de API por ítem, que en el panel
+    # Astro Killer sumaba ~140 s por carga en frío (2026-09-18).
+    try:
+        from app.services import contabilidad_db as _cdb
+
+        with _cdb._conn() as _con:
+            _row = _con.execute("SELECT reference, name FROM alegra_items WHERE id = ?", (item_id,)).fetchone()
+        if _row and (_row["reference"] or "").strip():
+            out = {"reference": _row["reference"], "name": _row["name"] or ""}
+            _item_referencia_cache[item_id] = out
+            return out
+    except Exception:
+        pass
     out: dict = {}
     try:
         headers = _alegra_headers()
@@ -2222,6 +2418,105 @@ def items_hibridos_normalizados(factura: dict) -> list[dict]:
     return normalizados
 
 
+# Caché de TODOS los contactos: Alegra no soporta búsqueda por nombre y su
+# /contacts topa en 30 por página (recorrer los ~640 en vivo son ~80 s). Se
+# guarda en disco y se refresca EN SEGUNDO PLANO: la búsqueda por nombre responde
+# al instante con lo cacheado y la recarga (lenta) no bloquea al operador.
+_contactos_cache: list[dict] = []
+_contactos_cache_ts: float = 0.0
+_CONTACTOS_TTL = 600.0  # 10 min; la recarga es en segundo plano
+_contactos_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "alegra_contactos_cache.json")
+_contactos_refrescando = False
+_contactos_lock = threading.Lock()
+
+
+def invalidar_cache_contactos() -> None:
+    """Marca la caché como vencida: la próxima búsqueda dispara el refresco en
+    segundo plano. Se llama al crear un contacto para que el nuevo aparezca pronto."""
+    global _contactos_cache_ts
+    _contactos_cache_ts = 0.0
+
+
+def _contactos_desde_disco() -> None:
+    """Carga la caché de contactos del archivo si la memoria está vacía."""
+    global _contactos_cache, _contactos_cache_ts
+    if _contactos_cache:
+        return
+    try:
+        with open(_contactos_file, encoding="utf-8") as fh:
+            d = json.load(fh)
+        crudos = d.get("contactos") or []
+        # El archivo guarda un shape reducido; se normaliza al de /contacts.
+        _contactos_cache = [
+            {"id": c.get("alegra_id") or c.get("id"), "name": c.get("nombre") or c.get("name") or "",
+             "identification": c.get("identificacion") or c.get("identification") or "",
+             "email": c.get("email") or "", "mobile": c.get("mobile") or c.get("telefono") or "",
+             "address": c.get("address") or {}}
+            for c in crudos
+        ]
+        _contactos_cache_ts = float(d.get("ts") or 0)
+    except (OSError, ValueError):
+        pass
+
+
+def _refrescar_contactos(headers: dict) -> None:
+    """Pagina TODOS los contactos de Alegra y actualiza memoria + disco. Lento;
+    se corre en un hilo aparte."""
+    import time as _time
+
+    global _contactos_cache, _contactos_cache_ts, _contactos_refrescando
+    out: list[dict] = []
+    pagina = 0
+    while pagina < 80:  # 2400 contactos de margen
+        try:
+            res = requests.get(f"{_ALEGRA_BASE}/contacts", headers=headers,
+                               params={"limit": 30, "start": pagina * 30}, timeout=20)
+        except requests.RequestException:
+            break
+        if res.status_code != 200:
+            break
+        lote = res.json() or []
+        if not lote:
+            break
+        out.extend(lote)
+        if len(lote) < 30:
+            break
+        pagina += 1
+    try:
+        if out:
+            _contactos_cache = out
+            _contactos_cache_ts = _time.time()
+            reducidos = [{"alegra_id": str(c.get("id")), "nombre": (c.get("name") or "").strip(),
+                          "identificacion": (c.get("identification") or "").strip(),
+                          "email": c.get("email") or "", "telefono": c.get("mobile") or c.get("phonePrimary") or ""}
+                         for c in out]
+            with open(_contactos_file, "w", encoding="utf-8") as fh:
+                json.dump({"ts": _contactos_cache_ts, "contactos": reducidos}, fh, ensure_ascii=False)
+    finally:
+        _contactos_refrescando = False
+
+
+def _todos_los_contactos(headers: dict) -> list[dict]:
+    """La lista de contactos cacheada. Si está vencida, dispara el refresco en
+    segundo plano y devuelve lo que haya (disco/memoria) sin bloquear."""
+    import time as _time
+
+    global _contactos_refrescando
+    _contactos_desde_disco()
+    vencida = (_time.time() - _contactos_cache_ts) >= _CONTACTOS_TTL
+    if vencida and not _contactos_refrescando:
+        with _contactos_lock:
+            if not _contactos_refrescando:
+                _contactos_refrescando = True
+                if _contactos_cache:
+                    threading.Thread(target=_refrescar_contactos, args=(headers,),
+                                     name="alegra-contactos", daemon=True).start()
+                else:
+                    # Sin nada cacheado (ni disco): primera vez, cargar en línea.
+                    _refrescar_contactos(headers)
+    return _contactos_cache
+
+
 def buscar_clientes_alegra(consulta: str, *, max_items: int = 20) -> list[dict]:
     """
     Busca contactos de Alegra por nombre o identificación, para el picker de
@@ -2241,38 +2536,42 @@ def buscar_clientes_alegra(consulta: str, *, max_items: int = 20) -> list[dict]:
     except RuntimeError:
         return []
 
-    resultados: list[dict] = []
-    pagina = 0
-    while len(resultados) < max_items and pagina < 15:
+    def _fmt(c: dict) -> dict:
+        return {
+            "id": c.get("id"),
+            "nombre": (c.get("name") or "").strip(),
+            "identificacion": (c.get("identification") or "").strip(),
+            "email": c.get("email") or "",
+            "telefono": c.get("mobile") or c.get("phonePrimary") or "",
+            "direccion": ((c.get("address") or {}).get("address")) or "",
+        }
+
+    # Atajo por identificación EXACTA: Alegra sí filtra por `identification`, así
+    # que una cédula/NIT se encuentra en UNA petición aunque esté en la cola de la
+    # paginación. Antes se cortaba en 15 páginas (450) y con 636 contactos los
+    # nuevos con nombre "tardío" (S–Z) o cédulas del final no aparecían.
+    digitos = "".join(ch for ch in q if ch.isdigit())
+    if len(digitos) >= 4 and not any(ch.isalpha() for ch in q):
         try:
-            res = requests.get(
-                f"{_ALEGRA_BASE}/contacts", headers=headers,
-                params={"limit": 30, "start": pagina * 30}, timeout=15,
-            )
+            res = requests.get(f"{_ALEGRA_BASE}/contacts", headers=headers,
+                               params={"identification": digitos, "limit": 30}, timeout=15)
+            if res.status_code == 200:
+                exactos = [_fmt(c) for c in (res.json() or [])]
+                if exactos:
+                    return exactos[:max_items]
         except requests.RequestException:
-            break
-        if res.status_code != 200:
-            break
-        lote = res.json() or []
-        if not lote:
-            break
-        for c in lote:
-            nombre = (c.get("name") or "").strip()
-            ident = (c.get("identification") or "").strip()
-            if q in nombre.lower() or q in ident:
-                resultados.append({
-                    "id": c.get("id"),
-                    "nombre": nombre,
-                    "identificacion": ident,
-                    "email": c.get("email") or "",
-                    "telefono": c.get("mobile") or c.get("phonePrimary") or "",
-                    "direccion": ((c.get("address") or {}).get("address")) or "",
-                })
-                if len(resultados) >= max_items:
-                    break
-        if len(lote) < 30:
-            break
-        pagina += 1
+            pass
+
+    # Por nombre: Alegra no soporta búsqueda de texto → se filtra sobre la lista
+    # completa cacheada (rápido, sin paginar en vivo cada tecla, sin timeout).
+    resultados: list[dict] = []
+    for c in _todos_los_contactos(headers):
+        nombre = (c.get("name") or "").strip()
+        ident = (c.get("identification") or "").strip()
+        if q in nombre.lower() or q in ident:
+            resultados.append(_fmt(c))
+            if len(resultados) >= max_items:
+                break
     return resultados
 
 
@@ -2439,10 +2738,10 @@ def detalle_producto_alegra(codigo: str) -> dict:
     except RuntimeError as e:
         return {"ok": False, "error": str(e)}
 
-    res = requests.get(f"{_ALEGRA_BASE}/items", headers=headers, params={"reference": codigo_limpio, "limit": 5}, timeout=15)
+    res = requests.get(f"{_ALEGRA_BASE}/items", headers=headers, params={"reference": codigo_limpio, "limit": 30}, timeout=15)
     if res.status_code != 200:
         return {"ok": False, "error": f"Alegra GET error {res.status_code}"}
-    resultados = res.json() or []
+    resultados = _solo_referencia_exacta(res.json(), codigo_limpio)
     if not resultados:
         return {"ok": False, "error": f"No se encontró {codigo_limpio} en Alegra"}
     prod = resultados[0]
@@ -2675,16 +2974,16 @@ def crear_combo_en_alegra(
     existente = requests.get(
         f"{_ALEGRA_BASE}/items",
         headers=headers,
-        params={"reference": codigo_limpio},
+        params={"reference": codigo_limpio, "limit": 30},
         timeout=15,
     )
     liberacion = None
-    if existente.status_code == 200 and existente.json():
+    if existente.status_code == 200 and _solo_referencia_exacta(existente.json(), codigo_limpio):
         liberacion = _liberar_reference_alegra_para_recrear(
             codigo_limpio, headers=headers, tipo_deseado="kit",
         )
         if not liberacion.get("liberado"):
-            ex = existente.json()[0]
+            ex = _solo_referencia_exacta(existente.json(), codigo_limpio)[0]
             return {
                 "ok": False,
                 "error": (
@@ -3196,11 +3495,50 @@ RETENCIONES_ALEGRA: dict[tuple[str, float], int] = {
     ("servicios", 6.0): 10,
     ("honorarios", 10.0): 5,
     ("honorarios", 11.0): 6,
-    # ⚠️ FALTA en la cuenta: retención de rendimientos financieros al 7%
-    # (Art. 395 E.T.), la de los intereses de préstamos. Hay que crearla en
-    # Alegra (Configuración → Retenciones) antes de poder incluirla en un
-    # documento soporte.
+    # Retención de rendimientos financieros al 7 % (Art. 395 ET), la de los
+    # intereses de préstamos de terceros. Creada en la cuenta el 2026-09-14 vía
+    # POST /retentions (id 14): sin ella el documento soporte de una cuota se
+    # emitía SIN retención y el contador no la veía por esa vía.
+    ("rendimientos_financieros", 7.0): 14,
+    # Transporte de carga al 1 % (Art. 392 E.T.), la de la mensajería. Ya
+    # existía en la cuenta (id 13, «Transporte de carga») pero no estaba
+    # mapeada, así que el documento soporte de un pago a Fidel se habría
+    # emitido SIN retención — y un documento soporte ya viajó a la DIAN: solo
+    # se corrige con nota de ajuste.
+    ("transporte_carga", 1.0): 13,
+    ("transporte_pasajeros", 3.5): 2,   # Alegra no separa pasajeros; misma tarifa
+    ("arrendamiento_inmueble", 3.5): 2,
+    ("arrendamiento_mueble", 4.0): 1,
+    ("comisiones", 10.0): 5,
+    ("comisiones", 11.0): 6,
 }
+
+# Retenciones de ICA en Alegra, **por tarifa**. Existe una por cada «por mil»
+# que McKenna practica de verdad, para que el documento oficial imprima la
+# tarifa y no un «(0%)»: la id 11 genérica está definida al 0% y solo sirve
+# para informar el monto, con lo que el soporte que ve el beneficiario —y la
+# DIAN— no dice a qué tarifa se le retuvo.
+#
+# Las tarifas son de Bogotá y las fijó el contador:
+#   4,14 ‰ transporte · 8,66 ‰ asesoría técnica · 9,66 ‰ servicios en general.
+# Ojo con la unidad: el ICA se habla «por mil» y Alegra recibe PORCENTAJE, así
+# que 4,14 ‰ = 0,414 %. Creadas por API el 18-sep-2026 (ids 15, 16, 17).
+ALEGRA_RETENCIONES_ICA: dict[float, int] = {
+    4.14: 15,
+    8.66: 16,
+    9.66: 17,
+}
+# Genérica al 0%, para una tarifa que no tenga cuenta propia. Informa el monto
+# correcto pero imprime «(0%)»: es el último recurso, no el camino normal.
+ALEGRA_RETENCION_ICA_ID = 11
+
+# Cuenta de Alegra de donde salen los pagos a proveedores (id 3, «Banco 1»).
+ALEGRA_CUENTA_BANCO_PAGOS = int(os.getenv("ALEGRA_CUENTA_BANCO_PAGOS") or 3)
+
+
+def retencion_ica_alegra_id(por_mil: float) -> int:
+    """Id de la retención de ICA para esa tarifa por mil, o la genérica."""
+    return ALEGRA_RETENCIONES_ICA.get(round(float(por_mil or 0), 2), ALEGRA_RETENCION_ICA_ID)
 
 
 def retencion_alegra_id(concepto: str, tarifa_pct: float) -> int | None:
@@ -3327,9 +3665,22 @@ def _resolver_o_crear_proveedor_persona_natural_alegra(
     if res.status_code == 200 and (res.json() or []):
         return str((res.json())[0]["id"]), ""
 
+    # ⚠️ **NIT, no CC.** En un documento electrónico la DIAN exige que las
+    # partes se identifiquen con NIT; para una persona natural el NIT ES su
+    # número de cédula más el dígito de verificación. Creado como `CC`, Alegra
+    # se niega a emitir: «Tu proveedor cuenta con cédula de ciudadanía (CC)»,
+    # y el documento soporte queda creado pero sin transmitir — que es lo único
+    # que le da validez (18-sep-2026, al emitir el DSMG1 de Fidel).
+    #
+    # El DV se calcula con el algoritmo de la DIAN, el mismo que valida el NIT
+    # de McKenna, en vez de dejarlo en null.
+    from app.services.empresa import digito_verificacion
+
     payload = {
         "name": _nombre_object_persona(nombre or f"Prestamista {digits}"),
-        "identificationObject": {"type": "CC", "number": digits},
+        "identificationObject": {
+            "type": "NIT", "number": digits, "dv": str(digito_verificacion(digits) or ""),
+        },
         "kindOfPerson": "PERSON_ENTITY",
         "regime": "SIMPLIFIED_REGIME",
         "type": ["provider"],
@@ -3356,9 +3707,16 @@ def crear_documento_soporte_alegra(
     email: str = "",
     observaciones: str = "",
     retencion: dict | None = None,
+    retencion_ica: float = 0.0,
+    ica_por_mil: float = 0.0,
     dry_run: bool = False,
+    enviar_dian: bool = False,
 ) -> dict:
     """Emite un documento soporte en Alegra por `valor` (una sola línea).
+
+    `enviar_dian=True` pide el sello (`stamp.generateStamp`), igual que las
+    facturas de venta. Sin él el documento queda creado en Alegra pero NO
+    transmitido: no tiene CUDS y todavía se puede borrar.
 
     `dry_run=True` arma y devuelve el payload SIN enviarlo. Un documento soporte
     emitido ya viajó a la DIAN y solo se corrige con nota de ajuste, así que el
@@ -3403,21 +3761,52 @@ def crear_documento_soporte_alegra(
     }
     if observaciones:
         payload["observations"] = observaciones[:500]
+    if enviar_dian:
+        payload["stamp"] = {"generateStamp": True}
 
     # Retención practicada sobre este documento. Se manda el id de Alegra, no la
     # tarifa: así queda registrada en sus reportes y el contador entra a pagarla
     # sin recalcular nada.
     aviso_retencion = ""
+    retenciones_payload: list[dict] = []
     if retencion and float(retencion.get("retencion") or 0) > 0:
         rid = retencion_alegra_id(retencion.get("concepto", ""), retencion.get("tarifa_pct", 0))
         if rid:
-            payload["retentions"] = [{"id": rid, "amount": round(float(retencion["retencion"]), 2)}]
+            retenciones_payload.append({"id": rid, "amount": round(float(retencion["retencion"]), 2)})
         else:
             aviso_retencion = (
                 f"⚠️ La retención de {retencion.get('concepto')} al "
                 f"{retencion.get('tarifa_pct')}% no está configurada en Alegra "
                 "(Configuración → Retenciones). El documento iría SIN retención."
             )
+    # **El ReteICA también va dentro del documento.** Es otra retención
+    # practicada al mismo beneficiario y, si falta, el «total a pagar» del
+    # documento no coincide con lo que salió del banco: sobre la quincena de
+    # Fidel el DSMG1 decía $2.006.390 cuando se le giraron $1.998.000, y la
+    # diferencia eran exactamente los $8.390,36 de ICA (18-sep-2026). Un
+    # documento que no cuadra con el pago es un documento que alguien va a
+    # tener que explicar.
+    #
+    # La retención de ICA en Alegra está al 0% (id 11) y se informa por monto:
+    # la tarifa depende del municipio y la actividad, así que la calcula quien
+    # paga, no Alegra.
+    if retencion_ica and float(retencion_ica) > 0:
+        rid_ica = retencion_ica_alegra_id(ica_por_mil)
+        if rid_ica:
+            retenciones_payload.append({"id": rid_ica, "amount": round(float(retencion_ica), 2)})
+            if rid_ica == ALEGRA_RETENCION_ICA_ID:
+                aviso_retencion = (aviso_retencion + " " if aviso_retencion else "") + (
+                    f"⚠️ No hay una retención de ICA al {ica_por_mil:g} por mil en Alegra: el "
+                    "documento informa el monto correcto pero imprimirá «(0%)». "
+                    "Créala para que el soporte muestre la tarifa."
+                )
+        else:
+            aviso_retencion = (aviso_retencion + " " if aviso_retencion else "") + (
+                "⚠️ No hay retención de ICA configurada en Alegra: el documento iría sin ella "
+                "y su total no cuadraría con lo girado."
+            )
+    if retenciones_payload:
+        payload["retentions"] = retenciones_payload
 
     if dry_run:
         # No se resuelve ni se crea el proveedor: crear un contacto es escribir
@@ -3428,6 +3817,7 @@ def crear_documento_soporte_alegra(
             "cuenta_contable": str(cuenta_contable),
             "valor": valor,
             "retencion": retencion or None,
+            "retencion_ica": round(float(retencion_ica or 0), 2) or None,
             "aviso": aviso_retencion or None,
         }
 
@@ -3447,22 +3837,45 @@ def crear_documento_soporte_alegra(
     if r.status_code in (200, 201):
         data = r.json()
         numero = data.get("numberTemplate", {}).get("fullNumber") or str(data.get("number") or "")
-        print(f"✅ Documento soporte creado en Alegra: {data.get('id')} ({numero})", flush=True)
-        return {"status": "success", "id": str(data.get("id")), "numero": numero, "data": data}
+        sello = (data.get("stamp") or {}).get("legalStatus") or ""
+        print(f"✅ Documento soporte creado en Alegra: {data.get('id')} ({numero})"
+              + (f" · DIAN: {sello}" if sello else " · sin transmitir"), flush=True)
+        return {"status": "success", "id": str(data.get("id")), "numero": numero, "data": data,
+                "transmitido": bool(sello), "estado_dian": sello}
+    # ⚠️ Si la DIAN no responde, Alegra contesta 400 (código 3051) PERO el
+    # documento ya quedó creado —sin sello— y viene en `bill`. Tratarlo como un
+    # fallo hacía que el reintento creara otro: DSMG2 y DSMG3 duplicados para
+    # William el 21-sep-2026. Se devuelve el documento para poder retomarlo.
+    try:
+        cuerpo = r.json()
+    except ValueError:
+        cuerpo = {}
+    creado = cuerpo.get("bill") if isinstance(cuerpo, dict) else None
+    if isinstance(creado, dict) and creado.get("id"):
+        numero = (creado.get("numberTemplate") or {}).get("fullNumber") or str(creado.get("number") or "")
+        motivo = ((cuerpo.get("error") or {}).get("message") or r.text[:200])
+        print(f"⚠️ Documento soporte {numero} creado en Alegra pero NO transmitido: {motivo}", flush=True)
+        return {"status": "creado_sin_transmitir", "id": str(creado["id"]), "numero": numero,
+                "data": creado, "message": motivo}
     print(f"❌ Alegra rechazó el documento soporte: {r.status_code} - {r.text[:300]}", flush=True)
     return {"status": "error", "message": f"HTTP {r.status_code}: {r.text[:300]}"}
 
 
 def crear_item_servicio_alegra(
-    *, referencia: str, nombre: str, descripcion: str = "", tipo: str = "product"
+    *, referencia: str, nombre: str, descripcion: str = "", tipo: str = "product",
+    tax_ids: list[int] | None = None,
 ) -> dict:
-    """Crea en Alegra un ítem de catálogo, sin IVA y sin inventario.
+    """Crea en Alegra un ítem de catálogo, sin inventario.
 
     Lo usan los documentos soporte, que necesitan una línea con un producto real:
     emitir un documento fiscal contra el ítem genérico de compras sería un
     soporte equivocado. Idempotente: si la referencia ya existe la devuelve en
     vez de duplicarla (un catálogo con dos ítems iguales termina con facturas
     apuntando a cualquiera de los dos).
+
+    `tax_ids`: por defecto sin IVA (`tax: []`, como lo necesitan los documentos
+    soporte). Si se pasan, el ítem lleva ese/esos impuestos — lo usa el genérico
+    de venta gravado al 19% (VENTA-VARIO-GRAVADO).
     """
     existente = buscar_producto_alegra_por_referencia(referencia)
     if existente:
@@ -3478,9 +3891,10 @@ def crear_item_servicio_alegra(
         "reference": referencia,
         "type": tipo,
         "status": "active",
-        # Sin IVA: la mercancía de los socios no entró por importación ordinaria,
-        # así que no hay IVA descontable que trasladar (Art. 485 E.T.).
-        "tax": [],
+        # Sin IVA por defecto (documentos soporte: la mercancía de los socios no
+        # entró por importación ordinaria, no hay IVA descontable — Art. 485 E.T.).
+        # Con `tax_ids` lleva impuesto (genérico de venta gravado 19%).
+        "tax": [{"id": int(t)} for t in (tax_ids or [])],
         "price": 0,
         # Sin `inventory.unit` Alegra crea el ítem pero lo rechaza al usarlo en
         # un documento ("Uno de los items especificados es inválido", 11034).
@@ -3499,4 +3913,43 @@ def crear_item_servicio_alegra(
         data = r.json()
         print(f"✅ Ítem creado en Alegra: {data.get('id')} ({referencia})", flush=True)
         return {"status": "success", "creado": True, "id": str(data.get("id")), "data": data}
+    return {"status": "error", "message": f"HTTP {r.status_code}: {r.text[:300]}"}
+
+
+def registrar_pago_documento_soporte(
+    *, bill_id: str, fecha: str, valor: float, observaciones: str = "",
+    cuenta_banco: int | None = None, retenciones: list[dict] | None = None,
+) -> dict:
+    """Registra en Alegra el pago de un documento soporte ya emitido.
+
+    Sin esto el documento queda «por pagar» y Alegra muestra un pasivo con el
+    beneficiario que no existe: la plata ya salió. El monto es lo **girado**
+    (neto de retenciones), que es lo que de verdad recibió.
+    """
+    if not str(bill_id or "").strip():
+        return {"status": "error", "message": "Falta el id del documento soporte."}
+    valor = round(float(valor or 0), 2)
+    if valor <= 0:
+        return {"status": "error", "message": "El valor del pago debe ser mayor que cero."}
+
+    payload = {
+        "date": str(fecha)[:10],
+        "type": "out",
+        "bankAccount": {"id": int(cuenta_banco or ALEGRA_CUENTA_BANCO_PAGOS)},
+        "paymentMethod": "transfer",
+        "observations": (observaciones or "")[:500],
+        "bills": [{"id": str(bill_id), "amount": valor,
+                   # Retenciones practicadas AL PAGAR (el ReteICA de un documento
+                   # soporte: la DIAN no lo admite dentro del documento).
+                   **({"retentions": retenciones} if retenciones else {})}],
+    }
+    try:
+        r = requests.post(f"{_ALEGRA_BASE}/payments", headers=_alegra_headers(),
+                          json=payload, timeout=25)
+    except (RuntimeError, requests.RequestException) as e:
+        return {"status": "error", "message": f"Error registrando el pago en Alegra: {e}"}
+    if r.status_code in (200, 201):
+        d = r.json()
+        print(f"\u2705 Pago registrado en Alegra: {d.get('id')} por {valor:,.2f}", flush=True)
+        return {"status": "success", "id": str(d.get("id")), "data": d}
     return {"status": "error", "message": f"HTTP {r.status_code}: {r.text[:300]}"}

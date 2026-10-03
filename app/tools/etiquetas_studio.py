@@ -440,6 +440,43 @@ def _inferir_formato_por_pixeles(
     return {"tipo_etiqueta": nombre_t, "ancho_mm": aw, "alto_mm": ah}
 
 
+def _tam_px(ruta: Path) -> tuple[int, int] | None:
+    try:
+        from PIL import Image as _PILImg
+        with _PILImg.open(ruta) as im:
+            w, h = im.size
+    except Exception:
+        return None
+    return (w, h) if w > 0 and h > 0 else None
+
+
+def _proporcion_encaja(ruta: Path, fmt: dict, tol: float = 0.04) -> bool:
+    px = _tam_px(ruta)
+    try:
+        r_fmt = float(fmt["ancho_mm"]) / float(fmt["alto_mm"])
+    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+        return True
+    return px is None or abs(px[0] / px[1] - r_fmt) / r_fmt <= tol
+
+
+def _inferir_formato_por_proporcion(
+    ruta: Path,
+    tipos: list[tuple[str, float, float]],
+) -> dict | None:
+    """Las etiquetas del Studio salen a 600–900 dpi, fuera de lo que prueba
+    `_inferir_formato_por_pixeles`: se usa la proporción, solo si un único
+    tamaño encaja (±0,5 %; 100 g 69×51 y 1 kg 102×76 difieren apenas un 0,8 %)."""
+    px = _tam_px(ruta)
+    if not px:
+        return None
+    r = px[0] / px[1]
+    cands = {(aw, ah): n for n, aw, ah in tipos if abs(r - aw / ah) / (aw / ah) <= 0.005}
+    if len(cands) != 1:
+        return None
+    (aw, ah), nombre_t = next(iter(cands.items()))
+    return {"tipo_etiqueta": nombre_t, "ancho_mm": aw, "alto_mm": ah}
+
+
 def _lookup_meta_png_index(rel: str, ruta_abs: Path, index: list[dict]) -> dict:
     """Busca metadatos de formato en el índice PNG (por ruta o basename)."""
     rel_n = rel.replace("\\", "/")
@@ -488,11 +525,75 @@ def _categoria_producto_png(rel_n: str, entry: dict[str, Any]) -> str:
     return detectar_categoria(nombre, cats) or CATEGORIA_OTROS
 
 
+_FICHAS_PATH = _REPO / "app" / "data" / "etiquetas_fichas.json"
+_PNG_APROBADOS_PATH = _REPO / "app" / "data" / "etiquetas_png_aprobados.json"
+
+
+def _formatos_png_aprobados(tipos: list[tuple[str, float, float]]) -> dict[str, dict]:
+    """PNG aprobado → formato de la etiqueta del Studio que lo generó.
+
+    Es la fuente fiable: el nombre (…_250g) y la proporción de la imagen confunden
+    69×51 con 102×76 y 76×66 con 50×42."""
+    try:
+        fichas = json.loads(_FICHAS_PATH.read_text(encoding="utf-8")).get("fichas") or []
+        aprob = json.loads(_PNG_APROBADOS_PATH.read_text(encoding="utf-8")).get("etiquetas") or {}
+    except Exception:
+        return {}
+    from app.services.mapa_producto import _clave_archivo
+
+    mm = {n: (aw, ah) for n, aw, ah in tipos}
+    tipo_de = {
+        f.get("id"): canon_tipo_etiqueta(f.get("tipo_nombre"))
+        for f in fichas if isinstance(f, dict)
+    }
+    out: dict[str, dict] = {}
+    # Los PNG que no pasaron por «Terminar y aprobar»: por el nombre de archivo que el
+    # editor saca del nombre de la etiqueta (las copias …_2 cuentan como el mismo).
+    por_clave = {
+        _clave_archivo(f.get("nombre") or ""): tipo_de.get(f.get("id"))
+        for f in fichas
+        if isinstance(f, dict) and f.get("nombre") and not f.get("es_plantilla_categoria")
+    }
+    base = _carpeta_recursos_png() / _CARPETA_PNG_IMPRIMIR
+    if base.is_dir():
+        for ruta in base.rglob("*"):
+            if ruta.suffix.lower() not in (".png", ".jpg", ".jpeg"):
+                continue
+            tipo = por_clave.get(re.sub(r"_\d+$", "", ruta.stem).lower())
+            if tipo in mm:
+                rel = ruta.relative_to(base.parent).as_posix()
+                aw, ah = mm[tipo]
+                out[rel] = {"tipo_etiqueta": tipo, "ancho_mm": aw, "alto_mm": ah}
+    for eid, reg in aprob.items():
+        tipo = tipo_de.get(eid)
+        if not (tipo and tipo in mm and isinstance(reg, dict)):
+            continue
+        for variante in ("impresion", "digital"):
+            nombre = ((reg.get(variante) or {}).get("nombre") or "").replace("\\", "/")
+            if nombre:
+                aw, ah = mm[tipo]
+                out[nombre] = {"tipo_etiqueta": tipo, "ancho_mm": aw, "alto_mm": ah}
+    return out
+
+
+def contexto_formato_png() -> dict[str, Any]:
+    """Lo que `enriquecer_recurso_png` lee de disco, leído una sola vez: para
+    enriquecer muchos PNG seguidos. `_formatos_png_aprobados` abre
+    etiquetas_fichas.json (~47 MB); por cada PNG eran 40 s en un listado de 200."""
+    tipos = _tipos_etiqueta_mm()
+    return {
+        "index": _load_png_index_entries(),
+        "tipos": tipos,
+        "aprobados": _formatos_png_aprobados(tipos),
+    }
+
+
 def enriquecer_recurso_png(
     rel: str,
     *,
     index: list[dict] | None = None,
     tipos: list[tuple[str, float, float]] | None = None,
+    aprobados: dict[str, dict] | None = None,
 ) -> dict[str, Any]:
     """Devuelve {nombre, tipo_etiqueta, ancho_mm, alto_mm, dpi, categoria_producto}.
 
@@ -507,6 +608,9 @@ def enriquecer_recurso_png(
     idx = index if index is not None else _load_png_index_entries()
     tipos_l = tipos if tipos is not None else _tipos_etiqueta_mm()
     entry = _lookup_meta_png_index(rel_n, ruta, idx)
+    aprob = aprobados if aprobados is not None else _formatos_png_aprobados(tipos_l)
+    if rel_n in aprob:
+        entry = {**entry, **aprob[rel_n]}
 
     tipo = (entry.get("tipo_etiqueta") or "").strip() or None
     try:
@@ -521,8 +625,12 @@ def enriquecer_recurso_png(
 
     if not (tipo and ancho and alto):
         inferido = _inferir_formato_por_nombre(rel_n, tipos_l)
+        # El tamaño del nombre (…_250g) no dice el formato: los 250 g de Semillas van en
+        # 69×51 y no en 76×66. Si la imagen no tiene esa proporción, se descarta.
+        if inferido and ruta.is_file() and not _proporcion_encaja(ruta, inferido):
+            inferido = None
         if not inferido and ruta.is_file():
-            inferido = _inferir_formato_por_pixeles(ruta, tipos_l)
+            inferido = _inferir_formato_por_pixeles(ruta, tipos_l) or _inferir_formato_por_proporcion(ruta, tipos_l)
         if inferido:
             tipo = tipo or inferido.get("tipo_etiqueta")
             ancho = ancho or inferido.get("ancho_mm")
@@ -566,7 +674,11 @@ def listar_recursos_png_sueltos(
 
     index = _load_png_index_entries()
     tipos = _tipos_etiqueta_mm()
-    return [enriquecer_recurso_png(n, index=index, tipos=tipos) for n in nombres]
+    aprobados = _formatos_png_aprobados(tipos)
+    return [
+        enriquecer_recurso_png(n, index=index, tipos=tipos, aprobados=aprobados)
+        for n in nombres
+    ]
 
 
 def listar_catalogo_studio(
@@ -685,7 +797,9 @@ def listar_catalogo_studio(
         "total": len(filas),
         "stats": stats,
         "plantillas_sin_producto": sin_producto[:80],
-        "plantillas_png_sin_producto": png_sueltos[:80],
+        # Sin tope de 80: la carpeta ya pasa de 110 y lo que quedaba después
+        # (orden alfabético) no salía en la biblioteca de Imprimir.
+        "plantillas_png_sin_producto": png_sueltos[:2000],
     }
 
 

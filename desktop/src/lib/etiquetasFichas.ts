@@ -41,9 +41,18 @@ export function useFichasEtiquetaGuardadas(q: string = "") {
   return useQuery({
     queryKey: [...QK, q],
     queryFn: async () => {
-      const params = q ? `?q=${encodeURIComponent(q)}` : "";
-      const res = await api.get<{ fichas: FichaEtiquetaGuardada[] }>(`/api/etiquetas/fichas${params}`);
-      return res.fichas;
+      // logos_aparte: cada logo (data URL de ~150 KB) viaja una sola vez y no
+      // repetido en cada etiqueta — la lista pasó de 47 MB a unos 2 MB.
+      const params = `?logos_aparte=1${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+      const res = await api.get<{ fichas: FichaEtiquetaGuardada[]; logos?: Record<string, string> }>(
+        `/api/etiquetas/fichas${params}`,
+      );
+      const logos = res.logos ?? {};
+      return res.fichas.map((f) => {
+        const ref = f.data?.logoUrl;
+        if (typeof ref !== "string" || !ref.startsWith("logo:")) return f;
+        return { ...f, data: { ...f.data, logoUrl: logos[ref.slice(5)] ?? "" } };
+      });
     },
     staleTime: 15_000,
   });

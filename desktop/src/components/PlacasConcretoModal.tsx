@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import PlacasConcretoPanel from "./PlacasConcretoPanel";
@@ -16,7 +17,7 @@ export default function PlacasConcretoModal({ onClose }: { onClose: () => void }
         className="flex shrink-0 items-center justify-between border-b border-border bg-surface-panel px-4 py-3 shadow-paper-sm"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
       >
-        <p className="text-sm font-extrabold text-ink">🧱 Placas de Concreto Pulido</p>
+        <p className="text-sm font-extrabold text-ink"><Ico e="🧱" /> Placas de Concreto Pulido</p>
         <button
           type="button"
           onClick={onClose}

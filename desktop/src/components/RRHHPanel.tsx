@@ -1,6 +1,10 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import MapaFunciones from "./rrhh/MapaFunciones";
+import ControlHoras from "./rrhh/ControlHoras";
 import { AddIconButton } from "./AddIconButton";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
@@ -88,7 +92,7 @@ interface Hallazgo {
   actualizado: string;
 }
 
-type Tab = "resumen" | "hallazgos" | "nomina" | "agente";
+type Tab = "mapa" | "horas" | "resumen" | "hallazgos" | "nomina" | "agente";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -459,7 +463,7 @@ function TabHallazgos() {
             </span>
             {h.responsable && (
               <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] text-muted">
-                👤 {h.responsable}
+                <Ico e="👤" /> {h.responsable}
               </span>
             )}
             <div className="flex-1" />
@@ -648,7 +652,7 @@ function TabNomina({ resumen, onRefetch }: { resumen: Resumen; onRefetch: () => 
         {msg && <span className="text-xs text-muted">{msg}</span>}
       </div>
       <p className="text-[11px] leading-relaxed text-muted">
-        ⚠️ Recordatorios del diagnóstico: nunca rebajas nominales de salario (ineficacia jurídica +
+        <Ico e="⚠️" /> Recordatorios del diagnóstico: nunca rebajas nominales de salario (ineficacia jurídica +
         desmotivación); quien esté sobre la línea se congela hasta que la línea lo alcance; deducciones
         deben cuadrar con PILA (riesgo UGPP).
       </p>
@@ -778,7 +782,7 @@ function TabAgente() {
 // ── Panel principal ────────────────────────────────────────────────────────────
 
 export default function RRHHPanel() {
-  const [tab, setTab] = useState<Tab>("resumen");
+  const [tab, setTab] = useState<Tab>("mapa");
   const { data: resumen, isLoading, error, refetch } = useQuery({
     queryKey: ["rrhh-resumen"],
     queryFn: () => api.get<Resumen>("/api/rrhh/resumen", { timeoutMs: 30000 }),
@@ -788,6 +792,8 @@ export default function RRHHPanel() {
   const tabs = useMemo(
     () =>
       [
+        { id: "mapa" as Tab, label: "🗺️ Mapa de funciones" },
+        { id: "horas" as Tab, label: "⏱️ Control de horas" },
         { id: "resumen" as Tab, label: "📊 Resumen en vivo" },
         { id: "hallazgos" as Tab, label: `🚩 Hallazgos${resumen?.hallazgos_abiertos ? ` (${resumen.hallazgos_abiertos})` : ""}` },
         { id: "nomina" as Tab, label: "💵 Nómina y matriz" },
@@ -810,7 +816,7 @@ export default function RRHHPanel() {
                 : "border border-border bg-surface-panel text-muted hover:text-ink"
             }`}
           >
-            {t.label}
+            {ico(t.label)}
           </button>
         ))}
       </div>
@@ -822,6 +828,8 @@ export default function RRHHPanel() {
         </p>
       )}
 
+      {tab === "mapa" && <MapaFunciones />}
+      {tab === "horas" && <ControlHoras />}
       {resumen && tab === "resumen" && <TabResumen resumen={resumen} />}
       {tab === "hallazgos" && <TabHallazgos />}
       {resumen && tab === "nomina" && <TabNomina resumen={resumen} onRefetch={() => void refetch()} />}

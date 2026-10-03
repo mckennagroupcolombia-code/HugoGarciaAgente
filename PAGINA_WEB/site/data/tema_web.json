@@ -65,18 +65,18 @@
     },
     "anuncio": "Bienvenidos · Horario de atención Lun–Vie 8:00–17:30",
     "hero": {
-      "badge": "Materias Primas Certificadas · Colombia",
+      "badge": "Materias primas para formulación · Colombia",
       "titulo_l1": "Materias primas",
-      "titulo_em": "certificadas",
-      "titulo_l2": "para tu industria",
-      "subtitulo": "Farmacéuticas, cosméticas y nutracéuticas. Importadas con visto bueno INVIMA, COA y ficha técnica por lote. Despachos a todo Colombia.",
+      "titulo_em": "para formular",
+      "titulo_l2": "con respaldo técnico",
+      "subtitulo": "Cosmética, farmacéutica y nutracéutica. Cada referencia se despacha con su ficha técnica y el COA del lote, y con la documentación de importación que le aplique. Envíos a todo Colombia.",
       "cta_principal": "Comprar ahora",
       "cta_secundario": "Pedir cotización",
       "kit_label": "Por qué elegirnos",
       "kit": [
         {
-          "titulo": "Importación 100% Legal",
-          "texto": "Visto Bueno de Importación (VUCE) + COA de laboratorio + Ficha Técnica por lote",
+          "titulo": "Importación legal",
+          "texto": "COA de laboratorio y ficha técnica por lote; permisos según el producto",
           "valor": "COA/TDS",
           "icono": "certificate"
         },
@@ -98,7 +98,8 @@
           "valor": "B2B",
           "icono": "headset"
         }
-      ]
+      ],
+      "buscador_placeholder": "Busca por nombre, INCI o uso"
     },
     "features": [
       {

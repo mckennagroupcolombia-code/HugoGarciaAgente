@@ -4,9 +4,11 @@ Enriquecimiento de datos COA/SDS/TDS con PubChem, PubMed, ficha Sheets y síntes
 
 from __future__ import annotations
 
+import contextvars
 import json
 import os
 import re
+import unicodedata
 from datetime import datetime
 from typing import Any
 
@@ -144,7 +146,7 @@ def _extraer_json(texto: str) -> dict | None:
     return None
 
 
-def _sintetizar_json(prompt: str) -> dict | None:
+def _sintetizar_json(prompt: str, contexto: str = "documentos_completar") -> dict | None:
     api_key = os.getenv("GOOGLE_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("GOOGLE_API_KEY no configurada (requerida para completar documentos)")
@@ -152,13 +154,24 @@ def _sintetizar_json(prompt: str) -> dict | None:
         from google import genai
 
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+        from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
+        modelo = "gemini-2.5-pro"
+        ok, motivo = permitir_llamada(modelo, contexto=contexto)
+        if not ok:
+            raise RuntimeError(motivo)
         client = genai.Client(api_key=api_key)
         with ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(lambda: client.models.generate_content(model="gemini-2.5-pro", contents=prompt))
+            fut = ex.submit(lambda: client.models.generate_content(model=modelo, contents=prompt))
             try:
                 resp = fut.result(timeout=75)
             except FutureTimeout:
                 raise RuntimeError("Gemini tardó demasiado — intente de nuevo")
+        t_in, t_out = usage_gemini(resp)
+        registrar_llamada(
+            modelo, t_in, t_out, contexto=contexto,
+            chars_prompt=len(prompt), chars_respuesta=len(resp.text or ""),
+        )
         return _extraer_json(resp.text or "")
     except RuntimeError:
         raise
@@ -326,6 +339,18 @@ def completar_datos_documento(
     }
 
 
+_LIMITE_GEMINI_S: contextvars.ContextVar[int] = contextvars.ContextVar("limite_gemini_s", default=30)
+
+
+def sugerir_campo_ficha_en_segundo_plano(campo: str, nombre: str, grado: str = "") -> dict[str, Any]:
+    """`sugerir_campo_ficha` para un job en hilo: sin corte del proxy, espera hasta 120 s."""
+    token = _LIMITE_GEMINI_S.set(120)
+    try:
+        return sugerir_campo_ficha(campo, nombre, grado)
+    finally:
+        _LIMITE_GEMINI_S.reset(token)
+
+
 def _sintetizar_texto(prompt: str) -> str:
     api_key = os.getenv("GOOGLE_API_KEY", "").strip()
     if not api_key:
@@ -334,13 +359,30 @@ def _sintetizar_texto(prompt: str) -> str:
         from google import genai
 
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+        from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
+        modelo = "gemini-2.5-flash"
+        ok, motivo = permitir_llamada(modelo, contexto="documentos_sugerir_campo")
+        if not ok:
+            raise RuntimeError(motivo)
         client = genai.Client(api_key=api_key)
-        with ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(lambda: client.models.generate_content(model="gemini-2.5-flash", contents=prompt))
-            try:
-                resp = fut.result(timeout=30)
-            except FutureTimeout:
-                raise RuntimeError("Gemini tardó demasiado — intente de nuevo en unos segundos")
+        # 30 s en las rutas que responden en la misma petición (Cloudflare corta a ~100 s);
+        # 120 s en segundo plano (`sugerir_campo_ficha_en_segundo_plano`): con 30 s se
+        # perdían respuestas que llegaban a los 35-45 s.
+        limite = _LIMITE_GEMINI_S.get()
+        ex = ThreadPoolExecutor(max_workers=1)
+        fut = ex.submit(lambda: client.models.generate_content(model=modelo, contents=prompt))
+        try:
+            resp = fut.result(timeout=limite)
+        except FutureTimeout:
+            raise RuntimeError(f"Gemini tardó más de {limite} s — intente de nuevo en unos segundos")
+        finally:
+            ex.shutdown(wait=False)  # sin esperar al hilo colgado (el `with` sí esperaba)
+        t_in, t_out = usage_gemini(resp)
+        registrar_llamada(
+            modelo, t_in, t_out, contexto="documentos_sugerir_campo",
+            chars_prompt=len(prompt), chars_respuesta=len(resp.text or ""),
+        )
         text = (resp.text or "").strip()
         text = re.sub(r"^```[\w]*\n?", "", text)
         text = re.sub(r"\n?```$", "", text)
@@ -435,7 +477,7 @@ _CAMPOS_PERMITIDOS = {
     "modo_uso", "propiedades_lista", "aplicaciones", "composicion",
     "alergenos", "conservacion",
     "recomendaciones", "nombre_comercial",
-    "sds_clasificacion_ghs", "sds_pictogramas", "sds_primeros_auxilios", "sds_manipulacion",
+    "sds_clasificacion_ghs", "sds_pictogramas",
     "coa_einecs", "coa_grado", "coa_parametros",
 }
 
@@ -448,10 +490,90 @@ _PROMPT_BASE = (
 # lista multilínea): deben terminar siempre en punto para verse consistentes
 # en la casilla del formulario, sin importar si el valor vino de PubChem o de
 # Gemini (ninguna de las dos fuentes lo garantiza de forma confiable).
+#: La casilla Conservacion de la etiqueta es una sintesis concreta, no un
+#: parrafo: tope de 15 palabras (regla del usuario). El mismo tope vive en
+#: `desktop/src/lib/fichaTecnicaCampos.ts` (MAX_PALABRAS_CONSERVACION).
+MAX_PALABRAS_CONSERVACION = 15
+
+
+def recortar_a_palabras(texto: str, maximo: int = MAX_PALABRAS_CONSERVACION) -> str:
+    """Recorta a `maximo` palabras cortando por clausulas (comas y punto y
+    coma) para que el resultado siga siendo una instruccion completa. Solo si
+    la primera clausula ya se pasa se corta a mitad de clausula, nunca a mitad
+    de palabra."""
+    t = re.sub(r"\s+", " ", (texto or "").strip())
+    if not t or len(t.split(" ")) <= maximo:
+        return t
+    clausulas = re.split(r"(?<=[,;])\s+", t.split(". ")[0] if ". " in t else t)
+    out = ""
+    for c in clausulas:
+        cand = f"{out} {c}".strip()
+        if len(cand.split(" ")) > maximo:
+            break
+        out = cand
+    if not out:
+        out = " ".join(t.split(" ")[:maximo])
+    paren = out.rfind("(")
+    if paren > 0 and ")" not in out[paren:]:
+        out = out[:paren]
+    return out.rstrip(" ,;")
+
+
+#: "Conservar en envase bien cerrado" esta mal construido: falta el articulo.
+#: Con "(bien) cerrado" va "Conservar el envase bien cerrado"; con cualquier
+#: otro complemento, "Conservar en el envase hermetico". Igual en
+#: `desktop/src/lib/fichaTecnicaCampos.ts` (corregirRedaccionConservacion).
+_RE_VERBO_EN_ENVASE_CERRADO = re.compile(
+    r"\b(conservar|almacenar|guardar|mantener) en (envase|empaque|recipiente)( bien)? cerrad",
+    re.IGNORECASE,
+)
+_RE_VERBO_EN_ENVASE = re.compile(
+    r"\b(conservar|almacenar|guardar|mantener) en (envase|empaque|recipiente)\b",
+    re.IGNORECASE,
+)
+
+
+def corregir_redaccion_conservacion(texto: str) -> str:
+    t = _RE_VERBO_EN_ENVASE_CERRADO.sub(
+        lambda m: f"{m.group(1)} el {m.group(2)}{m.group(3) or ''} cerrad", texto or ""
+    )
+    return _RE_VERBO_EN_ENVASE.sub(lambda m: f"{m.group(1)} en el {m.group(2)}", t)
+
+
+def es_solo_cosmetico(grado: str) -> bool:
+    """El grado del COA dice Cosmético y ningún grado de consumo (alimentos,
+    farmacéutico): la materia prima es solo de uso externo."""
+    g = unicodedata.normalize("NFD", grado or "").encode("ascii", "ignore").decode().lower()
+    return "cosmet" in g and not re.search(r"aliment|farma|\busp\b|\bbp\b|\bfcc\b|\bins\b", g)
+
+
+#: Frases que sugieren ingerir el producto: no van en una materia prima cosmética.
+#: «al día» o «dosis» solos no cuentan: «aplicar una vez al día» es uso tópico.
+_RE_INGESTA = re.compile(
+    r"\b(inger\w*|ingest\w*|ingier\w*|tom(ar|e|ese|ado|as?)\b|t[oó]mese|v[ií]a oral|oral(mente)?\b|"
+    r"consumo interno|consumir\w*|beb(er|a|ida)\w*|con (las |los )?(comidas|alimentos)|"
+    r"c[aá]psula\w*|tableta\w*|suplement\w*)",
+    re.IGNORECASE,
+)
+#: Advertencias que niegan la ingesta («No ingerir.»): esas sí se quedan.
+_RE_NO_INGERIR = re.compile(r"\bno (ingerir|tomar|beber|consumir)\b", re.IGNORECASE)
+USO_EXTERNO = "Solo para uso externo."
+
+
+def modo_uso_cosmetico(texto: str) -> str:
+    """Quita del modo de uso las oraciones que hablen de ingerir o tomar el
+    producto y, si el texto no lo dice ya, cierra con «Solo para uso externo.»."""
+    oraciones = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", (texto or "").strip()))
+    quedan = [o for o in oraciones if o and not _RE_INGESTA.search(_RE_NO_INGERIR.sub("", o))]
+    if not re.search(r"uso (externo|t[oó]pico)", " ".join(quedan), re.IGNORECASE):
+        quedan.append(USO_EXTERNO)
+    return " ".join(quedan).strip()
+
+
 _CAMPOS_ORACION_CORTA = {
     "descripcion", "apariencia", "olor", "sabor", "solubilidad",
     "modo_uso", "alergenos", "conservacion",
-    "sds_clasificacion_ghs", "sds_manipulacion",
+    "sds_clasificacion_ghs",
 }
 
 
@@ -552,9 +674,10 @@ def _asegurar_punto_final_lineas(texto: str) -> str:
     return "\n".join(_asegurar_punto_final(ln) if ln.strip() else ln for ln in lineas)
 
 
-def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
+def sugerir_campo_ficha(campo: str, nombre: str, grado: str = "") -> dict[str, Any]:
     """Sugerencia IA para cualquier campo del formulario de ficha técnica.
-    Usa PubChem PUG REST/View como fuente primaria; Gemini como síntesis."""
+    Usa PubChem PUG REST/View como fuente primaria; Gemini como síntesis.
+    `grado` (el del COA) decide el modo de uso: si es solo cosmético, uso externo."""
     nombre = (nombre or "").strip()
     if not nombre:
         raise ValueError("Se requiere nombre del producto")
@@ -699,13 +822,27 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Responde en 1-2 líneas técnicas. Sin markdown."
         ),
         "modo_uso": (
-            f'Redacta el modo de uso recomendado de "{nombre}" para un adulto sano promedio.\n'
-            f"EVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "OBLIGATORIO: indica una dosis diaria sugerida en mg o g (elige la unidad más adecuada "
-            "al rango típico del ingrediente), expresada para un adulto sano promedio "
-            "(ej. «500 mg al día», «1–3 g al día», «2 g/día divididos en dos tomas»).\n"
-            "Si aplica, menciona forma de consumo o incorporación breve (con alimentos, en solución, etc.).\n"
-            "2-4 oraciones técnicas, en español. Sin markdown, sin advertencias legales largas."
+            (
+                f'Redacta el modo de uso de "{nombre}" como materia prima COSMÉTICA, '
+                "exclusivamente de USO EXTERNO (piel, cabello, uñas).\n"
+                f"EVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+                "OBLIGATORIO: indica la concentración típica de uso en la formulación (porcentaje, "
+                "ej. «0,5–2 %») y en qué tipo de producto o fase se incorpora (cremas, lociones, "
+                "champús, jabones, fase oleosa o acuosa…).\n"
+                "PROHIBIDO: sugerir ingerirlo, tomarlo, beberlo, dosis diarias en mg o g, vía oral, "
+                "cápsulas o uso con alimentos.\n"
+                "2-3 oraciones técnicas, en español. Sin markdown, sin advertencias legales largas."
+            )
+            if es_solo_cosmetico(grado)
+            else (
+                f'Redacta el modo de uso recomendado de "{nombre}" para un adulto sano promedio.\n'
+                f"EVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+                "OBLIGATORIO: indica una dosis diaria sugerida en mg o g (elige la unidad más adecuada "
+                "al rango típico del ingrediente), expresada para un adulto sano promedio "
+                "(ej. «500 mg al día», «1–3 g al día», «2 g/día divididos en dos tomas»).\n"
+                "Si aplica, menciona forma de consumo o incorporación breve (con alimentos, en solución, etc.).\n"
+                "2-4 oraciones técnicas, en español. Sin markdown, sin advertencias legales largas."
+            )
         ),
         "propiedades_lista": (
             f'Lista los principales beneficios de "{nombre}" como materia prima para formulaciones farmacéuticas y cosméticas.\n'
@@ -756,10 +893,14 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "UNA o dos lineas. Sin markdown."
         ),
         "conservacion": (
-            f'Indica las condiciones de conservacion y almacenamiento de "{nombre}".\n'
+            f'Resume las condiciones de conservacion y almacenamiento de "{nombre}".\n'
             f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Incluye: temperatura, humedad, luz, tipo de envase y vida util si se conoce.\n"
-            "1-2 oraciones tecnicas en espanol. Sin markdown, sin listas."
+            "Va impreso en la casilla Conservacion de la etiqueta, que es muy pequena.\n"
+            f"Formato OBLIGATORIO: UNA sola oracion de MAXIMO {MAX_PALABRAS_CONSERVACION} palabras, "
+            "empezando por un verbo en infinitivo (Guardar / Almacenar / Conservar / Mantener).\n"
+            "Concreta: envase, lugar y las condiciones que importen (temperatura, humedad, luz).\n"
+            "NADA de vida util, fechas, modo de uso ni advertencias. Sin markdown, sin listas, "
+            "sin preambulo: responde solo la oracion."
         ),
         "sds_clasificacion_ghs": (
             f'Genera la clasificación GHS/CLP de "{nombre}" según el Sistema Globalmente Armonizado (SGA/GHS).\n'
@@ -774,22 +915,6 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Formato: una línea por elemento.\n"
             "Ejemplo:\nGHS07 - Nocivo\nH302: Nocivo en caso de ingestión\nP260: No respirar los vapores\n"
             "Sin markdown. Si no aplica pictograma, indicarlo."
-        ),
-        "sds_primeros_auxilios": (
-            f'Redacta las instrucciones de primeros auxilios para "{nombre}" en caso de exposición accidental.\n'
-            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Formato ESTRICTO: una línea por vía de exposición como \"Caso|Instrucción\".\n"
-            "Ejemplo:\nInhalación|Llevar al afectado a lugar ventilado; consultar médico si persiste\n"
-            "Contacto piel|Lavar con agua y jabón abundante durante 15 minutos\n"
-            "Contacto ojos|Enjuagar con agua limpia durante 15 minutos; consultar oftalmólogo\n"
-            "Ingestión|No inducir vómito; consultar médico inmediatamente\n"
-            "Sin markdown, sin encabezados."
-        ),
-        "sds_manipulacion": (
-            f'Redacta las instrucciones de manipulación segura de "{nombre}" para uso industrial/cosmético/farmacéutico.\n'
-            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Incluye: EPP recomendado, ventilación, precauciones generales, incompatibilidades a evitar.\n"
-            "2-4 oraciones técnicas en español. Sin markdown, sin listas."
         ),
         "coa_einecs": (
             f'Indica el número EINECS (European Inventory of Existing Commercial Chemical Substances) de "{nombre}".\n'
@@ -809,6 +934,13 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
         raise ValueError(f"Campo no tiene prompt configurado: {campo}")
 
     valor = _sintetizar_texto(f"{_PROMPT_BASE}\n{prompt_texto}")
+    if campo == "conservacion":
+        # La casilla de la etiqueta es una sintesis: el tope de 15 palabras se
+        # impone aqui aunque el modelo devuelva un parrafo.
+        valor = recortar_a_palabras(corregir_redaccion_conservacion(valor))
+    if campo == "modo_uso" and es_solo_cosmetico(grado):
+        # Aunque el modelo desobedezca, una materia cosmética nunca se ingiere.
+        valor = modo_uso_cosmetico(valor)
     if campo in _CAMPOS_ORACION_CORTA:
         valor = _asegurar_punto_final(valor)
     elif campo == "aplicaciones":
@@ -816,7 +948,7 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
     return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
 
 
-def sugerir_multiples_campos(nombre: str, campos: list[str]) -> dict[str, str | None]:
+def sugerir_multiples_campos(nombre: str, campos: list[str], grado: str = "") -> dict[str, str | None]:
     """Sugiere varios campos en paralelo (PubChem + Gemini).
 
     Retorna {campo: valor_sugerido | None si falló}.
@@ -832,7 +964,7 @@ def sugerir_multiples_campos(nombre: str, campos: list[str]) -> dict[str, str | 
 
     def _sugerir(campo: str) -> tuple[str, str | None]:
         try:
-            r = sugerir_campo_ficha(campo, nombre)
+            r = sugerir_campo_ficha(campo, nombre, grado)
             return (campo, r.get("valor") or None)
         except Exception:
             return (campo, None)

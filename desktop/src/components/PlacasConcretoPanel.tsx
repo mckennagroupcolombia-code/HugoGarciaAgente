@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useMemo, useState } from "react";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -116,7 +117,7 @@ export default function PlacasConcretoPanel() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <h2 className="text-xl font-extrabold text-ink">🧱 Placas de Concreto Pulido</h2>
+      <h2 className="text-xl font-extrabold text-ink"><Ico e="🧱" /> Placas de Concreto Pulido</h2>
 
       {/* Dimensiones del molde */}
       <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">

@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useState, useEffect, useCallback, useMemo, type CSSProperties } from "react";
 import type { TicketsUser } from "../stores/ticketsAuth";
 import { Icon, TopicIcon, TopicIconLabel } from "../icons";
@@ -967,11 +968,11 @@ export default function RecetasPanel({
             </div>
           </section>
           <section className="rounded-paper border-2 border-border bg-surface-panel p-4 space-y-3">
-            <h3 className="text-sm font-extrabold uppercase text-muted">🧪 Materiales (inventario)</h3>
+            <h3 className="text-sm font-extrabold uppercase text-muted"><Ico e="🧪" /> Materiales (inventario)</h3>
             {bloqueLineasEditor(lineasDraft, setLineasDraft)}
           </section>
           <section className="rounded-paper border-2 border-border bg-surface-panel p-4 space-y-3">
-            <h3 className="text-sm font-extrabold uppercase text-muted">⚙️ Procesos</h3>
+            <h3 className="text-sm font-extrabold uppercase text-muted"><Ico e="⚙️" /> Procesos</h3>
             {bloqueProcesosEditor(procesosDraft, setProcesosDraft)}
           </section>
           <button type="submit" disabled={saving || !metaDraft.titulo.trim() || metaDraft.reino_id === ""}
@@ -1037,11 +1038,11 @@ export default function RecetasPanel({
               <>
                 <button type="button" onClick={() => setEditMeta((v) => !v)}
                   className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent">
-                  ✏️ Datos
+                  <Ico e="✏️" /> Datos
                 </button>
                 <button type="button" onClick={archivarReceta}
                   className="rounded-paper border-2 border-red-400/70 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50">
-                  🗑
+                  <Ico e="🗑" />
                 </button>
               </>
             )}
@@ -1100,7 +1101,7 @@ export default function RecetasPanel({
           {/* Materiales */}
           <section className="rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-extrabold uppercase text-muted">🧪 Materiales (inventario)</h3>
+              <h3 className="text-sm font-extrabold uppercase text-muted"><Ico e="🧪" /> Materiales (inventario)</h3>
               {canEditReceta && !corrida && (
                 <button type="button" onClick={() => setEditLineas((v) => !v)}
                   className="text-xs font-bold text-accent hover:underline">
@@ -1197,7 +1198,7 @@ export default function RecetasPanel({
           {/* Procesos */}
           <section className="rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-extrabold uppercase text-muted">⚙️ Procesos</h3>
+              <h3 className="text-sm font-extrabold uppercase text-muted"><Ico e="⚙️" /> Procesos</h3>
               {canEditReceta && !corrida && (
                 <button type="button" onClick={() => setEditProcesos((v) => !v)}
                   className="text-xs font-bold text-accent hover:underline">
@@ -1279,7 +1280,7 @@ export default function RecetasPanel({
         </div>
 
         {receta.tip && (
-          <p className="rounded-lg bg-accent/10 px-4 py-3 text-sm text-accent">💡 {receta.tip}</p>
+          <p className="rounded-lg bg-accent/10 px-4 py-3 text-sm text-accent"><Ico e="💡" /> {receta.tip}</p>
         )}
         {receta.descripcion && (
           <p className="text-sm text-muted">{receta.descripcion}</p>
@@ -1349,10 +1350,10 @@ export default function RecetasPanel({
       {!loading && lista.length > 0 && (
         <div className="flex flex-wrap gap-2 text-[10px] font-bold">
           <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-800 dark:text-amber-200">
-            📚 Catálogo: {totalCatalogo}
+            <Ico e="📚" /> Catálogo: {totalCatalogo}
           </span>
           <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-emerald-700 dark:text-emerald-300">
-            🏰 Reinos: {totalReinos}
+            <Ico e="🏰" /> Reinos: {totalReinos}
           </span>
         </div>
       )}
@@ -1389,7 +1390,7 @@ export default function RecetasPanel({
                 title={selectedIds.size !== 1 ? "Elige una sola receta" : "Editar datos"}
                 className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent disabled:opacity-40"
               >
-                ✏️ Editar
+                <Ico e="✏️" /> Editar
               </button>
               <button
                 type="button"

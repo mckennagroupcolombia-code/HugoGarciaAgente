@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useMemo, useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1675,8 +1676,8 @@ export default function StockPanelSimple() {
         >
           {isFetching ? "Actualizando..." : (
             <>
-              <span className="sm:hidden">🔄 Actualizar</span>
-              <span className="hidden sm:inline">🔄 Actualizar MeLi + Alegra + ventas</span>
+              <span className="sm:hidden"><Ico e="🔄" /> Actualizar</span>
+              <span className="hidden sm:inline"><Ico e="🔄" /> Actualizar MeLi + Alegra + ventas</span>
             </>
           )}
         </button>

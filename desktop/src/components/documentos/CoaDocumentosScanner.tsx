@@ -1,3 +1,4 @@
+import { ico } from "../../icons/icoTexto";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../api/client";
 import { esperarJobScan } from "../../lib/scanJobPoll";
@@ -608,7 +609,7 @@ export default function CoaDocumentosScanner({
             disabled={aplicando}
             className="rounded-lg border-2 border-accent bg-accent px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-accent-hover disabled:opacity-40"
           >
-            {aplicando ? "Asociando…" : scanning ? "📷 Agregar otra foto…" : "📷 Escáner de documentos COA"}
+            {aplicando ? "Asociando…" : scanning ? ico("📷 Agregar otra foto…") : ico("📷 Escáner de documentos COA")}
           </button>
           <button
             type="button"

@@ -765,6 +765,12 @@ def _generar_respuesta_claude(modelo: str, prompt: str) -> str | None:
     """Genera la respuesta de preventa con Claude (texto plano, sin tools)."""
     from app.core import cliente_ia
 
+    if cliente_ia is None and os.getenv("ANTHROPIC_API_KEY", "").strip():
+        # Fuera del servicio (script/CLI) configurar_ia() no corrió: sin esto
+        # se caía a Gemini aunque la clave exista.
+        import anthropic
+
+        cliente_ia = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"].strip())
     if cliente_ia is None:
         print("Preventa: ANTHROPIC_API_KEY no configurado — no se puede llamar a Claude")
         return None
@@ -859,6 +865,7 @@ REGLAS:
 5. NO menciones que tienes una "ficha técnica" — habla naturalmente.
 6. NUNCA menciones INVIMA, registro sanitario, resoluciones ni normativa legal, aunque el cliente pregunte por eso — limítate a describir el producto como materia prima para formulación.
 7. Si el cliente te compartió datos de contacto o de envío (teléfono, celular, correo, dirección, cédula, redes sociales, etc.), NUNCA los repitas ni transcribas en tu respuesta, aunque él los haya escrito primero. Agradece el dato de forma genérica ("gracias por la información, ya quedó registrada") sin citar el número/dirección/dato literal — Mercado Libre puede interpretar que el vendedor repite datos de contacto como intercambio de información fuera de la plataforma, incluso si el comprador los envió primero.
+6b. McKenna vende MATERIA PRIMA, no suplementos ni medicamentos terminados. Si preguntan si sirve como suplemento, para consumo o qué dosis tomar, responde con la FUNCIÓN TECNOLÓGICA que da la ficha (emulsionante, espesante, estabilizante, etc.) y sus aplicaciones reales en alimentos, cosméticos o formulación, empezando por su uso PRINCIPAL con 1-2 ejemplos concretos de la ficha (ej.: emulsionante en salsas, chocolates, panadería); si la ficha dice que se usa dentro de suplementos, preséntalo como ingrediente funcional de esas formulaciones. NUNCA des dosis de consumo, gramos o tomas diarias ni beneficios para la salud (cerebro, corazón, metabolismo, etc.), aunque la ficha los traiga. No remitas a un «profesional de la salud» ni hables de dosis. Si piden cantidad, di que la proporción depende de la receta o formulación, sin inventar porcentajes que no estén en la ficha.
 {regla_presentaciones}
 
 Genera únicamente la respuesta para el cliente, sin comillas ni texto introductorio."""
@@ -928,3 +935,66 @@ Genera únicamente la respuesta para el cliente, sin comillas ni texto introduct
 
     print("❌ Preventa: todos los modelos Gemini fallaron")
     return None
+
+
+def regenerar_borrador_pendiente(question_id: str, *, avisar_grupo: bool = True) -> str | None:
+    """
+    Genera el borrador IA de una pregunta que quedó pendiente sin él (Sheets caído,
+    ficha enlazada después, IA falló). Vuelve a leer la ficha, llama al modelo del
+    canal y guarda el borrador en la misma entrada para que «ok <3dig>» lo envíe.
+    Retorna el borrador, o None si sigue sin ficha / la IA falla / ya fue respondida.
+    """
+    p = obtener_pregunta_pendiente(question_id)
+    if not p:
+        print(f"⚠️ Preventa: {question_id} no está en la cola")
+        return None
+    if p.get("respondida"):
+        print(f"⚠️ Preventa: {question_id} ya fue respondida")
+        return None
+
+    from app.services.google_services import buscar_ficha_tecnica_producto
+
+    titulo = p.get("titulo_producto", "")
+    pregunta = p.get("pregunta", "")
+    ficha = buscar_ficha_tecnica_producto(titulo)
+    if not ficha:
+        print(f"⚠️ Preventa: sigue sin ficha para '{titulo}'")
+        return None
+
+    try:
+        otras = otras_presentaciones_meli(titulo)
+    except Exception:
+        otras = ""
+    try:
+        hilo = contexto_hilo_reciente(titulo, question_id)
+    except Exception:
+        hilo = ""
+    borrador = generar_respuesta_con_ficha(
+        titulo, pregunta, ficha, otras_presentaciones=otras, contexto_hilo=hilo
+    )
+    if not borrador:
+        return None
+
+    pendientes = _leer_pendientes()
+    for e in pendientes:
+        if str(e.get("question_id")) == str(question_id):
+            e["borrador_ia"] = borrador
+            break
+    _guardar_pendientes(pendientes)
+
+    if avisar_grupo:
+        from app.utils import enviar_whatsapp_reporte
+
+        sufijo = str(question_id)[-3:]
+        texto = borrador[:500] + ("..." if len(borrador) > 500 else "")
+        enviar_whatsapp_reporte(
+            f"🤖 *BORRADOR IA — PREVENTA MELI* (regenerado)\n\n"
+            f"📦 *Producto:* {titulo}\n"
+            f"🗣 *Cliente preguntó:*\n\"{pregunta}\"\n\n"
+            f"💬 *Respuesta IA:*\n_{texto}_\n\n"
+            f"──────────────\n"
+            f"✅ Enviar como está: *ok {sufijo}*\n"
+            f"✍️ Mejorar respuesta: *resp {sufijo}: tu versión*",
+            numero_destino=jid_grupo_preventa_wa(),
+        )
+    return borrador

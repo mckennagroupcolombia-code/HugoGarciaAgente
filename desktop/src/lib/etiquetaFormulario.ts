@@ -44,7 +44,7 @@ export function labelCampoEtiqueta(id: string): string {
     casNumero: "CAS",
     origen: "ORIGEN",
     apariencia: "APARIENCIA",
-    olor: "OLOR",
+    olor: "AROMA",
     composicion: "COMPOSICIÓN",
     grado: "GRADO",
     almacenamiento: "CONSERVACIÓN",
@@ -81,7 +81,7 @@ export type BloqueFormularioEtiqueta = {
 
 /** Grados de materia prima fijos (independientes de la línea comercial que
  *  define el color/logo — ver `PALETA_LOGO_LINEA`). */
-export const GRADOS_MATERIA_PRIMA = ["Alimentario", "Cosmético", "Agro", "Industrial"] as const;
+export const GRADOS_MATERIA_PRIMA = ["Alimentario", "Cosmético", "Agro", "Industrial", "Solventes"] as const;
 
 export const PAISES_ORIGEN_SUGERIDOS = [
   "China", "India", "Estados Unidos", "Alemania", "España",
@@ -91,7 +91,7 @@ export const PAISES_ORIGEN_SUGERIDOS = [
 export const BLOQUES_FICHA_GRID: readonly BloqueFormularioEtiqueta[] = [
   { id: "origen", titulo: "ORIGEN", campo: "origen", sugerencias: PAISES_ORIGEN_SUGERIDOS },
   { id: "apariencia", titulo: "APARIENCIA", campo: "apariencia", largo: true },
-  { id: "olor", titulo: "OLOR", campo: "olor" },
+  { id: "olor", titulo: "AROMA", campo: "olor" },
   { id: "composicion", titulo: "COMPOSICIÓN", campo: "composicion", largo: true },
   { id: "grado", titulo: "GRADO", campo: "grado", sugerencias: GRADOS_MATERIA_PRIMA },
   { id: "conservacion", titulo: "CONSERVACIÓN", campo: "almacenamiento", largo: true, maxPalabras: 10 },
@@ -370,7 +370,16 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     valorEnFilas(datos.propiedades, "apariencia", "appearance"),
   );
   const olorRaw = pick(cf.olor, valorEnFilas(datos.propiedades, "olor", "odour", "odor"));
-  const composicionRaw = flattenComposicion(datos.composicion);
+  // Igual que en fichaTecnicaCampos: en las fichas FT + COA + SDS los
+  // componentes viven en el COA (antes, en la sección 3 del SDS).
+  const sdsComp =
+    datos._sds && typeof datos._sds === "object"
+      ? (datos._sds as Record<string, unknown>).composicion
+      : undefined;
+  const composicionRaw =
+    flattenComposicion(datos.composicion) ||
+    flattenComposicion((coa as Record<string, unknown>).composicion) ||
+    flattenComposicion(sdsComp);
   const almacenamientoRaw = pick(
     datos.almacenamiento,
     emp.almacenamiento,

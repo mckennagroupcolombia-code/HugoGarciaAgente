@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
-import { alternateMutatingApiUrl } from "../api/client";
+import { alternateMutatingApiUrl, api } from "../api/client";
+import { flushSaveUserUiPreferences } from "../lib/userThemeSync";
+import { useAuthStore } from "../stores/auth";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 
@@ -169,4 +171,18 @@ export async function cerrarSesionPanel(jwt: string): Promise<void> {
     await ticketsPost(jwt, "/api/tickets/panel/sesion/fin", { session_uuid: sid });
   }
   clearSessionUuid();
+}
+
+/** Cerrar sesión de verdad: presencia, sesión en el servidor (borra también la
+ *  cookie que abre /app), token local y preferencias pendientes. Lo usan el menú de
+ *  usuario de escritorio y «Yo» del celular — ahí solo se cerraba la presencia y el
+ *  botón no hacía nada visible. */
+export async function salirDelPanel(jwt: string): Promise<void> {
+  try { await flushSaveUserUiPreferences(jwt); } catch { /* */ }
+  let sid = "";
+  try { sid = sessionStorage.getItem(STORAGE_KEY) ?? ""; } catch { /* */ }
+  await cerrarSesionPanel(jwt).catch(() => {});
+  try { await api.post("/api/tickets/auth/logout", { session_uuid: sid }); } catch { /* */ }
+  useTicketsAuth.getState().clear();
+  useAuthStore.getState().clear();
 }

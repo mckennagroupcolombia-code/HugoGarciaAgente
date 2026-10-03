@@ -1,0 +1,534 @@
+{
+ "C-ACIMAL100g": [
+  {
+   "codigo": "ACIMALg",
+   "cantidad": 100
+  },
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQ250g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LNRIND36.2mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PPLBRB10cms",
+   "cantidad": 2
+  },
+  {
+   "codigo": "SCO1g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MSENUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "VNP20cms",
+   "cantidad": 1
+  }
+ ],
+ "C-ACISAL50g": [
+  {
+   "codigo": "ACISALg",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BANTER60mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQ10g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LINPASUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MBLAUn",
+   "cantidad": 1
+  }
+ ],
+ "C-ACISAL100g": [
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQ100g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LNRIND36.2mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PPLBRB10cms",
+   "cantidad": 2
+  },
+  {
+   "codigo": "TAP38MSENUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ACISALg",
+   "cantidad": 100
+  }
+ ],
+ "C-ALGSODCLOCAL50g": [
+  {
+   "codigo": "ALGSODg",
+   "cantidad": 50
+  },
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 2
+  },
+  {
+   "codigo": "BLSMTL13X21cms",
+   "cantidad": 1
+  },
+  {
+   "codigo": "CLOCALg",
+   "cantidad": 50
+  },
+  {
+   "codigo": "ETQ10g",
+   "cantidad": 2
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LINPASUn",
+   "cantidad": 2
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 2
+  },
+  {
+   "codigo": "TAP38MBLAUn",
+   "cantidad": 2
+  }
+ ],
+ "C-ALGSODLACCAL50g": [
+  {
+   "codigo": "ALGSODg",
+   "cantidad": 50
+  },
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 2
+  },
+  {
+   "codigo": "BLSMTL13X21cms",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQ10g",
+   "cantidad": 2
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LACCALg",
+   "cantidad": 50
+  },
+  {
+   "codigo": "LINPASUn",
+   "cantidad": 2
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 2
+  },
+  {
+   "codigo": "TAP38MBLAUn",
+   "cantidad": 2
+  }
+ ],
+ "C-AMILCAR100g": [
+  {
+   "codigo": "AMITEAg",
+   "cantidad": 100
+  },
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BURB",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQ100g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LNRIND36.2mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "SCO1g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MSENUn",
+   "cantidad": 1
+  }
+ ],
+ "C-AMILTRI100g": [
+  {
+   "codigo": "AMILTRIg",
+   "cantidad": 100
+  },
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BURB",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQ100g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LNRIND36.2mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "SCO1g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MSENUn",
+   "cantidad": 1
+  }
+ ],
+ "C-CAF100g": [
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "CAFANHCHIg",
+   "cantidad": 100
+  },
+  {
+   "codigo": "ETQ250g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LNRIND36.2mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "OPRMNM4MN",
+   "cantidad": 2
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PPLBRB10cms",
+   "cantidad": 2
+  },
+  {
+   "codigo": "SCO1g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MSENUn",
+   "cantidad": 1
+  }
+ ],
+ "C-EXTTEMATVER100g": [
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQ100g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "EXTTEMATVERg",
+   "cantidad": 100
+  },
+  {
+   "codigo": "LNRIND36.2mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PPLBRB10cms",
+   "cantidad": 1
+  },
+  {
+   "codigo": "SCO1g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MSENUn",
+   "cantidad": 1
+  }
+ ],
+ "C-LHIS100g": [
+  {
+   "codigo": "L-AMIHISg",
+   "cantidad": 100
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LINPASUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  }
+ ],
+ "C-LPRO100g": [
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "L-AMIPROg",
+   "cantidad": 100
+  },
+  {
+   "codigo": "LINPASUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MBLAUn",
+   "cantidad": 1
+  }
+ ],
+ "C-LTEA100g": [
+  {
+   "codigo": "AMITEAg",
+   "cantidad": 100
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MSENUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LNRIND36.2mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "SCO1g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQ100g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BURB",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  }
+ ],
+ "C-LTRI100g": [
+  {
+   "codigo": "AMILTRIg",
+   "cantidad": 100
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MSENUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "LNRIND36.2mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "SCO1g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQ100g",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BURB",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  }
+ ],
+ "C-SUC100g": [
+  {
+   "codigo": "BANPAS180mm",
+   "cantidad": 1
+  },
+  {
+   "codigo": "BOLSEGBLAUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "ETQTRM",
+   "cantidad": 1
+  },
+  {
+   "codigo": "SUCg",
+   "cantidad": 100
+  },
+  {
+   "codigo": "LINPASUn",
+   "cantidad": 1
+  },
+  {
+   "codigo": "PASBLA180mL",
+   "cantidad": 1
+  },
+  {
+   "codigo": "TAP38MBLAUn",
+   "cantidad": 1
+  }
+ ]
+}

@@ -20,10 +20,21 @@ export type Panel =
   | "stock"
   | "control-inventario"
   | "fichas"
+  | "formulas"
   | "pedidos"
   | "empaque"
   | "guias-envio"
+  | "entregas-flex"
+  | "mapa-sistema"
+  | "colaboradores"
+  | "mapa-vivo"
+  | "juegos"
+  | "arquitectura"
+  | "combos"
   | "publicaciones"
+  | "canales-producto"
+  | "chat-equipo"
+  | "recepcion-mercancia"
   | "vitrina-web"
   | "facturacion"
   | "astro-killer"
@@ -43,10 +54,12 @@ export type Panel =
   | "ingresos-egresos"
   | "creditos-adquiridos"
   | "libro-mayor"
+  | "socios"
   | "contabilidad-inicio"
   | "anulaciones"
   | "prestamos"
   | "pagos"
+  | "conciliacion-contador"
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"
@@ -61,16 +74,19 @@ export type Panel =
   | "telemetria"
   | "meli-oauth"
   | "gmail-oauth"
+  | "conexiones"
   | "tareas-programadas"
   | "settings"
   | "perfil";
 
 /** Pestaña activa dentro de Impresora · Etiquetas. */
 export type EtiquetasTab = "imprimir" | "inventario" | "studio" | "codigos_ean";
+/** Pestañas de Docs técnicos: viven en el cabezote (como Contabilidad). */
+export type DocsTab = "ft" | "coa" | "sds" | "completo" | "biblioteca" | "revision";
 
-/** Sub-pestaña dentro de Studio visual. La portada es "categorias": la unidad de
- *  trabajo es la categoría de producto, no la biblioteca de imágenes. */
-export type StudioSubvista = "categorias" | "etiquetas" | "disenos" | "recursos";
+/** Sub-pestaña dentro de Studio visual. La portada es "arbol" (Árbol del producto:
+ *  categoría → familia → presentación, con el par de etiquetas y sus canales). */
+export type StudioSubvista = "arbol" | "categorias" | "etiquetas" | "disenos" | "recursos" | "publicaciones";
 
 export type MobileHubTab = "home" | "chat" | "mensajes" | "acciones" | "yo";
 
@@ -140,6 +156,7 @@ export type AccionesBootTab =
 export type RentabilidadBootTab = "combos" | "nomina" | "servicios" | "periodo" | "cobros-meli" | "ganancia";
 /** Subvistas de Libro Mayor → Vista Avanzada a las que se puede abrir directo (ver LibroMayorPanel.tsx). */
 export type LibroMayorBootTab =
+  | "socios"
   | "diario"
   | "plan-cuentas"
   | "terceros"
@@ -150,6 +167,24 @@ export type LibroMayorBootTab =
   | "balance"
   | "informes"
   | "cuenta-socio";
+
+/** El combo desde el que se saltó a otro apartado, y lo que ese apartado necesita para abrir en él. */
+export interface TallerRetorno {
+  ref: string;
+  nombre: string;
+  /** Materias primas de la receta: el documento técnico es de ellas, no del combo. */
+  mps?: { codigo: string; nombre: string }[];
+  /** El documento no está unido por SKU: Docs técnicos ofrece asociarlo. */
+  asociarDoc?: boolean;
+  /** El documento que el taller encontró (YAML en fichas_word/datos), para abrirlo directo en el editor. */
+  doc?: { archivo?: string; titulo?: string; detalle?: string; estado?: "ok" | "aviso" | "falta" };
+  /** La pieza que se vino a resolver y lo que el taller sabe de ella: el destino arma su guía con esto. */
+  pieza?: { clave: string; titulo: string; estado: "ok" | "aviso" | "falta"; detalle: string; meli_id?: string; precio?: number };
+  /** Precio de lista del combo (Alegra, con IVA) para lo que se cree desde el destino. */
+  precioLista?: number;
+  /** Panel al que devuelve «← Seguir con…»; sin él, el Árbol del producto (Diseño de producto → Studio). */
+  origen?: Panel;
+}
 
 interface AppState {
   panel: Panel;
@@ -198,14 +233,31 @@ interface AppState {
    * Contabilidad). Se consume y se limpia al montar el panel. */
   ventasBoot: { busqueda?: string; soloPendientes?: boolean } | null;
   setVentasBoot: (v: { busqueda?: string; soloPendientes?: boolean } | null) => void;
+  /** Abrir Contabilidad → Solicitudes de pago con el wizard ya abierto en una
+   * categoría (desde «Solicitud de pago a proveedor» del Centro de Mando). */
+  pagosBoot: { abrir: boolean; categoria?: string } | null;
+  setPagosBoot: (v: { abrir: boolean; categoria?: string } | null) => void;
+  /** Panel al que se intentó entrar sin permiso: el guard devuelve al usuario a
+   * otro panel y esto permite DECIRLE por qué (antes solo "se salía de la
+   * pantalla"). Se limpia al cerrar el aviso. */
+  accesoDenegado: string | null;
+  setAccesoDenegado: (v: string | null) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
   etiquetasTab: EtiquetasTab;
   setEtiquetasTab: (t: EtiquetasTab) => void;
+  docsTab: DocsTab;
+  setDocsTab: (t: DocsTab) => void;
   /** Studio visual en vista de lienzo (editor): Layout usa fill sin padding. */
   etiquetasStudioInmersivo: boolean;
   setEtiquetasStudioInmersivo: (v: boolean) => void;
+  /** Libro Mayor en modo enfoque: sin cabezote ni pestañas del hub; el riel y el contenido a toda la ventana. */
+  libroMayorEnfoque: boolean;
+  setLibroMayorEnfoque: (v: boolean) => void;
+  /** Cotizar/Facturar sin cabezote ni pestañas de Facturación: el módulo a toda la ventana. No se persiste. */
+  cotizarEnfoque: boolean;
+  setCotizarEnfoque: (v: boolean) => void;
   studioSubvista: StudioSubvista;
   setStudioSubvista: (v: StudioSubvista) => void;
   /** Categoría a la que se entró desde una tarjeta de la portada; "" = todas. */
@@ -213,6 +265,23 @@ interface AppState {
   setStudioCategoriaFiltro: (v: string) => void;
   etiquetasHandoff: EtiquetasHandoff | null;
   setEtiquetasHandoff: (h: EtiquetasHandoff | null) => void;
+  /** Combo que llega a Diseño → Códigos EAN ya escrito en el formulario (viene de Inventario → Combos). */
+  eanPrefill: { sku: string; nombre: string } | null;
+  /**
+   * Salto desde el taller de combos a un apartado que ya existe (Studio, Docs técnicos,
+   * Publicaciones): el apartado abre en ESE producto y el cabezote ofrece volver al combo.
+   */
+  tallerSalto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string } | null;
+  tallerRetorno: TallerRetorno | null;
+  saltarDesdeTaller: (retorno: TallerRetorno, salto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string }) => void;
+  consumirTallerSalto: () => void;
+  volverAlTaller: () => void;
+  /** Combo que el Árbol del producto debe abrir al montarse (lo consume y lo limpia). */
+  arbolRef: string | null;
+  /** Abre Diseño de producto → Studio → Árbol del producto, opcionalmente en un combo. Reemplaza al
+   *  antiguo panel «Taller de combos» (el id `combos` sigue existiendo solo como alias hacia aquí). */
+  abrirArbolProducto: (ref?: string | null) => void;
+  setEanPrefill: (p: { sku: string; nombre: string } | null) => void;
   etiquetasSolicitudActiva: EtiquetasSolicitudActiva | null;
   setEtiquetasSolicitudActiva: (s: EtiquetasSolicitudActiva | null) => void;
   /** true tras rehidratar localStorage — evita saltos de panel al refrescar. */
@@ -264,6 +333,14 @@ export const useAppStore = create<AppState>()(
       },
       setMobileTab: (mobileTab) => set({ mobileTab }),
       setPanel: (panel) => {
+        // «combos» (el antiguo Taller de combos) ya no es un panel: es el Árbol del producto.
+        if (panel === "combos") {
+          const salto = get().tallerSalto;
+          const ref = salto?.panel === "combos" ? salto.sku ?? salto.buscar ?? null : null;
+          if (salto?.panel === "combos") set({ tallerSalto: null });
+          get().abrirArbolProducto(ref);
+          return;
+        }
         const next = normalizePanel(panel);
         const cur = get();
         if (cur.panel === next && !cur.sidebarOpen) return;
@@ -297,6 +374,10 @@ export const useAppStore = create<AppState>()(
       setFacturasBootVista: (facturasBootVista) => set({ facturasBootVista }),
       ventasBoot: null,
       setVentasBoot: (ventasBoot) => set({ ventasBoot }),
+      pagosBoot: null,
+      setPagosBoot: (pagosBoot) => set({ pagosBoot }),
+      accesoDenegado: null,
+      setAccesoDenegado: (accesoDenegado) => set({ accesoDenegado }),
       sidebarOpen: false,
       setSidebarOpen: (sidebarOpen) => {
         if (get().sidebarOpen === sidebarOpen) return;
@@ -307,6 +388,11 @@ export const useAppStore = create<AppState>()(
         set((s) => ({ sidebarOpen: !s.sidebarOpen }));
         queueMicrotask(() => notifyNavChange());
       },
+      docsTab: "biblioteca",
+      setDocsTab: (docsTab) => {
+        if (get().docsTab === docsTab) return;
+        set({ docsTab });
+      },
       etiquetasTab: "imprimir",
       setEtiquetasTab: (etiquetasTab) => {
         if (get().etiquetasTab === etiquetasTab) return;
@@ -316,7 +402,7 @@ export const useAppStore = create<AppState>()(
         });
         queueMicrotask(() => notifyNavChange());
       },
-      studioSubvista: "categorias",
+      studioSubvista: "arbol",
       setStudioSubvista: (studioSubvista) => {
         if (get().studioSubvista === studioSubvista) return;
         set({ studioSubvista });
@@ -328,8 +414,39 @@ export const useAppStore = create<AppState>()(
         if (get().etiquetasStudioInmersivo === etiquetasStudioInmersivo) return;
         set({ etiquetasStudioInmersivo });
       },
+      libroMayorEnfoque: false,
+      setLibroMayorEnfoque: (libroMayorEnfoque) => {
+        if (get().libroMayorEnfoque === libroMayorEnfoque) return;
+        set({ libroMayorEnfoque });
+      },
+      cotizarEnfoque: false,
+      setCotizarEnfoque: (cotizarEnfoque) => {
+        if (get().cotizarEnfoque === cotizarEnfoque) return;
+        set({ cotizarEnfoque });
+      },
       etiquetasHandoff: null,
       setEtiquetasHandoff: (etiquetasHandoff) => set({ etiquetasHandoff }),
+      eanPrefill: null,
+      setEanPrefill: (eanPrefill) => set({ eanPrefill }),
+      tallerSalto: null,
+      tallerRetorno: null,
+      saltarDesdeTaller: (tallerRetorno, tallerSalto) => {
+        set({ tallerRetorno, tallerSalto });
+        get().setPanel(tallerSalto.panel);
+      },
+      consumirTallerSalto: () => set({ tallerSalto: null }),
+      volverAlTaller: () => {
+        const retorno = get().tallerRetorno;
+        const destino = retorno?.origen ?? "etiquetas";
+        set({ tallerRetorno: null, tallerSalto: null });
+        if (destino === "etiquetas" || destino === "combos") get().abrirArbolProducto(retorno?.ref);
+        else get().setPanel(destino);
+      },
+      arbolRef: null,
+      abrirArbolProducto: (ref) => {
+        set({ arbolRef: ref ?? null, etiquetasTab: "studio", studioSubvista: "arbol" });
+        get().setPanel("etiquetas");
+      },
       etiquetasSolicitudActiva: null,
       setEtiquetasSolicitudActiva: (etiquetasSolicitudActiva) => set({ etiquetasSolicitudActiva }),
     }),
@@ -351,6 +468,13 @@ export const useAppStore = create<AppState>()(
         if (s.panel === CONTABILIDAD_PANEL_OCULTO) s.panel = "facturacion";
         if (s.panel === "sync" || s.panel === "facturas") s.panel = "facturacion";
         if (s.panel === "sitioweb") s.panel = "etiquetas";
+        // «Publicaciones» salió del menú (28-sep-2026): solo se entra desde el taller de combos.
+        if (s.panel === "publicaciones") s.panel = "canales-producto";
+        if (s.panel === "combos") {
+          s.panel = "etiquetas";
+          s.etiquetasTab = "studio";
+          s.studioSubvista = "arbol";
+        }
         if (version < 2) {
           if (!s.centroMandoView) s.centroMandoView = "home";
           if (!s.mobileTab) s.mobileTab = "home";
@@ -361,7 +485,7 @@ export const useAppStore = create<AppState>()(
         }
         return s as unknown as AppState;
       },
-      version: 4,
+      version: 5,
       onRehydrateStorage: () => (state) => {
         const hash = readNavHash();
         if (hash?.panel && state) {

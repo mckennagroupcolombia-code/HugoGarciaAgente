@@ -1,4 +1,4 @@
-/* Libro Mayor — piel clásica vs Atelier / Sakura / Barbie. */
+/* Libro Mayor — piel clásica vs Atelier / Peach / Barbie. */
 
 .lm-root {
   width: 100%;
@@ -9,7 +9,7 @@
 }
 
 .lm-root[data-skin="atelier"],
-.lm-root[data-skin="sakura"],
+.lm-root[data-skin="peach"],
 .lm-root[data-skin="barbie"] {
   max-width: 58rem;
 }
@@ -33,7 +33,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-campo-label,
-.lm-root[data-skin="sakura"] .lm-campo-label,
+.lm-root[data-skin="peach"] .lm-campo-label,
 .lm-root[data-skin="barbie"] .lm-campo-label {
   margin-bottom: 0.35rem;
   font-size: 1rem;
@@ -57,7 +57,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-input,
-.lm-root[data-skin="sakura"] .lm-input,
+.lm-root[data-skin="peach"] .lm-input,
 .lm-root[data-skin="barbie"] .lm-input {
   padding: 0.75rem 0.95rem;
   font-size: 1.05rem;
@@ -70,7 +70,7 @@
     transform 0.16s ease;
 }
 
-.lm-root[data-skin="sakura"] .lm-input {
+.lm-root[data-skin="peach"] .lm-input {
   border-width: 3px;
   box-shadow: 3px 3px 0 rgb(var(--mck-accent) / 0.18);
 }
@@ -82,7 +82,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-input:focus,
-.lm-root[data-skin="sakura"] .lm-input:focus,
+.lm-root[data-skin="peach"] .lm-input:focus,
 .lm-root[data-skin="barbie"] .lm-input:focus {
   outline: none;
   border-color: rgb(var(--mck-accent));
@@ -92,7 +92,7 @@
     0 0 0 4px rgb(var(--mck-accent) / 0.18);
 }
 
-.lm-root[data-skin="sakura"] .lm-input:focus {
+.lm-root[data-skin="peach"] .lm-input:focus {
   box-shadow: 3px 3px 0 rgb(var(--mck-accent) / 0.45);
 }
 
@@ -111,7 +111,7 @@
   box-shadow: var(--mck-shadow-paper);
 }
 
-.lm-root[data-skin="sakura"] .lm-card {
+.lm-root[data-skin="peach"] .lm-card {
   border-width: 3px;
   box-shadow: 4px 4px 0 rgb(var(--mck-accent) / 0.28);
 }
@@ -131,7 +131,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-kpi,
-.lm-root[data-skin="sakura"] .lm-kpi,
+.lm-root[data-skin="peach"] .lm-kpi,
 .lm-root[data-skin="barbie"] .lm-kpi {
   padding: 1.15rem 1.25rem;
 }
@@ -148,7 +148,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-kpi-icon,
-.lm-root[data-skin="sakura"] .lm-kpi-icon,
+.lm-root[data-skin="peach"] .lm-kpi-icon,
 .lm-root[data-skin="barbie"] .lm-kpi-icon {
   width: 3.15rem;
   height: 3.15rem;
@@ -156,7 +156,7 @@
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45);
 }
 
-.lm-root[data-skin="sakura"] .lm-kpi-icon {
+.lm-root[data-skin="peach"] .lm-kpi-icon {
   border: 3px solid rgb(var(--mck-accent) / 0.35);
   box-shadow: 3px 3px 0 rgb(var(--mck-accent) / 0.22);
 }
@@ -190,14 +190,14 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-action,
-.lm-root[data-skin="sakura"] .lm-action,
+.lm-root[data-skin="peach"] .lm-action,
 .lm-root[data-skin="barbie"] .lm-action {
   padding: 0.4rem 0.65rem;
   gap: 0.45rem;
   border-width: 2px;
 }
 
-.lm-root[data-skin="sakura"] .lm-action {
+.lm-root[data-skin="peach"] .lm-action {
   border-width: 3px;
   box-shadow: 3px 3px 0 rgb(var(--mck-accent) / 0.2);
 }
@@ -213,7 +213,7 @@
   border-color: rgb(var(--mck-border-strong));
 }
 
-.lm-root[data-skin="sakura"] .lm-action:hover {
+.lm-root[data-skin="peach"] .lm-action:hover {
   transform: translate(-2px, -2px);
   box-shadow: 5px 5px 0 rgb(var(--mck-accent) / 0.32);
   border-color: rgb(var(--mck-border-strong));
@@ -234,7 +234,7 @@
   box-shadow: 0 0 0 4px rgb(var(--mck-accent) / 0.16), var(--mck-shadow-paper);
 }
 
-.lm-root[data-skin="sakura"] .lm-action.is-active {
+.lm-root[data-skin="peach"] .lm-action.is-active {
   box-shadow: 4px 4px 0 rgb(var(--mck-accent) / 0.4);
 }
 
@@ -259,7 +259,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-action-icon,
-.lm-root[data-skin="sakura"] .lm-action-icon,
+.lm-root[data-skin="peach"] .lm-action-icon,
 .lm-root[data-skin="barbie"] .lm-action-icon {
   width: 1.85rem;
   height: 1.85rem;
@@ -277,7 +277,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-action-label,
-.lm-root[data-skin="sakura"] .lm-action-label,
+.lm-root[data-skin="peach"] .lm-action-label,
 .lm-root[data-skin="barbie"] .lm-action-label {
   font-size: 0.82rem;
   letter-spacing: -0.02em;
@@ -293,7 +293,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-action-desc,
-.lm-root[data-skin="sakura"] .lm-action-desc,
+.lm-root[data-skin="peach"] .lm-action-desc,
 .lm-root[data-skin="barbie"] .lm-action-desc {
   font-size: 0.9rem;
 }
@@ -311,7 +311,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-badge,
-.lm-root[data-skin="sakura"] .lm-badge,
+.lm-root[data-skin="peach"] .lm-badge,
 .lm-root[data-skin="barbie"] .lm-badge {
   font-size: 0.8rem;
   padding: 0.2rem 0.65rem;
@@ -329,7 +329,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-empty,
-.lm-root[data-skin="sakura"] .lm-empty,
+.lm-root[data-skin="peach"] .lm-empty,
 .lm-root[data-skin="barbie"] .lm-empty {
   padding: 2.75rem 1.25rem;
   gap: 0.5rem;
@@ -347,7 +347,7 @@
 }
 
 .lm-root[data-skin="atelier"] .lm-empty-icon,
-.lm-root[data-skin="sakura"] .lm-empty-icon,
+.lm-root[data-skin="peach"] .lm-empty-icon,
 .lm-root[data-skin="barbie"] .lm-empty-icon {
   width: 3.75rem;
   height: 3.75rem;
@@ -356,8 +356,8 @@
 @media (prefers-reduced-motion: reduce) {
   .lm-root[data-skin="atelier"] .lm-action:hover,
   .lm-root[data-skin="atelier"] .lm-input:focus,
-  .lm-root[data-skin="sakura"] .lm-action:hover,
-  .lm-root[data-skin="sakura"] .lm-input:focus,
+  .lm-root[data-skin="peach"] .lm-action:hover,
+  .lm-root[data-skin="peach"] .lm-input:focus,
   .lm-root[data-skin="barbie"] .lm-action:hover,
   .lm-root[data-skin="barbie"] .lm-input:focus {
     transform: none;

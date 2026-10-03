@@ -729,6 +729,12 @@ def _actualizar_sku_en_sheets_por_meli_id(meli_id: str, sku: str) -> dict:
                 filas.append(i)
 
         if not filas:
+            # Publicación que nunca se registró en la hoja: se agrega su fila completa.
+            from app.services.sheet_productos import asegurar_fila
+
+            r = asegurar_fila(mid, nuevo, hoja=sheet)
+            if r.get("ok") and r.get("accion") in ("agregada", "completada"):
+                return {"ok": True, "filas": 1, "mensaje": f"{mid} no estaba en Sheets: fila {r['accion']}"}
             return {
                 "ok": False,
                 "mensaje": f"{mid} no está en Sheets (col A); SKU sí quedó en MeLi",

@@ -1,0 +1,26 @@
+{
+  "_doc": "Avisos que el bot deja en un grupo oficial de WhatsApp cuando alguien registra por ahí algo que ya vive en el panel (redirigir, no bloquear — decisión del 24-sep-2026). Lo lee app/services/redireccion_panel.py; lo escribe una persona a mano. 'activo': false = no escribe nada en los grupos. 'patron' es una expresión regular (sin mayúsculas/tildes: el texto se normaliza antes). {url} se reemplaza por el enlace directo al panel. Máximo un aviso por regla y grupo cada 'throttle_min' minutos.",
+  "activo": true,
+  "throttle_min": 120,
+  "url_base": "https://bot.mckennagroup.co/app",
+  "reglas": [
+    {
+      "id": "llegada_mercancia",
+      "patron": "\\b(llego|llegaron|recibi|recibimos|acaba de llegar)\\b.*\\b(mercancia|caja|cajas|pedido|bulto|bultos|paquete|proveedor|factura)\\b|\\bmercancia\\b.*\\bllego\\b",
+      "panel": "recepcion-mercancia",
+      "texto": "📦 Las llegadas ya se registran en el panel (fotos, conteo y diferencias quedan guardadas): {url}"
+    },
+    {
+      "id": "incidente",
+      "patron": "\\b(se dano|danado|danada|se rompio|roto|rota|no funciona|no sirve|no carga|se cayo)\\b",
+      "panel": "hugo",
+      "texto": "🛠️ Para que tenga responsable y no se pierda, repórtalo como tarea en la Agenda del panel: {url}"
+    },
+    {
+      "id": "cambio_app",
+      "patron": "\\b(la app|el panel|la aplicacion)\\b.*\\b(cambiar|agregar|quitar|arreglar|falta|deberia)\\b",
+      "panel": "hugo",
+      "texto": "💡 Los cambios a la aplicación se piden como tarea en la Agenda del panel: {url}"
+    }
+  ]
+}

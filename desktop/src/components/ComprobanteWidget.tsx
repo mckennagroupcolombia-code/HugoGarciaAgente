@@ -1,3 +1,5 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useState } from "react";
 import { api, fetchAuthBlobUrl } from "../api/client";
 
@@ -68,7 +70,7 @@ export default function ComprobanteWidget({
       {soportePath ? (
         <>
           <button type="button" onClick={() => void ver()} className="font-bold text-accent hover:underline">
-            📎 Ver comprobante{soporteNombre ? ` (${soporteNombre})` : ""}
+            <Ico e="📎" /> Ver comprobante{soporteNombre ? ` (${soporteNombre})` : ""}
           </button>
           <button
             type="button"
@@ -81,7 +83,7 @@ export default function ComprobanteWidget({
         </>
       ) : (
         <label className={`cursor-pointer font-bold text-muted hover:text-accent ${busy ? "opacity-40" : ""}`}>
-          {busy ? "Subiendo…" : "📎 Adjuntar comprobante"}
+          {busy ? "Subiendo…" : ico("📎 Adjuntar comprobante")}
           <input
             type="file"
             className="hidden"

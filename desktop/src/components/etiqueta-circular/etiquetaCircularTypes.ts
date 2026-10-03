@@ -1,9 +1,11 @@
 /**
- * Formato circular 53 × 53 mm — etiqueta redonda para Ceras y mantecas.
+ * Formato circular 53 × 53 mm (y la redonda de 70 × 70) — etiqueta redonda
+ * para Ceras y mantecas.
  *
  * A diferencia de los demás formatos, la composición es radial: el nombre y
  * los datos del perímetro van sobre arcos (SVG `textPath`) y el bloque
- * central —descripción, aplicaciones, código de barras y peso— se apila
+ * central —logo, rejilla 2 × 2 de casillas con ícono, código de
+ * barras y peso— se apila
  * dentro del círculo naranja. Mismo objeto de datos que las demás etiquetas
  * y la misma forma de editar: se hace clic sobre cada texto de la etiqueta.
  *
@@ -18,15 +20,23 @@ import { mezclarHex, sonMedidas } from "../etiqueta-30ml/etiqueta30mlTypes";
 export const MEDIDAS_CIRCULAR_POR_DEFECTO = { ancho_mm: 53, alto_mm: 53 } as const;
 export const NOMBRE_FORMATO_CIRCULAR = "Circular 53";
 
+/** Troquel redondo de 70 × 70 mm («Circular 70»): mismo diseño radial que el
+ *  de 53, escalado. Ojo: «125 g» mide igual pero es cuadrada, por eso a esta
+ *  medida se exige además que el formato sea redondo por su nombre. */
+export const MEDIDAS_CIRCULAR_70 = { ancho_mm: 70, alto_mm: 70 } as const;
+
 /** ¿El formato elegido usa la etiqueta circular? Por el nombre o, si se lo
- *  renombró (los formatos se muestran por tamaño), por sus medidas. Ojo: ya
- *  existen «Circular» (55 × 55) y «Circular 70», que son otros diseños. */
+ *  renombró (los formatos se muestran por tamaño), por sus medidas. Vale para
+ *  la de 53 × 53 y la redonda de 70 × 70; «Circular» (55 × 55) y «Circular 50»
+ *  siguen siendo otros diseños. */
 export function esFormatoCircular(
   tipoNombre?: string | null,
   medidas?: { ancho_mm?: number; alto_mm?: number } | null,
 ): boolean {
-  if (/^circular\s*53$/i.test((tipoNombre || "").trim())) return true;
-  return sonMedidas(medidas, MEDIDAS_CIRCULAR_POR_DEFECTO);
+  const nombre = (tipoNombre || "").trim();
+  if (/^circular\s*(53|70)$/i.test(nombre)) return true;
+  if (sonMedidas(medidas, MEDIDAS_CIRCULAR_POR_DEFECTO)) return true;
+  return /circ(?:ular|le)/i.test(nombre) && sonMedidas(medidas, MEDIDAS_CIRCULAR_70);
 }
 
 /** Diámetro de diseño en px — es también el tamaño al que se dibuja en
@@ -42,9 +52,10 @@ export interface ReticulaCircular {
   /** Lado del cuadrado = diámetro (relación 1:1, siempre). */
   diametro: number;
   centro: number;
-  /** Borde exterior gris: margen del 3,5 % del diámetro (§13). */
+  /** Borde exterior gris: margen del 1,5 % del diámetro — el círculo llega
+   *  casi al filo del lienzo, como en la referencia (§13). */
   rExterior: number;
-  /** Círculo naranja interior: 6 % del diámetro más adentro (§13). */
+  /** Círculo naranja interior: 5,5 % del diámetro más adentro (§13). */
   rInterior: number;
   /** Eje del anillo perimetral — sobre él van los textos curvos. */
   rAnillo: number;
@@ -56,6 +67,11 @@ export interface ReticulaCircular {
   sepArco: number;
   /** Bandas del bloque central, ya en px para este diámetro. */
   bandas: Record<ClaveBanda, BandaCircular>;
+  /** Líneas finas del bloque central: logo↔rejilla, la cruz de la rejilla y
+   *  rejilla↔código de barras. */
+  lineas: readonly LineaCircular[];
+  /** Lado del ícono de cada casilla de la rejilla. */
+  icono: number;
   /** Tamaños de letra (máximo, mínimo), ya en px para este diámetro. */
   tam: Record<ClaveTexto, readonly [number, number]>;
 }
@@ -66,17 +82,38 @@ export interface BandaCircular {
   ancho: number;
 }
 
+/** Una línea fina del bloque central, en px de diseño (esquina superior
+ *  izquierda y tamaño): sirve igual para las horizontales y la vertical. */
+export interface LineaCircular {
+  top: number;
+  left: number;
+  ancho: number;
+  alto: number;
+}
+
 /**
  * Bandas del bloque central como fracción del diámetro. Cada una es tan
- * ancha como quepa a su altura dentro del círculo naranja: por eso la lista
- * de aplicaciones, que va por el centro, es la más ancha.
+ * ancha como quepa a su altura dentro del círculo naranja (con el arco del
+ * título arriba y el anillo a los lados).
+ *
+ * Entre `logo` y `rejilla`, y entre `rejilla` y `barras`, queda un hueco
+ * para la línea separadora. El bloque del código de barras conserva su alto:
+ * es el único con poco margen antes de que el EAN se vea más chico.
  */
 const BANDAS_REL = {
-  descripcion: { top: 0.3162, alto: 0.1176, ancho: 0.5882 },
-  aplicacionesTitulo: { top: 0.4441, alto: 0.0353, ancho: 0.4412 },
-  aplicaciones: { top: 0.4882, alto: 0.2029, ancho: 0.6912 },
-  barras: { top: 0.7029, alto: 0.1029, ancho: 0.4412 },
-  neto: { top: 0.8118, alto: 0.0441, ancho: 0.2941 },
+  // Logo + lema: el hueco que queda por dentro del arco del título (las
+  // letras cuelgan hacia afuera). A esa altura el arco deja libres ±0,18 d,
+  // de ahí el ancho. Es alta a propósito: así el logo queda limitado por el
+  // ANCHO y no por el alto; si lo limitara el alto, el lema (que se iguala al
+  // ancho del logo y le resta alto) y el logo se reajustarían en bucle.
+  logo: { top: 0.1647, alto: 0.17, ancho: 0.3 },
+  // Rejilla 2 × 2 de casillas con ícono. No sube más: arriba de 0,37 d sus
+  // esquinas tocarían las letras del título. Por debajo del arco del título solo
+  // manda el círculo naranja: las esquinas de la rejilla quedan a ≤ 0,39 d
+  // del centro, dentro del radio interior (0,43 d) con aire.
+  rejilla: { top: 0.3765, alto: 0.3147, ancho: 0.68 },
+  barras: { top: 0.7088, alto: 0.1412, ancho: 0.4941 },
+  neto: { top: 0.8529, alto: 0.0471, ancho: 0.2794 },
 } as const;
 export type ClaveBanda = keyof typeof BANDAS_REL;
 
@@ -84,14 +121,13 @@ export type ClaveBanda = keyof typeof BANDAS_REL;
  *  encoge hasta el mínimo y, si aún no cabe, se marca en rojo (nunca
  *  desborda, nunca se vuelve ilegible). */
 const TAM_REL = {
-  titulo: [0.07333, 0.03778],
-  descripcion: [0.02111, 0.01444],
-  aplicacionesTitulo: [0.02222, 0.01556],
-  aplicacion: [0.01667, 0.01111],
-  neto: [0.02444, 0.01556],
-  control: [0.01667, 0.01111],
-  registro: [0.01778, 0.01222],
-  empresa: [0.01889, 0.01333],
+  titulo: [0.08824, 0.04794],
+  casillaTitulo: [0.0202, 0.0202],
+  casillaValor: [0.0243, 0.0178],
+  neto: [0.03088, 0.02103],
+  control: [0.01838, 0.0125],
+  registro: [0.02059, 0.01456],
+  empresa: [0.02353, 0.01647],
 } as const satisfies Record<string, readonly [number, number]>;
 export type ClaveTexto = keyof typeof TAM_REL;
 
@@ -102,12 +138,40 @@ function bandasCirculares(d: number): Record<ClaveBanda, BandaCircular> {
     ancho: Math.round(d * r.ancho),
   });
   return {
-    descripcion: px(BANDAS_REL.descripcion),
-    aplicacionesTitulo: px(BANDAS_REL.aplicacionesTitulo),
-    aplicaciones: px(BANDAS_REL.aplicaciones),
+    logo: px(BANDAS_REL.logo),
+    rejilla: px(BANDAS_REL.rejilla),
     barras: px(BANDAS_REL.barras),
     neto: px(BANDAS_REL.neto),
   };
+}
+
+/** Separadores horizontales en medio de los huecos logo↔rejilla y
+ *  rejilla↔barras, al ancho de la rejilla; y la cruz que parte la rejilla en
+ *  cuatro, un poco más corta que ella para que las casillas no se toquen en
+ *  las puntas. */
+function lineasCirculares(
+  d: number,
+  b: Record<ClaveBanda, BandaCircular>,
+  grosor: number,
+): LineaCircular[] {
+  const c = d / 2;
+  const g = b.rejilla;
+  const medio = (finDeA: number, inicioDeB: number) => (finDeA + inicioDeB) / 2;
+  const horizontal = (y: number, ancho: number): LineaCircular => ({
+    top: y - grosor / 2,
+    left: c - ancho / 2,
+    ancho,
+    alto: grosor,
+  });
+  const altoCruz = g.alto * 0.86;
+  return [
+    // Más corta que la de abajo: sus puntas quedan junto a la «M» y la última
+    // letra del título, que a esa altura todavía bajan por el arco.
+    horizontal(medio(b.logo.top + b.logo.alto, g.top), g.ancho * 0.8),
+    horizontal(g.top + g.alto / 2, g.ancho * 0.94),
+    { top: g.top + (g.alto - altoCruz) / 2, left: c - grosor / 2, ancho: grosor, alto: altoCruz },
+    horizontal(medio(g.top + g.alto, b.barras.top), g.ancho),
+  ];
 }
 
 function tamanosCirculares(d: number): Record<ClaveTexto, readonly [number, number]> {
@@ -115,9 +179,8 @@ function tamanosCirculares(d: number): Record<ClaveTexto, readonly [number, numb
     [Math.round(d * max * 10) / 10, Math.round(d * min * 10) / 10] as const;
   return {
     titulo: px(TAM_REL.titulo),
-    descripcion: px(TAM_REL.descripcion),
-    aplicacionesTitulo: px(TAM_REL.aplicacionesTitulo),
-    aplicacion: px(TAM_REL.aplicacion),
+    casillaTitulo: px(TAM_REL.casillaTitulo),
+    casillaValor: px(TAM_REL.casillaValor),
     neto: px(TAM_REL.neto),
     control: px(TAM_REL.control),
     registro: px(TAM_REL.registro),
@@ -132,19 +195,23 @@ export function reticulaCircular(anchoMm?: number, altoMm?: number): ReticulaCir
   void altoMm;
   const diametro = DIAMETRO_CIRCULAR;
   const centro = diametro / 2;
-  const rExterior = centro - diametro * 0.035;
-  const rInterior = rExterior - diametro * 0.06;
+  const rExterior = centro - diametro * 0.015;
+  const rInterior = rExterior - diametro * 0.055;
+  const bandas = bandasCirculares(diametro);
+  const lineaFina = Math.max(0.9, diametro * 0.0014);
   return {
     diametro,
     centro,
     rExterior,
     rInterior,
     rAnillo: (rExterior + rInterior) / 2,
-    rTitulo: rInterior - diametro * 0.06,
+    rTitulo: rInterior - diametro * 0.05,
     linea: Math.max(1.2, diametro * 0.0019),
-    lineaFina: Math.max(0.9, diametro * 0.0014),
-    sepArco: Math.round(diametro * 0.01222),
-    bandas: bandasCirculares(diametro),
+    lineaFina,
+    sepArco: Math.round(diametro * 0.0147),
+    bandas,
+    lineas: lineasCirculares(diametro, bandas, lineaFina),
+    icono: Math.round(diametro * 0.0572),
     tam: tamanosCirculares(diametro),
   };
 }
@@ -187,39 +254,37 @@ export function arcoTexto(
  * porque ahí manda el título.
  */
 export const TRAMOS_CIRCULAR = {
-  /** Título, dentro del círculo naranja (no en el anillo). El tramo llega
-   *  hasta ±55°: más abierto, las puntas del arco bajan tanto que se meten
-   *  en la banda de la descripción (a ±62° caían 25 px más abajo). */
-  titulo: { desde: -55, hasta: 55, haciaAfuera: true },
-  /** Aviso de control de calidad: arranca arriba a la derecha y baja. */
-  control: { desde: 28, hasta: 152, haciaAfuera: true },
-  /** Registro sanitario: abajo a la izquierda, se lee del derecho. */
-  registro: { desde: 168, hasta: 232, haciaAfuera: false },
+  /** Título, dentro del círculo naranja (no en el anillo). Va de un hombro
+   *  al otro —±68°, del sector superior izquierdo al superior derecho— y a
+   *  un radio alto, que es lo que mantiene arriba las puntas del arco: con
+   *  el título grande, bajarlo metía las últimas letras en la descripción. */
+  titulo: { desde: -68, hasta: 68, haciaAfuera: true },
+  /** Aviso de almacenamiento: arranca en el costado superior derecho, baja
+   *  por la curva y sigue por la parte de abajo (§6). Es el tramo más largo
+   *  del anillo porque también es, de lejos, el texto más largo. */
+  control: { desde: 22, hasta: 170, haciaAfuera: true },
+  /** Registro sanitario: arco inferior izquierdo, se lee del derecho. */
+  registro: { desde: 182, hasta: 236, haciaAfuera: false },
   /** Razón social y ciudad: costado izquierdo, en dos renglones. */
-  empresa: { desde: 238, hasta: 302, haciaAfuera: true },
+  empresa: { desde: 244, hasta: 314, haciaAfuera: true },
 } as const;
 
-/** Franja decorativa sobre el código de barras (§8). */
-export const COLORES_FRANJA_BARRAS = [
-  "#E6007E",
-  "#7B2D8E",
-  "#1B2E7A",
-  "#0090D4",
-  "#00A9A5",
-  "#3FA535",
-  "#F3D200",
-  "#F08A1E",
+/** Alto de la franja de color sobre el código (§8), en unidades del SVG del
+ *  código: ya no sigue al diámetro porque el propio código se escala con la
+ *  etiqueta y la franja viaja dentro de él. Los colores son los mismos en los
+ *  cuatro formatos y viven en `etiqueta-ficha/franjaBarras`. */
+export const ALTO_FRANJA_CIRCULAR = 16;
+
+/** Casillas de la rejilla, en orden de lectura. `campo` es a la vez el dato
+ *  y la clave de su ícono en `attribute_icons`; el ícono por defecto es el
+ *  mismo que en la etiqueta de 30 mL. */
+export const CASILLAS_CIRCULAR = [
+  { campo: "origin", titulo: "Origen", icono: "origen_globo_meridianos" },
+  { campo: "appearance", titulo: "Apariencia", icono: "apariencia_escamas" },
+  { campo: "odor", titulo: "Aroma", icono: "aroma_nariz_percepcion" },
+  { campo: "storage", titulo: "Conservación", icono: "conservacion_termometro" },
 ] as const;
-
-/** Una aplicación por renglón: así se guarda en `data.aplicaciones` y así se
- *  reparte en viñetas. Los renglones en blanco no cuentan. */
-export function lineasAplicaciones(valor: string | undefined): string[] {
-  return (valor || "").split("\n").map((l) => l.trim()).filter(Boolean);
-}
-
-export function unirAplicaciones(lineas: readonly string[]): string {
-  return lineas.join("\n");
-}
+export type CampoCasillaCircular = (typeof CASILLAS_CIRCULAR)[number]["campo"];
 
 export function variablesCirculares(r: ReticulaCircular, accentColor?: string): CSSProperties {
   const acento = normalizarHex(accentColor);
@@ -229,9 +294,7 @@ export function variablesCirculares(r: ReticulaCircular, accentColor?: string): 
     "--acento-suave": mezclarHex(acento, "#FFFFFF", 0.88),
     "--ec-diametro": `${r.diametro}px`,
     "--ec-linea": `${r.linea}px`,
-    // Adornos que no son texto y también siguen al diámetro.
-    "--ec-vineta": `${Math.max(3, Math.round(r.diametro * 0.00667))}px`,
-    "--ec-franja": `${Math.max(5, Math.round(r.diametro * 0.01))}px`,
+    "--ec-icono": `${r.icono}px`,
     // La franja de contacto y las casillas reutilizan reglas de la 30 mL.
     "--e30-linea": `${r.linea}px`,
   } as CSSProperties;

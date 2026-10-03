@@ -9,6 +9,7 @@
  * de `useFormularioEtiqueta` para no duplicar edición del mismo campo en
  * dos sitios.
  */
+import { Ico } from "../../icons/Ico";
 import {
   CONTENIDOS_NETOS_SUGERIDOS,
   limitarPalabras,
@@ -149,7 +150,7 @@ export default function FormularioEtiquetaPanel({ formulario: f }: { formulario:
       {f.pendiente ? (
         <div className="space-y-1.5 rounded-lg border border-amber-400 bg-amber-50 p-2 dark:bg-amber-950/40">
           <p className="text-[10px] font-semibold leading-snug text-amber-800 dark:text-amber-300">
-            ⚠️ {f.msg}
+            <Ico e="⚠️" /> {f.msg}
           </p>
           <div className="flex gap-1.5">
             <button

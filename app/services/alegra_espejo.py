@@ -39,6 +39,9 @@ from __future__ import annotations
 
 import json
 import os
+import time
+
+import requests
 
 _MAPA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "alegra_plan_cuentas.json")
 
@@ -76,6 +79,12 @@ MAPA_PUC: dict[str, str] = {
     "513530": "5212",   # Energía eléctrica
     "513535": "5213",   # Teléfono / Internet
     "513550": "5214",   # Transporte, fletes y acarreos -> "Transporte y acarreo"
+    # El flete de ventas comparte destino en Alegra con el administrativo: allá
+    # no hay una cuenta aparte para el transporte del área comercial, y partirlo
+    # en dos exigiría crear cuenta en el catálogo de Alegra (que devuelve 503 en
+    # POST que sí se ejecutaron — ver alegra_puc). En el Libro Mayor sí quedan
+    # separadas, que es donde importa para el estado de resultados.
+    "523550": "5214",   # Transporte, fletes y acarreos (ventas)
     "513555": "5207",   # Gas
     "513560": "5231",   # SaaS -> "Cuotas y suscripciones"
     "513595": "5215",   # Otros servicios
@@ -125,28 +134,95 @@ def plan_cuentas_alegra() -> dict:
         return {}
 
 
-def tipos_comprobante() -> tuple[list, str]:
+_TIPOS_CACHE: tuple[list, str, float] | None = None
+
+
+def tipos_comprobante(*, refrescar: bool = False) -> tuple[list, str]:
     """Tipos de comprobante contable configurados en Alegra.
 
     Vacío significa que hay que crear uno **desde la interfaz** — por API da 403.
+
+    Cacheado 10 minutos en memoria: `espejar_movimiento` lo consulta en cada
+    asiento y esta respuesta trae todos los comprobantes con sus líneas, así que
+    sin caché el reespejo de un semestre se vuelve cuadrático — el primer intento
+    (14-sep-2026) iba a ~1 minuto por asiento y creciendo.
     """
+    global _TIPOS_CACHE
+    import time
+
     import requests
 
     from app.services.alegra import _ALEGRA_BASE, _alegra_headers
 
+    if _TIPOS_CACHE and not refrescar and (time.time() - _TIPOS_CACHE[2]) < 600 and _TIPOS_CACHE[0]:
+        return _TIPOS_CACHE[0], _TIPOS_CACHE[1]
     try:
-        r = requests.get(f"{_ALEGRA_BASE}/journals/types", headers=_alegra_headers(), timeout=15)
+        # **`?limit=1` no es una optimización, es lo que hace que funcione.**
+        #
+        # Este endpoint devuelve los comprobantes con TODAS sus líneas, y crece
+        # con cada asiento espejado. Al pasar de ~130 comprobantes el gateway de
+        # Alegra empezó a cortarlo a los 30 s exactos con un **503 «Service
+        # Unavailable»** —que parece una caída suya y no lo es—, y como el
+        # espejo consulta esto antes de cada asiento, dejó de espejarse TODO
+        # desde el 16-sep-2026: 1.162 asientos, incluidos los pagos del wizard.
+        # Grave porque el contador arma las declaraciones con lo que ve en
+        # Alegra. Con `?limit=1` responde en ~4 s.
+        #
+        # Y basta con uno: de esta respuesta solo se usa para comprobar que
+        # exista AL MENOS UN tipo de comprobante configurado (sin eso no se
+        # puede postear, y crearlo por API da 403). El id ni siquiera va en el
+        # payload de `/journals`.
+        r = requests.get(f"{_ALEGRA_BASE}/journals/types?limit=1",
+                         headers=_alegra_headers(), timeout=60)
     except Exception as e:
+        # Si ya se leyó antes en este proceso, seguir con eso: los tipos de
+        # comprobante no cambian en mitad de un lote, y rendirse aquí deja el
+        # reespejo a medias.
+        if _TIPOS_CACHE and _TIPOS_CACHE[0]:
+            return _TIPOS_CACHE[0], ""
         return [], str(e)
     if r.status_code != 200:
+        if _TIPOS_CACHE and _TIPOS_CACHE[0]:
+            return _TIPOS_CACHE[0], ""
         return [], f"HTTP {r.status_code}: {r.text[:200]}"
     d = r.json()
-    return (d if isinstance(d, list) else (d.get("data") or [])), ""
+    tipos = d if isinstance(d, list) else (d.get("data") or [])
+    _TIPOS_CACHE = (tipos, "", time.time())
+    return tipos, ""
 
 
 def cuenta_alegra(codigo_puc: str) -> str | None:
-    """Cuenta de Alegra para un código del PUC propio."""
-    return MAPA_PUC.get(str(codigo_puc or "").strip())
+    """Cuenta de Alegra para un código del PUC propio.
+
+    Desde que la cuenta de Alegra pasó al catálogo **PUC** (sep-2026), el puente
+    es el código, no una tabla a mano: `alegra_puc.construir_mapa()` empareja por
+    código y las ids salen de Alegra. `MAPA_PUC` queda solo como respaldo para lo
+    que el catálogo de Alegra no trae.
+
+    Esto NO es un detalle cosmético: al cambiar de catálogo, Alegra reasignó
+    todas sus ids internas. Las de `MAPA_PUC` (5297 «Banco 1», 5070…) son del
+    catálogo NIIF y ya no apuntan a lo que decían. Por eso el mapa por código va
+    primero y el diccionario viejo después, y no al revés.
+    """
+    codigo = str(codigo_puc or "").strip()
+    try:
+        from app.services.alegra_puc import catalogo, construir_mapa
+
+        por_codigo = construir_mapa().get("mapa") or {}
+        ids_vivas = {c["id"] for c in catalogo().values()}
+    except Exception:
+        por_codigo, ids_vivas = {}, set()
+    if codigo in por_codigo:
+        return por_codigo[codigo]
+    # Respaldo al mapa viejo SOLO si su id todavía existe en Alegra. Al cambiar
+    # de catálogo NIIF→PUC, Alegra reasignó todas sus ids: `MAPA_PUC["1435"]`
+    # dice "5047", que hoy es otra cuenta o ninguna. Devolverla sin comprobar
+    # hacía que el espejo creyera tener cuenta para 1435 y 5135 —$144M de
+    # inventario— y posteara contra algo equivocado en vez de negarse.
+    viejo = MAPA_PUC.get(codigo)
+    if viejo and (not ids_vivas or viejo in ids_vivas):
+        return viejo
+    return None
 
 
 def cuenta_retencion_alegra(concepto: str, tarifa_pct: float) -> str | None:
@@ -186,6 +262,9 @@ def _entradas_desde_movimiento(mov: dict) -> tuple[list, list]:
     return entries, faltantes
 
 
+_CONTACTOS_CACHE: dict[int, str | None] = {}
+
+
 def _contacto_alegra(tercero_id) -> str | None:
     """Id del contacto en Alegra para un tercero del Libro Mayor, o None.
 
@@ -193,19 +272,29 @@ def _contacto_alegra(tercero_id) -> str | None:
     nunca reciban un documento. Si no existe, la línea va sin `client` y el
     comprobante se postea igual — perder el detalle del tercero es mejor que no
     postear la retención.
+
+    Cacheado por proceso: es una llamada HTTP por línea, y un semestre son ~200
+    líneas sobre apenas unas decenas de terceros distintos. Sin el caché, el
+    reespejo de enero a junio (14-sep-2026) se quedaba media hora solo armando
+    la previsualización.
     """
     if not tercero_id:
         return None
+    if int(tercero_id) in _CONTACTOS_CACHE:
+        return _CONTACTOS_CACHE[int(tercero_id)]
     try:
         import app.services.contabilidad_core as cc
         from app.services.alegra import consultar_contacto_alegra
 
         t = cc.obtener_tercero(int(tercero_id))
         if not t or not (t.get("identificacion") or "").strip():
+            _CONTACTOS_CACHE[int(tercero_id)] = None
             return None
         tipo_doc = "NIT" if t.get("tipo_persona") == "juridica" else "CC"
         r = consultar_contacto_alegra(t["identificacion"], tipo_doc)
-        return r.get("id") if r.get("existe") else None
+        cid = r.get("id") if r.get("existe") else None
+        _CONTACTOS_CACHE[int(tercero_id)] = cid
+        return cid
     except Exception:
         return None
 
@@ -256,6 +345,64 @@ def _registrar_espejo(movimiento_id: int, journal_id: str, fecha: str, total: fl
         )
 
 
+def anular_espejo(movimiento_id: int, *, forzar: bool = False) -> dict:
+    """Borra en Alegra el comprobante que espeja este asiento.
+
+    **Para qué.** Cuando un asiento se anula y se rehace —como el 16-sep-2026
+    con dos quincenas que se habían girado con la retención descontada— el
+    comprobante viejo se queda en Alegra con las cifras equivocadas, y el
+    contador arma la declaración con lo que ve en Alegra. Antes había que
+    borrarlo a mano desde su interfaz; era el paso que se olvida.
+
+    Solo borra comprobantes que **este sistema creó** (están en
+    `cc_alegra_espejo`): no le toca nada al contador. Y se niega mientras el
+    asiento siga vivo, salvo `forzar` — quitarle el espejo a un asiento
+    confirmado lo deja invisible para el contador sin que nadie se entere.
+    """
+    import app.services.contabilidad_core as cc
+
+    if not _activo():
+        return {"status": "bloqueado", "message": "El espejo a Alegra está apagado (ALEGRA_ESPEJO_ACTIVO)"}
+
+    journal_id = espejo_existente(movimiento_id)
+    if not journal_id:
+        return {"status": "sin_espejo", "message": "Este asiento no tiene comprobante en Alegra"}
+
+    mov = cc.obtener_movimiento(int(movimiento_id))
+    if mov and mov.get("estado") != "anulado" and not forzar:
+        return {
+            "status": "bloqueado",
+            "message": (
+                f"El asiento #{movimiento_id} sigue confirmado: si le borras el comprobante, el "
+                "contador deja de verlo. Anula primero el asiento, o repite con forzar."
+            ),
+        }
+
+    from app.services.alegra import _ALEGRA_BASE, _alegra_headers
+
+    try:
+        r = requests.delete(f"{_ALEGRA_BASE}/journals/{journal_id}", headers=_alegra_headers(), timeout=30)
+    except Exception as e:
+        return {"status": "error", "message": f"No se pudo conectar con Alegra: {e}"}
+
+    # 404 = ya no está allá: el objetivo igual se cumple y hay que limpiar el
+    # registro local, si no el panel seguiría ofreciendo anular algo que no existe.
+    if r.status_code not in (200, 204, 404):
+        return {"status": "error", "message": f"Alegra respondió {r.status_code}: {r.text[:200]}"}
+
+    with cc._conn() as con:
+        con.execute("DELETE FROM cc_alegra_espejo WHERE movimiento_id=?", (int(movimiento_id),))
+
+    return {
+        "status": "success",
+        "id": journal_id,
+        "ya_no_estaba": r.status_code == 404,
+        "message": (f"Comprobante {journal_id} " +
+                    ("ya no estaba en Alegra; se limpió el enlace local"
+                     if r.status_code == 404 else "anulado en Alegra")),
+    }
+
+
 def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: bool = False) -> dict:
     """Postea un asiento del Libro Mayor como comprobante contable en Alegra.
 
@@ -280,6 +427,12 @@ def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: b
                 "message": f"El asiento {movimiento_id} ya es el comprobante {ya} en Alegra."}
     if mov.get("estado") == "anulado":
         return {"status": "no_aplica", "motivo": "El asiento está anulado."}
+    # Lo anterior al corte lo declaró el contador con su propia contabilidad;
+    # meterlo a Alegra ahora le desordena lo que ya presentó. `forzar` NO lo
+    # salta: `forzar` existe para autorizar un posteo con el asiento a la vista,
+    # no para reescribir un período cerrado.
+    if cc.antes_del_corte(mov.get("fecha")):
+        return {"status": "bloqueado_por_corte", "message": cc.motivo_corte(mov.get("fecha"))}
 
     entries, faltantes = _entradas_desde_movimiento(mov)
     if faltantes:
@@ -287,8 +440,10 @@ def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: b
             "status": "error",
             "message": (
                 f"Faltan cuentas de Alegra para el PUC {', '.join(sorted(set(faltantes)))}. "
-                "Agrégalas a MAPA_PUC en alegra_espejo.py — postear el comprobante sin esas "
-                "líneas lo dejaría descuadrado."
+                "Revisa `alegra_puc.construir_mapa()['sin_equivalente']`: el catálogo PUC de "
+                "Alegra es parcial (no trae el grupo 52 de ventas, ni 1405, ni 3115) y sus "
+                "cuentas de 4 dígitos son agrupadoras, así que hay que asentar contra la "
+                "subcuenta de 6. Postear el comprobante sin esas líneas lo dejaría descuadrado."
             ),
         }
     if len(entries) < 2:
@@ -329,6 +484,155 @@ def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: b
         _registrar_espejo(movimiento_id, d.get("id"), mov.get("fecha"), d.get("total"))
         return {"status": "success", "id": str(d.get("id")), "numero": d.get("number"), "data": d}
     return {"status": "error", "message": f"HTTP {r.status_code}: {r.text[:300]}"}
+
+
+# Cuentas de Alegra donde vive una retención practicada (lo que el contador
+# suma para el 350). Salen de GET /categories; el prefijo 51xx es el grupo
+# «Pasivos por retenciones corrientes».
+_CUENTAS_RETENCION_ALEGRA = {
+    "5108": "Retenciones por pagar",
+    "5109": "Retención en la fuente por pagar",
+    "5111": "Retención honorarios y comisiones por pagar",
+    "5112": "Retenciones honorarios y comisiones 10% por pagar",
+    "5113": "Retenciones honorarios y comisiones 11% por pagar",
+    "5114": "Retención servicios por pagar",
+    "5115": "Retenciones servicios 4% por pagar",
+    "5116": "Retenciones servicios 6% por pagar",
+    "5117": "Retención arrendamientos por pagar",
+    "5118": "Retenciones arriendo 3.5% por pagar",
+    "5119": "Retenciones compra por pagar",
+    "5120": "Retenciones compra 2.5% por pagar",
+    "5121": "Retención de IVA por pagar",
+    "5122": "Retención de industria y comercio por pagar",
+    "5123": "Otro tipo de retención por pagar",
+}
+
+
+def retenciones_visibles_en_alegra(anio: int) -> dict[str, Any]:
+    """Qué retención practicada **vería el contador si entra a Alegra**, por mes.
+
+    Existe porque el contador arma el 350 con lo que hay en Alegra, no con el
+    Libro Mayor propio: una retención que solo está en el libro no llega a la
+    declaración, y si se paga de menos la DIAN cobra sanción e intereses.
+
+    Suma dos fuentes: las líneas de comprobante contable (`/journals`) que
+    acreditan una cuenta de retención por pagar, y las retenciones aplicadas
+    dentro de facturas de compra (`/bills`). Solo lectura; si no hay
+    credenciales o la API falla, lo dice en `error` en vez de devolver ceros
+    (un cero silencioso se leería como «Alegra está al día»)."""
+    out: dict[str, Any] = {
+        "anio": int(anio),
+        "por_mes": {m: 0.0 for m in range(1, 13)},
+        "detalle": [],
+        "journals": 0,
+        "bills": 0,
+        "error": "",
+        # True si la lectura se cortó a mitad: el total es un piso, no la cifra
+        # real. Sin esta marca, una caída de Alegra se leería como «al contador
+        # le faltan $X» y se le mandaría una alerta falsa.
+        "parcial": False,
+    }
+    try:
+        from app.services.alegra import _ALEGRA_BASE, _alegra_headers, creds_alegra_configuradas
+    except Exception as e:  # noqa: BLE001
+        out["error"] = f"No se pudo cargar el cliente de Alegra: {e}"
+        return out
+    if not creds_alegra_configuradas():
+        out["error"] = "Faltan ALEGRA_EMAIL / ALEGRA_TOKEN: no se puede leer qué ve el contador en Alegra."
+        return out
+    try:
+        headers = _alegra_headers()
+        inicio = 0
+        while True:
+            r = None
+            for intento in range(3):
+                r = requests.get(
+                    f"{_ALEGRA_BASE}/journals",
+                    headers=headers,
+                    params={"limit": 30, "start": inicio},
+                    timeout=40,
+                )
+                if r.ok:
+                    break
+                # Alegra devuelve 503 esporádicos; reintentar antes de rendirse.
+                time.sleep(2 * (intento + 1))
+            if not r.ok:
+                out["error"] = f"GET /journals devolvió {r.status_code} (página desde {inicio})"
+                out["parcial"] = True
+                break
+            lote = r.json()
+            if isinstance(lote, dict):
+                lote = lote.get("data") or []
+            if not lote:
+                break
+            for j in lote:
+                fecha = (j.get("date") or "")[:10]
+                if fecha[:4] != str(anio):
+                    continue
+                out["journals"] += 1
+                for e in j.get("entries") or []:
+                    cid = str((e.get("id") or (e.get("account") or {}).get("id") or ""))
+                    credito = float(e.get("credit") or 0)
+                    if cid in _CUENTAS_RETENCION_ALEGRA and credito:
+                        out["por_mes"][int(fecha[5:7])] += credito
+                        out["detalle"].append(
+                            {
+                                "fuente": "journal",
+                                "id": j.get("id"),
+                                "fecha": fecha,
+                                "cuenta": _CUENTAS_RETENCION_ALEGRA[cid],
+                                "valor": round(credito),
+                                "observaciones": (j.get("observations") or "")[:160],
+                            }
+                        )
+            inicio += len(lote)
+            if len(lote) < 30 or inicio > 600:
+                break
+
+        inicio = 0
+        while True:
+            r = requests.get(
+                f"{_ALEGRA_BASE}/bills",
+                headers=headers,
+                params={"limit": 30, "start": inicio},
+                timeout=40,
+            )
+            if not r.ok:
+                break
+            lote = r.json()
+            if isinstance(lote, dict):
+                lote = lote.get("data") or []
+            if not lote:
+                break
+            for b in lote:
+                fecha = (b.get("date") or "")[:10]
+                if fecha[:4] != str(anio):
+                    continue
+                out["bills"] += 1
+                rets = b.get("retentions") or b.get("retention") or []
+                if isinstance(rets, dict):
+                    rets = [rets]
+                for x in rets:
+                    valor = float(x.get("amount") or 0)
+                    if valor:
+                        out["por_mes"][int(fecha[5:7])] += valor
+                        out["detalle"].append(
+                            {
+                                "fuente": "bill",
+                                "id": b.get("id"),
+                                "fecha": fecha,
+                                "cuenta": (x.get("name") or "retención en factura de compra"),
+                                "valor": round(valor),
+                                "observaciones": (b.get("observations") or b.get("numberTemplate", {}).get("fullNumber") or "")[:160],
+                            }
+                        )
+            inicio += len(lote)
+            if len(lote) < 30 or inicio > 600:
+                break
+    except Exception as e:  # noqa: BLE001
+        out["error"] = f"No se pudo consultar Alegra: {e}"
+    out["total"] = round(sum(out["por_mes"].values()))
+    return out
 
 
 def previsualizar_periodo(desde: str, hasta: str, tipos_origen: tuple[str, ...] | None = None) -> dict:

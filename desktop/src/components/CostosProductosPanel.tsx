@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
@@ -308,7 +309,7 @@ export default function CostosProductosPanel() {
             placeholder="Buscar por nombre o código Alegra…"
             className="w-full rounded-xl border-2 border-border bg-surface-panel px-4 py-2.5 pl-9 text-sm text-ink placeholder:text-muted outline-none focus:border-accent transition"
           />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm"><Ico e="🔍" /></span>
           {busqueda && (
             <button
               type="button"
@@ -365,7 +366,7 @@ export default function CostosProductosPanel() {
 
       {!isLoading && error && (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-8 text-center">
-          <p className="text-2xl mb-2">⚠️</p>
+          <p className="text-2xl mb-2"><Ico e="⚠️" /></p>
           <p className="text-sm font-semibold text-red-400">No se pudo cargar el historial</p>
           <p className="text-xs text-muted mt-1">Verifica que el servidor esté disponible.</p>
         </div>
@@ -373,7 +374,7 @@ export default function CostosProductosPanel() {
 
       {!isLoading && !error && data?.total === 0 && (
         <div className="rounded-xl border-2 border-dashed border-border p-14 text-center">
-          <p className="text-4xl mb-3">📦</p>
+          <p className="text-4xl mb-3"><Ico e="📦" /></p>
           <p className="text-base font-bold text-ink">Sin productos inventariados aún</p>
           <p className="text-sm text-muted mt-2 max-w-sm mx-auto">
             Los productos aparecen aquí después de procesar facturas de compra como{" "}
@@ -384,7 +385,7 @@ export default function CostosProductosPanel() {
 
       {!isLoading && !error && filtrados.length === 0 && (data?.total ?? 0) > 0 && (
         <div className="rounded-xl border-2 border-dashed border-border p-10 text-center">
-          <p className="text-2xl mb-2">🔍</p>
+          <p className="text-2xl mb-2"><Ico e="🔍" /></p>
           <p className="text-sm font-semibold text-ink">Sin resultados</p>
           <p className="text-xs text-muted mt-1">Prueba con otro término de búsqueda.</p>
         </div>

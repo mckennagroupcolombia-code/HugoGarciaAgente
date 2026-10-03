@@ -1,13 +1,20 @@
+import { Ico } from "../../icons/Ico";
 import { useEffect, useMemo, useState } from "react";
 import type { TicketsUser } from "../../stores/ticketsAuth";
 import {
   useConversaciones, usePresenciaEnLinea,
   type Conversacion,
 } from "../../hooks/useConversaciones";
-import HiloConversacion, { Avatar } from "./HiloConversacion";
-import { tiempoRelativo, ESTADO_LABEL, ESTADO_PILL_CLASS, estaAbierta, uidEq } from "./ticketsFormat";
+import HiloConversacion, { Avatar, CLAVE_HILO_ACTUAL } from "./HiloConversacion";
+import { tiempoRelativo, ESTADO_LABEL, estaAbierta, uidEq } from "./ticketsFormat";
+import "./hiloPixel.css";
 
 type TipoTab = "solicitud" | "accion";
+type TipoFiltro = "todas" | TipoTab;
+/** Quién: lo que me toca hacer, lo que pedí yo, todo, o agrupado por persona. */
+type Quien = "me_toca" | "pedi" | "todo" | "persona";
+/** Como las estaciones del Mapa: tres contadores que además filtran. */
+type Monton = "por_hacer" | "en_curso" | "hechas";
 
 function puedeVerTipo(
   permisos: Record<string, boolean> | null | undefined,
@@ -19,13 +26,20 @@ function puedeVerTipo(
   return Boolean(permisos[`tickets_${tab}`]);
 }
 
-function chipCls(activo: boolean) {
-  return `shrink-0 rounded-full px-3.5 py-1.5 text-[14px] font-semibold transition ${
-    activo ? "bg-accent text-white" : "bg-surface-panel text-muted hover:text-ink border border-border"
-  }`;
+function leer(clave: string): string | null {
+  try { return localStorage.getItem(clave); } catch { return null; }
+}
+function guardar(clave: string, valor: string) {
+  try { localStorage.setItem(clave, valor); } catch { /* sin almacenamiento */ }
 }
 
-type AgrupacionModo = "estado" | "persona";
+/** Entregada por quien la hizo: a quien la pidió le toca finalizarla, así que es suya «por hacer». */
+function montonDe(c: Conversacion, uid: number): Monton {
+  if (c.estado === "pendiente") return "por_hacer";
+  if (c.estado === "esperando_aprobacion" && uidEq(c.creado_por, uid)) return "por_hacer";
+  if (c.estado === "en_proceso" || c.estado === "esperando_aprobacion") return "en_curso";
+  return "hechas";
+}
 
 interface PersonaGrupo {
   id: number;
@@ -35,78 +49,67 @@ interface PersonaGrupo {
   ultimaActividad: string;
 }
 
-function PersonaRow({
-  p, enLinea, onClick,
-}: { p: PersonaGrupo; enLinea: boolean; onClick: () => void }) {
+function PersonaRow({ p, onClick }: { p: PersonaGrupo; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-2.5 border-b border-border/40 px-3 py-2.5 text-left transition hover:bg-surface-panel/60"
-    >
-      <Avatar nombre={p.nombre} enLinea={enLinea} size={9} />
+    <button type="button" onClick={onClick} className="hp-fila">
+      <Avatar nombre={p.nombre} size={10} />
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-[14px] ${p.noLeidos > 0 ? "font-bold text-ink" : "font-semibold text-ink/90"}`}>
-          {p.nombre}
-        </p>
-        <p className="truncate text-[13px] text-muted">
+        <p className="hp-fila-titulo">{p.nombre}</p>
+        <p className="truncate text-[14px] text-ink-muted">
           {p.items.length} conversaci{p.items.length === 1 ? "ón" : "ones"} · {tiempoRelativo(p.ultimaActividad)}
         </p>
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        {p.noLeidos > 0 && (
-          <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-emerald-500 px-1 text-[11px] font-bold text-white">
-            {p.noLeidos > 99 ? "99+" : p.noLeidos}
-          </span>
-        )}
-      </div>
+      {p.noLeidos > 0 && <span className="hp-etiqueta resuelto">{p.noLeidos > 99 ? "99+" : p.noLeidos}</span>}
     </button>
   );
 }
 
 function ConversacionRow({
-  c, activa, propio, enLinea, onClick,
-}: { c: Conversacion; activa: boolean; propio: boolean; enLinea: boolean; onClick: () => void }) {
-  const abierta = estaAbierta(c.estado);
+  c, activa, propio, miaEnCurso, onClick,
+}: { c: Conversacion; activa: boolean; propio: boolean; miaEnCurso: boolean; onClick: () => void }) {
   const previewAutor = c.ultimo_usuario_id != null && !propio ? `${c.ultimo_autor}: ` : "";
+  const cls = [
+    "hp-fila",
+    activa ? "activa" : "",
+    miaEnCurso ? "encurso" : c.estado === "pendiente" ? "pendiente" : "",
+    estaAbierta(c.estado) ? "" : "opacity-75",
+  ].join(" ");
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full flex items-start gap-2.5 px-3 py-2.5 text-left border-b border-border/40 transition ${
-        activa ? "bg-accent/10" : "hover:bg-surface-panel/60"
-      } ${!abierta ? "opacity-70" : ""}`}
-    >
-      <Avatar nombre={c.contraparte_nombre} enLinea={enLinea} size={9} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p className={`truncate text-[14px] ${c.no_leidos > 0 ? "font-bold text-ink" : "font-semibold text-ink/90"}`}>
-            {c.titulo}
-          </p>
-        </div>
-        <p className={`truncate text-[13px] ${c.no_leidos > 0 ? "text-ink/80 font-medium" : "text-muted"}`}>
-          {c.ultimo_texto ? `${previewAutor}${c.ultimo_texto}` : (abierta ? "Sin mensajes aún" : "Sin mensajes")}
-        </p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px]">
-          <span className={`shrink-0 rounded px-1.5 py-0.5 font-bold uppercase tracking-wide ${ESTADO_PILL_CLASS[c.estado] ?? "bg-muted/10 text-muted"}`}>
-            {abierta ? "●" : "✓"} {ESTADO_LABEL[c.estado] ?? c.estado}
+    <button type="button" onClick={onClick} className={cls}>
+      <Avatar nombre={c.contraparte_nombre} size={10} />
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="hp-fila-titulo">{c.titulo}</p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className={`hp-etiqueta ${c.estado}`}>
+            {miaEnCurso ? "▶ Estás en esta" : (ESTADO_LABEL[c.estado] ?? c.estado)}
           </span>
-          <span className="min-w-0 max-w-[9rem] truncate text-muted/80">{c.contraparte_nombre}</span>
-          {c.adjuntos_total > 0 && <span className="shrink-0 text-muted/80">📎{c.adjuntos_total}</span>}
+          <span className="hp-etiqueta tipo">{c.tipo === "accion" ? "Acción" : "Solicitud"}</span>
+          <span className="min-w-0 max-w-[10rem] truncate text-[14px] text-ink-muted">{c.contraparte_nombre}</span>
+          {c.adjuntos_total > 0 && <span className="text-[14px] text-ink-muted"><Ico e="📎" />{c.adjuntos_total}</span>}
         </div>
+        {c.ultimo_texto && (
+          <p className={`truncate text-[14px] ${c.no_leidos > 0 ? "font-bold text-ink" : "text-ink-muted"}`}>
+            {previewAutor}{c.ultimo_texto}
+          </p>
+        )}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className="text-[11px] text-muted/70">{tiempoRelativo(c.ultima_actividad)}</span>
+        <span className="text-[13px] text-ink-muted">{tiempoRelativo(c.ultima_actividad)}</span>
         {c.no_leidos > 0 && (
-          <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-emerald-500 px-1 text-[11px] font-bold text-white">
-            {c.no_leidos > 99 ? "99+" : c.no_leidos}
-          </span>
+          <span className="hp-etiqueta resuelto">{c.no_leidos > 99 ? "99+" : c.no_leidos}</span>
         )}
       </div>
     </button>
   );
 }
 
+/**
+ * Bandeja de solicitudes y acciones (rediseño 27-sep-2026, pedido de Stella): como el Mapa, lo
+ * pendiente se ve de un vistazo en tres contadores (Por hacer · En curso · Hechas) que además
+ * filtran; arriba, «Seguir con…» devuelve a la que estaba atendiendo; crear una solicitud o una
+ * acción es un solo botón; y el historial de las hechas queda plegado al final, sin estorbar.
+ * Solicitudes y acciones van juntas por defecto (una sola lista), con la etiqueta de cuál es.
+ */
 export default function InboxConversaciones({
   token, user, bootTicketId, onBootConsumed, bootTipo, onBootTipoConsumed,
   onCrearSolicitud, onCrearAccion,
@@ -125,23 +128,30 @@ export default function InboxConversaciones({
   const permisos = user.permisos_secciones;
   const verAcciones = puedeVerTipo(permisos, nivel, "acciones");
   const verSolicitudes = puedeVerTipo(permisos, nivel, "solicitudes");
-  const tipoPorDefecto: TipoTab = verSolicitudes ? "solicitud" : "accion";
+  const verAmbos = verAcciones && verSolicitudes;
 
-  const [tipo, setTipo] = useState<TipoTab>(() => {
-    const guardado = localStorage.getItem("mck_inbox_tipo");
-    return guardado === "solicitud" || guardado === "accion" ? guardado : tipoPorDefecto;
+  const [tipo, setTipo] = useState<TipoFiltro>(() => {
+    const g = leer("mck_inbox_tipo2");
+    if (g === "solicitud" || g === "accion" || g === "todas") return g;
+    return verAmbos ? "todas" : verSolicitudes ? "solicitud" : "accion";
   });
+  const [quien, setQuien] = useState<Quien>(() => {
+    const g = leer("mck_inbox_quien");
+    if (g === "me_toca" || g === "pedi" || g === "todo" || g === "persona") return g;
+    return nivel >= 3 ? "todo" : "me_toca";
+  });
+  const [monton, setMonton] = useState<Monton | null>(null);
+  const [verHechas, setVerHechas] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [agruparPor, setAgruparPor] = useState<AgrupacionModo>(() => {
-    const g = localStorage.getItem("mck_inbox_agrupar");
-    return g === "persona" ? "persona" : "estado";
-  });
   const [personaFiltro, setPersonaFiltro] = useState<number | null>(null);
+  const [actualId, setActualId] = useState<number | null>(() => {
+    const v = Number(leer(CLAVE_HILO_ACTUAL));
+    return Number.isFinite(v) && v > 0 ? v : null;
+  });
 
-  useEffect(() => { localStorage.setItem("mck_inbox_tipo", tipo); }, [tipo]);
-  useEffect(() => { localStorage.setItem("mck_inbox_agrupar", agruparPor); }, [agruparPor]);
-  useEffect(() => { setPersonaFiltro(null); }, [tipo]);
+  useEffect(() => { guardar("mck_inbox_tipo2", tipo); }, [tipo]);
+  useEffect(() => { guardar("mck_inbox_quien", quien); setPersonaFiltro(null); }, [quien]);
 
   useEffect(() => {
     if (bootTicketId != null) {
@@ -159,180 +169,252 @@ export default function InboxConversaciones({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bootTipo]);
 
+  // Al volver del hilo, releer cuál quedó «en curso» (el hilo lo guarda al abrirla o cerrarla).
+  useEffect(() => {
+    if (selectedId != null) return;
+    const v = Number(leer(CLAVE_HILO_ACTUAL));
+    setActualId(Number.isFinite(v) && v > 0 ? v : null);
+  }, [selectedId]);
+
   // Bandeja personal siempre: mías (creadas por mí, asignadas a mí, o donde participo),
   // activas e histórico juntos — nada se oculta ni desaparece, solo baja en la lista.
-  const { data: conversaciones = [], isLoading, isError, error, refetch } = useConversaciones(tipo, "mias");
+  const { data: todas = [], isLoading, isError, error, refetch } = useConversaciones(verAmbos ? "todas" : (verSolicitudes ? "solicitud" : "accion"), "mias");
   const { data: presencia } = usePresenciaEnLinea();
   const enLineaIds = useMemo(() => new Set(presencia?.usuario_ids ?? []), [presencia]);
-  const onCrear = tipo === "accion" ? onCrearAccion : onCrearSolicitud;
+
+  const delTipo = useMemo(
+    () => todas.filter((c) => (tipo === "todas" ? (c.tipo === "accion" ? verAcciones : verSolicitudes) : c.tipo === tipo)),
+    [todas, tipo, verAcciones, verSolicitudes],
+  );
+
+  const deQuien = useMemo(() => delTipo.filter((c) => {
+    if (quien === "me_toca") return uidEq(c.asignado_a, user.id) || (c.asignado_a == null && !uidEq(c.creado_por, user.id));
+    if (quien === "pedi") return uidEq(c.creado_por, user.id);
+    return true;
+  }), [delTipo, quien, user.id]);
 
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    if (!q) return conversaciones;
-    return conversaciones.filter((c) =>
+    const base = quien === "persona" && personaFiltro != null
+      ? deQuien.filter((c) => c.contraparte_id === personaFiltro) : deQuien;
+    if (!q) return base;
+    return base.filter((c) =>
       c.titulo.toLowerCase().includes(q) ||
       (c.contraparte_nombre ?? "").toLowerCase().includes(q) ||
       c.numero.toLowerCase().includes(q));
-  }, [conversaciones, busqueda]);
+  }, [deQuien, busqueda, quien, personaFiltro]);
 
-  const totalNoLeidos = conversaciones.reduce((acc, c) => acc + c.no_leidos, 0);
+  const cuenta = useMemo(() => {
+    const r = { por_hacer: 0, en_curso: 0, hechas: 0 };
+    for (const c of filtradas) r[montonDe(c, user.id)] += 1;
+    return r;
+  }, [filtradas]);
 
-  // Vista "por persona": agrupa por contraparte para no tener que escanear una
-  // lista larga — se entra en detalle de una persona con un clic.
+  // Vista "por persona": agrupa por contraparte para no tener que escanear una lista larga.
   const personas = useMemo(() => {
     const map = new Map<number, PersonaGrupo>();
-    for (const c of filtradas) {
+    for (const c of deQuien) {
       if (c.contraparte_id == null) continue;
       const g = map.get(c.contraparte_id) ?? {
-        id: c.contraparte_id,
-        nombre: c.contraparte_nombre ?? "—",
-        items: [],
-        noLeidos: 0,
-        ultimaActividad: c.ultima_actividad,
+        id: c.contraparte_id, nombre: c.contraparte_nombre ?? "—", items: [], noLeidos: 0, ultimaActividad: c.ultima_actividad,
       };
       g.items.push(c);
       g.noLeidos += c.no_leidos;
       if (c.ultima_actividad > g.ultimaActividad) g.ultimaActividad = c.ultima_actividad;
       map.set(c.contraparte_id, g);
     }
-    return Array.from(map.values()).sort((a, b) => {
-      if (a.noLeidos !== b.noLeidos) return b.noLeidos - a.noLeidos;
-      return b.ultimaActividad.localeCompare(a.ultimaActividad);
-    });
-  }, [filtradas]);
-
+    return Array.from(map.values()).sort((a, b) =>
+      a.noLeidos !== b.noLeidos ? b.noLeidos - a.noLeidos : b.ultimaActividad.localeCompare(a.ultimaActividad));
+  }, [deQuien]);
   const personaActiva = personaFiltro != null ? personas.find((p) => p.id === personaFiltro) : undefined;
-  const listaBase = agruparPor === "persona" && personaFiltro != null
-    ? filtradas.filter((c) => c.contraparte_id === personaFiltro)
-    : filtradas;
+  const mostrandoListaPersonas = quien === "persona" && personaFiltro == null;
 
-  // Agrupadas por estado para priorizar visualmente lo que necesita acción
-  // (pendientes/en proceso) sobre lo ya cerrado, sin dejar de mostrar nada.
-  const grupos = useMemo(() => {
-    const pendientes = listaBase.filter((c) => c.estado === "pendiente");
-    const enProceso = listaBase.filter((c) => c.estado === "en_proceso" || c.estado === "esperando_aprobacion");
-    const resueltas = listaBase.filter((c) => c.estado === "resuelto" || c.estado === "rechazado");
-    return [
-      { label: "Pendientes", items: pendientes },
-      { label: "En proceso", items: enProceso },
-      { label: "Resueltas", items: resueltas },
-    ];
-  }, [listaBase]);
+  // La que estaba atendiendo: la guardada por el hilo; si ya no está en curso, la última mía en curso.
+  const seguirCon = useMemo(() => {
+    const enCurso = todas.filter((c) => c.estado === "en_proceso" && uidEq(c.asignado_a, user.id));
+    return enCurso.find((c) => c.id === actualId) ?? enCurso[0] ?? null;
+  }, [todas, actualId, user.id]);
 
-  const mostrandoListaPersonas = agruparPor === "persona" && personaFiltro == null;
+  const ordenar = (lista: Conversacion[]) => [...lista].sort((a, b) => {
+    // Primero lo que tengo en las manos, luego lo sin leer, luego lo más reciente.
+    const ma = a.id === seguirCon?.id ? 1 : 0;
+    const mb = b.id === seguirCon?.id ? 1 : 0;
+    if (ma !== mb) return mb - ma;
+    if ((a.no_leidos > 0) !== (b.no_leidos > 0)) return a.no_leidos > 0 ? -1 : 1;
+    return b.ultima_actividad.localeCompare(a.ultima_actividad);
+  });
+  const porHacer = ordenar(filtradas.filter((c) => montonDe(c, user.id) === "por_hacer"));
+  const enCurso = ordenar(filtradas.filter((c) => montonDe(c, user.id) === "en_curso"));
+  const hechas = filtradas.filter((c) => montonDe(c, user.id) === "hechas");
+
+  const secciones: { clave: Monton; label: string; items: Conversacion[] }[] = [
+    { clave: "en_curso", label: "En curso", items: enCurso },
+    { clave: "por_hacer", label: "Por hacer", items: porHacer },
+  ];
+  const visibles = monton ? secciones.filter((s) => s.clave === monton) : secciones;
+  const mostrarHechas = monton === "hechas" || (monton == null && verHechas);
+
+  const totalNoLeidos = todas.reduce((acc, c) => acc + c.no_leidos, 0);
+
+  const fila = (c: Conversacion) => (
+    <ConversacionRow
+      key={c.id}
+      c={c}
+      activa={c.id === selectedId}
+      propio={uidEq(c.ultimo_usuario_id, user.id)}
+      miaEnCurso={c.id === seguirCon?.id}
+      onClick={() => setSelectedId(c.id)}
+    />
+  );
+
+  const chip = (activo: boolean) => `hp-boton-sm shrink-0 !min-h-[36px] !text-[14px] ${activo ? "activo" : ""}`;
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
-      <div className={`flex w-full flex-col border-r border-border lg:w-[360px] lg:shrink-0 ${selectedId != null ? "hidden lg:flex" : "flex"}`}>
-        <div className="border-b border-border p-2.5 space-y-2">
-          <input
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar conversación…"
-            className="w-full rounded-xl border border-border bg-surface-panel px-3 py-2 text-[14px] text-ink outline-none focus:border-accent/50"
-          />
-          <div className="flex flex-wrap items-center gap-1.5">
-            {verSolicitudes && (
-              <button type="button" className={chipCls(tipo === "solicitud")} onClick={() => setTipo("solicitud")}>Solicitudes</button>
-            )}
-            {verAcciones && (
-              <button type="button" className={chipCls(tipo === "accion")} onClick={() => setTipo("accion")}>Acciones</button>
-            )}
-            {onCrear && (
-              <button
-                type="button"
-                onClick={onCrear}
-                title={tipo === "accion" ? "Nueva acción" : "Nueva solicitud"}
-                className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-base font-bold text-white hover:bg-accent/90"
-              >
-                +
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 text-[12px]">
-            <span className="text-muted">Agrupar:</span>
-            <button
-              type="button"
-              className={chipCls(agruparPor === "estado")}
-              onClick={() => setAgruparPor("estado")}
-            >
-              Estado
-            </button>
-            <button
-              type="button"
-              className={chipCls(agruparPor === "persona")}
-              onClick={() => setAgruparPor("persona")}
-            >
-              Persona
-            </button>
-          </div>
-        </div>
-
+      <div className={`flex w-full flex-col border-r-2 border-ink lg:w-[400px] lg:shrink-0 ${selectedId != null ? "hidden lg:flex" : "flex"}`}>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {isLoading && conversaciones.length === 0 && !isError && (
-            <p className="p-4 text-center text-[13px] text-muted">Cargando conversaciones…</p>
-          )}
-          {isError && conversaciones.length === 0 && (
-            <div className="p-4 text-center text-[13px] text-red-500">
-              <p className="font-semibold">No se pudo cargar el inbox.</p>
-              <p className="mt-1 text-muted">{error instanceof Error ? error.message : "Error de conexión."}</p>
-              <button
-                type="button"
-                onClick={() => refetch()}
-                className="mt-2 rounded-full border border-border px-3 py-1 text-[12px] font-semibold text-ink hover:bg-surface-panel"
-              >
-                Reintentar
+          <div className="space-y-3 border-b-2 border-ink p-3">
+            {/* Crear en un toque: sin pasar por pestañas. */}
+            {(onCrearSolicitud && verSolicitudes) || (onCrearAccion && verAcciones) ? (
+              <div className="grid grid-cols-2 gap-2">
+                {onCrearSolicitud && verSolicitudes && (
+                  <button type="button" onClick={onCrearSolicitud} className="hp-boton azul !min-h-[48px] !text-[15px]">
+                    ✚ Pedir algo
+                  </button>
+                )}
+                {onCrearAccion && verAcciones && (
+                  <button type="button" onClick={onCrearAccion} className="hp-boton blanco !min-h-[48px] !text-[15px]">
+                    ✚ Nueva tarea
+                  </button>
+                )}
+              </div>
+            ) : null}
+
+            {/* Volver a la que estaba atendiendo. */}
+            {seguirCon && (
+              <button type="button" onClick={() => setSelectedId(seguirCon.id)} className="hp-seguir">
+                <span className="text-[24px]" aria-hidden>▶</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[12px] font-black uppercase tracking-wider">Seguir con la que estabas</span>
+                  <span className="block truncate text-[16px] font-extrabold">{seguirCon.titulo}</span>
+                </span>
               </button>
+            )}
+
+            {/* Como el Mapa: cuánto hay en cada montón; tocar uno filtra. */}
+            {!mostrandoListaPersonas && (
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  ["por_hacer", "Por hacer", "amarillo"],
+                  ["en_curso", "En curso", "azul"],
+                  ["hechas", "Hechas", "verde"],
+                ] as const).map(([clave, label, color]) => (
+                  <button
+                    key={clave}
+                    type="button"
+                    onClick={() => setMonton(monton === clave ? null : clave)}
+                    className={`hp-contador ${color} ${monton === clave ? "activo" : ""}`}
+                  >
+                    <b>{cuenta[clave]}</b>
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              <button type="button" className={chip(quien === "me_toca")} onClick={() => setQuien("me_toca")}>Me toca</button>
+              <button type="button" className={chip(quien === "pedi")} onClick={() => setQuien("pedi")}>Pedí yo</button>
+              <button type="button" className={chip(quien === "todo")} onClick={() => setQuien("todo")}>Todo</button>
+              <button type="button" className={chip(quien === "persona")} onClick={() => setQuien("persona")}>Por persona</button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <input
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar…"
+                className="hp-campo min-w-0 flex-1 px-3 py-2 !text-[16px]"
+              />
+              {verAmbos && (
+                <select
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value as TipoFiltro)}
+                  className="hp-campo shrink-0 px-2 py-2 !text-[15px]"
+                  aria-label="Tipo"
+                >
+                  <option value="todas">Todas</option>
+                  <option value="solicitud">Solicitudes</option>
+                  <option value="accion">Acciones</option>
+                </select>
+              )}
+            </div>
+          </div>
+
+          {isLoading && todas.length === 0 && !isError && (
+            <p className="p-4 text-center text-[15px] text-ink-muted">Cargando…</p>
+          )}
+          {isError && todas.length === 0 && (
+            <div className="p-4 text-center text-[15px] text-accent-rose">
+              <p className="font-bold">No se pudo cargar la bandeja.</p>
+              <p className="mt-1 text-ink-muted">{error instanceof Error ? error.message : "Error de conexión."}</p>
+              <button type="button" onClick={() => refetch()} className="hp-boton-sm mt-2">Reintentar</button>
             </div>
           )}
-          {!isLoading && !isError && filtradas.length === 0 && (
-            <p className="p-4 text-center text-[13px] text-muted italic">
-              {busqueda ? "Sin resultados para tu búsqueda." : `No tienes ${tipo === "accion" ? "acciones" : "solicitudes"} todavía.`}
-            </p>
+
+          {!isLoading && !isError && mostrandoListaPersonas && (
+            personas.length === 0
+              ? <p className="p-4 text-center text-[15px] text-ink-muted">Nadie por aquí todavía.</p>
+              : personas.map((p) => <PersonaRow key={p.id} p={p} onClick={() => setPersonaFiltro(p.id)} />)
           )}
-          {!isLoading && !isError && filtradas.length > 0 && mostrandoListaPersonas && (
-            personas.map((p) => (
-              <PersonaRow
-                key={p.id}
-                p={p}
-                enLinea={enLineaIds.has(p.id)}
-                onClick={() => setPersonaFiltro(p.id)}
-              />
-            ))
-          )}
-          {!isLoading && !isError && filtradas.length > 0 && !mostrandoListaPersonas && (
+
+          {!isLoading && !isError && !mostrandoListaPersonas && (
             <>
               {personaActiva && (
                 <button
                   type="button"
                   onClick={() => setPersonaFiltro(null)}
-                  className="sticky top-0 z-10 flex w-full items-center gap-1.5 border-b border-border/40 bg-surface-panel/95 px-3 py-1.5 text-left text-[12px] font-semibold text-accent backdrop-blur hover:underline"
+                  className="flex w-full items-center gap-1.5 border-b-2 border-ink/15 px-3 py-2 text-left text-[15px] font-bold text-accent"
                 >
                   ← Todas las personas · {personaActiva.nombre}
                 </button>
               )}
-              {grupos.map((g) => g.items.length > 0 && (
-                <div key={g.label}>
-                  <p className={`sticky z-10 border-b border-border/40 bg-surface-panel/95 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-muted backdrop-blur ${personaActiva ? "top-[26px]" : "top-0"}`}>
-                    {g.label} · {g.items.length}
+              {visibles.map((s) => (
+                <div key={s.clave}>
+                  <p className="border-b-2 border-ink/15 bg-surface px-3 py-1.5 text-[13px] font-black uppercase tracking-wider text-ink-muted">
+                    {s.label} · {s.items.length}
                   </p>
-                  {g.items.map((c) => (
-                    <ConversacionRow
-                      key={c.id}
-                      c={c}
-                      activa={c.id === selectedId}
-                      propio={uidEq(c.ultimo_usuario_id, user.id)}
-                      enLinea={c.contraparte_id != null && enLineaIds.has(c.contraparte_id)}
-                      onClick={() => setSelectedId(c.id)}
-                    />
-                  ))}
+                  {s.items.length === 0 ? (
+                    <p className="px-3 py-3 text-[15px] text-ink-muted">
+                      {s.clave === "por_hacer" ? "Nada por hacer. ¡Al día! ★" : "Nada en curso."}
+                    </p>
+                  ) : s.items.map(fila)}
                 </div>
               ))}
+
+              {/* Historial de las hechas: plegado, al final. */}
+              {monton == null && hechas.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setVerHechas((v) => !v)}
+                  className="flex w-full items-center gap-2 border-y-2 border-ink/15 bg-surface px-3 py-2.5 text-left text-[15px] font-extrabold text-ink"
+                >
+                  <span className="flex-1">★ Historial de hechas · {hechas.length}</span>
+                  <span aria-hidden>{verHechas ? "▲" : "▼"}</span>
+                </button>
+              )}
+              {monton === "hechas" && (
+                <p className="border-b-2 border-ink/15 bg-surface px-3 py-1.5 text-[13px] font-black uppercase tracking-wider text-ink-muted">
+                  Hechas · {hechas.length}
+                </p>
+              )}
+              {mostrarHechas && (hechas.length === 0
+                ? <p className="px-3 py-3 text-[15px] text-ink-muted">Todavía no hay hechas.</p>
+                : hechas.map(fila))}
             </>
           )}
         </div>
         {totalNoLeidos > 0 && (
-          <div className="border-t border-border px-3 py-1.5 text-center text-[12px] text-muted">
+          <div className="border-t-2 border-ink px-3 py-1.5 text-center text-[14px] font-bold text-ink">
             {totalNoLeidos} mensaje{totalNoLeidos === 1 ? "" : "s"} sin leer
           </div>
         )}
@@ -349,8 +431,8 @@ export default function InboxConversaciones({
             onCerrar={() => setSelectedId(null)}
           />
         ) : (
-          <div className="flex flex-1 items-center justify-center text-sm text-muted italic">
-            Selecciona una conversación para ver el chat
+          <div className="flex flex-1 items-center justify-center text-[16px] text-ink-muted">
+            Toca una solicitud para verla
           </div>
         )}
       </div>

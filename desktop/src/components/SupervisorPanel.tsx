@@ -3,6 +3,8 @@ import { api } from "../api/client";
 import { ProseTextarea } from "./ProseTextarea";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 import { Icon, type UiIconName } from "../icons";
+import { SelectorDestino, useDestinoSupervisor } from "./SupervisorDestino";
+import GrabacionPantalla from "./GrabacionPantalla";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -56,12 +58,13 @@ function tiempoRelativo(ts: string): string {
 
 // ── Tab bar ────────────────────────────────────────────────────────────────
 
-type Tab = "cuenta" | "voz" | "actividad" | "contactos";
+type Tab = "cuenta" | "voz" | "grabar" | "actividad" | "contactos";
 
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
   const tabs: { id: Tab; label: string; icon: UiIconName }[] = [
     { id: "cuenta",    label: "Cuenta",     icon: "user" },
     { id: "voz",       label: "Enviar Voz", icon: "megaphone" },
+    { id: "grabar",    label: "Grabar pantalla", icon: "monitor" },
     { id: "actividad", label: "Actividad",  icon: "lightning" },
     { id: "contactos", label: "Contactos",  icon: "users" },
   ];
@@ -317,43 +320,13 @@ function TabCuenta() {
 
 // ── Tab Enviar Voz ─────────────────────────────────────────────────────────
 
-const NUMERO_LIBRE = "__libre__";
-
 function TabEnviarVoz() {
-  const [contactos, setContactos]   = useState<Contacto[]>([]);
-  const [seleccion, setSeleccion]   = useState("");        // valor del <select>
-  const [numeroLibre, setNumeroLibre] = useState("");      // cuando seleccion === NUMERO_LIBRE
+  const destino = useDestinoSupervisor();
+  const numeroEfectivo = destino.numero;
+  const etiquetaDestino = destino.etiqueta;
   const [texto, setTexto]           = useState("");
   const [enviando, setEnviando]     = useState(false);
   const [result, setResult]         = useState<{ ok: boolean; msg: string } | null>(null);
-
-  // Cargar contactos al montar
-  useEffect(() => {
-    api.get<Record<string, string>>("/api/supervisor/bridge/contactos")
-      .then((d) => {
-        const lista = Object.entries(d)
-          .filter(([k]) => !k.startsWith("_"))
-          .map(([nombre, numero]) => ({ nombre, numero }))
-          .sort((a, b) => a.nombre.localeCompare(b.nombre));
-        setContactos(lista);
-        // Preseleccionar el primer contacto si existe
-        if (lista.length > 0) setSeleccion(lista[0].nombre);
-      })
-      .catch(() => {});
-  }, []);
-
-  const contactoSeleccionado = contactos.find((c) => c.nombre === seleccion);
-
-  // El bridge solo entiende números — resolvemos el número real del contacto
-  const numeroEfectivo = seleccion === NUMERO_LIBRE
-    ? numeroLibre.trim()
-    : (contactoSeleccionado?.numero ?? seleccion);
-
-  const etiquetaDestino = seleccion === NUMERO_LIBRE
-    ? numeroLibre.trim()
-    : contactoSeleccionado
-        ? `${contactoSeleccionado.nombre.charAt(0).toUpperCase() + contactoSeleccionado.nombre.slice(1)} (${formatNumero(contactoSeleccionado.numero)})`
-        : seleccion;
 
   async function enviar() {
     if (!numeroEfectivo || !texto.trim()) return;
@@ -386,45 +359,7 @@ function TabEnviarVoz() {
 
       <div className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
 
-        {/* Selector de destino */}
-        <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold text-muted uppercase tracking-wide">
-            Destino
-          </label>
-
-          {contactos.length === 0 ? (
-            <p className="text-xs text-muted">
-              Sin contactos guardados. Agrégalos en la pestaña <strong>Contactos</strong>.
-            </p>
-          ) : (
-            <select
-              value={seleccion}
-              onChange={(e) => setSeleccion(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface-hover px-3 py-2.5 text-sm text-ink focus:outline-none focus:border-accent appearance-none cursor-pointer"
-            >
-              {contactos.map((c) => (
-                <option key={c.nombre} value={c.nombre}>
-                  {c.nombre.charAt(0).toUpperCase() + c.nombre.slice(1)}
-                  {" — "}
-                  {formatNumero(c.numero)}
-                </option>
-              ))}
-              <option value={NUMERO_LIBRE}>✏️  Escribir número manualmente…</option>
-            </select>
-          )}
-
-          {/* Campo libre cuando el usuario elige "escribir manualmente" */}
-          {seleccion === NUMERO_LIBRE && (
-            <input
-              type="tel"
-              value={numeroLibre}
-              onChange={(e) => setNumeroLibre(e.target.value)}
-              placeholder="573001234567"
-              autoFocus
-              className="w-full rounded-lg border border-border bg-surface-hover px-3 py-2 text-sm text-ink font-mono focus:outline-none focus:border-accent mt-1"
-            />
-          )}
-        </div>
+        <SelectorDestino destino={destino} />
 
         {/* Texto a sintetizar */}
         <div className="space-y-1.5">
@@ -686,7 +621,7 @@ export default function SupervisorPanel() {
   const [tab, setTab] = useState<Tab>("cuenta");
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className={`mx-auto ${tab === "grabar" ? "max-w-5xl" : "max-w-2xl"}`}>
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-ink">Agente Supervisor</h2>
         <p className="text-xs text-muted mt-0.5">
@@ -698,6 +633,7 @@ export default function SupervisorPanel() {
 
       {tab === "cuenta"    && <TabCuenta />}
       {tab === "voz"       && <TabEnviarVoz />}
+      {tab === "grabar"    && <GrabacionPantalla />}
       {tab === "actividad" && <TabActividad />}
       {tab === "contactos" && <TabContactos />}
     </div>

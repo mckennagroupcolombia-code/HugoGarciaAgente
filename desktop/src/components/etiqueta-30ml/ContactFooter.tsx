@@ -18,9 +18,12 @@ export default function ContactFooter({
   datos,
   editMode,
   tam = TAM_30ML.franja,
+  prefijoEstilo = "e30",
 }: {
   datos: DatoContacto[];
   editMode: boolean;
+  /** Prefijo de la clave en `text_styles` (ver `TechnicalCell`). */
+  prefijoEstilo?: string;
   /** Tamaño de letra máximo y mínimo (por defecto, el de la etiqueta 30 mL). */
   tam?: readonly [number, number];
 }) {
@@ -36,7 +39,7 @@ export default function ContactFooter({
             valor={d.texto}
             onChange={d.onChange}
             editMode={editMode}
-            styleKey={`e30_${d.clave}`}
+            styleKey={`${prefijoEstilo}_${d.clave}`}
             ejemplo={d.ejemplo}
             tam={tam}
             maxLineas={1}

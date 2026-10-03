@@ -50,7 +50,7 @@ export function iniciales(nombre: string | null | undefined): string {
 export const ESTADO_LABEL: Record<string, string> = {
   pendiente: "Pendiente",
   en_proceso: "En proceso",
-  esperando_aprobacion: "Esperando aprobación",
+  esperando_aprobacion: "Por finalizar",
   resuelto: "Resuelta",
   rechazado: "Rechazada",
 };

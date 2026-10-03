@@ -616,6 +616,56 @@ appExpress.post('/enviar', async (req, res) => {
     }
 });
 
+/** POST /enviar-video  { numero, filePath, caption?, fileName? }
+ *  Envía un clip MP4 (panel Supervisor → Grabar pantalla) desde la cuenta supervisora.
+ *  Solo lee archivos dentro de grabaciones_pantalla/: con filePath libre, cualquiera
+ *  con el token del bridge podría mandarse por WhatsApp cualquier archivo del servidor. */
+const GRABACIONES_DIR = path.resolve(__dirname, '..', 'grabaciones_pantalla');
+
+appExpress.post('/enviar-video', async (req, res) => {
+    if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
+    const { numero, filePath, caption, fileName } = req.body;
+    if (!numero || !filePath) return res.status(400).json({ error: 'Faltan numero o filePath' });
+    const real = path.resolve(String(filePath));
+    if (!real.startsWith(GRABACIONES_DIR + path.sep) || !real.toLowerCase().endsWith('.mp4')) {
+        return res.status(400).json({ error: 'Solo se envían clips MP4 de grabaciones_pantalla/' });
+    }
+    if (!fs.existsSync(real)) return res.status(400).json({ error: 'Clip no encontrado' });
+
+    try {
+        if (!sistemaListo && client.info && client.info.wid) await promoverSistemaListo('API /enviar-video');
+        if (!sistemaListo) {
+            return res.status(503).json({
+                error: 'WhatsApp supervisor aún sincronizando. Espera ~15 s tras conectar y vuelve a intentarlo.',
+            });
+        }
+        const media = new MessageMedia(
+            'video/mp4', fs.readFileSync(real).toString('base64'), fileName || path.basename(real)
+        );
+        const candidatos = await resolverCandidatosChatId(numero);
+        const chatUsado = await enviarConResolucionLid(candidatos, (cid) =>
+            client.sendMessage(cid, media, { caption: caption || '' })
+        );
+        console.log(`🎬 [supervisor] Video (API) → ${chatUsado}`);
+        logActividad('SALIENTE', { para: chatUsado, tipo: 'VIDEO', texto: (caption || '').substring(0, 60), origen: 'API' });
+        res.json({ status: 'success', chatId: chatUsado });
+    } catch (err) {
+        if (esErrorContextoPuppeteer(err)) {
+            return res.status(503).json({
+                error: 'WhatsApp está reconectando su sesión. Espera ~15 s e intenta de nuevo.',
+            });
+        }
+        console.error('[supervisor] Error /enviar-video:', err.message);
+        if (/no lid/i.test(err.message)) {
+            return res.status(422).json({
+                error: 'WhatsApp no tiene LID para ese número en la sesión supervisor. '
+                     + 'Pide al contacto que escriba primero a este WhatsApp.',
+            });
+        }
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── Perfil de WhatsApp (foto, nombre para mostrar e "Info"/about) ────────────
 appExpress.post('/perfil/foto', async (req, res) => {
     if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
@@ -698,6 +748,74 @@ appExpress.get('/status', (req, res) => {
 /** GET /monitor */
 appExpress.get('/monitor', (req, res) => {
     res.json({ actividad: activityLog.slice(0, 50) });
+});
+
+/** GET /chats/buscar?q=texto — lista chats cuyo nombre o número contiene q (SOLO lectura) */
+appExpress.get('/chats/buscar', async (req, res) => {
+    if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
+    const q = String(req.query.q || '').toLowerCase().trim();
+    try {
+        if (!client.info || !client.info.wid) return res.status(503).json({ error: 'Sincronizando…' });
+        const todos = await client.getChats();
+        const hits = todos.filter(c => {
+            const nm = (c.name || '').toLowerCase();
+            const id = ((c.id && c.id._serialized) || '').toLowerCase();
+            return !q || nm.includes(q) || id.includes(q);
+        }).slice(0, 60).map(c => ({
+            chatId: (c.id && c.id._serialized) || '',
+            numero: (c.id && c.id.user) || '',
+            nombre: c.name || null,
+            grupo: !!c.isGroup,
+            ultimo: c.timestamp ? new Date(c.timestamp * 1000).toISOString() : null,
+        }));
+        res.json({ total: hits.length, chats: hits });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/** GET /chat/:numero?limit=N — lee el historial de un chat (SOLO lectura, no envía nada) */
+appExpress.get('/chat/:numero', async (req, res) => {
+    if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
+    const numero = req.params.numero;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 60, 300);
+    try {
+        if (!client.info || !client.info.wid) return res.status(503).json({ error: 'Sincronizando…' });
+        const candidatos = await resolverCandidatosChatId(numero);
+        let chat = null, usado = null;
+        for (const cid of candidatos) {
+            try {
+                const c = await client.getChatById(cid);
+                if (c) { chat = c; usado = cid; break; }
+            } catch (e) { /* probar siguiente candidato */ }
+        }
+        if (!chat) {
+            // Fallback: escanear todos los chats por número (id.user) o por nombre
+            const dig = String(numero).replace(/[^0-9]/g, '');
+            try {
+                const todos = await client.getChats();
+                chat = todos.find(c => {
+                    const u = (c.id && c.id.user) || '';
+                    const nm = (c.name || '').toLowerCase();
+                    return u === dig || u.endsWith(dig) || nm.includes('carolina') || nm.includes('global');
+                }) || null;
+                if (chat) usado = chat.id && chat.id._serialized;
+            } catch (e) { /* getChats falló */ }
+        }
+        if (!chat) return res.status(404).json({ error: 'Chat no encontrado', candidatos });
+        const msgs = await chat.fetchMessages({ limit });
+        const salida = msgs.map(m => ({
+            fecha: new Date((m.timestamp || 0) * 1000).toISOString(),
+            de: m.fromMe ? 'yo' : 'ellos',
+            autor: m.author || m.from || '',
+            tipo: m.type,
+            texto: m.body || '',
+            media: !!m.hasMedia,
+        }));
+        res.json({ chatId: usado, nombre: chat.name || null, total: salida.length, mensajes: salida });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 /** GET /qr — QR en texto para escaneo remoto */

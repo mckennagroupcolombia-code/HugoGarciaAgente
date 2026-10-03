@@ -350,3 +350,26 @@ def iniciar_ft_scan_job(
 
 
 estado_ft_scan_job = estado_coa_scan_job
+
+
+def _correr_job(job_id: str, fn: Callable[..., Any], args: tuple) -> None:
+    _set_job(job_id, status="running", progreso="Consultando la IA…")
+    try:
+        _set_job(job_id, status="done", progreso="Listo", resultado=fn(*args))
+    except Exception as exc:  # el panel ve el mensaje; el log, el detalle
+        import traceback
+
+        print(f"⚠️ [JOB {getattr(fn, '__name__', 'fn')}] {exc}\n{traceback.format_exc()}", flush=True)
+        _set_job(job_id, status="error", error=str(exc) or type(exc).__name__)
+
+
+def iniciar_job(fn: Callable[..., Any], *args: Any) -> str:
+    """Corre `fn(*args)` en un hilo (una consulta de IA, p. ej.): el POST responde al
+    instante con el id y el panel pregunta por GET, así Cloudflare (~100 s) no lo corta."""
+    _limpiar_jobs()
+    job_id = uuid.uuid4().hex[:16]
+    with _lock:
+        _jobs[job_id] = {"status": "pending", "progreso": "En cola", "imagenes": 0,
+                         "created": time.time(), "resultado": None, "error": None}
+    spawn_thread(_correr_job, args=(job_id, fn, args), daemon=True)
+    return job_id

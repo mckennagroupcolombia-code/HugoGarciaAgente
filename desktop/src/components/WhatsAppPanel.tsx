@@ -1,3 +1,5 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
 import { ProseTextarea } from "./ProseTextarea";
@@ -5,6 +7,7 @@ import { useTicketsAuth } from "../stores/ticketsAuth";
 import ImageLightbox from "./ImageLightbox";
 import WhatsAppMetricas from "./WhatsAppMetricas";
 import WhatsAppPedidosIA from "./WhatsAppPedidosIA";
+import WhatsAppBuscar from "./WhatsAppBuscar";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 import { Icon, type UiIconName } from "../icons";
 import { AddIconButton } from "./AddIconButton";
@@ -150,7 +153,7 @@ const TIPO_LABEL: Record<string, { label: string; color: string }> = {
 
 // ── Tab bar ────────────────────────────────────────────────────────────────
 
-type Tab = "chats" | "pedidos" | "filtro" | "metricas" | "control" | "cuenta" | "numeros" | "interacciones";
+type Tab = "chats" | "buscar" | "pedidos" | "filtro" | "metricas" | "control" | "cuenta" | "numeros" | "interacciones";
 
 interface BridgeSesion {
   conectado: boolean;
@@ -175,6 +178,7 @@ interface BridgeStatus {
 function TabBar({ active, onChange, noLeidos }: { active: Tab; onChange: (t: Tab) => void; noLeidos?: number }) {
   const tabs: { id: Tab; label: string; icon: UiIconName }[] = [
     { id: "chats",         label: "Chats",     icon: "chat" },
+    { id: "buscar",        label: "Buscar",    icon: "search" },
     { id: "pedidos",       label: "Pedidos IA", icon: "cart" },
     { id: "filtro",        label: "Filtro",    icon: "funnel" },
     { id: "metricas",      label: "Métricas",  icon: "chartBar" },
@@ -751,7 +755,7 @@ function NumeroCard({
                 ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                 : "bg-gray-500/10 text-gray-400 border-gray-500/20"
             }`}>
-              {esHumano ? "🤝 Modo humano" : "🔇 Silenciado"}
+              {esHumano ? ico("🤝 Modo humano") : "🔇 Silenciado"}
             </span>
           </div>
           <p className="text-xs text-muted mt-0.5">
@@ -1051,7 +1055,7 @@ function TabInteracciones() {
           onClick={cargar}
           className="rounded-lg border border-border bg-surface-hover px-3 py-1.5 text-sm text-muted hover:text-ink transition"
         >
-          🔄
+          <Ico e="🔄" />
         </button>
       </div>
 
@@ -1234,12 +1238,12 @@ function ChatBubble({ msg }: { msg: Mensaje }) {
             rel="noopener noreferrer"
             className={`block mb-1.5 text-[11px] underline ${esEntrada ? "text-accent" : "text-white/90"}`}
           >
-            📄 {msg.nombre_arch || "Ver PDF"}
+            <Ico e="📄" /> {msg.nombre_arch || "Ver PDF"}
           </a>
         )}
         {msg.tiene_media && !esImagen && !esPdf && (
           <span className="italic text-[11px] opacity-70 block mb-1">
-            📎 {msg.nombre_arch || "Adjunto"}
+            <Ico e="📎" /> {msg.nombre_arch || "Adjunto"}
             {mediaErr && mpath ? " (no disponible en servidor)" : ""}
           </span>
         )}
@@ -1755,7 +1759,7 @@ function TabChats({ abrirJid, onAbierto }: { abrirJid?: string | null; onAbierto
         {!jidActivo ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center px-8">
-              <p className="text-3xl mb-3">💬</p>
+              <p className="text-3xl mb-3"><Ico e="💬" /></p>
               <p className="text-sm font-semibold text-ink">Selecciona una conversación</p>
               <p className="text-xs text-muted mt-1">Los mensajes de clientes aparecen en la lista de la izquierda</p>
             </div>
@@ -1862,7 +1866,7 @@ function TabChats({ abrirJid, onAbierto }: { abrirJid?: string | null; onAbierto
             {modoActivo === "bot" && (
               <div className="shrink-0 px-4 py-2 border-t border-border bg-amber-500/5 border-amber-500/20">
                 <p className="text-[11px] text-amber-400 text-center">
-                  ⚠️ El bot está activo para este número. Si envías, el cliente recibirá tu mensaje <em>y</em> posiblemente también una respuesta del bot. Pulsa <strong>Tomar conversación</strong> para silenciar el bot primero.
+                  <Ico e="⚠️" /> El bot está activo para este número. Si envías, el cliente recibirá tu mensaje <em>y</em> posiblemente también una respuesta del bot. Pulsa <strong>Tomar conversación</strong> para silenciar el bot primero.
                 </p>
               </div>
             )}
@@ -1884,7 +1888,7 @@ function TabChats({ abrirJid, onAbierto }: { abrirJid?: string | null; onAbierto
                       : "border-border text-muted hover:text-ink hover:border-accent bg-surface-hover"
                   }`}
                 >
-                  📎
+                  <Ico e="📎" />
                 </button>
                 <ProseTextarea
                   value={texto}
@@ -1980,7 +1984,7 @@ export default function WhatsAppPanel() {
   const [tab, setTab] = useState<Tab>("chats");
   const [jidPorAbrir, setJidPorAbrir] = useState<string | null>(null);
   const [noLeidos, setNoLeidos] = useState(0);
-  const wide = tab === "chats" || tab === "metricas" || tab === "pedidos";
+  const wide = tab === "chats" || tab === "metricas" || tab === "pedidos" || tab === "buscar";
 
   // Polling ligero del contador de no leídos para el badge del TabBar
   useEffect(() => {
@@ -2007,6 +2011,14 @@ export default function WhatsAppPanel() {
       <TabBar active={tab} onChange={setTab} noLeidos={noLeidos} />
 
       {tab === "chats"         && <TabChats abrirJid={jidPorAbrir} onAbierto={() => setJidPorAbrir(null)} />}
+      {tab === "buscar"        && (
+        <WhatsAppBuscar
+          onAbrirChat={(jid) => {
+            setJidPorAbrir(jid);
+            setTab("chats");
+          }}
+        />
+      )}
       {tab === "pedidos"       && (
         <WhatsAppPedidosIA
           onAbrirChat={(jid) => {

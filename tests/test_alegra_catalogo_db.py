@@ -164,6 +164,78 @@ def test_sync_en_hilo_no_pisa_ok(catalogo_mod, monkeypatch):
     assert out.get("running") is True
 
 
+def test_sync_marca_inactivos_desaparecidos(catalogo_mod, monkeypatch):
+    """Un ítem local activo que Alegra ya no devuelve pasa a 'inactive' (no se borra)."""
+    cat = catalogo_mod
+    cat.upsert_item(alegra_id="1", reference="VIVO", name="Sigue", tipo="product")
+    cat.upsert_item(alegra_id="2", reference="MUERTO", name="Ya no está", tipo="product")
+
+    def _fake_paginar(*, tipo=None):
+        if tipo == "simple":
+            return [{"id": 1, "reference": "VIVO", "name": "Sigue", "type": "simple"}]
+        return []
+
+    monkeypatch.setattr(cat, "_paginar_items_alegra", _fake_paginar)
+    out = cat.sincronizar_catalogo_alegra(en_hilo=False)
+    assert out["ok"] is True
+    assert out["desaparecidos"] == 1
+    assert cat.obtener_item("VIVO")["status"] == "active"
+    muerto = cat.obtener_item("MUERTO")
+    assert muerto is not None, "no debe borrarse: distinguir inactivo de inexistente"
+    assert muerto["status"] == "inactive"
+
+
+def test_sync_incompleto_no_marca_inactivos(catalogo_mod, monkeypatch):
+    """Si la paginación falla a mitad, NO se marca nada como inactivo."""
+    cat = catalogo_mod
+    cat.upsert_item(alegra_id="1", reference="INTACTO", name="Intacto", tipo="product")
+
+    def _fake_paginar(*, tipo=None):
+        raise RuntimeError("Alegra GET /items 503")
+
+    monkeypatch.setattr(cat, "_paginar_items_alegra", _fake_paginar)
+    out = cat.sincronizar_catalogo_alegra(en_hilo=False)
+    assert out["ok"] is False
+    assert cat.obtener_item("INTACTO")["status"] == "active"
+
+
+def test_sync_anomalia_masiva_no_marca(catalogo_mod, monkeypatch):
+    """Si desaparece una fracción absurda del catálogo, se asume anomalía y no se toca nada."""
+    cat = catalogo_mod
+    for i in range(60):
+        cat.upsert_item(alegra_id=str(i), reference=f"P{i}", name=f"P{i}", tipo="product")
+
+    def _fake_paginar(*, tipo=None):
+        if tipo == "simple":
+            return [{"id": 0, "reference": "P0", "name": "P0", "type": "simple"}]
+        return []
+
+    monkeypatch.setattr(cat, "_paginar_items_alegra", _fake_paginar)
+    out = cat.sincronizar_catalogo_alegra(en_hilo=False)
+    assert out["ok"] is True
+    assert out["desaparecidos"] == 0
+    assert cat.obtener_item("P59")["status"] == "active"
+
+
+def test_sync_upserta_status_inactivo_reportado(catalogo_mod, monkeypatch):
+    """Un ítem que Alegra reporta como inactivo se guarda con su status real."""
+    cat = catalogo_mod
+
+    def _fake_paginar(*, tipo=None):
+        if tipo == "simple":
+            return [
+                {"id": 1, "reference": "ACT", "name": "Activo", "type": "simple", "status": "active"},
+                {"id": 2, "reference": "INA", "name": "Inactivo", "type": "simple", "status": "inactive"},
+            ]
+        return []
+
+    monkeypatch.setattr(cat, "_paginar_items_alegra", _fake_paginar)
+    out = cat.sincronizar_catalogo_alegra(en_hilo=False)
+    assert out["ok"] is True
+    assert out["productos"] == 1
+    assert cat.obtener_item("INA")["status"] == "inactive"
+
+
 def test_upsert_desde_alegra_raw(catalogo_mod, monkeypatch):
     cat = catalogo_mod
     monkeypatch.setattr(

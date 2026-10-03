@@ -44,13 +44,18 @@ def test_nombre_demasiado_corto_no_casa_con_medio_directorio():
     assert ec._buscar_tercero("PAGO A PROVE D1", terceros) is None
 
 
-def test_mercadopago_nunca_se_aplica_solo():
-    """$40,7M entre cuentas propias: como ingreso infla ventas, como gasto infla costos."""
+def test_mercadopago_es_traslado_entre_cuentas_propias():
+    """$40,7M entre cuentas propias: como ingreso inflaría ventas, como gasto
+    inflaría costos. Se causa como traslado contra la cuenta de MercadoPago
+    (130505, cuenta por cobrar a Mercado Pago), nunca contra una 4xxx ni una 5xxx."""
+    import app.services.contabilidad_core as cc
+
     for desc in ("PAGO INTERBANC MERCAOPAGO SA", "PAGO PSE Mercadopago Colombi"):
         for tipo in ("credito", "debito"):
             p = ec.clasificar(_linea(desc, 11_000_000, tipo), terceros=[])
-            assert p["confianza"] == ec.REVISAR
-            assert p["cuenta"] is None
+            assert p["confianza"] == ec.ALTA
+            assert p["cuenta"] == "130505"   # cuenta por cobrar a Mercado Pago (25-sep-2026)
+            assert p["cuenta"].startswith("1")            # activo (cuenta por cobrar), no ingreso ni gasto
             assert "MercadoPago" in p["concepto"]
 
 
@@ -85,11 +90,10 @@ def test_empresa_con_factura_si_va_a_proveedores():
 @pytest.mark.parametrize(
     "desc, tipo, cuenta",
     [
-        ("COBRO IVA PAGOS AUTOMATICOS", "debito", "5305"),
-        ("SERVICIO PAGO A TERCEROS", "debito", "5305"),
-        ("IMPTO GOBIERNO 4X1000", "debito", "5305"),
-        ("ABONO INTERESES AHORROS", "credito", "4295"),
-        ("PAGO PSE DIAN", "debito", "2365"),
+        ("COBRO IVA PAGOS AUTOMATICOS", "debito", "530505"),
+        ("SERVICIO PAGO A TERCEROS", "debito", "530505"),
+        ("IMPTO GOBIERNO 4X1000", "debito", "530595"),
+        ("ABONO INTERESES AHORROS", "credito", "421005"),
     ],
 )
 def test_costos_bancarios_e_intereses_se_clasifican_solos(desc, tipo, cuenta):
@@ -109,3 +113,76 @@ def test_descripcion_desconocida_no_se_fuerza_a_ninguna_cuenta():
     p = ec.clasificar(_linea("ALGO QUE EL BANCO NUNCA HABIA MANDADO"), terceros=[])
     assert p["cuenta"] is None
     assert p["confianza"] == ec.REVISAR
+
+
+# ─── 4x1000 e intereses: subcuenta correcta y causación automática (25-sep-2026) ──
+
+def test_el_4x1000_va_a_530595_y_los_intereses_a_421005():
+    gmf = ec.clasificar(_linea("IMPTO GOBIERNO 4X1000", 27_783.52, "debito"), terceros=[])
+    assert gmf["cuenta"] == "530595" and gmf["confianza"] == ec.ALTA
+    intereses = ec.clasificar(_linea("ABONO INTERESES AHORROS", 97.78, "credito"), terceros=[])
+    assert intereses["cuenta"] == "421005" and intereses["confianza"] == ec.ALTA
+    cuota = ec.clasificar(_linea("CUOTA MANEJO TARJETA", 15_000, "debito"), terceros=[])
+    assert cuota["cuenta"] == "530505"
+
+
+def test_solo_se_causan_solos_el_4x1000_y_los_intereses():
+    """Un retiro de MercadoPago también es de confianza alta, pero va por el Taller."""
+    assert ec.AUTO_CONCEPTOS == {
+        "Gravamen a los movimientos financieros (4x1000)",
+        "Intereses de la cuenta de ahorros",
+    }
+    mp = ec.clasificar(_linea("PAGO INTERBANC MERCADOPAGO SA", 9_500_000, "credito"), terceros=[])
+    assert mp["confianza"] == ec.ALTA and mp["concepto"] not in ec.AUTO_CONCEPTOS
+
+
+
+# ─── Impuestos: cada uno a su cuenta, según el recibo del contador (25-sep-2026) ──
+
+def _recibo(cuenta, recibo="490", numero="4911173604811", etiqueta="Retención a título de IVA (reteIVA)", estado="pendiente"):
+    return {"recibo": recibo, "numero": numero, "cuenta": cuenta, "etiqueta": etiqueta, "periodo": "agosto de 2026",
+            "estado": estado, "referencia": f"dian:490:{numero}" if recibo == "490" else f"sdh:{numero}",
+            "archivo": "", "avisos": [], "movimiento_id": 99}
+
+
+@pytest.mark.parametrize("cuenta, etiqueta", [
+    ("2365", "Retención en la fuente a título de renta"),
+    ("2367", "Retención a título de IVA (reteIVA)"),
+    ("2408", "IVA por pagar"),
+])
+def test_un_pago_a_la_dian_toma_la_cuenta_de_su_recibo(monkeypatch, cuenta, etiqueta):
+    from app.services import pagos_impuestos as pi
+
+    monkeypatch.setattr(pi, "recibo_para_linea", lambda monto, fecha, entidad: _recibo(cuenta, etiqueta=etiqueta) if entidad == "490" else None)
+    p = ec.clasificar(_linea("PAGO PSE DIAN   PSE", 242_000, "debito"), terceros=[])
+    assert p["cuenta"] == cuenta and p["confianza"] == ec.ALTA
+    assert p["referencia"] == "dian:490:4911173604811"
+    assert etiqueta in p["concepto"]
+
+
+def test_un_pago_a_hacienda_va_a_la_reteica(monkeypatch):
+    from app.services import pagos_impuestos as pi
+
+    monkeypatch.setattr(pi, "recibo_para_linea",
+                        lambda monto, fecha, entidad: _recibo("2368", recibo="SDH", numero="2026331014012927161",
+                                                              etiqueta="Retención de ICA (RTICA)") if entidad == "SDH" else None)
+    p = ec.clasificar(_linea("PAGO PSE SECRETARIA DE HACIE", 412_000, "debito"), terceros=[])
+    assert p["cuenta"] == "2368" and p["referencia"] == "sdh:2026331014012927161"
+
+
+def test_sin_recibo_un_pago_de_impuestos_no_se_adivina(monkeypatch):
+    """Antes todo «PAGO PSE DIAN» iba a 2365 con confianza alta."""
+    from app.services import pagos_impuestos as pi
+
+    monkeypatch.setattr(pi, "recibo_para_linea", lambda *a: None)
+    p = ec.clasificar(_linea("PAGO PSE DIAN   PSE", 123_456, "debito"), terceros=[])
+    assert p["cuenta"] is None and p["confianza"] == ec.REVISAR
+    assert "recibo" in p["nota"]
+
+
+def test_un_recibo_ya_registrado_pide_vincular_no_crear(monkeypatch):
+    from app.services import pagos_impuestos as pi
+
+    monkeypatch.setattr(pi, "recibo_para_linea", lambda *a: _recibo("2365", estado="registrado"))
+    p = ec.clasificar(_linea("PAGO PSE DIAN   PSE", 299_000, "debito"), terceros=[])
+    assert p["confianza"] == ec.REVISAR and "VINCULAR" in p["nota"]

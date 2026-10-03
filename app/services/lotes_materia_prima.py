@@ -260,15 +260,25 @@ def _referencias_para_documento(
     ref: str,
     nombre: str,
     catalogo: list[dict[str, str]] | None = None,
+    nombres_alternos: tuple[str, ...] = (),
 ) -> list[str]:
     """Expande refs genéricas (LACCALg) a las presentaciones reales de etiquetas/Siigo."""
     catalogo = catalogo if catalogo is not None else _catalogo_productos_para_match()
-    refs_nombre = _resolver_referencias_por_nombre(nombre, catalogo) if nombre else []
+    # El nombre comercial del COA puede conservar otra grafía que el título de
+    # la FT ("GOMA XANTHAN" vs "GOMA XANTANA" del catálogo): se prueba cada uno.
+    nombres = dict.fromkeys(n.strip() for n in (nombre, *nombres_alternos) if n and n.strip())
+    for n in nombres:
+        refs_nombre = _resolver_referencias_por_nombre(n, catalogo)
+        if refs_nombre:
+            # Si la ficha trae una ref inventada/genérica, Imprimir usa los SKU de EAN/Siigo.
+            return list(dict.fromkeys(refs_nombre))
     ref_n = (ref or "").strip()
-    if refs_nombre:
-        # Si la ficha trae una ref inventada/genérica, Imprimir usa los SKU de EAN/Siigo.
-        return refs_nombre
     return [ref_n] if ref_n else []
+
+
+def _nombres_ficha(datos: dict[str, Any]) -> tuple[str, ...]:
+    """Nombre y título del documento: con ellos figura el producto en el catálogo."""
+    return tuple(str(datos.get(k) or "").strip() for k in ("nombre_producto", "titulo"))
 
 
 def registrar_lote_desde_documento(
@@ -313,7 +323,9 @@ def registrar_lote_desde_documento(
         or ft.get("titulo")
         or ""
     ).strip()
-    refs = _referencias_para_documento(ref=ref, nombre=nombre)
+    refs = _referencias_para_documento(
+        ref=ref, nombre=nombre, nombres_alternos=_nombres_ficha(ft) + _nombres_ficha(coa)
+    )
     if not refs:
         return None
 
@@ -381,6 +393,7 @@ def sincronizar_lote_ficha_para_sku(ref: str) -> dict[str, Any] | None:
             ref=str(datos.get("referencia") or ""),
             nombre=nombre_ficha,
             catalogo=catalogo,
+            nombres_alternos=_nombres_ficha(datos),
         )
         if ref_key.upper() not in {r.upper() for r in refs}:
             # Match por nombre cuando la ficha aún no resuelve SKUs
@@ -603,7 +616,9 @@ def generar_lotes_faltantes() -> dict[str, list[dict[str, Any]]]:
         info = _lote_explicito_en_ficha(d)
         nombre = info["nombre"] or (d.get("nombre_producto") or d.get("titulo") or "").strip()
         referencia = (d.get("referencia") or "").strip()
-        referencias = _referencias_para_documento(ref=referencia, nombre=nombre, catalogo=catalogo)
+        referencias = _referencias_para_documento(
+            ref=referencia, nombre=nombre, catalogo=catalogo, nombres_alternos=_nombres_ficha(d)
+        )
         resuelta_por_nombre = bool(nombre) and (
             not referencia
             or referencia.upper() not in {r.upper() for r in referencias}

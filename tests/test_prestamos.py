@@ -207,8 +207,8 @@ def test_pago_de_cuota_separa_capital_interes_y_retencion(mods):
     mov = next(m for m in cc.listar_movimientos(limit=50) if m["referencia"] == "TRF-1")
     por_cuenta = {l["cuenta_codigo"]: l for l in mov["lineas"]}
     assert por_cuenta["2295"]["debito"] == pytest.approx(250_000, abs=1)
-    assert por_cuenta["5305"]["debito"] == pytest.approx(187_693, abs=1)   # gasto = interés bruto
-    assert por_cuenta["2365"]["credito"] == pytest.approx(13_138, abs=1)   # deuda con la DIAN
+    assert por_cuenta["530520"]["debito"] == pytest.approx(187_693, abs=1)  # 5305/530520 Intereses
+    assert por_cuenta["236535"]["credito"] == pytest.approx(13_138, abs=1)  # 2365/236535 Rendimientos financieros
     assert por_cuenta["1110"]["credito"] == pytest.approx(424_554, abs=1)  # lo que sale al banco
     assert cc.balance_comprobacion()["cuadra"]
 
@@ -221,9 +221,9 @@ def test_gross_up_lleva_la_retencion_al_gasto_financiero(mods):
     pr.registrar_pago_cuota(p["id"], 1, {"referencia": "GU-1"})
     mov = next(m for m in cc.listar_movimientos(limit=50) if m["referencia"] == "GU-1")
     por_cuenta = {l["cuenta_codigo"]: l for l in mov["lineas"]}
-    assert por_cuenta["5305"]["debito"] == pytest.approx(187_693 + 13_138, abs=2)
+    assert por_cuenta["530520"]["debito"] == pytest.approx(187_693 + 13_138, abs=2)
     assert por_cuenta["1110"]["credito"] == pytest.approx(437_693, abs=2)
-    assert por_cuenta["2365"]["credito"] == pytest.approx(13_138, abs=1)
+    assert por_cuenta["236535"]["credito"] == pytest.approx(13_138, abs=1)
     assert cc.balance_comprobacion()["cuadra"]
 
 
@@ -250,8 +250,8 @@ def test_pagar_todas_las_cuotas_cierra_el_prestamo_y_el_pasivo(mods):
     assert balance["cuadra"]
     saldos = {c["codigo"]: c["saldo_final"] for c in balance["cuentas"]}
     assert saldos["2295"] == pytest.approx(0, abs=1)  # pasivo extinguido
-    assert saldos["5305"] == pytest.approx(2_796_620, abs=2)  # gasto = interés bruto total
-    assert saldos["2365"] == pytest.approx(195_763, abs=2)  # pendiente de girar a la DIAN
+    assert saldos["530520"] == pytest.approx(2_796_620, abs=2)  # gasto = interés bruto total
+    assert saldos["236535"] == pytest.approx(195_763, abs=2)  # pendiente de girar a la DIAN
 
 
 def test_cuotas_del_mes_reune_todos_los_prestamos_vigentes(mods):
@@ -447,20 +447,26 @@ def test_resumen_solo_cuenta_el_mes_pedido(mods):
     assert pr.resumen_retenciones_mes(2026, 9)["pagos"] == 0
 
 
-def test_ticket_retenciones_lleva_base_total_y_detalle(mods):
+def test_ticket_retenciones_lleva_periodo_vencimiento_y_donde_mirar(mods):
+    # Antes este ticket traía el total y el detalle por tercero escritos en su
+    # texto. Se quitaron (sep-2026): un monto copiado se congela, y con
+    # TKT-2026-1223 la declaración de agosto estuvo a punto de presentarse por
+    # $96.251 cuando el libro ya iba en $761.138. Lo que queda es lo que NO
+    # cambia — período, vencimiento, qué hacer — más dónde está la cifra viva.
     cc, pr, tercero, medio = mods
     _pagar_primera_cuota(pr, cc, tercero, medio)
     r = pr.crear_ticket_retenciones_mes(2026, 10, dry_run=True)
     d = r["descripcion"]
-    assert "$13.138" in d              # retención practicada
-    assert "$187.693" in d             # base (interés bruto)
-    assert "79123456" in d             # identificación del tercero
+    assert "2026-10" in d
     assert "formulario 350" in d
-    assert "rendimientos financieros" in d
+    assert "Contabilidad → Préstamos → Retenciones" in d
     # Desde que se cargó el calendario 2026 (DUR 1625) el ticket da la fecha
-    # exacta según el último dígito del NIT de McKenna (7), no pide adivinarla.
+    # exacta según el último dígito del NIT de McKenna, no pide adivinarla.
     assert "2026-11-19" in d
     assert "último dígito 6" in d
+    # Y ningún monto quemado
+    assert "$13.138" not in d
+    assert "$187.693" not in d
 
 
 def test_ticket_retenciones_avisa_documentos_soporte_pendientes(mods):
@@ -892,3 +898,49 @@ def test_trazabilidad_de_prestamo_inexistente(mods):
     _cc, pr, _t, _m = mods
     with pytest.raises(ValueError, match="no encontrado"):
         pr.trazabilidad(9999)
+
+
+def test_no_se_crea_el_ticket_de_un_mes_que_no_ha_empezado(mods):
+    # El 2026-09-13 se montó a mano el ticket de octubre y le quedó a despachos
+    # tres semanas en la bandeja, compitiendo con lo que sí era de ese día.
+    # El cron llama siempre con el mes en curso; el guard es para las llamadas
+    # a mano.
+    from datetime import date
+
+    _cc, pr, tercero, medio = mods
+    _crear(pr, tercero, medio, fecha_desembolso="2026-08-19", dia_pago=None)
+    futuro = date.today().year + 1
+
+    r = pr.crear_recordatorio_pagos_mes(futuro, 1)
+    assert not r["creado"]
+    assert "todavía no empieza" in r["motivo"]
+
+    # dry_run sí deja mirar hacia adelante, y forzar_futuro es la puerta explícita
+    assert pr.crear_recordatorio_pagos_mes(futuro, 1, dry_run=True)["dry_run"]
+
+
+def test_el_ticket_de_retenciones_no_lleva_cifras_en_el_texto(mods, monkeypatch):
+    # TKT-2026-1223 decía $96.251 de agosto-2026; el mismo día entró el backfill
+    # de 29 asientos de retención sobre compras y el real pasó a $761.138, con
+    # la declaración venciendo nueve días después. Las cifras viven en el panel,
+    # que las lee de la 2365 cada vez que se abre.
+    cc, pr, tercero, medio = mods
+    monkeypatch.setenv("PRESTAMOS_USUARIO_CONTABILIDAD", "armando")
+    p = _crear(pr, tercero, medio, fecha_desembolso="2026-08-19", dia_pago=None)
+    pr.registrar_pago_cuota(p["id"], 1)
+
+    r = pr.crear_ticket_retenciones_mes(2026, 9, dry_run=True)
+    d = r["descripcion"]
+    assert "2026-09" in d
+    assert "Contabilidad → Préstamos → Retenciones" in d
+    # Ni el total ni el valor de ninguna retención aparecen escritos
+    cuota = p["cuotas"][0]
+    for monto in (cuota["retencion"], cuota["interes_bruto"]):
+        assert _fmt_cop_aprox(monto) not in d, f"{monto} quedó congelado en el texto"
+    assert "no van en este ticket a propósito" in d
+    # La cifra que manda es la del contador, no la del sistema
+    assert "La cifra que se declara es la de él" in d
+
+
+def _fmt_cop_aprox(n: float) -> str:
+    return "$" + f"{round(float(n or 0)):,}".replace(",", ".")

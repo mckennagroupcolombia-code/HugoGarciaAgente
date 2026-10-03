@@ -31,10 +31,12 @@ import { esAdminPanel } from "./adminAccess";
 export const CONTABILIDAD_PANELS = [
   "contabilidad-inicio",
   "libro-mayor",
+  "socios",
   "anulaciones",
   "compras-exterior",
   "prestamos",
   "pagos",
+  "conciliacion-contador",
   "productos-siigo",
   "costos-productos",
   "catalogo-alegra",
@@ -127,7 +129,9 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
       || p.impuestos
       || p.servicios
       || p.mensajeria
-      || p["libro-mayor"],
+      || p["libro-mayor"]
+      || p.socios
+      || p.prestamos,
   );
 }
 
@@ -226,6 +230,12 @@ export function puedeVerModuloContabilidad(
     // libro-mayor: permiso explícito, no heredado de facturación/sync.
     return Boolean(p.pagos || p["libro-mayor"]);
   }
+  if (seccion === "conciliacion-contador") {
+    // Cruce declaraciones del contador ↔ 2365: expone retenciones por tercero y
+    // saldos con socios, misma sensibilidad que el Libro Mayor. Debe coincidir con
+    // `_usuario_puede` en app/routes_conciliacion.py.
+    return Boolean(p["conciliacion-contador"] || p["libro-mayor"]);
+  }
   if (seccion === "prestamos") {
     // Permiso propio y explícito, con el mismo criterio que libro-mayor: el
     // módulo expone cédula, correo, cuenta bancaria y saldos de socios y
@@ -233,6 +243,14 @@ export function puedeVerModuloContabilidad(
     // Quien tenga libro-mayor también lo ve, porque el Diario ya muestra esos
     // mismos movimientos y negarlo acá no protegería nada.
     return Boolean(p.prestamos || p["libro-mayor"]);
+  }
+  if (seccion === "socios") {
+    // Expediente fiscal de cada socio (extractos personales, F210, cripto).
+    // El backend (app/routes_declarador.py) garantiza que cada socio vea SOLO
+    // el suyo; acá solo decidimos si la sección aparece en el menú. Un socio
+    // con cuenta de login vinculada a su tercero entra aunque no tenga
+    // libro-mayor — es SU declaración de renta, no la contabilidad de la empresa.
+    return Boolean(p.socios || p["libro-mayor"] || p.prestamos);
   }
   if (seccion === "libro-mayor") {
     // Permiso propio y explícito: partida doble, plan de cuentas y saldos con
@@ -242,7 +260,8 @@ export function puedeVerModuloContabilidad(
     // Préstamos salió a su propia sección el 2026-09-10 y tiene su regla arriba.
     // El Diario ya expone movimientos de socios/préstamos, así que exigir el
     // mismo permiso estricto para todo el hub es lo correcto, no solo lo más simple.
-    return Boolean(p["libro-mayor"]);
+    // `contador`: el contador externo lo ve en modo consulta (ver contadorAccess).
+    return Boolean(p["libro-mayor"] || p.contador);
   }
   if (seccion === "contabilidad-inicio") {
     // El checklist guiado no expone nada que el usuario no pueda ya ver en
@@ -308,7 +327,9 @@ export function guardarSubtabFacturacion(id: FacturacionSubtabId): void {
 export function leerSubtabOperativos(): OperativosSubtabId {
   try {
     const v = localStorage.getItem(OPERATIVOS_SUB_KEY) || "";
-    if (v === "rrhh" || v === "impuestos" || v === "servicios") return v;
+    // "mensajeria" faltaba acá: se guardaba al elegirla pero no se leía, así que
+    // al volver al panel siempre caía en RR.HH.
+    if (OPERATIVOS_SUBTABS.some((t) => t.id === v)) return v as OperativosSubtabId;
   } catch { /* */ }
   return "rrhh";
 }
@@ -329,9 +350,8 @@ export function primerPanelContabilidad(
     if (CONTABILIDAD_TAB_OCULTAS.has(id)) return false;
     if (!puedeVerModuloContabilidad(user, id)) return false;
     if (id === "costos-productos") return advanced;
-    if (id === "operativos") {
-      return advanced || Boolean(puedeVerModuloContabilidad(user, "servicios"));
-    }
+    // Operativos ya no exige modo avanzado: basta el permiso (lo valida el
+    // filtro de arriba), porque Mensajería vive adentro y la usa despachos.
     return true;
   });
   const pref = preferido ? normalizarPanelContabilidad(preferido) : null;

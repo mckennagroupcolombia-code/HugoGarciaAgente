@@ -65,6 +65,27 @@ def main() -> int:
 
     print(f"  creados:          {r['creados']}")
     print(f"  ya existían:      {r['omitidos']}")
+
+    if r.get("montos_por_fuente"):
+        print("  monto por fuente (para contrastar contra la facturación):")
+        for f, v in sorted(r["montos_por_fuente"].items(), key=lambda x: -x[1]):
+            print(f"    - {f:<22} ${v:>16,.0f}".replace(",", "."))
+
+    # Se separan las notas informativas de los avisos de lectura incompleta. Un
+    # período posteado a medias es peor que no haberlo posteado —cuadra, se ve
+    # completo y nadie vuelve a mirarlo—, así que esa advertencia tiene que
+    # significar siempre lo mismo y no competir con mensajes de rutina.
+    avisos = [a for a in (r.get("avisos") or []) if not str(a).lstrip().startswith("info:")]
+    notas = [a for a in (r.get("avisos") or []) if str(a).lstrip().startswith("info:")]
+    for n in notas:
+        print(f"  · {str(n).lstrip()[5:].strip()}")
+    if avisos:
+        print("\n  ⚠ LA LECTURA NO FUE COMPLETA — el período quedaría a medias:")
+        for a in avisos:
+            print(f"    - {a}")
+        print("    Subí CONTABILIDAD_LEDGER_BUDGET_S / _MAX_PAGINAS / _MAX_PAGINAS_MELI y volvé a correr.")
+    else:
+        print("\n  ✓ lectura completa: ninguna fuente quedó truncada.")
     if r["fuentes_sin_mapeo"]:
         print("  fuentes sin mapeo (NO se postearon):")
         for f, n in r["fuentes_sin_mapeo"].items():

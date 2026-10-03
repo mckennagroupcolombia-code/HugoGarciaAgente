@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Conciliación bancaria — cada línea del banco hasta que cuadra con el libro",
+    "output": "08-conciliacion.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": { "label": "lo hace una persona" },
+        "backend": { "label": "lo hace la plataforma" },
+        "database": { "label": "queda guardado" },
+        "cloud": { "label": "sistema externo" },
+        "external": { "label": "cliente o tercero" }
+      }
+    },
+    "views": [
+      {
+        "id": "traer",
+        "label": "Traer el banco",
+        "focus": ["extracto", "cargar", "fusionar", "propuesta"],
+        "note": "Se baja del 1 del mes hasta hoy, las veces que haga falta: los días ya cargados no se repiten."
+      },
+      {
+        "id": "resolver",
+        "label": "Resolver una línea",
+        "focus": ["propuesta", "decidir", "asiento", "vinculo", "comprobado"],
+        "note": "Quién y a dónde los decide una persona; el asiento y el vínculo los escribe la plataforma; luego se comprueba al peso."
+      }
+    ]
+  },
+  "lanes": [
+    { "id": "banco", "label": "Bancolombia" },
+    { "id": "operador", "label": "Quien concilia" },
+    { "id": "plataforma", "label": "Plataforma" },
+    { "id": "libro", "label": "Libro Mayor" }
+  ],
+  "phases": [
+    { "id": "traer", "label": "Traer", "fromCol": 0, "toCol": 1 },
+    { "id": "resolver", "label": "Resolver", "fromCol": 2, "toCol": 4, "variant": "emphasis" },
+    { "id": "comprobar", "label": "Comprobar", "fromCol": 5, "toCol": 5 }
+  ],
+  "mainPath": ["extracto", "cargar", "fusionar", "propuesta", "decidir", "asiento", "vinculo"],
+  "nodes": [
+    { "id": "extracto", "lane": "banco", "col": 0, "type": "cloud", "label": "Movimientos", "sublabel": "Sucursal Negocios · zip", "width": 160 },
+    { "id": "cargar", "lane": "operador", "col": 1, "type": "frontend", "label": "Soltar el zip", "sublabel": "del 1 del mes a hoy", "width": 140 },
+    { "id": "fusionar", "lane": "plataforma", "col": 1, "type": "backend", "label": "Fusionar", "sublabel": "sin repetir días", "width": 124 },
+    { "id": "propuesta", "lane": "plataforma", "col": 2, "type": "backend", "label": "Propuesta", "sublabel": "cuenta · tercero · calce", "width": 160 },
+    { "id": "decidir", "lane": "operador", "col": 3, "type": "frontend", "label": "Quién · a dónde", "sublabel": "o «causar así»", "width": 132 },
+    { "id": "asiento", "lane": "libro", "col": 4, "type": "database", "label": "Asiento", "sublabel": "partida doble", "width": 112 },
+    { "id": "vinculo", "lane": "banco", "col": 4, "type": "database", "label": "Vínculo", "sublabel": "línea ↔ asiento", "width": 124 },
+    { "id": "comprobado", "lane": "libro", "col": 5, "type": "database", "label": "Cuadra al peso", "sublabel": "banco = libro", "width": 128 }
+  ],
+  "edges": [
+    { "id": "e-extracto-cargar", "from": "extracto", "to": "cargar", "role": "main" },
+    { "id": "e-cargar-fusionar", "from": "cargar", "to": "fusionar", "role": "main" },
+    { "id": "e-fusionar-propuesta", "from": "fusionar", "to": "propuesta", "role": "main" },
+    { "id": "e-propuesta-decidir", "from": "propuesta", "to": "decidir", "role": "main" },
+    { "id": "e-decidir-asiento", "from": "decidir", "to": "asiento", "label": "causa", "role": "main" },
+    { "id": "e-asiento-vinculo", "from": "asiento", "to": "vinculo", "label": "une", "role": "main" },
+    { "id": "e-vinculo-comprobado", "from": "vinculo", "to": "comprobado", "label": "cuadra", "variant": "emphasis", "role": "main" }
+  ],
+  "cards": [
+    { "dot": "violet", "title": "El banco es la verdad externa", "items": ["Se recorre línea por línea, no el libro", "Una línea cierra con sus cuatro piezas"] },
+    { "dot": "amber", "title": "Nada se aplica solo", "items": ["Lo de confianza clara va a un clic", "Lo dudoso pasa por una persona"] },
+    { "dot": "rose", "title": "El vínculo se comprueba", "items": ["Asiento anulado o con otra plata = descuadre", "Los dos lados se suman aparte"] }
+  ]
+}

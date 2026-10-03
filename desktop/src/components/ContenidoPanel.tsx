@@ -1,11 +1,13 @@
+import { Ico } from "../icons/Ico";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ticketsSessionHeaders } from "../api/client";
 import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { AddIconButton } from "./AddIconButton";
+import GrabacionPantalla from "./GrabacionPantalla";
 
-type Vista = "video" | "audio";
+type Vista = "video" | "audio" | "grabar";
 type ModoZona = "franja" | "region";
 type AudioModo = "original" | "sin_audio" | "archivo" | "voz_clonada";
 
@@ -651,9 +653,9 @@ export default function ContenidoPanel() {
     : null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-3">
+    <div className={`mx-auto ${vista === "grabar" ? "max-w-5xl" : "max-w-3xl"} space-y-3`}>
       <div>
-        <h2 className="text-base font-bold text-ink">🎬 Contenido</h2>
+        <h2 className="text-base font-bold text-ink"><Ico e="🎬" /> Contenido</h2>
       </div>
 
       <div className="flex gap-2">
@@ -664,7 +666,7 @@ export default function ContenidoPanel() {
             vista === "video" ? "border-accent bg-accent/8 text-ink" : "border-border text-muted hover:border-accent/50"
           }`}
         >
-          🎬 Video
+          <Ico e="🎬" /> Video
         </button>
         <button
           type="button"
@@ -673,11 +675,22 @@ export default function ContenidoPanel() {
             vista === "audio" ? "border-accent bg-accent/8 text-ink" : "border-border text-muted hover:border-accent/50"
           }`}
         >
-          🎙️ Generar audio
+          <Ico e="🎙️" /> Generar audio
+        </button>
+        <button
+          type="button"
+          onClick={() => setVista("grabar")}
+          className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
+            vista === "grabar" ? "border-accent bg-accent/8 text-ink" : "border-border text-muted hover:border-accent/50"
+          }`}
+        >
+          <Ico e="🔴" /> Grabar pantalla
         </button>
       </div>
 
-      {vista === "audio" ? (
+      {vista === "grabar" ? (
+        <GrabacionPantalla />
+      ) : vista === "audio" ? (
         <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
           <div>
             <h3 className="text-sm font-semibold text-ink">Texto a voz (voicebox)</h3>

@@ -194,11 +194,28 @@ DEFINICIONES_WEB_EXTRA = [
 
 _NOMBRES_WEB = {"buscar_producto", "ficha_producto", "actualizar_pedido", "guardar_datos_cliente", "ver_pedido", "consultar_pedido_web"}
 
+# Solo cuando el bot retoma un chat que venía atendiendo el asesor: puede decidir no hablar.
+DEFINICION_OMITIR = {
+    "name": "omitir_turno",
+    "description": (
+        "No responder en este turno. Úsala cuando lo que el cliente espera solo lo puede hacer el "
+        "asesor humano (enviar la guía o la factura, confirmar un pago, un precio negociado, un "
+        "reclamo que él ya estaba atendiendo) o cuando el mensaje del cliente no requiere respuesta "
+        "(agradecimiento, cierre). El equipo ya recibe el aviso de que el cliente espera."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {"motivo": {"type": "string", "description": "Por qué no intervienes, en una frase."}},
+        "required": ["motivo"],
+        "additionalProperties": False,
+    },
+}
 
-def definiciones(canal: str) -> list[dict]:
+
+def definiciones(canal: str, retomando: bool = False) -> list[dict]:
     if canal == "web":
         return [d for d in DEFINICIONES if d["name"] in _NOMBRES_WEB] + DEFINICIONES_WEB_EXTRA
-    return DEFINICIONES
+    return DEFINICIONES + ([DEFINICION_OMITIR] if retomando else [])
 
 
 WA_NUMERO_NEGOCIO = os.getenv("WA_NUMERO_NEGOCIO", "573195183596")
@@ -214,6 +231,16 @@ class ContextoTurno:
     handoff: dict | None = None
     acciones: list[dict] = field(default_factory=list)  # web: carrito / botón WhatsApp
     evidencia: list[str] = field(default_factory=list)  # salidas de herramientas (para el supervisor)
+    omitido: str | None = None  # motivo si el modelo decidió no responder (solo al retomar)
+
+
+def _clientes_wa():
+    try:
+        from app.services import clientes_wa
+
+        return clientes_wa
+    except Exception:
+        return None
 
 
 def destinos_alerta() -> list[str]:
@@ -328,6 +355,12 @@ def _actualizar_pedido(ctx: ContextoTurno, cambios: list[dict]) -> str:
             )
         ped_mod.fijar_item(p, prod, cant)
     ped_mod.guardar(p)
+    cw = _clientes_wa()
+    if cw and ctx.modo == "activo":
+        try:
+            cw.registrar_interes(ctx.jid, [c.get("ref", "") for c in cambios or [] if int(c.get("cantidad") or 0) > 0], fuente="bot_v2")
+        except Exception as e:
+            print(f"[ventas_wa] clientes_wa interés: {e}")
     return ("\n".join(avisos) + "\n\n" if avisos else "") + p.resumen()
 
 
@@ -335,7 +368,21 @@ def _guardar_datos_cliente(ctx: ContextoTurno, **datos) -> str:
     p = ped_mod.activo(ctx.jid)
     cambiados = ped_mod.fijar_cliente(p, datos)
     ped_mod.guardar(p)
-    return (f"Guardado: {', '.join(cambiados)}.\n" if cambiados else "Sin cambios.\n") + p.resumen()
+    aviso = ""
+    cw = _clientes_wa()
+    if cw and ctx.modo == "activo" and cambiados:
+        try:
+            res = cw.upsert_cliente(ctx.jid, p.cliente, fuente="bot_v2")
+            if res.get("aviso"):
+                aviso = f"Ojo: {res['aviso']}; pídele al cliente que confirme el número.\n"
+        except Exception as e:
+            print(f"[ventas_wa] clientes_wa upsert: {e}")
+    return (f"Guardado: {', '.join(cambiados)}.\n" if cambiados else "Sin cambios.\n") + aviso + p.resumen()
+
+
+def _omitir_turno(ctx: ContextoTurno, motivo: str) -> str:
+    ctx.omitido = (motivo or "sin motivo")[:200]
+    return "Entendido: este turno no se responde. No escribas nada más."
 
 
 def _ver_pedido(ctx: ContextoTurno) -> str:
@@ -434,6 +481,15 @@ def _pasar_a_asesor(ctx: ContextoTurno, tipo: str, resumen_para_asesor: str) -> 
     if tipo == "pedido_listo":
         p.estado = "esperando_asesor"
     ped_mod.guardar(p)
+    cw = _clientes_wa()
+    if cw and ctx.modo == "activo":
+        try:
+            if p.items:
+                cw.registrar_interes(ctx.jid, [i.ref for i in p.items], fuente="bot_v2")
+            if any(p.cliente.values()):
+                cw.upsert_cliente(ctx.jid, p.cliente, fuente="bot_v2")
+        except Exception as e:
+            print(f"[ventas_wa] clientes_wa handoff: {e}")
     return "Aviso enviado al equipo. Dile al cliente que un asesor continúa por este mismo chat."
 
 
@@ -488,6 +544,7 @@ _IMPL = {
     "pasar_a_asesor": _pasar_a_asesor,
     "llevar_al_carrito": _llevar_al_carrito,
     "continuar_por_whatsapp": _continuar_por_whatsapp,
+    "omitir_turno": _omitir_turno,
 }
 
 

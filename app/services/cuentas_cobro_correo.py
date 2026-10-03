@@ -247,6 +247,8 @@ def _collect_william_pdfs(M, boxes: list[str]) -> tuple[list[dict], int]:
                         "periodo": periodo,
                         "proveedor": "william",
                         "email_ts": ed.timestamp(),
+                        # Para responderle en el mismo hilo (cuenta_cobro_contador.py).
+                        "message_id": (msg.get("Message-ID") or "").strip(),
                     }
                 )
     return cobros_raw, ids_total

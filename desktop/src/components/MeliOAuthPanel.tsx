@@ -28,7 +28,8 @@ function PasoTitulo({ n, children }: { n: number; children: ReactNode }) {
   );
 }
 
-export default function MeliOAuthPanel() {
+/** `embebido`: dentro de Sistemas → Conexiones, sin título propio. */
+export default function MeliOAuthPanel({ embebido = false }: { embebido?: boolean } = {}) {
   const qc = useQueryClient();
   const [appId, setAppId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -84,8 +85,8 @@ export default function MeliOAuthPanel() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <div>
+    <div className={embebido ? "space-y-4" : "mx-auto max-w-3xl space-y-4"}>
+      <div className={embebido ? "hidden" : undefined}>
         <h2 className="text-base font-bold text-ink">Conexión MercadoLibre (OAuth)</h2>
         <p className="mt-1 text-xs text-muted">
           Reactiva la conexión cuando la app de MeLi queda inactiva o creas una nueva — sin

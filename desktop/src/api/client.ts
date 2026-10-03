@@ -98,6 +98,36 @@ export async function fetchAuthBlobUrl(path: string): Promise<string | null> {
   }
 }
 
+/** Igual que `fetchAuthBlobUrl` pero enviando un cuerpo JSON: para endpoints
+ * que devuelven un archivo calculado a partir de lo que se manda (p. ej. la
+ * vista previa de un rótulo). Devuelve el mensaje de error del backend cuando
+ * la respuesta no es un archivo. */
+export async function postAuthBlobUrl(
+  path: string,
+  body: unknown,
+): Promise<{ url: string } | { error: string }> {
+  try {
+    const token = panelBearerToken(path);
+    const url = resolvePanelApiUrl(path, "POST");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...ticketsSessionHeaders(),
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      return { error: (j as { error?: string }).error || `HTTP ${res.status}` };
+    }
+    return { url: URL.createObjectURL(await res.blob()) };
+  } catch (e) {
+    return { error: (e as Error).message || "No se pudo generar la vista previa" };
+  }
+}
+
 async function request<T>(
   path: string,
   opts: RequestInit = {},
@@ -143,7 +173,14 @@ async function request<T>(
   }
 
   const ctFirst = (res.headers.get("content-type") ?? "").toLowerCase();
+  // Reintentar con el otro prefijo SOLO si la petición no modifica nada. Una
+  // respuesta HTML a un POST suele ser el corte de Cloudflare (524, ~100 s) o
+  // un 502 mientras el agente reinicia: el servidor SÍ recibió la primera y
+  // puede seguir trabajando. Reenviarla duplicaba la operación — el 21-sep-2026
+  // «Facturar ahora» emitió 22 facturas de más en 15 ventas así.
+  const esLectura = method.toUpperCase() === "GET" || method.toUpperCase() === "HEAD";
   if (
+    esLectura &&
     !ctFirst.includes("application/json") &&
     typeof window !== "undefined" &&
     origin &&
@@ -199,6 +236,12 @@ async function request<T>(
   const ct = (res.headers.get("content-type") ?? "").toLowerCase();
   if (!ct.includes("application/json")) {
     const preview = (await res.clone().text()).slice(0, 120).trim();
+    if (!esLectura && [502, 504, 524].includes(res.status)) {
+      throw new Error(
+        "El servidor tardó demasiado y la conexión se cortó, pero la operación pudo haberse completado. " +
+          "Actualiza antes de volver a intentarlo.",
+      );
+    }
     throw new Error(
       preview.startsWith("<")
         ? "El servidor devolvió HTML en lugar de JSON (revisá proxy/nginx para /api o reiniciá Flask)."

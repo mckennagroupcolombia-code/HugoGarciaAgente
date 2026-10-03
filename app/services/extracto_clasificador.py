@@ -48,30 +48,48 @@ REGLAS: list[tuple[str, str | None, str | None, str, str, str]] = [
     # Cuentas propias. Va primero que nada: si esto se clasifica como ingreso o
     # gasto, se inflan ventas y costos por decenas de millones (jul-ago 2026:
     # $40,7M moviéndose entre Bancolombia y MercadoPago en cuatro líneas).
-    (r"MERCA ?O? ?PAGO|MERCADOPAGO", None, None, "Traslado a/desde MercadoPago", REVISAR,
-     "Plata propia entre cuentas, NO es ingreso ni gasto. Falta crear la cuenta "
-     "de MercadoPago en el plan para poder registrarlo como traslado."),
+    # El saldo en Mercado Pago es una cuenta por cobrar (130505, desde el 25-sep-2026;
+    # antes 112515/111010): el retiro es un traslado (Debe Bancos / Haber 130505) y se puede
+    # causar de un clic. Qué ventas trae ese lote lo dice MercadoPago por su
+    # fecha de liberación (mp_liberaciones.lote_de_retiro), no el banco.
+    (r"MERCA ?O? ?PAGO|MERCADOPAGO", "credito", "130505", "Retiro de MercadoPago al banco", ALTA,
+     "Plata propia que ya estaba en Mercado Pago (ventas MeLi liberadas): sale de la cuenta por cobrar "
+     "130505. No es ingreso: el ingreso se causó venta por venta en 4135."),
+    (r"MERCA ?O? ?PAGO|MERCADOPAGO", "debito", "130505", "Envío del banco a MercadoPago", ALTA,
+     "Plata propia que sale del banco hacia la plataforma. No es gasto."),
 
     # Costos de tener la cuenta. Muchas líneas, montos chicos, cero ambigüedad.
-    (r"^COBRO IVA PAGOS|^SERVICIO PAGO A|CUOTA MANEJO|^COMISION|^COBRO COMISION",
-     "debito", "5305", "Costo bancario", ALTA, ""),
-    (r"IMPTO GOBIERNO 4X1000|IVA CONVENIO 4X1000|GMF", "debito", "5305",
+    # A la SUBCUENTA, no al grupo 5305 (hasta el 25-sep-2026 iban al grupo): 530505
+    # gastos bancarios y 530595 el GMF, la misma que usa el wizard de pagos.
+    (r"^COBRO IVA PAGOS|^SERVICIO PAGO A|CUOTA MANEJO|CUOTA PLAN|MANEJO TARJ|^COMISION|^COBRO COMISION",
+     "debito", "530505", "Costo bancario", ALTA, ""),
+    (r"IMPTO GOBIERNO 4X1000|IVA CONVENIO 4X1000|GMF", "debito", "530595",
      "Gravamen a los movimientos financieros (4x1000)", ALTA,
      "Solo el 50% del GMF es deducible (Art. 115 E.T.) — el contador hace ese ajuste en la declaración."),
-    (r"^REV IVA|^REV CUOTA|^REVERSION", None, "5305", "Reversión de un cobro bancario", ALTA, ""),
+    (r"^REV IVA|^REV CUOTA|^REVERSION", None, "530505", "Reversión de un cobro bancario", ALTA, ""),
 
-    # Rendimiento de la cuenta de ahorros: ingreso, no venta.
+    # Rendimiento de la cuenta de ahorros: ingreso FINANCIERO (421005), no venta ni
+    # «diversos» (4295, donde iba hasta el 25-sep-2026).
     (r"ABONO INTERESES AHORROS|AJUSTE INTERES AHORROS|INTERESES AHORRO", "credito",
-     "4295", "Intereses de la cuenta de ahorros", ALTA, ""),
+     "421005", "Intereses de la cuenta de ahorros", ALTA, ""),
 
     # Pagos a proveedores: el tercero sale del nombre que trae el banco.
     (r"^PAGO A PROVE|^ABONO A PRYDE|^PAGO DE PROV", "debito", "2205",
      "Pago a proveedor", ALTA, ""),
 
-    # Impuestos a la DIAN.
-    (r"PAGO PSE DIAN|^PAGO DIAN|IMPUESTOS DIAN", "debito", "2365",
-     "Pago de impuestos / retenciones a la DIAN", ALTA,
-     "Confirmar contra qué período se abonó antes de descargar 2365."),
+    # Impuestos. La cuenta NO sale de la descripción del banco —«PAGO PSE DIAN» es
+    # igual para retefuente, reteIVA, IVA o renta— sino del recibo 490/SDH del
+    # contador que casa por valor y fecha (`_afinar_pago_impuesto`). Sin recibo se
+    # queda en «revisar»: hasta el 25-sep-2026 todo iba a 2365 con confianza alta,
+    # y el reteIVA de agosto ($242.000) habría caído en la retención de renta.
+    (r"PAGO PSE DIAN|^PAGO DIAN|IMPUESTOS DIAN", "debito", None,
+     "Pago de impuestos a la DIAN", REVISAR,
+     "No hay recibo 490 del contador con este valor y fecha: cárgalo (Conciliación contador) para saber "
+     "si es retefuente (2365), reteIVA (2367), IVA (2408) o renta (2404)."),
+    (r"SECRETARIA DE HACIE|SECRETARIA HACIENDA|SECRETARIA DISTRITAL DE HAC|HACIENDA BOGOTA", "debito", None,
+     "Pago de impuestos a la Secretaría de Hacienda", REVISAR,
+     "No hay recibo de la Secretaría de Hacienda con este valor y fecha: cárgalo para saber si es "
+     "reteICA (2368) o ICA (2412)."),
 
     # Llave y QR van en los DOS sentidos y significan cosas opuestas: un crédito
     # es un cliente pagando (la venta casi siempre ya está en el libro por
@@ -175,6 +193,12 @@ def clasificar(linea: dict[str, Any], terceros: list[tuple[str, dict]] | None = 
             continue
         if not re.search(patron, desc):
             continue
+        if cuenta:
+            # La regla escribe el código «natural» (111010 MercadoPago); la
+            # propuesta lleva el vivo, que es al que se puede causar.
+            import app.services.contabilidad_core as cc
+
+            cuenta = cc.codigo_vivo(cuenta)
         prop = {
             "extracto_mov_id": linea.get("id"),
             "fecha": linea.get("fecha"),
@@ -189,6 +213,8 @@ def clasificar(linea: dict[str, Any], terceros: list[tuple[str, dict]] | None = 
         }
         if cuenta == "2205":
             prop.update(_afinar_pago_a_tercero(linea, terceros))
+        if concepto.startswith("Pago de impuestos a la "):
+            prop.update(_afinar_pago_impuesto(linea, "SDH" if "Hacienda" in concepto else "490"))
         return prop
 
     return {
@@ -244,6 +270,45 @@ def resumen(desde: str, hasta: str) -> dict[str, Any]:
     }
 
 
+def _afinar_pago_impuesto(linea: dict, entidad: str) -> dict:
+    """Cuenta, referencia, tercero y soporte desde el recibo del contador.
+
+    Cada impuesto a su cuenta (2365 retefuente, 2367 reteIVA, 2368 reteICA, 2408
+    IVA, 2404 renta). La referencia del asiento es la del recibo (`dian:490:<n>` /
+    `sdh:<n>`): así el recibo queda «registrado» y ningún otro camino lo repite.
+    """
+    try:
+        from app.services import pagos_impuestos as pi
+
+        rec = pi.recibo_para_linea(float(linea.get("monto") or 0), str(linea.get("fecha") or ""), entidad)
+    except Exception as e:  # sin recibos disponibles la propuesta sigue en «revisar»
+        return {"nota": f"No se pudieron leer los recibos del contador: {e}"}
+    if not rec:
+        return {}
+    if rec.get("estado") == "registrado":
+        return {"nota": f"El recibo {rec['numero']} ya está en el libro (asiento #{rec.get('movimiento_id')}): "
+                        "solo hay que VINCULAR esta línea a ese asiento, no crear otro."}
+    import app.services.contabilidad_core as cc
+    from app.services.pagos_impuestos import TERCERO_POR_RECIBO
+
+    tercero = None
+    with cc._conn() as con:
+        r = con.execute("SELECT id, nombre FROM cc_terceros WHERE nombre LIKE ? AND activo=1 ORDER BY id LIMIT 1",
+                        (TERCERO_POR_RECIBO.get(entidad, "") + "%",)).fetchone()
+        if r:
+            tercero = {"id": int(r[0]), "nombre": r[1]}
+    return {
+        "cuenta": cc.codigo_vivo(rec["cuenta"]),
+        "concepto": f"{rec['etiqueta']} — {rec['periodo']} · recibo {rec['recibo']} No. {rec['numero']}",
+        "confianza": ALTA,
+        "nota": " ".join(rec.get("avisos") or []),
+        "tercero": tercero,
+        "referencia": rec["referencia"],
+        "soporte": rec.get("archivo") or "",
+        "recibo": rec["numero"],
+    }
+
+
 def _afinar_pago_a_tercero(linea: dict, terceros: list[tuple[str, dict]]) -> dict:
     """«PAGO A PROVE» no siempre es un proveedor.
 
@@ -267,6 +332,23 @@ def _afinar_pago_a_tercero(linea: dict, terceros: list[tuple[str, dict]]) -> dic
 
     ficha = {"id": t["id"], "nombre": t["nombre"]}
     if str(t.get("tipo_persona") or "").lower() != "natural":
+        # La cuenta la dice la FICHA del proveedor, no la etiqueta del banco.
+        # A TODO CAJAS, a CADIEP o a Comercializadora se les compra mercancía
+        # (1435): proponer 2205 mandaba una compra a la cuenta por pagar, y así
+        # el inventario no entraba al libro y el IVA descontable se perdía —los
+        # tres asientos de sep-2026 que hubo que rehacer. 2205 queda para el
+        # proveedor sin cuenta propia, donde sí es probable que se esté saldando
+        # una factura ya causada.
+        cuenta = str(t.get("cuenta_gasto_default") or "").strip()
+        if cuenta:
+            es_compra = cuenta.startswith(("14", "6"))
+            return {
+                "tercero": ficha, "cuenta": cuenta, "confianza": ALTA,
+                "concepto": "Compra a proveedor" if es_compra else "Pago a proveedor",
+                "nota": ("Compra de mercancía: va a inventario con su IVA descontable. "
+                         "Regístrala con los productos de la factura, no como un gasto suelto.")
+                if es_compra else "",
+            }
         return {"tercero": ficha, "confianza": ALTA}
 
     if str(t.get("tipo") or "").lower() == "socio" or t.get("usuario_id"):
@@ -288,8 +370,22 @@ def _afinar_pago_a_tercero(linea: dict, terceros: list[tuple[str, dict]]) -> dic
 
 # ── Aplicación ────────────────────────────────────────────────────────────
 
+# Lo que se causa solo al cargar un extracto (25-sep-2026, pedido de Armando): el
+# destino no admite duda y son decenas de líneas de centavos al mes. El resto de
+# propuestas de confianza alta sigue pasando por el Taller, donde alguien las mira.
+AUTO_CONCEPTOS = frozenset({
+    "Gravamen a los movimientos financieros (4x1000)",
+    "Intereses de la cuenta de ahorros",
+})
+
+
+def causar_automaticos(desde: str, hasta: str, *, created_by: int | None = None) -> dict[str, Any]:
+    """Causa y vincula SOLO el 4x1000 y los intereses de ahorros del rango."""
+    return aplicar(desde, hasta, simular=False, created_by=created_by, solo_conceptos=AUTO_CONCEPTOS)
+
+
 def aplicar(desde: str, hasta: str, *, simular: bool = True,
-            created_by: int | None = None) -> dict[str, Any]:
+            created_by: int | None = None, solo_conceptos: frozenset[str] | set[str] | None = None) -> dict[str, Any]:
     """Crea el asiento de cada propuesta de confianza ALTA y la vincula al banco.
 
     Solo toca las de confianza alta: las de `revisar` necesitan que alguien diga
@@ -307,7 +403,8 @@ def aplicar(desde: str, hasta: str, *, simular: bool = True,
 
     import app.services.contabilidad_core as cc
 
-    props = [p for p in proponer(desde, hasta) if p["confianza"] == ALTA]
+    props = [p for p in proponer(desde, hasta) if p["confianza"] == ALTA
+             and (solo_conceptos is None or p["concepto"] in solo_conceptos)]
     with sqlite3.connect(cc._DB_PATH) as con:
         ids_cuenta = {r[0]: r[1] for r in con.execute("SELECT codigo, id FROM cc_plan_cuentas")}
         medio_banco = con.execute(
@@ -316,7 +413,8 @@ def aplicar(desde: str, hasta: str, *, simular: bool = True,
 
     hechos, saltados, errores = [], [], []
     for p in props:
-        ref = f"extracto:{p['extracto_mov_id']}"
+        # Un pago de impuestos lleva la referencia de su recibo (dian:490:…/sdh:…).
+        ref = p.get("referencia") or f"extracto:{p['extracto_mov_id']}"
         with sqlite3.connect(cc._DB_PATH) as con:
             if con.execute("SELECT 1 FROM cc_movimientos WHERE referencia=?", (ref,)).fetchone():
                 saltados.append({"linea": p["extracto_mov_id"], "motivo": "ya tenía asiento"})
@@ -329,6 +427,14 @@ def aplicar(desde: str, hasta: str, *, simular: bool = True,
 
         monto = round(p["monto"], 2)
         tercero_id = (p.get("tercero") or {}).get("id")
+        from app.services.puc_colombia import CUENTA_MERCADOPAGO
+
+        if p["cuenta"] == cc.codigo_vivo(CUENTA_MERCADOPAGO):
+            # El saldo de ventas MeLi se le lleva a Mercado Pago, no a quien el
+            # banco nombre en la descripción («MERCADOPAGO SA» casaba con MeLi).
+            from app.services.contabilidad_autopost import _tercero_mercadopago
+
+            tercero_id = _tercero_mercadopago() or tercero_id
         # Un débito del banco es plata que sale: se carga la cuenta y se acredita
         # Bancos. Un crédito es al revés.
         if p["tipo"] == "debito":
@@ -354,7 +460,8 @@ def aplicar(desde: str, hasta: str, *, simular: bool = True,
             mov = cc.crear_movimiento(
                 fecha=p["fecha"], concepto=f"{p['concepto']} — {p['descripcion']}",
                 lineas=lineas, tercero_id=tercero_id, referencia=ref,
-                tipo_origen="extracto_clasificado", created_by=created_by,
+                tipo_origen="pago_impuestos" if p.get("recibo") else "extracto_clasificado",
+                created_by=created_by,
             )
             eb.vincular(p["extracto_mov_id"], f"cc:{mov['id']}",
                         notas=f"Clasificado automáticamente: {p['concepto']}")

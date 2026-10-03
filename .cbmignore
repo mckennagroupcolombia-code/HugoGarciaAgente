@@ -1,0 +1,11 @@
+# .cbmignore — alcance del grafo de codebase-memory-mcp
+# Sintaxis gitignore. Se aplica encima de .gitignore, no lo reemplaza.
+
+# Build del SPA. El directorio de respaldo quedó versionado por error
+# (112 archivos en git) y metía 92 falsos positivos de código muerto:
+# son funciones minificadas del bundle, no fuente.
+desktop/dist/
+desktop/dist_cynthia_backup_*/
+
+# Respaldos comprimidos: no aportan estructura al grafo.
+backups_drive/

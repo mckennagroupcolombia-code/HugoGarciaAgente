@@ -16,12 +16,19 @@ import {
 } from "../etiquetas/RecursoPngViewer";
 import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
 import { descargarBlob } from "../../lib/etiquetaAssets";
-import { useEtiquetasStudio, type EtiquetaStudioPng } from "./studioEtiquetasData";
+import {
+  coincideBusqueda,
+  normalizarBusqueda,
+  useEtiquetasStudio,
+  type EtiquetaStudioPng,
+} from "./studioEtiquetasData";
 import { useFichasEtiquetaGuardadas } from "../../lib/etiquetasFichas";
 import { esIdPlantillaFicha } from "../../lib/categoriasEtiqueta";
 import { nombreVisibleEtiqueta } from "./StudioCategoriasPanel";
 
 interface Props {
+  /** Texto del buscador de Studio (la barra vive en el encabezado). */
+  buscar?: string;
   /** Categoría a la que se llegó desde una tarjeta; "" = todas. */
   categoriaFiltro?: string;
   onCategoriaFiltroChange?: (id: string) => void;
@@ -30,6 +37,7 @@ interface Props {
 }
 
 export default function StudioEtiquetasPanel({
+  buscar = "",
   categoriaFiltro = "",
   onCategoriaFiltroChange,
   onAbrirEtiquetaGuardada,
@@ -37,7 +45,6 @@ export default function StudioEtiquetasPanel({
   const { data: cats } = useCategoriasEtiqueta();
   const categorias = Array.isArray(cats) ? cats : CATEGORIAS_ETIQUETA;
   const { data: etiquetas, isLoading } = useEtiquetasStudio();
-  const [buscar, setBuscar] = useState("");
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
   const [descargando, setDescargando] = useState(false);
 
@@ -55,11 +62,11 @@ export default function StudioEtiquetasPanel({
   }
 
   const grupos = useMemo(() => {
-    const q = buscar.trim().toLowerCase();
+    const q = normalizarBusqueda(buscar);
     const porCategoria = new Map<string, EtiquetaStudioPng[]>();
     for (const e of Array.isArray(etiquetas) ? etiquetas : []) {
       const visible = nombreVisibleEtiqueta(e.nombre);
-      if (q && !visible.toLowerCase().includes(q)) continue;
+      if (!coincideBusqueda(visible, q)) continue;
       const cat = detectarCategoriaEn(categorias, visible);
       if (categoriaFiltro && cat !== categoriaFiltro) continue;
       const lista = porCategoria.get(cat) ?? [];
@@ -74,14 +81,14 @@ export default function StudioEtiquetasPanel({
   // dentro de su propia pantalla.
   const { data: fichas } = useFichasEtiquetaGuardadas();
   const guardadasPorCategoria = useMemo(() => {
-    const q = buscar.trim().toLowerCase();
+    const q = normalizarBusqueda(buscar);
     const m = new Map<
       string,
       { id: string; nombre: string; formato: string; actualizado: string }[]
     >();
     for (const f of Array.isArray(fichas) ? fichas : []) {
       if (esIdPlantillaFicha(f.id)) continue;
-      if (q && !f.nombre.toLowerCase().includes(q)) continue;
+      if (!coincideBusqueda(f.nombre, q)) continue;
       const cat = f.categoria || detectarCategoriaEn(categorias, f.nombre);
       if (categoriaFiltro && cat !== categoriaFiltro) continue;
       const lista = m.get(cat) ?? [];
@@ -103,12 +110,6 @@ export default function StudioEtiquetasPanel({
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <input
-          value={buscar}
-          onChange={(e) => setBuscar(e.target.value)}
-          placeholder="Buscar etiqueta…"
-          className="w-full max-w-xs rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-        />
         {categoriaFiltro && (
           <button
             type="button"

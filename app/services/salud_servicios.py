@@ -13,7 +13,9 @@ import subprocess
 
 _SERVICIOS = [
     ("webhook-meli", "Webhook MeLi · :8080"),
-    ("mckenna-agente", "Agente · :8081"),
+    # La unidad viva del 8081 es agente-pro; mckenna-agente está deshabilitada a propósito
+    # (ver CLAUDE.md → «un solo dueño por puerto»). Consultar la otra daba «caído» siempre.
+    ("agente-pro", "Agente · :8081"),
     ("mckenna-website", "Sitio web · :8083"),
     ("mckenna-whatsapp-bridge", "WhatsApp bot · :3000"),
     ("mckenna-whatsapp-supervisor", "WhatsApp supervisor · :3001"),

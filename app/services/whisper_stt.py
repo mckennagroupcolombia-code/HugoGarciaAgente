@@ -25,10 +25,13 @@ def _get_model():
     if _model is not None:
         return _model
     from faster_whisper import WhisperModel
+    # La GPU se detecta con ctranslate2 (el motor real de faster-whisper), NO con
+    # torch: faster-whisper no depende de torch y arrastrarlo por una sola línea
+    # de detección metía 7 GB de CUDA+PyTorch en el venv (auditoría 20-sep-2026).
     try:
-        import torch
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-    except ImportError:
+        import ctranslate2
+        device = "cuda" if ctranslate2.get_cuda_device_count() > 0 else "cpu"
+    except Exception:
         device = "cpu"
     compute = "float16" if device == "cuda" else "int8"
     print(f"[Whisper STT] Cargando modelo '{_MODEL_SIZE}' en {device} ({compute})…")

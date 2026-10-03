@@ -62,6 +62,29 @@ def _autofactura_activa() -> bool:
     return (os.getenv("MELI_AUTOFACTURA_ENTREGA_ACTIVO", "0") or "0").strip() == "1"
 
 
+def _bloqueo_por_envio(shipment: dict | None, orden: dict) -> str | None:
+    """Motivo para NO facturar por el estado del envío, o None si puede seguir.
+
+    Normalmente exige 'delivered' (Flujo H de CLAUDE.md: facturar al
+    entregarse, no al vender, para minimizar notas crédito por devoluciones).
+    Excepción de cierre de mes (27-sep-2026, pedido explícito del usuario):
+    lo vendido en un mes se factura en ese mes — en los últimos días del mes
+    de la venta (o después, si el mes ya cerró y sigue sin facturar) basta
+    con que el pedido ya haya salido ('shipped'); uno que ni siquiera se
+    despachó sigue bloqueado aunque sea cierre de mes, porque todavía puede
+    cancelarse antes de salir de bodega."""
+    estado_envio = (shipment or {}).get("status")
+    if estado_envio == "delivered":
+        return None
+    if estado_envio == "shipped":
+        from app.services.conciliacion_meli import en_ventana_cierre_mes
+
+        fecha_venta = orden.get("date_closed") or orden.get("date_created")
+        if en_ventana_cierre_mes(fecha_venta):
+            return None
+    return f"El envío está en estado {estado_envio or 'desconocido'!r}, aún no 'delivered'."
+
+
 def _leer_estado_entregas() -> dict:
     try:
         with open(ESTADO_PATH, "r", encoding="utf-8") as f:
@@ -290,7 +313,51 @@ def _construir_lineas_factura_desde_orden_meli(orden: dict) -> tuple[list[dict],
 
     if missing:
         return [], "No puedo emitir factura automática: " + "; ".join(missing)
-    return lines, None
+    return _descontar_unidades_reembolsadas(lines, orden)
+
+
+def _descontar_unidades_reembolsadas(lines: list[dict], orden: dict) -> tuple[list[dict], str | None]:
+    """Quita de la factura las unidades que MeLi le reembolsó al comprador.
+
+    Cuando se despacha menos de lo vendido, MeLi devuelve la diferencia pero la
+    orden sigue diciendo la cantidad original (`partially_refunded`, qty 2 con
+    $14.365 devueltos: pack 2000015079330551, sep-2026). Facturar esa qty
+    factura mercancía que ni salió ni se cobró, y después toca nota crédito.
+
+    Solo descuenta cuando el reembolso equivale a unidades enteras de UNA línea;
+    si no cuadra (reembolso de envío, descuento parcial, dos líneas posibles)
+    no adivina: devuelve error para que se facture a mano.
+    """
+    from app.services.anulaciones_motor import reintegro_de_orden
+
+    devuelto = float(reintegro_de_orden(orden).get("monto") or 0)
+    if devuelto < 1:
+        return lines, None
+
+    candidatas = []
+    for i, l in enumerate(lines):
+        precio = l["precio_unitario"]
+        if precio <= 0:
+            continue
+        unidades = devuelto / precio
+        if abs(unidades - round(unidades)) < 0.001 and 1 <= round(unidades) <= l["cantidad"]:
+            candidatas.append((i, int(round(unidades))))
+    if len(candidatas) != 1:
+        return [], (
+            f"MeLi reembolsó ${devuelto:,.0f} al comprador y no se puede saber qué unidades "
+            "corresponden. Factura esta venta a mano descontando lo reembolsado."
+        )
+
+    i, unidades = candidatas[0]
+    ajustada = dict(lines[i], cantidad=lines[i]["cantidad"] - unidades)
+    nuevas = lines[:i] + ([ajustada] if ajustada["cantidad"] > 0 else []) + lines[i + 1 :]
+    if not nuevas:
+        return [], f"MeLi reembolsó la totalidad (${devuelto:,.0f}): no hay nada que facturar."
+    print(
+        f"↩️ [MELI-AUTOFACTURA] Orden {orden.get('id')}: {unidades} u. de {lines[i]['codigo']} "
+        f"reembolsadas (${devuelto:,.0f}) — se facturan {ajustada['cantidad']:g}."
+    )
+    return nuevas, None
 
 
 def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
@@ -407,7 +474,9 @@ def _facturar_orden_entregada(
             _registrar_estado_orden(order_id, estado="error", error="No se pudo obtener la orden de MeLi.")
             return {"ok": False, "error": "No se pudo obtener la orden de MeLi."}
 
-        if orden.get("status") not in ("paid", "partially_paid"):
+        # partially_refunded: se despachó menos de lo vendido y MeLi devolvió la
+        # diferencia; las líneas descuentan lo reembolsado (_descontar_unidades_reembolsadas).
+        if orden.get("status") not in ("paid", "partially_paid", "partially_refunded"):
             error = f"Orden en estado {orden.get('status')!r}, no pagada."
             _registrar_estado_orden(order_id, estado="omitida", error=error)
             return {"ok": False, "error": error}
@@ -606,7 +675,128 @@ def _facturar_orden_entregada(
         return {"ok": False, "error": str(e)[:300]}
 
 
+# ── Candado contra doble emisión (21-sep-2026) ───────────────────────────
+# «Facturar ahora» tarda 30-100 s (Alegra + DIAN + PDF + subida a MeLi). Las
+# barreras de abajo (estado local y documento fiscal en MeLi) se escriben
+# recién al TERMINAR, así que dos peticiones sobre la misma venta en ese lapso
+# pasaban las dos: el 21-sep salieron 22 facturas de más en 15 ventas (un
+# carrito con 6 facturas en 24 s, FE516–FE521). Ahora: una sola facturación por
+# venta a la vez en este proceso, y justo antes de emitir se pregunta a Alegra
+# —no a un caché— si ya hay una factura con ese pack u órdenes.
+_EN_CURSO: set[str] = set()
+_EN_CURSO_LOCK = threading.Lock()
+
+
+def _facturas_alegra_existentes(claves: set[str], paginas: int = 2) -> list[dict]:
+    """Facturas VIGENTES de Alegra (últimas `paginas`×30, más recientes primero)
+    que referencian el pack o alguna de sus órdenes: por orden de compra,
+    anotación u observaciones. Alegra no filtra por orden de compra en el
+    servidor, pero una factura recién emitida siempre está en las primeras
+    páginas."""
+    import re as _re
+
+    import requests as _rq
+
+    from app.services.alegra import _ALEGRA_BASE, _alegra_headers
+
+    headers = _alegra_headers()
+    hallazgos: list[dict] = []
+    for pagina in range(paginas):
+        r = _rq.get(
+            f"{_ALEGRA_BASE}/invoices", headers=headers,
+            params={"limit": 30, "start": pagina * 30, "order_direction": "DESC", "order_field": "id"},
+            timeout=25,
+        )
+        if r.status_code != 200:
+            raise RuntimeError(f"Alegra respondió {r.status_code} al verificar duplicados")
+        lote = r.json() or []
+        for f in lote:
+            if str(f.get("status") or "").lower() == "void":
+                continue
+            refs = {str(f.get("purchase_order") or "").strip(), str(f.get("anotation") or "").strip()}
+            refs |= set(_re.findall(r"\b(\d{13,17})\b", f.get("observations") or ""))
+            if refs & claves:
+                hallazgos.append(f)
+        if len(lote) < 30:
+            break
+    return hallazgos
+
+
+def _venta_no_cuadra(orden: dict, order_ids: set[str]) -> str | None:
+    """Motivo para NO facturar, o None. La factura sale por lo vendido; si MeLi
+    canceló una orden o le devolvió plata al comprador (reclamo, unidad que no
+    llegó), facturar el total cobraría algo que el cliente no pagó y obligaría a
+    una nota crédito. Mejor detenerse y que una persona decida."""
+    from app.services.facturacion_ventas_unificado import reembolsado_orden_meli
+
+    motivos = []
+    for oid in sorted(order_ids):
+        o = orden if str(orden.get("id")) == oid else consultar_orden_meli_completa(oid)
+        if not o:
+            return f"No se pudo leer la orden {oid} en MeLi para verificar el pago. No se emitió nada."
+        if o.get("status") == "cancelled":
+            motivos.append(f"la orden {oid} está cancelada en MeLi")
+        ref = reembolsado_orden_meli(o)
+        if ref > 0:
+            motivos.append(
+                f"MeLi le devolvió ${ref:,.0f} al comprador en la orden {oid} "
+                f"(pagó ${float(o.get('paid_amount') or 0):,.0f} de ${float(o.get('total_amount') or 0):,.0f})"
+            )
+    if not motivos:
+        return None
+    return (
+        "No se facturó: lo vendido no coincide con lo que el cliente terminó pagando — "
+        + "; ".join(motivos)
+        + ". Revisa el «¿Por qué?» de la venta y, si hay que facturar por el neto, pide la intervención de contabilidad."
+    )
+
+
 def facturar_pack_meli_manual(order_id: str) -> dict:
+    """Entrada del botón «Facturar ahora»: toma el candado de la venta y verifica
+    en Alegra que no exista ya una factura antes de emitir. Ver
+    `_facturar_pack_meli_manual_sin_candado` para la lógica de emisión."""
+    order_id = str(order_id or "").strip()
+    if not order_id:
+        return {"ok": False, "error": "order_id requerido."}
+    orden = consultar_orden_meli_completa(order_id)
+    if not orden:
+        return {"ok": False, "error": "No se pudo obtener la orden de MeLi."}
+    pack_id = str(orden.get("pack_id") or order_id).strip()
+    pack = consultar_pack_meli(pack_id) if pack_id != order_id else None
+    claves = {pack_id, order_id, *[str(o.get("id")) for o in (pack or {}).get("orders") or [] if o.get("id")]}
+
+    with _EN_CURSO_LOCK:
+        ocupadas = claves & _EN_CURSO
+        if ocupadas:
+            return {
+                "ok": False,
+                "error": "Esta venta ya se está facturando en este momento (otra petición en curso). "
+                         "Espera a que termine y actualiza la fila — no se emitió nada.",
+                "en_curso": True,
+            }
+        _EN_CURSO.update(claves)
+    try:
+        try:
+            existentes = _facturas_alegra_existentes(claves)
+        except Exception as e:  # noqa: BLE001 - sin poder verificar, no se emite
+            return {"ok": False, "error": f"No se pudo verificar en Alegra si ya existe la factura ({e}). No se emitió nada."}
+        if existentes:
+            nums = ", ".join((f.get("numberTemplate") or {}).get("fullNumber") or str(f.get("id")) for f in existentes)
+            return {
+                "ok": False,
+                "error": f"Esta venta ya tiene factura en Alegra ({nums}). No se emitió otra.",
+                "ya_facturada": True,
+            }
+        bloqueo = _venta_no_cuadra(orden, claves - {pack_id})
+        if bloqueo:
+            return {"ok": False, "error": bloqueo, "no_cuadra": True}
+        return _facturar_pack_meli_manual_sin_candado(order_id)
+    finally:
+        with _EN_CURSO_LOCK:
+            _EN_CURSO.difference_update(claves)
+
+
+def _facturar_pack_meli_manual_sin_candado(order_id: str) -> dict:
     """Factura el CARRITO COMPLETO de una venta MeLi en UNA sola factura.
 
     Es lo que dispara el botón "Facturar ahora" del panel. Un carrito de N
@@ -643,11 +833,10 @@ def facturar_pack_meli_manual(order_id: str) -> dict:
     # El envío es del pack completo, así que basta con el de la orden abierta.
     shipping_id = str((orden.get("shipping") or {}).get("id") or "").strip()
     shipment = consultar_envio_meli(shipping_id) if shipping_id else None
-    if shipping_id and (shipment or {}).get("status") != "delivered":
-        return {
-            "ok": False,
-            "error": f"El envío está en estado {(shipment or {}).get('status') or 'desconocido'!r}, aún no 'delivered'.",
-        }
+    if shipping_id:
+        bloqueo_envio = _bloqueo_por_envio(shipment, orden)
+        if bloqueo_envio:
+            return {"ok": False, "error": bloqueo_envio}
 
     # Barrera 1: ninguna orden del carrito puede estar ya facturada.
     for oid in order_ids:
@@ -779,9 +968,10 @@ def facturar_orden_meli_manual(order_id: str) -> dict:
 
     shipping_id = str((orden.get("shipping") or {}).get("id") or "").strip()
     shipment = consultar_envio_meli(shipping_id) if shipping_id else None
-    if shipping_id and (shipment or {}).get("status") != "delivered":
-        estado_envio = (shipment or {}).get("status") or "desconocido"
-        return {"ok": False, "error": f"El envío está en estado {estado_envio!r}, aún no 'delivered'."}
+    if shipping_id:
+        bloqueo_envio = _bloqueo_por_envio(shipment, orden)
+        if bloqueo_envio:
+            return {"ok": False, "error": bloqueo_envio}
 
     activo_previo = os.environ.get("MELI_AUTOFACTURA_ENTREGA_ACTIVO")
     os.environ["MELI_AUTOFACTURA_ENTREGA_ACTIVO"] = "1"
@@ -798,3 +988,77 @@ def facturar_orden_meli_manual(order_id: str) -> dict:
             os.environ.pop("MELI_AUTOFACTURA_ENTREGA_ACTIVO", None)
         else:
             os.environ["MELI_AUTOFACTURA_ENTREGA_ACTIVO"] = activo_previo
+
+
+def previa_factura_pack_meli(order_id: str) -> dict:
+    """Vista previa de «Facturar ahora»: lo que SE EMITIRÍA, sin emitir nada.
+
+    Corre las mismas verificaciones y arma las mismas líneas y el mismo comprador
+    que `_facturar_pack_meli_manual_sin_candado`, para que quien factura vea los
+    productos, las cantidades, el precio, el cliente y el total antes de pulsar el
+    botón — como se veía antes de que la bandeja lo dejara en un solo botón.
+    Solo lee (MeLi y el catálogo de Alegra)."""
+    order_id = str(order_id or "").strip()
+    if not order_id:
+        return {"ok": False, "error": "order_id requerido."}
+    orden = consultar_orden_meli_completa(order_id)
+    if not orden:
+        return {"ok": False, "error": "No se pudo obtener la orden de MeLi."}
+
+    pack_id = str(orden.get("pack_id") or order_id).strip()
+    pack = consultar_pack_meli(pack_id) if pack_id != order_id else None
+    order_ids = [str(o.get("id")) for o in (pack or {}).get("orders") or [] if o.get("id")]
+    if order_id not in order_ids:
+        order_ids.append(order_id)
+
+    bloqueos: list[str] = []
+    shipping_id = str((orden.get("shipping") or {}).get("id") or "").strip()
+    shipment = consultar_envio_meli(shipping_id) if shipping_id else None
+    if shipping_id:
+        bloqueo_envio = _bloqueo_por_envio(shipment, orden)
+        if bloqueo_envio:
+            bloqueos.append(bloqueo_envio)
+    for oid in order_ids:
+        previo = _estado_existente_orden(oid)
+        if previo and previo.get("estado") in _ESTADOS_TERMINALES:
+            bloqueos.append(f"La orden {oid} ya está {previo.get('estado')!r} ({previo.get('siigo_invoice_number') or 'sin número'}).")
+    if meli_pack_tiene_documento_fiscal(pack_id):
+        bloqueos.append(f"El pack {pack_id} ya tiene un documento fiscal cargado en MeLi.")
+
+    lineas: list[dict] = []
+    pagado = 0.0
+    for oid in order_ids:
+        orden_h = orden if oid == order_id else consultar_orden_meli_completa(oid)
+        if not orden_h:
+            bloqueos.append(f"No se pudo leer la orden {oid} del carrito.")
+            continue
+        pagado += float(orden_h.get("paid_amount") or orden_h.get("total_amount") or 0)
+        lineas_h, err = _construir_lineas_factura_desde_orden_meli(orden_h)
+        if err:
+            bloqueos.append(f"Orden {oid}: {err}")
+            continue
+        lineas.extend(lineas_h)
+
+    comprador = _extraer_datos_comprador(order_id, shipment or {})
+    consumidor = not "".join(ch for ch in str(comprador.get("identificacion") or "") if ch.isdigit())
+    total = sum(l["cantidad"] * l["precio_unitario"] for l in lineas)
+    return {
+        "ok": True,
+        "listo": not bloqueos and bool(lineas),
+        "bloqueos": bloqueos,
+        "pack_id": pack_id,
+        "ordenes": order_ids,
+        "cliente": {
+            "nombre": comprador.get("nombre_cliente") or "",
+            "identificacion": comprador.get("identificacion") or "",
+            "tipo_documento": comprador.get("tipo_documento") or "",
+            "direccion": comprador.get("direccion_envio") or "",
+            "email": comprador.get("email") or "",
+            "telefono": comprador.get("telefono") or "",
+            "consumidor_final": consumidor,
+        },
+        "lineas": [{**l, "subtotal": round(l["cantidad"] * l["precio_unitario"], 2)} for l in lineas],
+        "total": round(total, 2),
+        "total_pagado_meli": round(pagado, 2),
+        "medio_pago": medio_pago_meli_desde_orden(orden),
+    }

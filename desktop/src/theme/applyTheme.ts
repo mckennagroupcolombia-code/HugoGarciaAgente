@@ -1,4 +1,4 @@
-import { ensurePanelFont } from "./fontLoader";
+import { ensureBarbieTitleFont, ensurePanelFont } from "./fontLoader";
 import { COLOR_CSS_VARS, THEME_COLOR_KEYS } from "./presets";
 import type { FontScale, PanelThemeConfig, ThemeMode, UiZoom } from "./types";
 
@@ -8,9 +8,11 @@ const FONT_STACKS: Record<PanelThemeConfig["fontSans"], string> = {
   "DM Sans": '"DM Sans", system-ui, sans-serif',
   Nunito: '"Nunito", system-ui, sans-serif',
   Outfit: '"Outfit", system-ui, sans-serif',
+  Jost: '"Jost", system-ui, sans-serif',
   "JetBrains Mono": '"JetBrains Mono", ui-monospace, monospace',
   "Share Tech Mono": '"Share Tech Mono", "JetBrains Mono", ui-monospace, monospace',
   "A Note": '"A Note", cursive',
+  "DotGothic16": '"DotGothic16", system-ui, sans-serif',
   "system-ui": "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
 };
 
@@ -51,22 +53,23 @@ function resolveDark(mode: ThemeMode): boolean {
 /** Aplica variables CSS y clase .dark en html para todo el panel. */
 export function applyPanelTheme(config: PanelThemeConfig): void {
   ensurePanelFont(config.fontSans);
-  if (
-    config.skin === "sakura" ||
-    config.skin === "barbie" ||
-    config.skin === "atelier"
-  ) {
+  if (config.skin === "atelier") {
     ensurePanelFont("A Note");
   }
+  // Princesa Peach: los detalles de consola (contadores, encabezados de tabla) van en monoespaciada.
+  if (config.skin === "peach") ensurePanelFont("JetBrains Mono");
+  if (config.skin === "barbie") ensureBarbieTitleFont();
   const root = document.documentElement;
   const dark = resolveDark(config.mode);
   const skin =
     config.skin === "atelier" ||
     config.skin === "matrix" ||
-    config.skin === "sakura" ||
+    config.skin === "peach" ||
     config.skin === "barbie" ||
     config.skin === "bodega" ||
-    config.skin === "botica"
+    config.skin === "botica" ||
+    config.skin === "flujo" ||
+    config.skin === "pixel"
       ? config.skin
       : "clasica";
 
@@ -79,18 +82,32 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
   }
 
   const baseAccent =
-    skin === "sakura" && config.accentRgb === "12 96 105"
-      ? "232 92 128"
-      : skin === "barbie" && (config.accentRgb === "12 96 105" || config.accentRgb === "233 30 140")
-        ? "255 126 182"
+    // Princesa Peach: rosa ciruela #A8486E, fondo de botón con letra blanca (5,4:1).
+    skin === "peach" && ["12 96 105", "232 92 128"].includes(config.accentRgb)
+      ? "168 72 110"
+      // Barbie sobre la base pixel: rosa Barbie #E0218A (el pastel 255 126 182 no daba bloque).
+      : skin === "barbie" && ["12 96 105", "233 30 140", "255 126 182"].includes(config.accentRgb)
+        ? "224 33 138"
         : skin === "matrix" && config.accentRgb === "12 96 105"
           ? "0 255 65"
           : skin === "bodega" && config.accentRgb === "12 96 105"
             ? "181 80 42"
             : skin === "botica" && config.accentRgb === "12 96 105"
               ? "61 90 68"
-              : config.accentRgb;
-  const accent = dark || skin === "matrix" ? liftAccentForDark(baseAccent) : baseAccent;
+              // El acento viaja EN LÍNEA sobre <html>: la hoja de la piel no lo puede pisar.
+              : skin === "pixel" && (config.accentRgb === "12 96 105" || config.accentRgb === "8 145 178")
+                ? "29 43 83"
+                : config.accentRgb;
+  // Pixel oscuro: el aclarado automático del navy daba 96 123 200, que no sirve ni de fondo de
+  // botón con letra blanca (4,07) ni de texto sobre el panel (3,39). Azul profundo para fondos;
+  // el TEXTO de acento se pinta aparte en theme/skin-pixel.css.
+  const pixelOscuroPorDefecto = skin === "pixel" && dark && baseAccent === "29 43 83";
+  // Barbie oscuro: el rosa Barbie se queda como fondo de botón (letra blanca); el texto de acento
+  // se aclara en theme/skin-barbie-pixel.css.
+  const barbieOscuro = skin === "barbie" && dark && baseAccent === "224 33 138";
+  // Peach oscuro: el botón conserva su rosa ciruela; el texto de acento se aclara en skin-peach-pixel.css.
+  const peachOscuro = skin === "peach" && dark && baseAccent === "168 72 110";
+  const accent = pixelOscuroPorDefecto ? "11 92 168" : barbieOscuro || peachOscuro ? baseAccent : dark || skin === "matrix" ? liftAccentForDark(baseAccent) : baseAccent;
   root.style.setProperty("--mck-accent", accent);
   root.style.setProperty(
     "--mck-accent-hover",
@@ -116,12 +133,16 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
     const hex =
       skin === "matrix"
         ? "#030803"
-        : skin === "sakura"
-          ? "#e85c80"
+        : skin === "peach"
+          ? "#F4C2D0"
           : skin === "barbie"
             ? "#ff7eb6"
-            : skin === "bodega"
-              ? "#b5502a"
+            : skin === "flujo"
+              ? "#0891b2"
+              : skin === "pixel"
+                ? "#1D2B53"
+              : skin === "bodega"
+                ? "#b5502a"
               : skin === "botica"
                 ? "#3d5a44"
                 : dark

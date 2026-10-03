@@ -67,18 +67,18 @@ export default function ProductAttribute({
         disabled={!editMode}
         onClick={onEditarIcono}
         title={editMode ? "Cambiar ícono" : undefined}
-        className={`mb-[3px] flex h-16 w-16 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[color:var(--acento)] transition-transform duration-150 ${
+        className={`mb-[3px] flex h-[70px] w-[70px] items-center justify-center rounded-md border-0 bg-transparent p-0 text-[color:var(--acento)] transition-transform duration-150 ${
           editMode ? "cursor-pointer hover:scale-[1.06] hover:bg-[color:var(--acento-08)]" : "cursor-default"
         }`}
       >
         {svgInline ? (
           <span
             aria-hidden="true"
-            className="block h-[58px] w-[58px] [&>svg]:h-full [&>svg]:w-full"
+            className="block h-[64px] w-[64px] [&>svg]:h-full [&>svg]:w-full"
             dangerouslySetInnerHTML={{ __html: svgInline }}
           />
         ) : iconSrc ? (
-          <img src={iconSrc} alt="" className="h-[58px] w-[58px] object-contain" />
+          <img src={iconSrc} alt="" className="h-[64px] w-[64px] object-contain" />
         ) : (
           icon
         )}
@@ -101,18 +101,33 @@ export default function ProductAttribute({
         marcoVisible
         styleKey={styleKey}
         defaultFontSize={14}
-        // Texto descriptivo justificado al ancho del cuadro; la última línea
-        // va centrada (un texto de una sola línea no se estira) y la
-        // separación silábica (lang="es" en la raíz de la ficha) evita
-        // huecos grandes entre palabras — justificado sin deformarse.
+        // Texto centrado con renglones equilibrados (`text-wrap: balance`).
+        // Antes iba justificado con la última línea centrada: en una celda
+        // tan angosta eso abría huecos entre palabras («Almacenar   en   un
+        // lugar   bien») y cada celda quedaba con un borde distinto.
         //
-        // min-h de 3 renglones (3 × line-height 1.22, en em para seguir al
-        // tamaño de letra elegido): el cuadro reserva ese alto siempre, así
-        // la ficha no crece —ni se encoge dentro del marco de formato— al
-        // pasar de 1 a 3 renglones; la letra se mantiene. Ancho completo de
-        // la celda (antes 92 % con tope 320 px) para que quepan más palabras
-        // por renglón.
-        className="w-full min-h-[3.7em] break-words text-justify [text-align-last:center] hyphens-auto font-medium leading-[1.22] text-[#111111]"
+        // min-h de 3 renglones al tamaño por defecto (3 × 14 px × 1.22 ≈ 52):
+        // el cuadro reserva ese alto siempre, así la ficha no crece —ni se
+        // encoge dentro del marco de formato— al pasar de 1 a 3 renglones.
+        //
+        // En px y NO en em: con `3.7em` el suelo seguía al tamaño de letra,
+        // de modo que bajar la fuente de un campo (menú de tipografía)
+        // encogía su cuadro y descuadraba la fila entera —es lo que pasaba
+        // en Olor y Conservación de Sales minerales—. En px el cuadro
+        // conserva su tamaño se elija la letra que se elija, y sigue
+        // creciendo solo si el texto pide más de tres renglones.
+        //
+        // Ancho completo de la celda (antes 92 % con tope 320 px) para que
+        // quepan más palabras por renglón.
+        //
+        // El alto reservado solo aplica EN EDICIÓN: ahí conviene ver el cuadro
+        // entero. En vista —que es lo que se imprime— el módulo mide lo que su
+        // texto y la celda lo centra en vertical; con el cuadro reservado, un
+        // valor de un renglón dejaba el bloque pegado arriba y un hueco abajo.
+        // Las filas no cambian de alto por esto: con formato elegido se
+        // reparten a partes iguales (FILAS_CUERPO_REPARTIDAS) y sin formato
+        // tienen un mínimo de 160 px.
+        className={`w-full ${editMode ? "min-h-[52px]" : ""} break-words text-center [text-wrap:balance] font-medium leading-[1.22] text-[#111111]`}
       />
     </div>
   );

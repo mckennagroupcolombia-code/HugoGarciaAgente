@@ -2866,6 +2866,12 @@ def escanear_facturas_gmail_para_panel(fecha_desde: str | None = None) -> dict:
 
 def procesar_facturas_para_importar_productos(dias: int = 30) -> str:
     """
+    ⛔ **Apagado desde el 18-sep-2026** (ver `registro_compras_activo()`): una
+    compra se contabiliza ANTES de pagarla, desde Contabilidad → Solicitudes de
+    pago → Productos, con la cotización del proveedor. Encolar la factura para
+    registrarla al llegar contaría la misma compra dos veces, y es el orden al
+    revés — el documento llega después de que la plata ya se comprometió.
+
     Fase 1: Lee facturas del correo y las encola para aprobación manual por WhatsApp.
     Para cada factura detectada envía un mensaje al grupo preguntando si es
     materia prima (inventariar) o gasto/consumible — sin procesar nada aún.
@@ -2876,6 +2882,26 @@ def procesar_facturas_para_importar_productos(dias: int = 30) -> str:
       inv inventario <código>  → proveedor nuevo, tratar como materia prima
       inv gasto <código>       → proveedor nuevo, tratar como gasto/consumible
     """
+    from app.tools.sincronizar_facturas_de_compra_siigo import (
+        descargar_xml_facturas_compra,
+        registro_compras_activo,
+    )
+
+    if not registro_compras_activo():
+        # Se apaga el REGISTRO, no la descarga: los XML son la fuente de
+        # `perfil_tributario_dian` (quién es autorretenedor, quién está en el
+        # SIMPLE) y el respaldo de cada factura.
+        bajados = descargar_xml_facturas_compra()
+        msg = (
+            "⛔ El registro de facturas de compra está apagado desde el 18-sep-2026. "
+            "Una compra se contabiliza ANTES de pagarla, en /app → Contabilidad → "
+            "Solicitudes de pago → Productos, con la cotización del proveedor. "
+            f"Los XML sí se descargaron: {bajados.get('descargados', 0)} nuevos. "
+            "Para reactivar el registro: FACTURAS_COMPRA_REGISTRO_ACTIVO=1"
+        )
+        print(f"\n{msg}")
+        return msg
+
     print(f"\n🚀 [IMPORTACIÓN] Escaneando facturas de proveedor en Gmail...")
     scan = escanear_facturas_gmail_para_panel()
     if not scan.get("ok") and scan.get("mensaje"):
@@ -2904,6 +2930,21 @@ def procesar_facturas_para_importar_productos(dias: int = 30) -> str:
 # ─────────────────────────────────────────────
 
 def procesar_respuesta_factura_compra(comando: str, sufijo: str, origen: str = 'whatsapp') -> str:
+    """⛔ Los comandos `inv ok / inventario / gasto` quedaron apagados el
+    18-sep-2026: registran la compra al llegar la factura, y ahora se
+    contabiliza antes, con la cotización. `inv skip` sigue vivo para poder
+    limpiar la cola de lo que quedó pendiente."""
+    from app.tools.sincronizar_facturas_de_compra_siigo import registro_compras_activo
+
+    _cmd = (comando or "").strip().lower()
+    if not registro_compras_activo() and _cmd not in ("skip", "inv skip"):
+        return (
+            "⛔ *El registro de facturas de compra está apagado*\n\n"
+            "Desde el 18-sep-2026 la compra se contabiliza *antes* de pagarla, en\n"
+            "/app → Contabilidad → Solicitudes de pago → *Productos*, con la\n"
+            "cotización del proveedor. Registrarla otra vez acá la contaría dos veces.\n\n"
+            "_`inv skip <código>` sigue funcionando para limpiar la cola._"
+        )
     """
     Fase 2: Procesa la respuesta del operador a una factura pendiente.
 

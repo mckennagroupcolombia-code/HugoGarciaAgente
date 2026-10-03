@@ -1,0 +1,311 @@
+# Module: Colaboradores (diagramas compartidos con colaboradores externos)
+
+Creado el 2026-09-21. Armando construye con un colaborador externo (primero **Sebastián García**,
+`sebastian.garcia`, sebastianrgarcia2005@gmail.com, usuario 13) un **diagrama de flujo** de la relación
+comercial para un proyecto conjunto, a mano y desde el celular.
+
+- **Panel** `colaboradores` (Agenda → Colaboradores): `desktop/src/components/ColaboradoresPanel.tsx`,
+  editor táctil con **React Flow** (`@xyflow/react`). Cajas (tipo: acción, decisión, entregable, dinero,
+  tercero; carril: McKenna, colaborador, ambos), flechas con texto, «Unir con otra caja» para el celular.
+- **Cómo se llega**: pestaña *Colaboradores* en el cabezote de la Agenda (`nav/InicioNavTabs.tsx`, también
+  en `soloVistas`, que es lo que muestra `FlujoNav` con la Agenda abierta) y tarjeta en la portada del
+  celular (`MobileHub.tsx`). Sin eso solo se llegaba por Ctrl+K: el panel vive en la sección `inicio`, que
+  no dibuja sus items en la navegación por flujo.
+- **Celular**: el editor abre en pantalla completa (`pleno`, ⛶ para salir) y las hojas de editar caja y
+  flecha son `fixed` al borde inferior. Pegadas al lienzo se recortaban: el cabezote deja una franja baja
+  y el panel no tiene scroll de página (Layout le da altura fija, como a Contabilidad).
+- **Flechas**: cada una guarda por qué lado toca cada caja (`fromLado`/`toLado`: l, r, t, b — cuatro
+  handles por caja con `ConnectionMode.Loose`), `color` (paleta cerrada), `grosor` (1-8), `trazo`
+  (sólida/guiones/puntos), `forma` (curva/recta/escalón) y el `label` que va en el medio. Se editan en la
+  hoja de la flecha o arrastrando la punta (`onReconnect`). El servidor valida contra sus listas: un color
+  libre sería texto entrando a un atributo SVG. **Desde 25-sep-2026 la flecha nace RECTA**
+  (`FORMA_DEFECTO`), al crearla se abre su hoja para nombrarla, y el botón «Rectas» de la barra vuelve
+  rectas todas de un toque.
+- **Cada caja carga contenido real** (Fundación del «tablero de proyecto», 25-sep-2026): campos
+  OPCIONALES en el nodo — `imagen` (foto que sale en la caja), `variables{como,donde,porque}` (el «quién»
+  es el carril, el «qué» el título), `tiempo_min`, `costo`/`precio` (`{monto,moneda}`, moneda de
+  `MONEDAS`), `datos[]` (campo:valor, máx 8), `consecuencias[]` (si→entonces→medida, máx 6), `adjuntos[]`
+  (fotos y facturas PDF, máx 12), `enlaceApp`. Se sanean en `_extras_nodo()`; una caja sin ellos sigue
+  siendo mínima (solo se guarda lo que trae valor). La caja pinta la foto arriba y chips (💲/💸/⏱/▦/📎/⚠).
+  Editor React en `ContenidoCaja`; el export a Archify resume precio/costo en el subtítulo.
+- **Adjuntos**: `POST …/media` (multipart `archivo`, 15 MB) → `guardar_media()` reduce imágenes a JPEG
+  ≤1400 px, guarda PDFs tal cual, en `colaboradores_media/` (repo, gitignored). El id lleva el diagrama
+  adentro (`<did>-<uuid>.<ext>`); `GET …/diagramas/<did>/media/<mid>` lo sirve con `@_suyo` y
+  `media_de_diagrama()` (rechaza `../` y el media de otro diagrama). En el panel, `AuthImg` los muestra
+  con blob autenticado y caché.
+- **Nodo de consenso** (25-sep-2026): el tipo `consenso` lleva `asunto`, `propuestas[]` (una por autor,
+  `p<uid>`), `votos{uid:pid}` y `resuelto{propuesta,modo,por}`. Voto, autoría y cierre son
+  **autoritativos del servidor** (`accion_consenso`, ruta `POST …/consenso`): el voto es del usuario
+  autenticado, no de lo que diga el cliente. Empate → decide el `turno_actual` **global** del diagrama y
+  el turno **se alterna** al otro de la pareja (`_participantes_ids`); acuerdo (mayoría de votos) no toca
+  el turno. Retirar una propuesta borra sus votos y reabre. Todo en una transacción RMW; el panel
+  (`ConsensoEditor`) refresca con lo que vuelve. `obtener()` añade `participantes` (uid→nombre) para
+  pintar autores/votantes/turno. Tests en `tests/test_colaboradores.py`.
+- **Producto y competencia** (25-sep-2026): tipo `producto` = carta con la foto en un círculo escalonado
+  al centro y seis apartados alrededor (SKU, vitrina = host del `url`, precio, empaque, margen, receta),
+  como el Taller de combos; ranura sin dato = punteada con «?». Campos: `sku`, `empaque{nombre,costo}`,
+  `componentes[]{nombre,cantidad,costo}` (costo de UNA unidad; máx 12 válidos), `url` (**solo http(s)**:
+  se pinta como `<a href>`, `_url()` descarta `javascript:`), `plataforma`. Costo por unidad = piezas +
+  empaque en la moneda del precio (no convierte monedas); margen = precio − costo. Tipo `competencia` =
+  carta de rival (captura, dónde vende, precio). Unidos por una flecha (cualquier sentido) se comparan:
+  el rival muestra «16 % más caro que…» y el producto «VS n» + rango de precios. Eso se calcula en
+  `nodosVista` como claves `_vs`/`_rivales` que `aDoc()` QUITA (si se colaran, `combinar()` vería cada
+  caja como cambiada y pisaría al otro). El marcador de arriba suma tiempo y dinero invertido por carril
+  (sin productos ni rivales: su precio es por unidad, no inversión).
+- **Pixel art** (25-sep-2026): `components/colaboradores/pixel.tsx` (sprites 8×8 en paleta PICO-8 como
+  SVG `crispEdges`, reemplazan los emojis; `circuloPixel()`; fuentes Press Start 2P + VT323 por Google
+  Fonts, inyectadas una vez) y `pixel.css`. Todo bajo `.colab-pixel`, que **redefine los tokens `--mck-*`**
+  (y `--mck-field-fs`/`--mck-field-h`: la regla global de campos compactos `#root input…` los ponía a
+  0,78 rem, ilegible en VT323). Botón «Clásico/Pixel», recordado en `localStorage`. Las cartas de
+  producto y rival son pixel siempre. ⚠️ Una carpeta nueva con clases debe ir en `tailwind.colab.config.ts`
+  (el build del colaborador solo escanea lo que lista) y el bundle NO puede contener «MeLi»/«Mercado
+  Libre» (lo rechaza `verificar-build-colab.mjs`: ojo con placeholders). Las flechas usan un tipo propio
+  (`Flecha`) con etiqueta HTML: la SVG de React Flow se mide una vez al montar y el texto se salía del
+  recuadro si la fuente llegaba después.
+- **Banco de pruebas**: `desktop/dev/colaboradores.html` monta el panel real con datos inventados y
+  `fetch` interceptado (nada llega a producción). `?abrir`, `?sel=<id>`, `?clasico`, `?medir=<selector>`
+  (estilo calculado al `<title>`, para `--dump-dom`) permiten capturas con `google-chrome --headless`.
+- **Pendiente**: auto-relleno del producto desde el catálogo real (solo el anfitrión; el colaborador
+  siempre manual, está amurallado fuera de esos módulos) y abrir apartados de la app desde una caja.
+- **Backend** `app/services/colaboradores.py` + `app/routes_colaboradores.py` (`/api/colaboradores/*`),
+  base propia `app/data/colaboradores.db` (diagramas + todas sus versiones).
+- **Concurrencia**: cada guardado lleva la `version` editada; si otro guardó antes → 409 `conflicto` y
+  el panel **combina** (3 vías: base, local, remoto) y vuelve a guardar. Sondeo cada 3 s (no hay SSE/WS).
+- **Archify**: el documento guarda x/y libres; `a_archify()` lo traduce a `workflow` (carril = lane,
+  posición horizontal = col) y `exportar_archify()` corre el CLI (`~/.claude/skills/archify`, el del
+  usuario del servicio) → `app/data/colaboradores_archify/colab-<id>-v<n>.html`, solo lectura.
+- **Quién entra**: el anfitrión (`COLABORADORES_ANFITRION_ID`, 8 = Armando) y usuarios con
+  `colaborador_externo`. Nadie más, ni otros administradores (el panel exige el permiso `colaboradores`).
+- **Un diagrama es de una pareja**: `colab_diagramas.colaborador_id`. El colaborador solo ve y abre los
+  suyos (`puede_ver()` + `@_suyo` en las rutas por id); el anfitrión los ve todos. Sin eso, el permiso
+  `colaborador_externo` era la llave de TODO el espacio y un segundo colaborador abriría los diagramas
+  del primero cambiando el id. Si Armando crea un diagrama y hay más de un colaborador, debe mandar
+  `colaborador_id` (con uno solo se resuelve solo).
+- **Perfil `colaborador_externo`** (lista blanca en `app/routes.py::_guard_colaborador_externo`):
+  Colaboradores, su sesión y su Agenda **solo con Armando** — crea solicitudes/acciones asignadas a él,
+  abre solo tickets entre los dos, las listas de usuarios/presencia le muestran solo a ambos
+  (`routes_tickets._visibles_para`, filtrado en el ORIGEN: un after_request genérico dejó pasar la lista
+  completa), sin vista de equipo, sin misiones, asignar ni participantes. Todo lo demás: 403.
+- **Qué ve de las personas que sí ve** (`routes_tickets._publico_para`): solo id, nombre y foto. El
+  registro completo traía correo, teléfono, **cédula** y `permisos_secciones` —o sea, la lista de módulos
+  internos—. Su propio registro va completo porque la SPA lo necesita.
+- **Lo que se le cerró además** (21-sep-2026): `/api/tickets/actividad-equipo` devuelve `[]` (los eventos
+  del anfitrión son trabajo interno: títulos de tickets con terceros), `/api/tickets/departamentos`
+  devuelve `[]` (organigrama) y `/api/status` responde solo «activo» (decía qué integraciones tiene la
+  casa: MeLi, Google, Alegra…).
+- **El bundle ya no es público** (21-sep-2026): `/app` y `/app/assets/*` piden la cookie de sesión —
+  ver `app/spa_sesion.py` y `tests/test_acceso_panel.py`. Antes los servía a cualquiera que llegara al
+  dominio, con la estructura de módulos y la superficie de la API adentro.
+- **Una aplicación aparte, no el panel recortado** (23-sep-2026). Antes, con sesión, el colaborador
+  recibía el mismo bundle que todos (1,2 MB con los 61 paneles nombrados), podía bajar cualquier chunk
+  por su nombre y también los `.map`, que traían **134 archivos TypeScript completos con comentarios**.
+  Ahora:
+  - `/app/assets/*.map` → 404 para todo el mundo (se siguen generando, `hidden`, para depurar en el servidor).
+  - Build propio `desktop/vite.colab.config.ts` → `desktop/dist-colab/` (entrada `colaboradores.html` →
+    `src/colab/main.tsx`: `ColaboradoresPanel` + `AgendaColab`). Los stores de sesión del panel se
+    reemplazan por alias (`src/colab/stubs/`), sin sourcemaps, Tailwind solo con sus archivos.
+    `npm run build` lo compila al final; `scripts/verificar-build-colab.mjs` hace fallar el build si se
+    cuela una ruta `/api/` ajena o un nombre de módulo (Contabilidad, Alegra, Cynthia…).
+  - `serve_spa` entrega `dist-colab/colaboradores.html` a quien tiene el perfil (falla cerrado con 503 si
+    no está compilado) y `serve_spa_assets` solo le sirve `dist-colab/assets/`. El `?_token=` de la URL
+    manda sobre la cookie (cambio de cuenta en el mismo navegador).
+  - La Agenda del colaborador: lista (Te pidió / Le pediste), crear solicitud (categoría fija
+    `colaboradores`, el backend la asigna a Armando), comentar, «Marcar como hecha». Se le quitó
+    `/api/tickets/categorias/` (nombres de las áreas internas) y `GET …/comentarios` ya no le devuelve
+    los comentarios `es_interno`.
+  - **APK propia** `android-colab/` (ver su `LEEME.md`): paquete `co.mckennagroup.colaboradores`, un
+    WebView de 44 KB, solo permiso de red, llave de firma propia (no versionada). El login de Google va por
+    `/app/auth/google/start?app=colab` (la pantalla de ingreso lo elige por el UA `McKennaColabAndroid`) y
+    vuelve por `mckennacolab://auth`. Pruebas: `tests/test_acceso_panel.py`.
+  - **Descargar la APK desde el panel:** /app → Ajustes muestra dos tarjetas, «App Android del panel»
+    (`/api/build-apk*`, android-twa) y «App de colaboradores externos» (`/api/build-apk-colab*`, corre
+    `android-colab/compilar.sh`). Otra versión en el campo = versión nueva (sube `versionCode` en
+    `android-colab/version.properties`); la misma = solo recompilar.
+- **Juegos en la app de colaboradores** (23-sep-2026): pestaña «Juegos» en `ColabApp.tsx`, el mismo
+  `JuegosPanel.tsx` (no importa nada del panel; el verificador del build solo admite
+  `/api/juegos/partidas/` además de sus rutas). El guardia deja pasar `/api/juegos/partidas/*`.
+  **Partidas por persona:** `juegos_partidas/usuario_<id>/`; la persona sale de
+  `_panel_tickets_usuario()` (X-Tickets-Token), no del Bearer — con CHAT_API_TOKEN todos los admins
+  caían en `comun/` y se pisaban la partida (lo que había ahí se copió a Armando, `comun/` quedó de
+  archivo). Sin persona identificada → 403. Cada guardado deja la anterior en
+  `respaldos/<juego>/` (últimas 20), una SRAM en blanco no pisa una con datos y «Versiones
+  anteriores → Volver a esta» restaura sin borrar la actual. Tests: `tests/test_juegos.py`.
+
+- **La obra — vista «Edificio» (26-sep-2026)**: cada proyecto es un edificio en pixel art y cada caja un
+  **piso** que se construye a medida que se llena. Etapas: terreno → cimientos (andamio) → estructura
+  (vigas) → fachada (luces apagadas) → terminado (luces encendidas y lo que el paso ES: escritorio,
+  cajas, monedas, mesa de votación, la foto del producto en su vitrina…). Regla en
+  `desktop/src/components/colaboradores/obra.ts` y **la misma** en `colaboradores.piezas_obra/etapa_obra`
+  (el servidor la usa en `listar()` → `obra{pisos,terminados,avance}`; `tests/test_colaboradores.py` fija
+  los casos: si cambia una, cambia la otra). Piezas: paso normal = cómo, dónde, por qué, tiempo, dinero,
+  fotos, detalle (se termina con 5 de 7); consenso = asunto, ≥2 propuestas, votos, decisión (sin decisión
+  no pasa de fachada); producto = SKU, foto, receta, precio; rival = publicación, precio, foto o
+  plataforma. Pisos en el orden de las flechas (topológico; a igualdad, por posición; PB = primer paso).
+  `EdificioProyecto.tsx` + `obra.css`: selector **Tablero · Edificio** en la barra del editor
+  (`colab-vista` en localStorage); tocar un piso abre la MISMA hoja de edición; el obrero es la persona
+  del carril; la grúa trabaja arriba y el marcador dice qué le falta al siguiente piso; con todo
+  terminado, bandera y confeti. Suena (lib/sonidosJuego): martillazo al subir de etapa, moneda al
+  terminar un piso, fanfarria al terminar la obra. La **lista de proyectos es una calle**: cada proyecto un
+  edificio (pisos terminados con luz, el resto en andamio, grúa mientras falte) y un terreno para crear
+  uno nuevo. Sin LLM; no cambia lo que se guarda (la etapa se calcula, no se almacena).
+
+- **Vista «Operación» — el ERP gamificado (26-sep-2026)**: por qué existe — los diagramas de flujo
+  planos (1) no daban contexto (por qué/cómo/cuándo/dónde), (2) se estancaban en rombos Sí/No sin
+  consenso ni desempate, (3) no mostraban la propiedad (SKU combo con sub-SKUs, comprado a un externo,
+  en manos de Sebastián, vendido a McKenna, procesado por Armando), (4) eran cajas cerradas sin
+  propiedades ni anidación, y (5) no tenían progresión ni consecuencias. Respuesta:
+  · contexto: el paso tiene **cuándo** además de cómo/dónde/por qué (`VARIABLES`); cuenta para la obra.
+  · decisiones: mesa de guerra = cajas «Consenso»; empate → **habilidad** (`skill` de la caja; decide la
+    única persona cuyo avatar la tiene, modo `skill`, no gasta turno) → si no, turno alterno.
+  · propiedad: cada pieza de la receta lleva **SKU hijo** y **proveedor** (id de una caja «Proveedor»);
+    cada producto muestra su **cadena de propiedad** (Proveedor ▶ Compras ▶ McKenna ▶ Orquestación ▶
+    Cliente) con el dueño actual, derivada de su fase.
+  · objetos configurables: tipo nuevo **`proveedor`** (`entrega_dias`, `fiabilidad` 1–5, insumos en
+    `componentes`); el ente, el reparto y los **avatares** (rol, habilidades, piso, cuenta) en «Reglas».
+  · consecuencias: la obra por pisos, el **dharma** (`colaboradores.dharma`: +1/−1 a quien decidió según
+    `resultados`), la bóveda (pérdida en rojo) y el **riesgo de abastecimiento** (fiabilidad mínima y
+    entrega máxima de los proveedores de la receta).
+  Diorama `colaboradores/OperacionDiorama.tsx` + `operacion.css`: techo cliente · P3 orquestación · mesa
+  de guerra · P2 hub McKenna (bóveda + inventario) · P1 compras · subsuelo proveedores + bitácora.
+  Bucle: comprar → craftear (venta interna a McKenna, suma unidades) → publicar → vender (reparto:
+  compras = costo de la receta + `ensamblaje_pct` sobre ese costo; orquestación = `servicios_pct` sobre
+  la venta; bóveda = el resto; lo que va en otra moneda no se suma y se avisa en `sin_sumar`).
+  **Estado en `doc.operacion`** y SOLO lo cambia `accion_operacion` (`POST …/operacion`): `guardar()`
+  (tablero, restaurar) conserva la que hay y descarta la que llegue, así un guardado no pisa una venta.
+  `_a_dict` entrega `operacion` (con avatares por defecto: Sebastián en compras, Armando en
+  orquestación) y `dharma`. ⚠️ **Simulación**: no toca Alegra, el inventario ni el Libro Mayor. No se
+  exige que cada jugada la haga el avatar de su piso (se registra quién la hizo). Votan solo las dos
+  cuentas del proyecto; un avatar «sin cuenta» (un tercer colaborador aún sin usuario) juega pero no vota.
+
+- **Fusión: un solo estilo, el edificio (26-sep-2026)**. Evaluación con el usuario: el tablero de flechas y
+  las tres vistas (Tablero · Edificio · Operación) sobraban; Operación era lo coherente y debía absorber el
+  criterio de Edificio. Quedó UNA vista (`colaboradores/EdificioColab.tsx` + `edificio-colab.css`):
+  · **Edificio configurable** en `operacion.edificio.pisos[{id,nombre,color,habitaciones[{id,nombre}]}]`
+    (de abajo arriba; hasta 12 pisos y 8 habitaciones por piso), editado con la jugada `edificio`
+    («🏗 Construir»: renombrar, color, reordenar, agregar; no se quita un piso/habitación con cajas).
+    Por defecto: Mercado externo · Compras · Hub McKenna · Mesa de guerra · Orquestación · Cliente final.
+  · **Cajas libres**: `habitacion`, `icono` (lista `ICONOS`) y `avatar` (responsable) en el nodo; plantillas
+    (`PLANTILLAS` en `colaboradores/modelo.ts`, tipo nuevo `libre`) que solo precargan campos; los
+    **campos propios** (`datos`, nombre: valor) siempre a la vista. Una caja vieja sin habitación se ubica
+    por lo que es (`habitacionDe`). Cada bloque muestra su obra (fachada según la etapa, obrero con el
+    color del responsable, «falta …»).
+  · **Entregas** en vez de flechas: `edges[].portador` (avatar); un avatar camina con la caja de un bloque
+    a otro por la escalera del edificio (CSS con `--x0/--y0/--xs/--x1/--y1`, posiciones medidas del DOM).
+    El `div` se mueve y el `button` va dentro (index.css fuerza `position: relative` en todo botón).
+  · **Sin «margen» fijo**: el ente tiene `campos[{nombre,valor}]` (los valores viejos margen/costos/capital
+    se migran a campos) y el reparto son `reglas[{id,nombre,base: costo|venta,pct,para}]` + `boveda`
+    (nombre); la venta guarda `partes[]` y `boveda`. El formato viejo (ensamblaje_pct/servicios_pct) se
+    traduce a Insumos/Ensamblaje/Servicios.
+  · Archivos: `modelo.ts` (tipos, plantillas, `combinar`), `campos.tsx` (editores de la hoja, `Colocacion`,
+    `Entregas`, `Historial`), `EdificioColab.tsx` (vista + Construir + Reglas), `ColaboradoresPanel.tsx`
+    (calle + editor sin React Flow: guardado con versión, fusión en conflicto, sondeo 3 s). Se borraron
+    `EdificioProyecto.tsx`, `OperacionDiorama.tsx` y `operacion.css`; `obra.css` quedó solo para la calle.
+  · Backend: se retiraron `a_archify`/`exportar_archify` y sus rutas.
+
+- **Relevos (26-sep-2026)**: las entregas ya no son avatares sueltos. `components/relevos/CapaRelevos.tsx`
+  (compartida con el Edificio del Mapa) arma un plan por entrega con fotogramas clave (x de cada actor, x/y
+  de la caja, y de la cabina) y lo reproduce a 12 cuadros/s: mismo piso = se entrega en la mano; otro piso
+  = al ascensor (la cabina viene primero), viaja con la caja adentro y quien recibe la saca en su piso. Los
+  relevos van uno tras otro, ordenados por profundidad en el grafo de entregas (el orden del proceso). Quien
+  envía = `portador` o el responsable de la caja de origen; quien recibe = el responsable de la de destino
+  (si no hay, o es la misma persona en otro piso, un trabajador gris del piso). El avance de relevo y el
+  aviso `onPaso` corren en el temporizador, no en el render. Hueco del ascensor `.eb-ascensor` también en celular.
+
+---
+
+## Traído de CLAUDE.md (27-sep-2026)
+
+> Texto movido tal cual al comprimir CLAUDE.md; allí queda un resumen con enlace aquí.
+
+### Colaboradores (diagramas compartidos, 21-sep-2026)
+Armando + colaborador externo (Sebastián) editan diagramas de flujo desde el celular (React Flow),
+versionados, con exportación Archify. Perfil `colaborador_externo` = lista blanca: solo Colaboradores y
+Agenda con Armando. **Recibe otra aplicación** (`desktop/dist-colab/`, build `vite.colab.config.ts`, compilado por
+`npm run build`) y tiene su propia APK (`android-colab/`); los `.map` del panel no se entregan a nadie. **Un solo estilo: el edificio (26-sep-2026).** Se retiraron el tablero de flechas (React Flow), la vista clásica, «Rectas» y la exportación a Archify. El proyecto ES un edificio pixel (`colaboradores/EdificioColab.tsx`): pisos y habitaciones configurables («🏗 Construir», `operacion.edificio`); cada caja es un bloque libre colocado en una habitación (`habitacion`, `icono`, `avatar` responsable; la plantilla solo precarga campos, «Libre» incluida) que se construye al llenarse (obra: `colaboradores/obra.ts` = `colaboradores.etapa_obra`, hay test); las flechas son **entregas** que se ven como **relevos** (`components/relevos/CapaRelevos.tsx`, compartida con el Mapa): en el mismo piso quien envía la entrega en la mano a quien recibe; a otro piso la mete al ascensor, la cabina viaja con la caja adentro y quien recibe la saca en su piso; uno tras otro, en el orden del proceso; el bucle comprar → craftear → publicar → vender vive en los bloques de producto y el reparto son **partidas con nombre** (`operacion.reparto.reglas`, base costo o venta, % y para quién; el resto a la bóveda, nombrable); el ente tiene **campos libres** (no hay «margen» fijo). Estado de la operación solo por `accion_operacion`; **simulación** (no toca inventario ni contabilidad). La lista de proyectos es una calle de edificios. Detalle: `docs/agentic/modules/colaboradores.md`. Perfil `contador` (William) = consulta del Libro Mayor + comentarios en historial de
+terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**
+
+- **Tablero del proyecto — vista principal (3-oct-2026)**. Diagnóstico con el chat real Armando ↔ Sebastián
+  (1.464 mensajes, 7-ago → 3-oct) y el proyecto 1: 27 cajas, **0 flechas**, consenso vacío, 1.071 versiones de
+  autoguardado, texto de manual («cuándo: cada que hay un pedido») mientras lo que de verdad pasaba —aros
+  equivocados, broche que se abre, medida 48→47 cm, publicación activa, primera venta— vivía en WhatsApp. El
+  edificio sirve para la empresa porque cada piso tiene un módulo real; entre dos personas hay una conversación.
+  · `colaboradores/TableroProyecto.tsx` + `app/services/colab_tablero.py`. Secciones en orden: de dónde partimos
+    (`origen`), meta, quién hace qué (`rol`), lo que nos frena (`obstaculo`), decisiones, próxima jugada (`tarea`),
+    resultados (línea de tiempo por `fecha_hecho`), acuerdos, ideas. El edificio queda en la pestaña «Edificio»
+    (`colab-vista-proyecto` en localStorage); «＋ Caja» e «Historial» solo se ven allí.
+  · **Tarjeta = fila** de `colab_tarjetas` (no un documento): PATCH con solo los campos que cambiaron, así dos
+    personas no se pisan ni hace falta `combinar()`. Campos: título, texto, porqué, estado (abierto/hecho/
+    descartado), `turno_de` + `turno_desde` (a quién le toca y desde cuándo; al crear un obstáculo, decisión o
+    tarea la pelota queda en la cancha del otro; cerrarla la saca), `fecha_hecho`, `fuente` (cita textual del chat),
+    `adjuntos` (solo media de ESE proyecto), `enlaces` (viene_de/resuelve/bloquea; se caen al borrar la otra) y
+    `acuerdos` (cada uno marca el suyo en el servidor; con los dos, una decisión queda «hecho»; editar título o
+    texto los reinicia).
+  · **Ritmo**: `colab_eventos` (escribió / vio). El «vio» se anota solo si hay algo del otro sin ver
+    (`marcar_visto`). `calcular_ritmo` da por persona cuánto tarda en ver lo nuevo y en responder desde que lo vio, y
+    si hay algo esperando. Los tiempos van en UTC (como `datetime('now')`); el panel los convierte.
+  · **Traer del chat**: sube el .zip/.txt exportado o pega un pedazo; `leer_chat` entiende iOS y Android (día o mes
+    primero: decide por el orden de las fechas y, si empata, «AM/PM» = mes primero). **El texto no se guarda**: vuelve
+    al navegador y se marcan mensajes → tarjeta con su cita. `guardar_ritmo` guarda solo los números
+    (`colab_ritmo_chat`). Privacidad: el chat mezcla el proyecto con salud, sueldo y familia — nada de eso va al tablero.
+  · La lista de proyectos muestra la meta y cuántas jugadas le tocan a cada uno (`resumenes()` en `colab_listar`).
+  · Precargado el 3-oct en el proyecto 1 con 37 tarjetas sacadas del chat (solo proyecto) y el ritmo de WhatsApp
+    (Sebastián responde en mediana <1 min, 90 % antes de 37 min; Armando 90 % antes de ~9 h, 17 esperas >12 h).
+  · Banco de pruebas: `dev/colaboradores.html?abrir` (tablero), `&tarjeta=<id>`, `&chat`, `&vista=edificio`.
+    Tests: `tests/test_colab_tablero.py`.
+
+- **Un solo mapa: cladograma por linaje (3-oct-2026, tarde)** — reemplaza al tablero por secciones y al edificio.
+  El usuario no quería secciones ni pestañas: «todo un gran mapa en el mismo apartado visual, como un gran
+  cladograma». `colaboradores/MapaProyecto.tsx` (antes TableroProyecto.tsx) es la ÚNICA vista del proyecto:
+  · Raíz = el proyecto (título + meta). Cada tarjeta lleva `padre_id` (columna nueva de `colab_tarjetas`) y cuelga
+    de la que la ORIGINÓ: el obstáculo del resultado donde apareció, la decisión del obstáculo que resuelve, el
+    siguiente resultado de la decisión. Sin padre = cuelga de la raíz. Se lee de izquierda a derecha.
+  · Servidor: `_padre_valido` exige tarjeta viva del mismo proyecto y sube por los ancestros para impedir ciclos;
+    al borrar, sus hijas suben a colgar del abuelo. Los `enlaces` quedan como conexiones cruzadas (↔).
+  · Dibujo con cajas, no SVG (como el cladograma del Árbol del producto): cada fila trae su tramo de tronco,
+    así el árbol se acomoda solo. Nodo = cabeza de color por tipo (`COLOR_TIPO`), título, foto, chips de turno y
+    acuerdo; «＋ rama» brota una hija (`HIJO_DE` sugiere el tipo) y ▸/◂ pliega. «Sale de» en la hoja mueve la rama.
+  · Barra: Ritmo (desplegable, con «te tocan N»), Traer del chat, resaltar Todo / Me toca / Abiertos (lo demás se
+    apaga y una rama plegada que esconde algo resaltado se abre sola) y zoom (CSS `zoom`, guardado por proyecto,
+    65 % en celular). El lienzo se arrastra con el mouse; al abrir, la raíz queda a la vista.
+  · **El edificio se absorbió**: `absorber_edificio()` pasa cada caja a un nodo `paso` (texto con cómo/dónde/
+    cuándo/por qué, tiempo, costo/precio, SKU, empaque, datos; foto y adjuntos) bajo una rama «Proceso (lo que
+    estaba en el edificio)», plegada por defecto. Idempotente (`fuente.canal = "edificio"`, texto `caja <id>`);
+    salta cajas vacías («Nuevo paso», consenso sin asunto). `GET …/tablero` la corre la primera vez por proyecto y
+    proceso. El documento viejo (`doc_json`, operación, versiones) NO se borró; ya no hay vista que lo edite.
+    Se borraron `EdificioColab.tsx`, `edificio-colab.css` y `obra.css`; `obra.ts`, `campos.tsx` y el backend de la
+    operación siguen (tests y banco de pruebas). La lista de proyectos son tarjetas con meta y turnos.
+  · Proyecto 1: 64 nodos en 3 raíces (partida → … → primera venta; meta → roles; Proceso con 26 pasos).
+  · Banco: `dev/colaboradores.html?abrir` (mapa), `&tarjeta=<id>`, `&chat`. Tests: `tests/test_colab_tablero.py`
+    (linaje, ciclos, borrar sube al abuelo, padre de otro proyecto, absorber una sola vez).
+
+- **Guía animada del mapa (3-oct-2026)**: `colaboradores/GuiaMapa.tsx` + `guia-mapa.css`. Ocho escenas en un
+  mapa en miniatura: el árbol por linaje, «＋ rama», a quién le toca, «Estoy de acuerdo», traer del chat, pegar
+  capturas, mover/plegar y resaltar + ritmo. Cada escena es una función del tiempo `t` (bucle con 1 s quieto al
+  final); las transiciones CSS animan. Escenario 16:9 medido en `cqw` (igual en celular y PC). Con «reducir
+  movimiento» se ve el estado final quieto. Se abre sola la primera vez (`colab-guia-mapa-vista` en localStorage)
+  y con el botón «Guía» de la barra; ← → y Esc. Los tipos (nombre, sprite, color, `HIJO_DE`) viven en
+  `mapaTipos.ts`, compartidos por el mapa y la guía. Banco: `dev/colaboradores.html?abrir&guia=<n>`.
+
+- **Varios anfitriones y proyectos personales o compartidos (3-oct-2026)** — reemplaza «Quién entra» y «Un
+  diagrama es de una pareja» de arriba. Pedido: que Cynthia también arme flujos como Armando con Sebastián,
+  invite a más personas o lo use a solas y lo comparta después.
+  · **Membresía** `colab_miembros(diagrama_id, usuario_id, rol dueno|miembro, agregado_por, agregado_en)`. Un
+    usuario ve SOLO los proyectos donde es miembro (`puede_ver`, `listar`); el anfitrión ya no ve todos. Los
+    proyectos viejos se migraron con Armando de dueño y su `colaborador_id` de miembro.
+  · **Anfitrión** (`es_anfitrion`) = Armando (`COLABORADORES_ANFITRION_ID`) o cualquiera de la casa con el permiso
+    `colaboradores` que no sea externo: crea proyectos e invita. `es_miembro` (entrar al espacio) = anfitrión o
+    externo. Cynthia (id 6) recibió el permiso el 3-oct.
+  · **Crear**: el proyecto nace PERSONAL (solo el dueño) salvo que traiga `colaborador_id`; el que crea un externo
+    nace compartido con Armando (como antes).
+  · **Invitar** (`agregar_miembro`, solo el dueño y si es anfitrión): a cualquier persona activa
+    (`GET /api/colaboradores/usuarios`, solo nombre y foto, 403 para externos). Si no tenía el panel, se le
+    prende SOLO `permisos_secciones.colaboradores` (`_dar_acceso_al_panel`): adentro sigue viendo solo sus
+    proyectos. **Sacar/salirse** (`quitar_miembro`): el dueño saca; cada quien se sale; el dueño no (archiva).
+  · El mapa usa los miembros como participantes: turno automático al «otro» solo si son exactamente dos; una
+    decisión queda tomada cuando TODOS marcan de acuerdo; el ritmo sale por persona.
+  · UI: botón de miembros en la cabeza del proyecto («Con Sebastián» / «Personal») → `colaboradores/Miembros.tsx`;
+    la lista dice personal/compartido y quién lo creó.
+  · ⚠️ Pendiente: la **Agenda** de un colaborador externo sigue siendo solo con Armando (`_guard_colaborador_externo`
+    y `routes_tickets` usan `anfitrion_id()`); si Cynthia invita a un externo, comparte el mapa pero no solicitudes.
+  · Tests: `tests/test_colab_tablero.py` (anfitriona, personal, invitar da acceso, externo no invita, salirse,
+    tres miembros, API).

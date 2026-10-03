@@ -12,7 +12,6 @@ export type NavCategory =
   | "atencion"
   | "canales"
   | "diseno"
-  | "docs"
   | "contabilidad"
   | "negocio"
   | "inventario"
@@ -44,8 +43,15 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     label: "Agenda",
     hub: true,
     items: [
+      // El mapa va primero: es la pantalla de inicio y el primer panel al que se cae si
+      // el guardado no está permitido (NAV_PANEL_ORDER sale de este orden).
+      { panel: "mapa-vivo", tier: "core" },
       { panel: "hugo", tier: "core" },
       { panel: "dashboard", tier: "core" },
+      { panel: "mapa-sistema", tier: "core" },
+      { panel: "chat-equipo", tier: "core" },
+      { panel: "colaboradores", tier: "core" },
+      { panel: "juegos", tier: "core" },
     ],
   },
   {
@@ -59,6 +65,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "pedidos", tier: "core" },
       { panel: "empaque", tier: "core" },
       { panel: "guias-envio", tier: "core" },
+      { panel: "entregas-flex", tier: "standard" },
       { panel: "whatsapp", tier: "standard" },
     ],
   },
@@ -74,25 +81,31 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
   },
   {
     id: "diseno",
-    label: "Diseño",
+    label: "Diseño de producto",
     hub: true,
-    items: [{ panel: "etiquetas", tier: "core" }],
-  },
-  {
-    id: "docs",
-    label: "Docs técnicos",
-    hub: true,
-    items: [{ panel: "fichas", tier: "standard" }],
+    // Los documentos técnicos (FT · COA · SDS) viven aquí desde el 27-sep-2026: son una
+    // pieza más del producto, como la etiqueta y el EAN. Antes eran la sección «Docs técnicos».
+    items: [
+      { panel: "etiquetas", tier: "core" },
+      { panel: "fichas", tier: "standard" },
+      // Fórmulas de producto (1-oct-2026): receta de elaboración, con permiso propio.
+      { panel: "formulas", tier: "standard" },
+    ],
   },
   {
     id: "contabilidad",
     label: "Contabilidad",
     hub: true,
+    // Operativos es "standard" a propósito (15-sep-2026): adentro vive
+    // Mensajería, que la lleva despachos a diario (Flujo K). Con tier
+    // "advanced" la pestaña no aparecía hasta activar el modo avanzado, así que
+    // quien tiene el permiso no encontraba el panel — el permiso decide el
+    // acceso, el modo avanzado solo esconde lo que casi nadie usa.
     items: CONTABILIDAD_PANELS.filter((panel) => !CONTABILIDAD_TAB_OCULTAS.has(panel)).map(
       (panel) => ({
         panel,
         tier:
-          panel === "costos-productos" || panel === "rrhh" || panel === "operativos"
+          panel === "costos-productos" || panel === "rrhh"
             ? ("advanced" as PanelTier)
             : ("standard" as PanelTier),
       }),
@@ -116,16 +129,21 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     hub: true,
     items: [
       { panel: "control-inventario", tier: "core" },
+      { panel: "recepcion-mercancia", tier: "core" },
       { panel: "stock", tier: "standard" },
+      { panel: "mapa-sistema", tier: "standard" },
     ],
   },
   {
-    // Individual (como Diseño / Docs): no agrupado en "Tienda y taller".
+    // Individual (como Diseño): no agrupado en "Tienda y taller".
     id: "publicaciones",
     label: "Publicaciones",
     hub: true,
+    // La pestaña «Publicaciones» (Catálogo, Galería, Republicar MeLi, Crear desde cero…)
+    // salió del menú el 28-sep-2026: no se usaba. El panel sigue vivo para el paso
+    // Publicación del taller de combos, que salta a él (ver navSectionForPanel).
     items: [
-      { panel: "publicaciones", tier: "standard" },
+      { panel: "canales-producto", tier: "standard" },
       { panel: "vitrina-web", tier: "standard" },
     ],
   },
@@ -147,12 +165,16 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     hub: true,
     advancedOnly: true,
     items: [
+      { panel: "mapa-sistema", tier: "advanced" },
+      { panel: "arquitectura", tier: "advanced" },
       { panel: "supervisor", tier: "advanced" },
       { panel: "voz", tier: "advanced" },
       { panel: "control-versiones", tier: "advanced" },
       { panel: "telemetria", tier: "advanced" },
-      { panel: "meli-oauth", tier: "advanced" },
-      { panel: "gmail-oauth", tier: "advanced" },
+      // «Conexión MercadoLibre» y «Conexión Gmail» viven dentro de Conexiones desde el
+      // 28-sep-2026 (junto con WhatsApp, Alegra, Google, IA…); sus paneles siguen
+      // existiendo para enlaces viejos, pero ya no ocupan dos entradas del menú.
+      { panel: "conexiones", tier: "advanced" },
       { panel: "tareas-programadas", tier: "advanced" },
     ],
   },
@@ -179,8 +201,7 @@ export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
   inicio: "Agenda",
   atencion: "Atención",
   canales: "Canales",
-  diseno: "Diseño",
-  docs: "Docs técnicos",
+  diseno: "Diseño de producto",
   contabilidad: "Contabilidad",
   negocio: "Negocio",
   inventario: "Inventario",
@@ -203,6 +224,7 @@ export function esSeccionHub(sectionId: NavCategory | null): boolean {
 
 export function navSectionForPanel(panel: Panel): NavCategory | null {
   if (panel === "etiquetas-config") return "diseno";
+  if (panel === "publicaciones") return "publicaciones";
   for (const section of NAV_SECTIONS) {
     if (section.items.some((i) => i.panel === panel)) return section.id;
   }

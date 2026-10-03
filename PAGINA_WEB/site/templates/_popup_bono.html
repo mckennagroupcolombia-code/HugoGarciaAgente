@@ -1,0 +1,128 @@
+{#
+  Ventana «Regístrate» con el bono de primera compra (app/tools/cupones_web.py).
+  Sale una vez por navegador a los pocos segundos de entrar; se vuelve a abrir con
+  cualquier enlace a «?bono=1» (el banner de la portada). No sale en carrito,
+  checkout, pago ni admin.
+#}
+{% if not request.path.startswith(('/carrito', '/checkout', '/pago', '/admin', '/cuenta', '/pedido')) %}
+<style>
+.mck-bono{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(2,45,51,.62);}
+.mck-bono.abierto{display:flex;animation:mckBonoIn .25s ease-out;}
+@keyframes mckBonoIn{from{opacity:0}to{opacity:1}}
+.mck-bono-caja{position:relative;width:100%;max-width:420px;max-height:calc(100vh - 32px);overflow:auto;background:#fff;border-top:6px solid var(--green,#0c6069);padding:32px 28px 24px;font-family:var(--font-primary);color:var(--text-dark,#022D33);box-shadow:0 24px 60px rgba(2,45,51,.35);}
+.mck-bono-cerrar{position:absolute;top:10px;right:12px;width:36px;height:36px;border:0;background:none;font-size:22px;line-height:1;color:var(--text-muted,#3a7e87);cursor:pointer;}
+.mck-bono-eyebrow{margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--green,#0c6069);}
+.mck-bono h2{margin:0 0 8px;font-size:28px;line-height:1.15;color:var(--green-deep,#022D33);}
+.mck-bono h2 em{font-style:normal;color:var(--green,#0c6069);}
+.mck-bono-sub{margin:0 0 18px;font-size:14px;line-height:1.55;color:var(--text-soft,#0c6069);}
+.mck-bono form{display:flex;flex-direction:column;gap:10px;}
+.mck-bono input[type=text],.mck-bono input[type=email],.mck-bono input[type=tel]{width:100%;box-sizing:border-box;padding:12px 14px;font:inherit;font-size:15px;border:1.5px solid var(--green-pale,#e6e8ea);background:#fff;color:inherit;}
+.mck-bono input:focus{outline:2px solid var(--green-light,#6aacb3);outline-offset:0;}
+.mck-bono-acepta{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.5;color:var(--text-muted,#3a7e87);}
+.mck-bono-acepta input{margin-top:3px;flex:none;}
+.mck-bono-acepta a{color:var(--green,#0c6069);}
+.mck-bono-error{min-height:0;margin:0;font-size:13px;color:#b3261e;}
+.mck-bono-btn{width:100%;padding:14px;border:0;background:var(--green,#0c6069);color:#fff;font:inherit;font-size:15px;font-weight:700;cursor:pointer;}
+.mck-bono-btn:hover{background:var(--green-dark,#045159);}
+.mck-bono-btn[disabled]{opacity:.6;cursor:wait;}
+.mck-bono-nogracias{display:block;margin:12px auto 0;border:0;background:none;font:inherit;font-size:12px;color:var(--text-muted,#3a7e87);text-decoration:underline;cursor:pointer;}
+.mck-bono-codigo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 14px;padding:14px 16px;border:2px dashed var(--green,#0c6069);font-size:24px;font-weight:800;letter-spacing:3px;color:var(--green-dark,#045159);}
+.mck-bono-copiar{flex:none;padding:8px 12px;border:1.5px solid var(--green,#0c6069);background:#fff;color:var(--green,#0c6069);font:inherit;font-size:12px;font-weight:700;letter-spacing:0;cursor:pointer;}
+</style>
+
+<div class="mck-bono" id="mck-bono" role="dialog" aria-modal="true" aria-labelledby="mck-bono-titulo">
+  <div class="mck-bono-caja">
+    <button type="button" class="mck-bono-cerrar" data-bono-cerrar aria-label="Cerrar">×</button>
+
+    <div id="mck-bono-paso1">
+      <p class="mck-bono-eyebrow">Bienvenido a McKenna Group</p>
+      <h2 id="mck-bono-titulo">Regístrate y recibe <em>10 %</em> en tu primera compra</h2>
+      <p class="mck-bono-sub">Déjanos tus datos y te damos tu código de descuento al instante; también te llega al correo.</p>
+      <form id="mck-bono-form" novalidate>
+        <input type="text" name="nombre" placeholder="Tu nombre" autocomplete="name" required>
+        <input type="email" name="email" placeholder="Tu correo" autocomplete="email" required>
+        <input type="tel" name="celular" placeholder="Celular (opcional)" autocomplete="tel">
+        <label class="mck-bono-acepta">
+          <input type="checkbox" name="acepta" required>
+          <span>Autorizo el tratamiento de mis datos según la <a href="{{ url_for('politica_datos') }}" target="_blank" rel="noopener">política de datos</a> para recibir ofertas de McKenna Group.</span>
+        </label>
+        <p class="mck-bono-error" id="mck-bono-error" role="alert"></p>
+        <button type="submit" class="mck-bono-btn" id="mck-bono-enviar">Quiero mi 10 %</button>
+      </form>
+      <button type="button" class="mck-bono-nogracias" data-bono-cerrar>No, gracias</button>
+    </div>
+
+    <div id="mck-bono-paso2" hidden>
+      <p class="mck-bono-eyebrow">¡Listo!</p>
+      <h2>Este es tu <em>código</em></h2>
+      <div class="mck-bono-codigo"><span id="mck-bono-codigo"></span><button type="button" class="mck-bono-copiar" id="mck-bono-copiar">Copiar</button></div>
+      <p class="mck-bono-sub" id="mck-bono-nota">Escríbelo al pagar, en «¿Tienes un código de descuento?», con el mismo correo con el que te registraste. 10 % en los productos de tu primera compra.</p>
+      <a class="mck-bono-btn" href="{{ url_for('catalogo') }}" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;">Ir a la tienda</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = 'mck_bono_visto', CODIGO = 'mck_bono_codigo', EMAIL = 'mck_bono_email';
+  var modal = document.getElementById('mck-bono');
+  if (!modal) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  function mostrarCodigo(codigo) {
+    document.getElementById('mck-bono-paso1').hidden = true;
+    document.getElementById('mck-bono-paso2').hidden = false;
+    document.getElementById('mck-bono-codigo').textContent = codigo;
+  }
+  function abrir() {
+    var guardado = get(CODIGO);
+    if (guardado) mostrarCodigo(guardado);
+    modal.classList.add('abierto');
+    set(KEY, '1');
+  }
+  function cerrar() { modal.classList.remove('abierto'); }
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal || e.target.closest('[data-bono-cerrar]')) cerrar();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrar(); });
+  // El banner de la portada (y cualquier enlace a ?bono=1) abre la ventana aquí mismo.
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href*="bono=1"]');
+    if (a) { e.preventDefault(); abrir(); }
+  });
+
+  document.getElementById('mck-bono-copiar').addEventListener('click', function () {
+    var btn = this, txt = document.getElementById('mck-bono-codigo').textContent;
+    try { navigator.clipboard.writeText(txt).then(function () { btn.textContent = '¡Copiado!'; }); } catch (e) {}
+  });
+
+  document.getElementById('mck-bono-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = this, err = document.getElementById('mck-bono-error'), btn = document.getElementById('mck-bono-enviar');
+    err.textContent = '';
+    if (!f.nombre.value.trim()) { err.textContent = 'Escribe tu nombre.'; return; }
+    if (!f.email.value.trim() || !f.email.checkValidity()) { err.textContent = 'Escribe un correo válido.'; return; }
+    if (!f.acepta.checked) { err.textContent = 'Necesitamos tu autorización de datos para enviarte el bono.'; return; }
+    btn.disabled = true; btn.textContent = 'Un momento…';
+    fetch('/registro-bono', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nombre: f.nombre.value, email: f.email.value, celular: f.celular.value,
+                            acepta: true, origen: location.pathname})
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      btn.disabled = false; btn.textContent = 'Quiero mi 10 %';
+      if (!res.ok) { err.textContent = res.error || 'No pudimos registrarte. Intenta de nuevo.'; return; }
+      set(CODIGO, res.codigo); set(EMAIL, f.email.value.trim());
+      mostrarCodigo(res.codigo);
+    }).catch(function () {
+      btn.disabled = false; btn.textContent = 'Quiero mi 10 %';
+      err.textContent = 'No pudimos registrarte. Revisa tu conexión e intenta de nuevo.';
+    });
+  });
+
+  if (/[?&]bono=1/.test(location.search)) abrir();
+  else if (!get(KEY)) setTimeout(abrir, 4000);
+})();
+</script>
+{% endif %}

@@ -435,6 +435,8 @@ export interface ImagenMeli {
 export interface FotosActuales {
   web: { imagenes: ImagenWeb[]; total: number; principal: string };
   meli: { imagenes: ImagenMeli[]; total: number; error: string };
+  /** Publicación MeLi a la que pertenecen las fotos de `meli` ("" si el SKU no tiene). */
+  meli_item_id?: string;
 }
 
 export function useFotosActuales(sku: string | null, meliItemId: string = "") {

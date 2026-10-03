@@ -1,8 +1,8 @@
 # CLAUDE.md — McKenna Group Agent
 
-Instrucciones y arquitectura completa para cualquier IA que trabaje en este repositorio.
-
----
+Instrucciones y mapa corto para cualquier IA que trabaje en este repositorio. **El detalle de cada módulo
+(historia, decisiones, trampas, rutas) vive en `docs/agentic/modules/*.md`** — tabla «Dónde está el detalle» al
+final. Antes de tocar un módulo, leer su ficha. Al documentar algo nuevo: 2-4 líneas aquí + el detalle en la ficha.
 
 ## Visión General
 
@@ -11,7 +11,6 @@ Instrucciones y arquitectura completa para cualquier IA que trabaje en este repo
 **Stack**: Python 3.12 · Flask · **React 19 + TypeScript + Tailwind CSS** (panel operaciones `desktop/`) · **Anthropic Claude** (modelo por defecto en WhatsApp, `/chat`, Web Chat y preventa MeLi; tool-calling en canales de operaciones) · **Google GenAI Gemini 2.5-Pro** (red de seguridad de los canales cliente/preventa y modelo de scripts de contenido) · **bot-mckenna** (Node, `whatsapp-web.js`, puerto **3000** → proxy a `8081/whatsapp`; monitor `/monitor`) · Vite · Zustand · React Query · Evolution API (opcional, p. ej. transcripción en `routes.py`) · MercadoLibre API · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite · Ideogram · ElevenLabs · fal.ai (Kling) · PIL · ffmpeg · Facebook Graph API
 
 ---
-
 ## Cómo correr el proyecto
 
 ```bash
@@ -39,21 +38,19 @@ cd desktop && npm run build
 # Luego reiniciar Flask: sudo systemctl restart agente-pro
 
 # Catálogo PDF
-source venv/bin/activate && python3 generar_catalogo.py
+source venv/bin/activate && python3 scripts/generar_catalogo.py
 
 # Puente WhatsApp (Node, puerto 3000)
 cd bot-mckenna && npm ci && npm start
 # Ruta única soportada del bridge: /home/mckg/mi-agente/bot-mckenna
 # systemd (WhatsApp Node): sudo bot-mckenna/instalar_systemd.sh && systemctl enable --now mckenna-whatsapp-bridge
 ```
-
 ### ⚠️ Pendientes de contabilidad (corte 2026-09-10)
 
 Antes de tocar contabilidad, leer **`docs/agentic/PENDIENTES-CONTABILIDAD.md`**: hay
 huecos abiertos con plazo fiscal y cifras que todavía no son utilizables (Bancos sin
 saldo inicial, $87,9M de pasivo con proveedores por conciliar, $3,1M de retefuente no
 practicada, 48 facturas de agosto sin registrar en Siigo ni Alegra).
-
 ### Metodología agentica
 
 Antes de cambios medianos/grandes, usar **`docs/agentic/INDEX.md`** como mapa corto: orquestador → memoria → skill/ficha de módulo → subagentes readonly → plan → implementación → verificación → aprendizaje reusable. Evita cargar todo `CLAUDE.md` cuando el cambio solo toca un módulo.
@@ -69,7 +66,6 @@ Archivos clave:
 - `docs/agentic/learned_context.md` — resumen portable/sincronizable de aprendizajes reutilizables.
 - `docs/agentic/modules/*.md` — fichas cortas por módulo crítico.
 - `docs/agentic/TEAM_WORKFLOW.md` — autoría de commits (`--author`), sincronización git y recap obligatorio en `docs/team-recaps.md`, visible en `/app` → Sistemas → Control de Versiones.
-
 ### Git: `git pull` sin rama de seguimiento
 
 Si aparece *No hay información de rastreo para la rama actual*, usa explícitamente el remoto y la rama (suele ser `main` o `master`):
@@ -81,200 +77,49 @@ git pull origin main    # o: git pull origin master
 # Opcional, una sola vez:
 # git branch --set-upstream-to=origin/main master
 ```
+### Producción: un solo dueño por puerto (detalle: `docs/agentic/modules/ops-systemd.md`)
 
-### Producción: un solo dueño por puerto (systemd vs nohup)
+| Puerto | Proceso | Unidad systemd |
+|--------|---------|----------------|
+| 8080 | `webhook_meli.py` | `webhook-meli.service` (flock `.webhook_meli.lock`) |
+| 8081 | `agente_pro.py` | `agente-pro.service` — **nunca** habilitar también `mckenna-agente.service` (12-sep-2026: ambas enabled → `Address already in use`) |
+| 8083 | `PAGINA_WEB/site/website.py` | `mckenna-website.service`; si cae, respaldo de mantenimiento 503 en el mismo puerto. Mantenimiento planeado: `touch PAGINA_WEB/site/data/MANTENIMIENTO` |
+| 3000 | `bot-mckenna/server.js` | `mckenna-whatsapp-bridge.service` |
 
-| Puerto | Proceso | Unidad systemd (plantilla en `scripts/systemd/`) |
-|--------|---------|---------------------------------------------------|
-| 8080 | `webhook_meli.py` | `webhook-meli.service` |
-| 8081 | `agente_pro.py` | `agente-pro.service` — **la unidad viva**; `mckenna-agente.service` hace lo mismo y está deshabilitada a propósito (12-sep-2026: tener ambas enabled la dejó en `failed` por `Address already in use` desde el 8-sep, sin que nadie lo notara). Nunca habilitar las dos. |
-| 8083 | `PAGINA_WEB/site/website.py` | `mckenna-website.service`. Al detenerse (stop, restart o caída) programa un chequeo 8 s después (`scripts/systemd/mckenna_web_respaldo_check.sh`): si sigue apagada, `mckenna-website-mantenimiento.service` (no habilitada; `scripts/servidor_mantenimiento.py`) sirve `PAGINA_WEB/site/mantenimiento/index.html` con **503 + Retry-After** en el mismo puerto (Cloudflare la deja pasar). Arrancar la web la apaga (`Conflicts=` + `After=`, solo en la unidad de la web). Mantenimiento planeado sin apagar: `touch PAGINA_WEB/site/data/MANTENIMIENTO` / `rm`. |
-| túnel | `cloudflared` | `cloudflared.service` u otra unidad que gestione el túnel |
+No mezclar unidades **system** y **user** para el mismo puerto. Diagnóstico: `./scripts/diagnostico_servicios_mcKenna.sh`;
+dos `webhook_meli.py` → `./scripts/normalizar_webhook_meli.sh`.
 
-- **`mantener_servicios.sh`** y **`start_services.sh`** cargan `scripts/lib/mckenna_nohup_guard.sh`: si la unidad está **active** o brevemente **activating** (`_mckenna_unit_controls_service`), **no** lanzan ese servicio con `nohup`. **No** basta con `is-enabled`: una unidad **failed** pero enabled dejaba bloqueado el nohup y un `webhook_meli.py` huérfano. Evita un segundo `webhook_meli.py` mientras reinicias con `normalizar_webhook_meli.sh`. **No** mezclar **system** `agente-pro` / `webhook-meli` con **user** `mckenna-agente` / `mckenna-webhook-meli` (doble proceso y reinicios en bucle en el mismo puerto).
-- Instalar plantillas: **`./scripts/instalar_servicios_systemd.sh`**, luego `systemctl enable --now` solo lo necesario.
-- Diagnóstico: **`./scripts/diagnostico_servicios_mcKenna.sh`** (antes `diagnostico_webhook_8080.sh`).
-- Si el diagnóstico muestra **2 procesos** `webhook_meli.py` o el PID del **8080 ≠ MainPID** de systemd: **`./scripts/normalizar_webhook_meli.sh`**.
-- `webhook_meli.py` usa **flock** (`.webhook_meli.lock`) para una sola instancia; **no** hace bind de prueba al 8080 antes de cargar Flask (evita `EADDRINUSE` por **TIME_WAIT** tras `restart` y bucle de fallos en systemd).
-- Tras muchos fallos en webhook: `sudo systemctl reset-failed webhook-meli` y copiar `StartLimitBurst` actualizado del repo en la unidad instalada.
-
----
-
-## Estructura de Directorios
+## Estructura (detalle completo: `docs/agentic/ESTRUCTURA.md`)
 
 ```
-/home/mckg/mi-agente/
-├── agente_pro.py                  Flask app principal (puerto 8081) + CLI thread
-├── webhook_meli.py                Flask app notificaciones MeLi (puerto 8080)
-├── preventa_meli.py               Orquestador preguntas de preventa MeLi
-├── modulo_posventa.py             Gestión post-venta (RUT, devoluciones)
-├── generar_catalogo.py            Genera PDF catálogo con fotos de MeLi
-│
-├── PAGINA_WEB/site/               Tienda y contenido (Flask `website.py`): pedidos, catálogo, datos JSON
-│
-├── desktop/                       Panel de Operaciones React (SPA servida por Flask en /app)
-│   ├── src/
-│   │   ├── components/           Chat, Dashboard, PreventaPanel, SyncPanel, StockPanel, Layout, Sidebar
-│   │   ├── stores/               Zustand: auth.ts (Bearer token), app.ts (panel activo)
-│   │   ├── hooks/                React Query: useMetricas, useStatus, usePreventa, useChat
-│   │   ├── api/client.ts         fetch wrapper con Bearer auth
-│   │   ├── App.tsx               Router de paneles
-│   │   └── main.tsx              Entry point
-│   ├── dist/                     Build de producción (generado por `npm run build`)
-│   ├── package.json              React 19, Vite, Tailwind, Zustand, React Query
-│   ├── vite.config.ts            base: "/app/", proxy /api → :8081
-│   └── tailwind.config.ts        Dark theme McKenna (surface, accent, muted)
-│
-├── bot-mckenna/                   Puente WhatsApp (Node): server.js :3000, monitor /monitor
-│   ├── server.js                 whatsapp-web.js → POST /whatsapp :8081; /enviar para reportes
-│   ├── instalar_systemd.sh       Crea mckenna-whatsapp-bridge.service (no usar nombre bot-mckenna si choca con Python)
-│   ├── package.json
-│   └── README.md                 Operación y troubleshooting del bridge unificado
-│
-├── app/
-│   ├── core.py                    Claude (Anthropic): prompt sistema, registro herramientas, `obtener_respuesta_ia`
-│   ├── routes.py                  Endpoints Flask: /whatsapp, /api/*, /app (SPA), CORS
-│   ├── sync.py                    Lógica central sincronización stock + facturas
-│   ├── cli.py                     Menú CLI interactivo (8 opciones con submenús)
-│   ├── monitor.py                 Alertas automáticas y métricas diarias
-│   ├── observability.py           request_id, spawn_thread, log_json
-│   ├── utils.py                   refrescar_token_meli(), enviar_whatsapp_*(), JIDs preventa/postventa/alertas sistemas, helpers posventa MeLi
-│   │
-│   ├── services/
-│   │   ├── meli.py                MeLi API: órdenes, stock, facturas, aprendizaje
-│   │   ├── meli_preventa.py       Persistencia preguntas pendientes + casos aprendidos
-│   │   ├── siigo.py               Siigo ERP: facturas paginadas, descarga PDF
-│   │   ├── mensajeria_pagos.py   Envíos diarios + lotes de pago a transportadoras (ex Excel «ENVIOS INTERRA»)
-│   │   └── google_services.py     Google Sheets: catálogo, fichas técnicas
-│   │
-│   ├── tools/
-│   │   ├── memoria.py             SQLite + ChromaDB vectorial
-│   │   ├── system_tools.py        Archivos, backups, scripts, email (restricción opcional de rutas)
-│   │   ├── script_audit.py        Auditoría py_compile + manifiesto; usado por herramienta auditar_scripts
-│   │   ├── backup_drive.py        Backup nocturno Drive/local + git push opcional + WA a GRUPO_ALERTAS_SISTEMAS_WA
-│   │   ├── sincronizar_productos_pagina_web.py  Stock/precios hacia API tienda web (WEB_API_*)
-│   │   ├── web_pedidos.py         Comandos WhatsApp grupo pedidos web (facturar / envío / entregado)
-│   │   ├── guias_envio.py         Rótulos de envío en PDF (10x15 cm) para impresora térmica Vretti
-│   │   ├── notas_credito.py       Ticket "anular factura / nota crédito" en Centro de Mando (Web/MeLi)
-│   │   ├── verificacion_sync_skus.py  Auditoría SKUs MeLi / SIIGO / web
-│   │   └── sincronizar_facturas_de_compra_siigo.py  Facturas de compra desde Gmail
-│   │
-│   ├── data/
-│   │   ├── preguntas_pendientes_preventa.json  Queue de preguntas sin responder
-│   │   ├── modos_atencion.json                 Números en modo humano vs IA
-│   │   ├── metricas_diarias.json               Estadísticas del día
-│   │   ├── grupos_whatsapp_oficiales.json      Nombres y JIDs de grupos operativos
-│   │   ├── tarifas_interrapidisimo.json        Tarifas de envío
-│   │   └── scripts_manifest.json               Lista de .py para auditoría / cron
-│   │
-│   └── training/
-│       ├── casos_preventa.json    Historial Q&A para few-shot learning
-│       └── casos_especiales.json  Reglas custom por trigger
-│
-├── memoria_vectorial/             ChromaDB persistente (embeddings)
-├── comprobantes/                  Imágenes de comprobantes de pago recibidos
-├── facturas_descargadas/          PDFs de facturas Siigo
-├── cotizaciones_preliminares/     JSON de cotizaciones en progreso
-├── DISENO CORPORATIVO/            Logo e isotipo McKenna
-│
-├── pipeline_contenido_facebook.py Copy→Imagen→Voz→Video→Facebook (consola)
-├── generar_infografias_facebook.py Infografías PIL publicadas en Facebook (consola)
-├── sincronizar_facebook.py        Limpia y republica la página de Facebook (consola)
-│
-├── .env                           Credenciales (NO commitear)
-├── credenciales_meli.json         OAuth tokens MeLi (NO commitear)
-├── credenciales_google.json       OAuth tokens Google (NO commitear)
-├── credenciales_SIIGO.json        API key Siigo (NO commitear)
-└── mi-agente-ubuntu-*.json        Google Service Account (NO commitear)
+agente_pro.py · webhook_meli.py · preventa_meli.py · modulo_posventa.py   entradas Flask / MeLi
+app/core.py            Claude: prompt, herramientas, obtener_respuesta_ia
+app/routes*.py         endpoints Flask (/whatsapp, /api/*, /app)
+app/services/          MeLi, Siigo, Alegra, contabilidad, pagos, llm_budget, empresa (identidad fiscal)…
+app/tools/ · app/agent/  herramientas y agentes (ventas_wa v2)
+app/data/              config/estado pequeño en JSON (bases .db y caches → gitignored)
+desktop/               panel React (/app) · bot-mckenna/ puente WhatsApp · PAGINA_WEB/site/ tienda
+scripts/               cron, systemd, utilitarios · docs/agentic/ fichas por módulo · tests/
 ```
 
----
+**Nunca en git:** `.env`, `credenciales_*.json`, `mi-agente-ubuntu-*.json`, `client_secret_cloud.json`,
+`token_gmail.json`, `venv/`, bases `.db` con datos, carpetas de binarios (ver convención abajo).
 
 ## Variables de Entorno (.env)
 
-```env
-# IA
-GOOGLE_API_KEY              # Google GenAI (Gemini) — red de seguridad WhatsApp/web/preventa, pipelines de contenido
-ANTHROPIC_API_KEY           # Claude API — obligatorio: modelo por defecto en WhatsApp, `/chat`, Web Chat, preventa MeLi y herramientas del agente
-WEB_API_URL                 # Base URL API stock/precios sitio web (opcional; ver sincronizar_productos_pagina_web)
-WEB_API_KEY                 # Bearer para API web (opcional)
+**Catálogo completo, con qué hace cada una y su default: `.env.example`.** Al agregar una variable
+nueva, documentarla ahí (comentario en línea aparte: systemd no quita un `# comentario` al final).
 
-# MercadoLibre
-MELI_CREDS_PATH             # Ruta a credenciales_meli.json
-
-# WhatsApp (Evolution API)
-EVOLUTION_API_URL           # Endpoint Evolution API
-EVOLUTION_API_KEY           # Clave autenticación
-INSTANCE_NAME               # Nombre instancia WA
-
-# Google
-SPREADSHEET_ID              # ID Google Sheet (catálogo/inventario)
-TDS_FOLDER_ID               # Google Drive folder fichas técnicas
-
-# Grupos WhatsApp
-GRUPO_CONTABILIDAD_WA       # ID grupo contabilidad (default: 120363407538342427@g.us)
-GRUPO_INVENTARIO_WA         # ID grupo inventario
-TELEFONO_GRUPO_REPORTE      # Número/grupo para reportes
-GRUPO_PREVENTA_WA           # Alertas y comandos `resp …` de preguntas MeLi (preventa)
-GRUPO_POSTVENTA_WA         # Alertas mensajes post-compra MeLi + comando `posventa <código>: …`
-GRUPO_COTIZACIONES_WA       # Solicitudes de cotización desde mckennagroup.co/cotizar (default: GRUPO_PEDIDOS_WEB_WA)
-GRUPO_PEDIDOS_WEB_WA        # Único JID para pedidos web: 120363391665421264@g.us (Guias_Envios pagina web) — alertas + facturar + envio + entregado
-# Inventario completo de grupos oficiales (nombres y JIDs): app/data/grupos_whatsapp_oficiales.json
-
-# API
-CHAT_API_TOKEN              # Token para endpoints /chat y /sync/*
-ADMIN_TOKEN                 # Token admin
-
-# Infraestructura
-CLOUDFLARE_TUNNEL_TOKEN     # Token túnel Cloudflare
-
-# Multimedia / Redes Sociales (scripts de consola)
-IDEOGRAM_API_KEY            # Generación de imágenes con IA (Ideogram)
-ELEVENLABS_API_KEY          # Síntesis de voz TTS en español (ElevenLabs)
-FAL_KEY                     # Generación de video (fal.ai / Kling v1.6)
-FB_PAGE_TOKEN               # Facebook Graph API — publicación en página
-FB_PAGE_ID                  # ID de la página de Facebook de McKenna Group
-
-# Operaciones, observabilidad y cron
-MENSAJERIA_APROBADOR        # Username del panel que aprueba los pagos de mensajería (default: armando)
-GRUPO_ALERTAS_SISTEMAS_WA   # WhatsApp: backup nocturno + fallos auditoría scripts (default en app/utils.py)
-AGENTE_LOG_JSON             # 1 = eventos JSON una línea en stderr (http, tools, IA)
-AGENTE_RESTRICT_FILE_TOOLS  # 1 o FLASK_ENV=production → limita parchear_funcion / crear_nuevo_script / ejecutar_script_python
-AGENTE_FILE_TOOL_PREFIXES   # Prefijos relativos al repo permitidos (coma); ej. scripts/,app/tools/,tests/
-AGENTE_NIGHTLY_GIT_PUSH     # 0 = no ejecutar git commit/push tras el backup de las 2:00
-AGENTE_AUDITORIA_SKIP_WA    # 1 = scripts/auditar_scripts_cron.py no envía WhatsApp aunque falle
-AGENTE_AUDITORIA_CRON_QUIET # 1 = cron auditoría no imprime línea si todo OK
-
-# Préstamos de terceros (app/services/prestamos.py — ver Flujo M)
-PRESTAMOS_DIA_RECORDATORIO   # Día del mes del ticket de pagos a despachos (default 5)
-PRESTAMOS_USUARIO_PAGOS      # Username que monta los pagos en Sucursal Negocios (default jerry)
-PRESTAMOS_RECORDATORIO_ACTIVO # 0 = desactiva el cron sin tocar el crontab
-PRESTAMOS_MUTUARIO_RAZON     # Razón social en el contrato (default McKenna Group S.A.S.)
-PRESTAMOS_MUTUARIO_NIT       # NIT en el contrato (default 901.316.016-3, verificado en Alegra)
-PRESTAMOS_MUTUARIO_REPRESENTANTE # Representante legal que firma (opcional)
-PRESTAMOS_DOC_SOPORTE_ACTIVO # 1 = emite documento soporte real a la DIAN (default 0 = modo sombra)
-PRESTAMOS_ALEGRA_ITEM_REF    # Referencia del ítem de intereses en Alegra (default INTERES-MUTUO)
-PRESTAMOS_DIA_AVISO_RETENCIONES # Día del mes del ticket de retenciones (default 3, sobre el mes anterior)
-UVT_<año>                    # Valor de la UVT si no está cargado en retenciones.py (ej. UVT_2027)
-EMAIL_CONTADOR               # Correo del contador para el detalle mensual de retenciones
-COMPRAS_SOCIOS_DOC_SOPORTE_ACTIVO # 1 = emite documento soporte real de compras a socios (default 0 = sombra)
-COMPRAS_SOCIOS_ALEGRA_ITEM_REF    # Referencia del ítem de mercancía en Alegra (default MERCANCIA-SOCIO)
-ALEGRA_ESPEJO_ACTIVO         # 1 = postea los asientos del Libro Mayor a Alegra (default 0 = sombra)
-PRESTAMOS_USUARIO_CONTABILIDAD # Username que coordina con el contador (si no, Sistemas → Aliados)
-ALEGRA_TEMPLATE_DOC_SOPORTE  # Plantilla de numeración supportDocument (default 10)
-
-# Recuperación de compra (app/tools/recuperacion_compra.py + scripts/recuperacion_compra_cron.py)
-RECUPERACION_COMPRA_ACTIVO      # 0 = no envía correos a pedidos web sin pagar (el cron sigue instalado)
-RECUPERACION_COMPRA_VENTANA_DIAS # Solo pedidos de los últimos N días (default 14)
-RECUPERACION_COMPRA_MAX_POR_CORRIDA # Tope de correos por corrida del cron (default 20)
-
-# Presupuesto LLM (app/services/llm_budget.py — ver regla obligatoria abajo)
-LLM_BUDGET_DIARIO_USD       # Umbral de alerta diaria (default 5.0): WhatsApp a GRUPO_ALERTAS_SISTEMAS_WA
-LLM_BUDGET_TOPE_USD         # Tope duro diario (default 15.0): se bloquean nuevas llamadas LLM
-LLM_BUDGET_BATCH_LLAMADAS   # Máx llamadas por proceso batch sin autorizar (default 25)
-LLM_BUDGET_BATCH_USD        # Máx USD estimados por proceso batch sin autorizar (default 1.0)
-```
-
+Las que más cuestan si se tocan sin saber:
+- `ANTHROPIC_API_KEY` (obligatoria, modelo por defecto de los canales) · `GOOGLE_API_KEY` (red de seguridad Gemini).
+- `CHAT_API_TOKEN` (Bearer de `/chat` y `/api/*`) · `ADMIN_TOKEN`.
+- `LLM_BUDGET_DIARIO_USD` / `LLM_BUDGET_TOPE_USD` / `LLM_BUDGET_BATCH_*` — ver la regla obligatoria abajo.
+- `ALEGRA_ESPEJO_ACTIVO` — **en 1 desde el 2026-09-14** (el contador arma el 350 con lo que ve en Alegra).
+- `CONTABILIDAD_LEDGER_BUDGET_S` / `_MAX_PAGINAS` / `_MAX_PAGINAS_MELI` — defaults del panel; un
+  **backfill** necesita subirlos (1800 / 500 / 300) o postea un período a medias que parece completo.
+- Banderas de modo sombra (default 0): `PRESTAMOS_DOC_SOPORTE_ACTIVO`, `PAGOS_DOC_SOPORTE_ACTIVO`,
+  `COMPRAS_SOCIOS_DOC_SOPORTE_ACTIVO`, `MELI_AUTOFACTURA_ENTREGA_ACTIVO`. Encenderlas emite documentos reales a la DIAN.
+- Grupos de WhatsApp por área: `GRUPO_*_WA`; inventario oficial en `app/data/grupos_whatsapp_oficiales.json`.
 ### ⚠️ REGLA OBLIGATORIA — Presupuesto de gasto LLM
 
 Ninguna tarea, script o cambio puede disparar consumo masivo de tokens por API
@@ -312,7 +157,6 @@ generó un gasto de decenas de dólares sin aviso previo.
   `AGENTE_COSTOS_LLM_SKIP_WA=1` para probarlo sin enviar WhatsApp.
 
 ---
-
 ## Observabilidad, backup nocturno y cron
 
 | Pieza | Archivo / script | Qué hace |
@@ -325,687 +169,114 @@ generó un gasto de decenas de dólares sin aviso previo.
 | Cron auditoría | `scripts/auditar_scripts_cron.py`, `scripts/instalar_cron_mcKenna.sh` | Diario (ej. 7:15); log en `log_cron.txt`; WhatsApp si hay fallos. |
 | Backup 2:00 + Git | `app/tools/backup_drive.py` | Tar en `backups_drive/` (no git), Drive opcional; luego `git add/commit/push` si hay cambios. |
 | Cron pagos préstamos | `scripts/prestamos_recordatorio_cron.py` | Día 5 (configurable); un ticket mensual a despachos con las cuotas del mes. Idempotente por período. |
+| Conexiones (panel) | `app/services/conexiones.py`, `/api/conexiones` | Sistemas → Conexiones: prueba EN VIVO las 12 integraciones (WhatsApp ×2, MeLi, Gmail, Google SA, Alegra, Siigo, MP, SMTP, Claude, Gemini, túnel) sin gastar tokens, y guía la reconexión (QR, OAuth incrustado o pasos). Integración nueva → agregarla a `CONEXIONES`. |
 | Grupo WhatsApp | `jid_grupo_alertas_sistemas_wa()` | Mismo JID para mensaje de backup y alertas de auditoría cron. |
 
 **Tests de humo:** `pytest tests/test_smoke.py` (`/status`, auditoría, guard de archivos).
 
 ---
-
-## Arquitectura y Flujos de Datos
-
-### A. Pregunta de cliente en MeLi (Preventa)
-
-```
-MeLi → POST /notifications (puerto 8080)
-  └─ topic: "questions"
-  └─ hilo: procesar_nueva_pregunta(question_id)   # preventa_meli + LLM si hay ficha
-       ├─ GET /questions/{id} → texto pregunta + item_id
-       ├─ GET /items/{item_id} → nombre del producto
-       ├─ manejar_pregunta_preventa()
-       │    ├─ buscar_ficha_tecnica_producto(nombre) → Google Sheets col I
-       │    ├─ CON ficha → generar_respuesta_con_ficha() — modelo del canal `meli_preventa`
-       │    │    (Claude por defecto, Gemini como red de seguridad, ver canales_config.py)
-       │    │    ├─ LLM OK → POST /answers → responde en MeLi ✅
-       │    │    └─ Claude y Gemini fallan → delega al grupo ❓
-       │    └─ SIN ficha → guardar_pregunta_pendiente() → alerta grupo ❓
-       └─ Reporte al grupo WhatsApp con resultado
-
-  └─ topic: "messages" → posventa MeLi (alertas al grupo, ver webhook_meli.py)
-```
-
-**Posventa MeLi (mensajes post-compra):** Las peticiones a la API de mensajes de MeLi usan cabecera **`x-version: 2`** (formato actual de la API). El `resource` del webhook suele ser ruta de pack (`/messages/packs/{pack_id}/…`). En **`app/routes.py`**, si el path es **`/orders/{order_id}`**, se usa ese id como `pack_id` para listar mensajes; **`webhook_meli.py`** resuelve `pack_id` con lógica adicional cuando no viene en la ruta (mensaje por id, metadatos, búsqueda). Para deduplicar alertas se usa `id` o `message_id` según devuelva MeLi (`meli_postventa_id_mensaje` en `app/utils.py`). El texto para WhatsApp se arma con `meli_postventa_texto_para_notif`: admite `text` como string o como objeto (`plain`), y si el comprador solo envía **adjuntos** (PDF RUT, imagen) sin texto, la alerta indica nombres de archivo y pide revisar la conversación en MeLi. Los reportes a WhatsApp vía `enviar_whatsapp_reporte` **reintentan** ante **503** del puente Node (WhatsApp sincronizando) y ante fallos de conexión breves. Si falla el envío al grupo tras una respuesta automática de preventa, `preventa_meli.py` deja traza en consola (la pregunta puede haberse respondido en MeLi igualmente).
-
-### B. Orden pagada en MeLi (Stock sync)
-
-```
-MeLi → POST /notifications (puerto 8080)
-  └─ topic: "orders_v2", status: "paid"
-  └─ hilo: _procesar_orden_meli(order_id)
-       ├─ GET /orders/{id} → lista de items
-       └─ Por cada item:
-            ├─ GET /items/{item_id} → seller_custom_field (SKU) + available_quantity
-            └─ sincronizar_stock_todas_las_plataformas(sku, stock_post_venta) → web (API) + MeLi
-```
-
-### C. Mensaje WhatsApp → IA
-
-```
-WhatsApp → POST /whatsapp (puerto 8081)
-  ├─ Grupo contabilidad / compras / inventario (según JID y flags): pagos `ok`/`no`, `resp …`, facturas compra `inv …`, etc.
-  ├─ Grupo preventa (`GRUPO_PREVENTA_WA`): `resp …` / `resp preventa …` para preguntas MeLi pendientes
-  ├─ Grupo postventa (`GRUPO_POSTVENTA_WA`): `posventa <código>: <txt>` → envía respuesta al pack MeLi (cola `app/data/mensajes_posventa_pendientes.json`)
-  ├─ Grupos pedidos web: comandos `facturar` / `envio` / `entregado` (ver `web_pedidos.py`)
-  ├─ "hugo dale ok <order_id>" → si hay borrador de respuesta IA posventa, envía a MeLi vía `modulo_posventa` (la alerta de aprobación se envía al grupo postventa)
-  ├─ Si número en modo humano → reenvía al grupo
-  ├─ Si imagen recibida → guarda comprobante → alerta pago al grupo
-  └─ Si mensaje normal → obtener_respuesta_ia() → **Claude** (tool loop) → responde (si `es_postventa`, borrador + aprobación en lugar de envío directo)
-```
-
-### E. Confirmación de Pago
-
-```
-Cuando cliente envía imagen:
-  1. Guarda en comprobantes/ con nombre {sender}_{timestamp}.jpeg
-  2. Crea entrada en pagos_pendientes_confirmacion[sender_id]
-  3. Envía al grupo:
-     🔔 ALERTA DE PAGO
-     Cliente ...{últimos7dig} envió comprobante.
-     ✅ Para CONFIRMAR: ok {últimos3dig}
-     ❌ Para RECHAZAR:  no {últimos3dig}
-
-Operador confirma con: "ok 463"
-  → Sistema busca pago con esos 3 dígitos
-  → Envía al cliente: "Veci, confirmamos su pago ✅..."
-  → Elimina de pendientes
-
-Operador rechaza con: "no 463"
-  → Sistema avisa al cliente que el pago no fue válido
-```
-
-### F. Sincronización de Facturas MeLi ↔ Siigo
-
-```
-sincronizar_inteligente():
-  ├─ Busca órdenes MeLi pagadas sin documento fiscal
-  ├─ Busca facturas Siigo del mismo período
-  ├─ Cruza por Pack ID (en observations/purchase_order de Siigo)
-  └─ Por cada match:
-       ├─ descargar_factura_pdf_siigo(factura_id) → base64
-       └─ subir_factura_meli(pack_id, pdf_b64) → POST /packs/{id}/fiscal_documents
-
-sincronizar_facturas_recientes(dias=1):
-  ├─ obtener_facturas_siigo_paginadas(fecha_desde)
-  └─ Para cada factura con Pack ID → upload a MeLi
-```
-
-Este flujo asume que la factura **ya existe en Siigo** (creada manualmente) y solo la cruza/sube a MeLi. Para creación automática desde cero ver Flujo G.
-
-### G. Autofactura MeLi al entregarse el pedido
-
-```
-MeLi → POST /notifications (puerto 8080)
-  └─ topic: "shipments"
-  └─ hilo: procesar_entrega_meli_para_factura(shipping_id)   # app/tools/meli_autofactura_entrega.py
-       ├─ GET /shipments/{id} → si status != "delivered", ignora
-       ├─ order_id desde el shipment; dedup por order_id en app/data/meli_facturas_entrega.json
-       ├─ GET /orders/{order_id} → arma líneas (SKU vía seller_custom_field + buscar_producto_alegra_por_referencia)
-       ├─ Comprador: GET /orders/{order_id}/billing_info (consultar_billing_info_meli) → nombre/razón
-       │    social, doc_type/doc_number REALES si el comprador los cargó en MeLi (confirmado en vivo
-       │    2026-09-04 contra MCO — `orders/{id}.buyer` y `shipments/{id}.receiver_address` NO los
-       │    traen, pero este endpoint sí; es lo que resolvía Astroselling). Solo cae a "Consumidor
-       │    Final" con NIT genérico (SIIGO_MELI_NIT_CONSUMIDOR_FINAL, default 222222222222) si
-       │    billing_info da 404/403 o viene sin doc_number/nombre usable.
-       └─ crear_factura_venta_alegra(...) → reporta éxito/error a GRUPO_FACTURACION_VENTAS_WA
-```
-
-**Gateado por `MELI_AUTOFACTURA_ENTREGA_ACTIVO`** (default `0` = modo sombra): mientras esté en 0,
-calcula y registra en `app/data/meli_facturas_entrega.json` qué se habría facturado (sin llamar a
-Siigo/DIAN). Cambiar a `1` solo tras confirmar con tráfico real que el tópico `shipments` llega al
-webhook — precedente: en abril/2026 se asumió que `questions`/`orders_v2`/`messages` ya estaban
-suscritos en la app de MeLi y no era cierto, dejando preventa/posventa rotas en silencio semanas.
-Requiere habilitar el tópico `shipments` en developers.mercadolibre.com para la app.
-
-**Estado desde el 2026-09-09: apagado (`=0`) a propósito.** Estuvo en `1` del 4 al 9 de sep y produjo
-(a) packs multi-producto facturados a medias — el webhook corría con código anterior al fix
-multi-orden porque nunca se reinició — y (b) 41 packs facturados dos veces, porque astroselling
-seguía facturando en Siigo al comprar mientras Alegra facturaba al entregar. Hoy se factura **a mano
-con el botón "Facturar ahora"** de Facturación → Ventas, que emite **una sola factura por carrito**
-(`facturar_pack_meli_manual`) y aborta si el pack ya tiene factura o documento fiscal en MeLi. Antes
-de volver a encender el automático: cerrar la regularización y sanear el catálogo. Ficha completa,
-cronología y decisiones abiertas: `docs/agentic/modules/facturacion-meli-alegra.md`.
-
-### H. Facturación al momento de ENTREGA (política general, no solo MeLi) + nota crédito
-
-Principio de negocio (reemplaza "facturar al vender"): facturar en el momento de la **entrega**
-reduce cuántas facturas terminan necesitando nota crédito por arrepentimiento del cliente entre
-la compra y la entrega. MeLi ya lo hace vía Flujo G (evento `shipments`/`delivered`). Pedidos web
-lo hace por comando explícito porque **no existe señal automática de entrega para web** (el
-tracking de Interrapidísimo solo llega hasta `shipping_status=shipped`):
-
-```
-Grupo GRUPO_PEDIDOS_WEB_WA → "entregado 250" (o "entregado MCKG-…")
-  └─ app/routes.py → wp.registrar_entrega_y_facturar(ref)   # app/tools/web_pedidos.py
-       ├─ UPDATE orders SET shipping_status='delivered', delivered_at=...
-       └─ emitir_factura_siigo_pedido_web(ref, force=True)   # mismo dedup que "facturar"
-```
-
-`facturar <ref>` sigue existiendo como override manual (casos donde el cliente necesita la
-factura antes de la entrega, p. ej. clientes corporativos) — pero el flujo estándar para venta
-al detal es esperar a `entregado`.
-
-**Nota crédito — ticket al operador para casos puntuales (web / reclamos), cron automático para
-cancelaciones MeLi "normales":** cuando `anular_pedido_web()` detecta que el pedido ya tenía
-factura Siigo emitida, en vez de solo advertir en el texto de WhatsApp, crea un ticket en el
-Centro de Mando vía `app/tools/notas_credito.py::crear_ticket_nota_credito()` (categoría
-`contabilidad`, prioridad alta, asignado al aliado configurado para
-`TAREA_RECLAMO_MELI_ANULAR_FACTURA` en `tickets_db`). Es la generalización del patrón que ya
-existía solo para reclamos de MeLi (`app/meli_reclamos.py::crear_accion_anular_factura_por_reclamo`).
-
-Para el caso más frecuente — una orden MeLi se cancela (sin ser reclamo) después de que la
-factura ya se emitió automáticamente vía la integración externa (astroselling.com) — el ticket
-manual dejó de trabajarse silenciosamente 6 semanas (26-jun a 10-ago-2026, 44 casos, $2.1M COP)
-sin que nadie lo notara. Por eso existe **`scripts/emitir_notas_credito_cron.py`** (diario,
-frecuencia real vía Sistemas → Tareas Programadas): cruza órdenes MeLi canceladas
-(`app/services/meli.py::listar_ordenes_canceladas_meli`) contra facturas Siigo por Pack ID
-(mismo cruce por `observations`/`purchase_order` que Flujo F) y emite automáticamente la nota
-crédito (`app/services/siigo.py::crear_nota_credito_siigo`, `reason=2` "anulación de factura
-electrónica") si aún no existe una. Solo procesa cancelaciones con más de
-`NOTAS_CREDITO_MARGEN_HORAS` (default 48h) de antigüedad, y vuelve a chequear
-(`buscar_nota_credito_existente_siigo`) justo antes de cada emisión — la corrida manual del
-10-ago-2026 generó **4 notas crédito duplicadas** exactamente por no tener ese segundo chequeo,
-mientras contabilidad resolvía esos mismos casos a mano en paralelo. Reporta por WhatsApp a
-`GRUPO_FACTURACION_VENTAS_WA` solo cuando emite algo o encuentra un error real (no cuando el
-caso ya estaba resuelto por otra vía — eso es el camino normal, no una anomalía). Apagar con
-`NOTAS_CREDITO_CRON_ACTIVO=0` sin tocar el crontab.
-
-**Pendiente (paso separado, no implementado aún):** aplicar el mismo principio de "facturar al
-entregar" a ventas por WhatsApp — hoy `crear_factura_completa_siigo` lo dispara Claude vía
-tool-use en cuanto se confirma el pago (`ok <3dígitos>`), no al entregar. Cambiarlo requiere
-tocar el prompt/herramientas de `app/core.py`, que afecta el comportamiento del agente en *toda*
-conversación de WhatsApp — se trata aparte, con su propia revisión.
-
-### I. Red de proveedores → sección "Cotizar" de la web + mapamundi
-
-```
-/app → Logística Internacional → Proveedores   (desktop/src/components/ProveedoresPanel.tsx)
-  ├─ Directorio: proveedores + ficha (productos que maneja, último precio, historial de compras)
-  ├─ ¿Quién vende…?: un producto (clave normalizada) → todos los proveedores que lo manejan,
-  │    último precio, mínimo, nº de compras → a quién pedir cotización para el mejor precio
-  ├─ Catálogos: escanea Gmail (adjuntos PDF/XLSX/CSV con "catálogo", "lista de precios",
-  │    "portafolio", "cotización") → extracción heurística SIN LLM → el operador marca líneas
-  │    → se guardan como productos del proveedor (también desde la URL de un proveedor)
-  ├─ Oferta web: productos con publicar_web=1 → POST /api/proveedores/publicar-web
-  │    → PAGINA_WEB/site/data/oferta_proveedores.json  (SIN nombres de proveedor)
-  └─ Cotizaciones: solicitudes que llegan desde mckennagroup.co/cotizar + respuesta por correo
-
-Fuentes automáticas (POST /api/proveedores/importar, repetible sin duplicar):
-  app/data/facturas_compra_historial.json · Siigo /v1/purchases · contabilidad.db → compras_exterior
-
-Web (website.py :8083):
-  /cotizar            listado ampliado (oferta publicada + catálogo en stock) agrupado por línea;
-                      lo que no está en stock solo se cotiza ("Bajo pedido"); lo que sí, enlaza a la tienda
-  /cotizar/solicitar  POST → solicitudes_cotizacion (proveedores.db) → aviso al agente :8081
-                      (/api/proveedores/cotizaciones/notificar, Bearer CHAT_API_TOKEN) → WhatsApp a
-                      GRUPO_COTIZACIONES_WA (default GRUPO_PEDIDOS_WEB_WA) + correo de confirmación al cliente
-  Inicio → "Del origen a tu fórmula": mapamundi real (_world_land.svg.html, Natural Earth) con dos
-  capas: `stock` (origen_materias.json, editable en /app → Vitrina Web → Origen de materias) y
-  `red` (países de origen de la oferta publicada). Paquetes animados (<animateMotion>) sobre cada ruta.
-```
-
-**Experiencia ilustrada en la web (sep-2026):** `_ruta_origen.html` ("Del origen a tu fórmula": KPIs
-animados, cadena de custodia Origen → Tránsito → Calidad → Distribución, filtro por línea, mapamundi con
-trama de puntos, rutas animadas con barco/avión, panel por país con productos + badges TDS/COA, tour
-automático) y `_cobertura.html` ("Colombia, de punta a punta": mapa por departamentos
-`_colombia_map.svg.html` (@svg-maps/colombia, MIT; centros en `app/data/colombia_departamentos_svg.json`),
-coropleta con cobertura REAL de pedidos, tramado en los departamentos por impactar, pulsos de despachos
-de la semana, puertos y bodega). JS: `static/js/trazabilidad.js`. Datos: `website.py::_construir_ruta_origen`
-(cache 5 min; cruza `origen_materias.json` + oferta publicada + `documentos_web` para TDS/COA) y
-`_construir_colombia_mapa`. Los **países de origen del catálogo son de referencia** (sembrados por
-palabra clave el 2026-09-03 en `origen_materias.json`; el usuario autorizó datos de origen aproximados) —
-se corrigen por SKU en /app → Vitrina Web → Origen de materias. `proveedores_db.clasificar_nombre()` /
-`autoclasificar_productos()` sugieren línea y origen de productos de proveedores por reglas de nombre;
-`es_materia_prima()` excluye empaques/servicios de la publicación; `nombre_publico()` limpia el nombre.
-
-**Catálogos web de proveedores** (`app/tools/catalogos_proveedores_web.py`): extractores por dominio, sin LLM
-(glotracol.com WooCommerce, interkrol.com Duda `ul.defaultList`, cadiep.com Webflow h4/h5, productos3a.com Webflow
-`.text-block-3`, globalquimia.com.co page-sitemap; fallback heurístico). `CATALOGOS_CONOCIDOS` mapea proveedor →
-URL. Cargados el 2026-09-03: Global Trading 123, Interkrol 344, Cadiep 81, Productos 3A 110, Globalquimia 8.
-Factores y Mercadeo NO publica su portafolio en la web (solo categorías): pedir lista de precios y cargarla por
-Catálogos. **Comparador** (`comparar_proveedores`, `matriz_coincidencias`, `clave_canon` = `nombre_publico`
-normalizado): `GET /api/proveedores/comparador?ids=&q=&minimo=` y `GET /api/proveedores/coincidencias`; pestaña
-Comparador en el panel. En la web pública (`/cotizar`) los productos bajo pedido se muestran SOLO con el nombre
-genérico de la materia prima (`nombre_publico`: sin marca, presentación ni cantidad); la presentación solo se
-muestra en productos de la tienda.
-
-**Subcategorías en la web:** `proveedores_db.SUBCATEGORIAS` + `subcategoria_de(nombre, linea)` (segundo nivel
-por familia: frutos secos y semillas, vitaminas y minerales, óxidos y oxidantes, sales, tensoactivos, solventes,
-cápsulas y excipientes…). `/cotizar` agrupa línea → familia con navegación por chips, bloques de 24 con "ver más"
-y buscador instantáneo. Se calcula al publicar (`oferta_proveedores.json`) y para el stock en `website.py`.
-**Ojo:** no poner `reveal` en contenedores de listas largas (bloques >10.000 px nunca alcanzan el 10% de
-intersección y quedan invisibles; pasó con Alimentario el 2026-09-03).
-
-Datos: `app/services/proveedores_db.py` (SQLite `app/data/proveedores.db`, no versionado). Rutas:
-`app/routes_proveedores.py` (`/api/proveedores/*` y alias `/app/api/...`, permiso
-`logistica-internacional`). **Regla:** el sitio público nunca muestra el nombre del proveedor; McKenna
-es el puente. Ningún endpoint del módulo llama a un LLM (una extracción de catálogos con Claude sería
-un paso aparte, gateado por `llm_budget`).
-
-### N. Socios, familiares y terceros — quién es quién
-
-Cuatro relaciones distintas alrededor de McKenna, con tratamiento contable distinto:
-
-| Relación | Qué hace | Cuenta |
-|---|---|---|
-| **Socios** (Armando, Cynthia) | Compran en Amazon con **tarjeta personal**, traen a título personal y le venden a la empresa, que reintegra | **2380** |
-| **Socios** | Cuota de manejo 5% por conseguir la mercancía | 2380 contra costo |
-| **Familiares por servicios** | Prestación de servicios | 5135 (retención de **servicios**, no el 7% financiero) |
-| **Familiares prestamistas** | Solo consignaron dinero a la cuenta de la empresa | **2295** (Flujo M) |
-
-El mecanismo de los socios existe porque los productos son pequeños y el volumen
-residual no justifica una importación formal. **Clave para la conciliación:** el
-banco de McKenna NO se mueve cuando el socio compra (esa plata sale de su tarjeta);
-se mueve **al reintegrarle**. Esa es la línea que aparece en el extracto.
-
-**Asiento (corregido sep-2026, `contabilidad_autopost._lineas_compra_socio`):**
-`Débito 1435 (mercancía + flete + cuota) / Crédito 2365 (retención si aplica) /
-Crédito 2380 (neto al socio)`. **No toca Bancos** — el banco se mueve al reintegrar.
-
-⚠️ **Límite aduanero:** esa mercancía no entró por importación ordinaria, así que **no
-hay IVA descontable ni aranceles deducibles** (Art. 485 E.T.) y el documento soporte
-**no sanea** el estatus aduanero. Ver la ficha antes de proponer nada al respecto.
-
-**Reintegro al socio:** `compras_socios.registrar_reintegro()` — `Débito 2380 / Crédito 1110`.
-Es **la única línea de esta operación que aparece en el extracto** y la que se concilia; devuelve
-`cc:<id>` para `extracto_bancario.vincular()`. Panel: Préstamos → «Cómo funciona».
-
-**Retención:** `app/services/retenciones.py` (tarifas, cuantías mínimas, UVT por año —
-UVT 2026 = $52.374, Res. DIAN 000238/2025). La mayoría de estas compras queda **bajo
-las 27 UVT** y no lleva retención. Explicación viva en /app → Préstamos → «Cómo funciona».
-Ficha completa: `docs/agentic/modules/relaciones-socios-terceros.md`.
-
-### O. Solicitudes de pago con asiento automático
-
-```
-/app → Contabilidad → Solicitudes de pago   (PagosWizardPanel.tsx)
-  1. Elegir QUÉ se paga (13 categorías: proveedor, flete, servicio público,
-     honorarios, prestación de servicios, arriendo, nómina, cuota de préstamo,
-     reintegro a socio, impuestos, seguros, mantenimiento, otro)
-  2. Las opciones salen de los SALDOS REALES: proveedores con deuda en 2205,
-     cuotas del mes, servicios activos, retención pendiente en 2365
-  3. Se MUESTRA el asiento antes de aprobar
-  4. Al aprobar → asiento en el Libro Mayor + comprobante en Alegra
-```
-
-**Por qué existe:** hasta sep-2026 los pagos se aprobaban como tickets de texto
-libre ("APROBAR PAGO DE FACTORES") y el asiento dependía de que alguien se
-acordara después. No se hacía — el Libro Mayor tenía las compras pero no los
-pagos, y Bancos quedaba descuadrado. Es el mismo patrón que ya falló con las
-notas crédito (6 semanas) y las compras Gmail (96 sin postear): **lo que se deja
-como paso manual posterior, no se hace**.
-
-**Dos caminos, un solo motor:**
-- **Solicitar** (cualquiera con permiso `pagos`): crea la solicitud → ticket al
-  aprobador → al aprobar nace el asiento.
-- **Registrar directo** (solo nivel administrador — Cynthia y Armando): un paso,
-  sin ticket. Ellos montan y aprueban sus propios pagos; auto-aprobarse en dos
-  pasos es burocracia sin control real. Queda anotado «Registrado directamente
-  por X» y el panel lo marca con un chip: saltarse el control es válido,
-  **ocultarlo no**. Un test verifica que el asiento sea idéntico por ambos
-  caminos — si divergieran, un mismo pago quedaría contabilizado distinto según
-  quién lo registre.
-
-**Tres decisiones:** (a) el asiento se muestra antes de confirmar por los dos
-caminos — firmar un monto sin ver la cuenta es firmar a ciegas; (b) el asiento
-nace al **aprobar**, no al solicitar, así una solicitud rechazada no deja rastro;
-(c) si Alegra falla, el asiento interno igual queda y el espejo se reintenta.
-
-**«Honorarios» y «Prestación de servicios» no son lo mismo** (sep-2026): quien
-presta servicios operativos a McKenna sin ser nómina —calidad, empaque, apoyo—
-va a **5135 con retención de servicios (4% declarante / 6% no)**, no a 5110 con
-la de honorarios (10-11%). Sin esa categoría propia el pago solo podía entrar
-como honorario o como «Otro», y una tarifa equivocada sale del bolsillo de una
-persona real.
-
-**Plan de cuentas ampliado** para que esto sirva: antes TODO gasto caía en 5135
-«Servicios» (luz, contador y fletes juntos). Ahora hay 19 cuentas de gasto con
-códigos PUC reales — 513550 Transporte/fletes, 513530 Energía, 5110 Honorarios,
-5120 Arrendamientos… — y **las 35 cuentas están mapeadas a Alegra** una a una.
-Ver `app/services/pagos_wizard.py` y `alegra_espejo.MAPA_PUC`.
-
-### P. Agente de ventas v2 (WhatsApp + chat web) con supervisión
-
-Reemplaza, detrás de banderas, la cadena de ~70 interceptores regex + LLM sin herramientas
-que atendía WhatsApp y la burbuja web (auditoría 4–11 sep-2026: repreguntas, "lo confirma un
-asesor" con precios existentes, respuestas dobles, bot hablando encima del asesor).
-
-```
-app/agent/ventas_wa/
-  catalogo.py      precios de la PÁGINA WEB (cache.json + stock_web.json) — decisión del negocio
-  pedido.py        pedido por cliente en SQLite (ventas_wa.db; sombra → ventas_wa_sombra.db),
-                   código WEB-XXXXX para continuar por WhatsApp, historial propio del chat web
-  historial.py     WhatsApp lee wa_chats.db (incluye lo que escribe el asesor desde el teléfono);
-                   NO usa la memoria legacy conversaciones_whatsapp.sqlite3 (mezcla web + WA)
-  herramientas.py  buscar_producto, ficha_producto, actualizar_pedido, guardar_datos_cliente,
-                   ver_pedido, consultar_pedido_web, pasar_a_asesor (WA) /
-                   llevar_al_carrito + continuar_por_whatsapp (web)
-  agente.py        Claude con tool-use; cada llamada pasa por llm_budget
-  supervisor.py    nivel 1 reglas (precios respaldados, sin datos de pago, sin repreguntar) +
-                   nivel 2 revisor IA (claude-haiku-4-5) solo en respuestas de riesgo;
-                   UNA corrección por turno, si falla → respuesta segura + aviso
-  entrada.py       /whatsapp (agrupa ráfagas 6 s, se calla 12 h tras mensaje de un asesor,
-                   adopta pedidos WEB-XXXXX) y /chat web (atender_web)
-app/services/auditor_canales.py + scripts/auditor_canales_cron.py   nivel 3: cada 30 min sin IA
-                   (clientes sin respuesta, pedidos listos sin cerrar → re-alerta, puente, presupuesto)
-                   y 19:00 auditoría IA de una muestra que PROPONE mejoras
-```
-
-- **El bot NO cierra la venta:** arma el pedido y manda la tarjeta por mensaje directo a
-  `WA_V2_ALERTA_DESTINO` (default +57 318 243 2463) **desde la cuenta supervisora**
-  (bot-supervisor :3001, número 573196529076, `herramientas.enviar_alerta_asesor`) para que
-  no se confunda con los chats de clientes; si el supervisor cae, respaldo por el puente
-  principal :3000. El asesor confirma
-  total, comparte datos de pago y cierra. Pedidos agrupados en /app → Agente WA → **Pedidos IA**.
-- **Web:** si todo está disponible, el agente mete los productos en el carrito del visitante
-  (lo aplica `website.py::_aplicar_acciones_chat` en la sesión) y la burbuja muestra
-  "Ver carrito y pagar"; si no, botón "Continuar por WhatsApp" con el código del pedido.
-- **Banderas:** `WA_AGENTE_V2` y `WEB_AGENTE_V2` = `off | sombra | activo`. En sombra el flujo
-  legacy responde y v2 solo deja borradores (panel → Pedidos IA → Sombra). Desde 2026-09-11 ambas
-  en `sombra`. Presupuesto autorizado por el usuario ese día: `LLM_BUDGET_TOPE_USD=5.0`,
-  `LLM_BUDGET_DIARIO_USD=3.0` en `.env`.
-- **Nunca** cambiar `os.environ` en caliente para elegir la base: `pedido.usando_modo()` (ContextVar)
-  — el servidor es multihilo y otro hilo podría leer "activo" y responderle de verdad a un cliente.
-- `wa_bot_detect.parece_respuesta_bot` ya no marca como bot los mensajes con "veci": el asesor
-  también lo escribe, y ese falso positivo hacía creer que nadie humano atendía el chat.
-
-### K. Pagos de mensajería (ex Excel «ENVIOS INTERRA»)
-
-Origen: TKT-2026-1219 — despachos (Jenniffer) llevaba en un Excel aparte un renglón por día con
-la cantidad de envíos, el enlace a la factura de guías de Interrapidísimo y el valor, y pedía la
-aprobación del pago abriendo un ticket a mano. Ahora vive en el panel:
-
-```
-/app → Contabilidad → Operativos → Mensajería   (desktop/src/components/MensajeriaPanel.tsx)
-  ├─ Un renglón por día: fecha · cantidad de envíos · enlace de guías · valor · nota
-  │    (días sin despacho — "domingo", "no salen" — se registran con valor 0)
-  ├─ "Importar del Excel": pegar las filas tal cual; las que decían CANCELADO con su fecha de
-  │    pago se agrupan como lotes ya pagados y conservan el histórico
-  ├─ Seleccionar días pendientes → lote de pago + ticket de aprobación automático
-  │    (categoría logistica, asignado al usuario de `MENSAJERIA_APROBADOR`, default `armando`)
-  └─ Registrar pago: fecha, banco, referencia, monto y comprobante adjunto
-
-app/services/mensajeria_pagos.py   tablas `mensajeria_envios` / `mensajeria_lotes` en
-                                   contabilidad.db; comprobantes en comprobantes/mensajeria/
-contabilidad_ledger._egresos_mensajeria   lote pagado → fuente "mensajeria_pago" en
-                                   Ingresos/Egresos → autopost al Libro Mayor (PUC 5135)
-```
-
-Permiso: `mensajeria`, heredado también de `servicios`, `operativos` o `pedidos` — el registro lo
-lleva despachos y la aprobación administración (ver `desktop/src/lib/contabilidadAccess.ts`).
-
-### L. Guías (rótulos) de envío para impresora térmica
-
-Reemplaza el formato en Excel/Word que despachos llenaba a mano para pegar en la caja. La
-impresora es una **Vretti térmica, rollo de 10x15 cm** (también hay 10x10 y 5x7,5 en
-`guias_envio.TAMANOS`).
-
-```
-/app → Atención → Guías de envío   (desktop/src/components/GuiasEnvioPanel.tsx)
-  ├─ "Desde pedidos": pedidos de la tienda web (orders.db) y despachos de WhatsApp
-  │    (despachos.db) de los últimos 15 días, con dirección ya cargada → marcar → PDF
-  ├─ "Envío suelto": formulario en blanco para lo que no viene de un pedido
-  ├─ "Remitente": datos de McKenna que salen abajo (app/data/remitente_envios.json)
-  └─ Historial con reimpresión (tabla `rotulos_envio` en app/data/despachos.db)
-
-POST /api/guias/rotulos → registra los rótulos y devuelve la URL del PDF
-GET  /api/guias/rotulos.pdf?ids=1,2&tamano=10x15 → PDF, una página por paquete
-GET  /api/guias/conteo?fecha=YYYY-MM-DD → rótulos impresos ese día
-```
-
-El PDF lo arma ReportLab (`generar_pdf`): encabezado con isotipo, bloque grande de
-destinatario (nombre, teléfono, dirección, ciudad/depto), remitente, contenido, piezas/valor y
-código de barras Code128 con la guía o la referencia del pedido. Todo en negro sobre blanco —
-la térmica es monocromo — y el `ImageReader` del logo se crea **una sola vez** por PDF (si se
-crea dentro del bucle, un lote de 20 rótulos pesa ~16 MB).
-
-**MeLi queda fuera a propósito:** esas ventas viajan con la etiqueta que genera Mercado Libre
-(Colecta/Flex); un rótulo propio no la reemplaza.
-
-**Enlace con Flujo K:** `GET /api/guias/conteo` alimenta la sugerencia "N rótulos impresos ese
-día — usar" de la casilla *envíos* en Operativos → Mensajería, para no contar paquetes a mano.
-
-Permiso del panel: `guias-envio`, heredado de `pedidos` o `empaque` (`App.tsx::puedeVerPanel`).
-
-### J. Contabilidad unificada (Libro Mayor propio, auto-posteo, préstamos, conciliación)
-
-Ver ficha completa en `docs/agentic/modules/contabilidad.md`. Resumen:
-
-```
-app/services/contabilidad_core.py   Libro de partida doble propio: PUC, terceros, medios de
-                                     pago, asientos (débito=crédito validado), cuenta en T,
-                                     balance de comprobación. Plantillas: compra_socio_amazon,
-                                     pago_socio, compra_proveedor, ingreso, egreso,
-                                     prestamo_recibido/otorgado + sus abonos.
-app/services/contabilidad_ledger.py armar_libro() (solo lectura: ventas MeLi/web/Siigo, compras,
-                                     compras exterior, servicios, impuestos, créditos) +
-                                     movimientos_manuales_como_libro() (los asientos manuales de
-                                     arriba, en el mismo formato de fila, para fusionar sin tocar
-                                     armar_libro()).
-app/services/contabilidad_autopost.py  auto_postear_periodo(): traduce cada fila de armar_libro()
-                                     a un asiento real (FUENTE_MAPEO fuente→cuenta PUC), dedupe
-                                     por referencia="auto:<hash>". Cron cada 6h
-                                     (scripts/contabilidad_autopost_cron.py, job
-                                     "contabilidad_autopost" en Sistemas → Tareas Programadas) +
-                                     backfill manual (scripts/backfill_contabilidad_autopost.py).
-app/services/meli_facturacion.py    La factura mensual de MeLi, desglosada por concepto y
-                                     traducida al PUC. GET /billing/integration/... — **5 peticiones
-                                     por minuto**, el módulo pacea solo y cachea los períodos
-                                     cerrados. Existe porque ese gasto no se ve por ningún lado:
-                                     MeLi cobra $44-47M/mes (de los cuales ~$24M son PUBLICIDAD) y
-                                     **nada de eso pasa por el extracto bancario** — la factura se
-                                     cobra contra el saldo de MercadoPago (111010), y el banco solo
-                                     ve el traslado que fondea esa cuenta.
-                                     ⚠️ NO usar `meli_ads.gasto_ads_por_rango()` para contabilizar:
-                                     para ago-2026 reportó $654.448 cuando la factura cobró
-                                     $23.853.390 (35x). Las métricas sirven para decidir campañas;
-                                     la factura es la fuente de verdad.
-                                     ⚠️ Los `detail_sub_type` que empiezan por «B» son anulaciones y
-                                     RESTAN, aunque la API los manda en positivo y sin marcarlos
-                                     CREDIT. Van a la misma cuenta que anulan (BV→CV, BXD→CXD,
-                                     BFF→CFF: se cambia la B por C). Sumándolos en positivo, agosto
-                                     daba $46.013.088 contra los $44.175.672 reales.
-app/services/extracto_clasificador.py  Propone cuenta PUC + tercero para las líneas de banco
-                                     que NO tienen contrapartida en el libro (las que
-                                     `sugerencias_auto` no puede emparejar porque la operación
-                                     nunca se contabilizó: 200 de 358 en jul-ago 2026). Reglas por
-                                     descripción del banco; `proponer()` / `resumen()` NO escriben
-                                     nada. Endpoint `/api/contabilidad/extractos/clasificacion`.
-                                     Tres trampas que las reglas evitan a propósito: (a) los
-                                     traslados a MercadoPago son plata propia, no ingreso ni gasto
-                                     ($40,7M en ago-2026); (b) el banco rotula «PAGO A PROVE» la
-                                     quincena de quien presta servicios — persona natural va a 5135
-                                     con retención, no a 2205; (c) una entrada sin identificar no se
-                                     marca como venta, que ya entra por el auto-posteo.
-app/services/extracto_bancario.py   Conciliación bancaria (ya existente): importar extracto,
-                                     vincular/desvincular, sugerencias automáticas,
-                                     pendientes_por_clasificar() (líneas de banco sin vínculo).
-                                     `vincular()` es agnóstica al formato de movimiento_id — un
-                                     hash de armar_libro() o "cc:<id>" de un asiento manual
-                                     funcionan igual.
-```
-
-Panel: Contabilidad → **Libro Mayor** (PUC/terceros/asientos/balance) y **Préstamos**
-(`PrestamosPanel.tsx`, permiso propio no heredado — datos sensibles de socios). Contabilidad →
-**Ingresos y Egresos** fusiona `armar_libro()` con los asientos manuales y agrega la bandeja
-**"Pendientes por clasificar"**: clasificar una línea de banco sin vínculo crea el asiento
-correcto (incl. préstamo) y la vincula en un solo paso. Adjuntar comprobante (`ComprobanteWidget.tsx`,
-compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras courier de un socio.
-
-### M. Préstamos de terceros (captación con particulares)
-
-```
-/app → Contabilidad → Préstamos   (sección propia; PrestamosCronogramaPanel.tsx)
-  ├─ «+ Prestamista»: alta del tercero con cédula, correo, teléfono y cuenta bancaria
-  │    → valida lo que el préstamo necesitará (no al desembolsar, cuando ya es tarde),
-  │      lo inscribe como contacto en Alegra y avisa si llevará documento soporte.
-  │      No duplica si ya existe esa cédula: completa lo que falte
-  ├─ Crear: tercero + capital + tasa E.A. + plazo + reparto de capital por tramos
-  │    → cronograma de N cuotas + asiento de desembolso (banco / 2295-2380)
-  ├─ Simulador en vivo: muestra ANTES de comprometerse qué gana el prestamista
-  │    (bruto y neto) y cuánto cuesta realmente a McKenna (TIR → efectiva anual)
-  ├─ Documentos PDF: contrato de mutuo (al desembolsar) y certificado de estado.
-  │    Se generan siempre; el ENVÍO por correo al tercero pide confirmación
-  ├─ Alegra: consulta de solo lectura si ya es contacto, con botón para inscribirlo
-  ├─ Reporte mensual al prestamista: lo girado en el mes (capital / interés / retención)
-  │    + certificado de estado adjunto. Envío manual, nunca automático tras un pago
-  └─ Pagar cuota → asiento capital(2295/2380) + interés(5305) + retención(2365) + banco
-
-scripts/prestamos_recordatorio_cron.py   (corre a diario, dos trabajos)
-  ├─ día 5  → UN ticket a despachos (PRESTAMOS_USUARIO_PAGOS, default `jerry`) con
-  │           todas las cuotas del mes: prestamista, cédula, cuenta, valor a girar
-  └─ día 3  → UN ticket de contabilidad con la retención practicada el mes ANTERIOR,
-              detalle por tercero para el formulario 350 + control contra la cuenta
-              2365 + fecha exacta de vencimiento (app/services/calendario_tributario.py,
-              año gravable 2026 cargado). Sube a prioridad crítica si vence en ≤5 días
-```
-
-**Condiciones vigentes (sep-2026):** 25% E.A. (= 1,8769% mensual vencido), 24 cuotas,
-capital 30% el primer año / 70% el segundo, retención del 7% **a cargo del prestamista**.
-Sobre $10.000.000 el prestamista gana **$2.796.620 brutos (27,97%)** y recibe
-$2.600.857 netos (26,01%).
-
-**Tres cifras distintas que no se deben confundir** (van las tres en el panel y en el PDF):
-la **tasa pactada** (25% E.A., lo único que se acuerda), el **rendimiento bruto** (27,97%,
-consecuencia del cronograma) y el **rendimiento neto** (26,01%, tras retención). 25% E.A.
-no da 50% a dos años porque el interés va sobre saldo insoluto: el capital promedio
-realmente prestado es $6,2M, no $10M.
-
-**Palanca de diseño:** devolver capital más tarde sube lo que gana el prestamista **sin
-cambiar la tasa** (0/100 → 34,72%; 30/70 → 27,97%; 50/50 → 23,46%), y el costo para
-McKenna es 25% E.A. en los tres casos. Descartado a propósito el "interés fijo sobre
-capital inicial", que cuesta ~30% E.A. real por el mismo capital promedio.
-
-**Retención:** McKenna es agente retenedor; descuenta el 7% (Art. 395 ET) y lo consigna
-a la DIAN. **La asume el prestamista** — no es costo extra para McKenna. Con `gross_up`
-la asume McKenna y el costo real sube a 26,95% E.A.
-
-**Documento soporte (DIAN Concepto 000112 int 7 de 2024):** por el **capital** NO se emite
-(el mutuo no es venta de bienes ni servicios; se respalda con contrato + transferencia); por
-los **intereses** SÍ, pero solo si el prestamista es persona natural **no** obligada a
-facturar — si es jurídica u obligado, la factura la expide él. Se emite por el interés bruto
-de cada cuota vía `POST /bills` con plantilla `supportDocument` (id=10 en la cuenta; ⚠️ la
-id=16 se llama "Documento Soporte" pero es `saleTicket`, no usarla). **Arranca en modo sombra**
-(`PRESTAMOS_DOC_SOPORTE_ACTIVO=0`): antes de encender hay que crear en Alegra el ítem
-`INTERES-MUTUO` (hoy no existe).
-
-**Calendario DIAN:** `app/services/calendario_tributario.py` tiene el año gravable 2026
-(DUR 1625, Arts. 1.6.1.13.2.33. y 1.2.6.6.). El NIT de McKenna es 901.316.016-3 → el dígito
-del calendario es el **6**, no el 3 (el 3 es el DV; verificado contra GET /company de Alegra).
-La identidad fiscal (razón social, NIT, ciudad) vive **solo** en `app/services/empresa.py` —
-ningún módulo debe volver a escribir el literal. **No extrapola**: para un año sin tabla
-cargada dice "fecha no confirmada" en vez de adivinar — cargar 2027 cuando salga el decreto.
-
-⚠️ **Sin validar aún:** tarifa de retención según tipo de prestamista (confirmar con el
-contador), certificado anual de retenciones en formato DIAN (el plazo sí está: último día
-hábil de marzo), tope de usura (el contrato lo afirma pero nadie lo valida en código) y riesgo
-de captación masiva si esto escala a muchos terceros. Ficha completa, cronología y
-decisiones abiertas: `docs/agentic/modules/prestamos.md`.
-
----
-
-## Endpoints Flask
-
-**Webhooks MeLi:** configurar la aplicación de Mercado Libre para que **`/notifications` apunte solo al proceso del puerto 8080** (`webhook_meli.py`). `routes.py` en 8081 también define `/notifications` por legado; no duplicar el mismo URL en producción (evita doble procesamiento).
-
-**URL pública de callbacks (producción):** `https://bot.mckennagroup.co/notifications` — en el administrador de aplicaciones MeLi, *Notificaciones / Callback URL* debe ser exactamente esa (HTTPS, sin barra final). El hostname **`bot.mckennagroup.co`** (túnel Cloudflare o proxy) debe enrutar el tráfico al servicio que ejecuta **`webhook_meli.py` en el puerto 8080**, no al agente en 8081.
-
-### webhook_meli.py (Puerto 8080)
-
-| Endpoint | Método | Propósito |
-|----------|--------|-----------|
-| `/notifications` | POST | Webhook MeLi: preguntas + órdenes |
-| `/status` | GET | Estado de servicios |
-| `/chat` | POST | Chat IA con Bearer token; body JSON: `mensaje`, `session_id` (o `usuario_id`) |
-
-### agente_pro.py / routes.py (Puerto 8081)
-
-| Endpoint | Método | Auth | Propósito |
-|----------|--------|------|-----------|
-| `/whatsapp` | POST | — | Webhook principal WhatsApp |
-| `/status` | GET | — | Health check |
-| `/chat` | POST | Bearer | Chat IA (`mensaje` + `session_id` o `usuario_id` para historial) |
-| `/panel` | GET | — | Panel HTML (legacy) |
-| `/app` | GET | — | **Panel React SPA** (interfaz principal de operaciones) |
-| `/app/assets/*` | GET | — | Assets JS/CSS del build React |
-| `/api/status` | GET | — | Health check JSON (usado por SPA) |
-| `/api/metricas` | GET | — | Métricas diarias + estado token MeLi |
-| `/api/preventa/pendientes` | GET | Bearer | Preguntas MeLi sin responder |
-| `/api/preventa/casos` | GET | Bearer | Casos aprendidos (últimos 50) |
-| `/api/responder-preventa` | POST | Bearer | Responder pregunta MeLi pendiente |
-| `/api/sync/hoy` | POST | Bearer | Sync facturas último día |
-| `/api/sync/10dias` | POST | Bearer | Sync facturas 10 días |
-| `/api/sync/completo` | POST | Bearer | Full sync + reporte stock |
-| `/api/sync/inteligente` | POST | Bearer | Cruce MeLi ↔ Siigo |
-| `/api/sync/pack` | POST | Bearer | Sync por Pack ID |
-| `/api/sync/fecha` | POST | Bearer | Sync por fecha YYYY-MM-DD |
-| `/api/sync/stock` | POST | Bearer | Reporte stock WhatsApp |
-| `/api/sync/aprendizaje` | POST | Bearer | Fuerza aprendizaje IA MeLi |
-| `/api/sync/gmail` | POST | Bearer | Facturas de compra desde Gmail |
-| `/api/stock/resumen` | GET | Bearer | Stock en vivo de MeLi por SKU (panel Stock) |
-| `/api/stock/sincronizar` | POST | Bearer | Sincroniza un SKU a los canales; devuelve desglose {meli, web, siigo} |
-| `/api/stock/sincronizar-todo` | POST | Bearer | Sincroniza todos los SKUs en segundo plano |
-| `/api/consultar/producto` | GET | Bearer | Busca producto en Sheets |
-| `/api/panel/logs` | GET | Bearer | Líneas recientes de actividad (sync/stock/consultas) para el visor del panel |
-| `/api/panel/logs` | DELETE | Bearer | Vacía el buffer de actividad en memoria |
-| `/api/proveedores/*` | GET/POST/PUT | Bearer / permiso `logistica-internacional` | Red de proveedores: directorio, ¿quién vende…?, precios históricos, catálogos Gmail, oferta web, cotizaciones (ver Flujo I) |
-| `/api/etiquetas/categorias` | GET/PUT | Bearer / permiso Studio | Categorías de producto de las etiquetas (aceites, frutos secos, conservantes…): primer nivel de Diseño → Studio visual. El PUT reemplaza la lista completa y lo eliminado **no** se resucita — ver `app/tools/etiquetas_categorias.py` |
-| `/api/guias/*` | GET/POST | Bearer | Rótulos de envío para impresora térmica: pedidos despachables, remitente, generación del PDF (`/api/guias/rotulos.pdf`), historial y conteo diario — ver `app/tools/guias_envio.py` y Flujo L |
-| `/api/mensajeria/*` | GET/POST/DELETE | Bearer | Pagos de mensajería: días de envíos, lotes de pago, ticket de aprobación y comprobante — ver `app/services/mensajeria_pagos.py` y Flujo K |
-| `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
-| `/api/contabilidad/cc/*` | GET/POST/PATCH/DELETE | Bearer | Libro Mayor propio (partida doble): plan de cuentas, terceros, medios de pago, movimientos, cuentas T, balance de comprobación, plantillas (socios, proveedores, préstamos, ingreso/egreso) — ver `app/services/contabilidad_core.py` y Flujo J |
-| `/api/contabilidad/cc/movimientos/<id>/comprobante` | GET/POST/DELETE | Bearer | Ver/adjuntar/quitar el comprobante de sustento de un asiento (clave para compras sin factura fiscal) |
-| `/api/pagos/*` | GET/POST | Bearer | Solicitudes de pago: categorías, opciones desde saldos reales, previsualización del asiento, crear/aprobar/rechazar — ver `app/services/pagos_wizard.py` y Flujo O |
-| `/api/prestamos/*` | GET/POST | Bearer | Préstamos de terceros con cronograma: simular, crear, cuotas, pagar, documento PDF (contrato/certificado), envío al prestamista, contacto Alegra y ticket mensual — ver `app/services/prestamos.py` y Flujo M |
-| `/api/contabilidad/autopost` | POST | Bearer | Postea manualmente al Libro Mayor lo que agrega `armar_libro()` en el rango dado — ver `app/services/contabilidad_autopost.py` |
-| `/api/contabilidad/ingresos-egresos/manuales` | GET | Bearer | Asientos manuales del Libro Mayor en formato de fila de libro, para fusionar con `armar_libro()` en Ingresos/Egresos |
-| `/api/contabilidad/extractos/pendientes` | GET | Bearer | Líneas de banco (cualquier extracto) sin ningún vínculo en el rango — bandeja "Pendientes por clasificar" |
-| `/confirmar-pago` | POST | — | Confirma/rechaza pago |
-| `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |
-
-**CORS**: habilitado para `localhost:5173` (Vite dev), `tauri://localhost`. Middleware manual en `routes.py`.
-
-**Pedidos tienda web:** lógica en `PAGINA_WEB/site/website.py` y alertas/comandos en grupo `GRUPO_PEDIDOS_WEB_WA` vía `app/tools/web_pedidos.py` (facturación al entregarse, envío y anulación desde WhatsApp — ver Flujo H).
-
----
-
-## Panel de Operaciones React (`desktop/`)
-
-**URL**: `http://localhost:8081/app`  
-**Stack**: React 19 + TypeScript + Vite + Tailwind CSS + Zustand + React Query  
-**Build**: `desktop/dist/` (servido por Flask como archivos estáticos)
-
-### Paneles disponibles
-
-| Panel | Qué hace |
-|-------|----------|
-| **Dashboard** | KPIs en tiempo real: mensajes WA, preguntas MeLi, órdenes, pendientes. Estado de servicios (MeLi, Sheets, Siigo, token). Polling cada 30s |
-| **Chat IA** | Conversación con Hugo García vía `/chat`. Historial en memoria de sesión. Indicador de escritura |
-| **Preventa MeLi** | Lista de preguntas pendientes con respuesta inline. Polling cada 20s. Botón responder → `/api/responder-preventa` |
-| **Sincronización** | 10 acciones: sync hoy/10 días/inteligente/completo, aprendizaje IA, Gmail, stock, por Pack ID, por fecha, consultar producto. Feedback visual por acción |
-| **Stock** | Búsqueda de producto en Sheets, generar reporte stock, verificar SKUs |
-| **Ajustes** | Token actual, versión, estado, cerrar sesión |
-
-### Autenticación
-
-El SPA pide `CHAT_API_TOKEN` al ingresar. Se persiste en `localStorage` (Zustand persist). Todos los endpoints `/api/*` validan Bearer token.
-
-### Desarrollo del panel
-
-```bash
-# Instalar dependencias (una sola vez)
-cd desktop && npm install
-
-# Desarrollo con hot reload (Vite dev server)
-cd desktop && npm run dev
-# → http://localhost:5173/app   (proxy /api y /chat → Flask :8081)
-
-# Build de producción
-cd desktop && npm run build
-# → desktop/dist/   (Flask sirve en /app)
-
-# Reiniciar Flask tras rebuild
-sudo systemctl restart agente-pro
-```
-
-### Arquitectura
-
-```
-Browser → http://localhost:8081/app → Flask sirve desktop/dist/index.html
-  ↓ JS/CSS assets: /app/assets/* → Flask sirve desktop/dist/assets/
-  ↓ API calls: /api/* → Flask endpoints JSON (mismo puerto, con CORS)
-  ↓ Chat: /chat → Flask → Claude tool-use loop
-```
-
----
+## Flujos del negocio (resumen → ficha)
+
+**A · Preventa MeLi** (`webhook-meli.md`). MeLi → `/notifications` en **:8080** (topic `questions`) → ficha técnica
+(Sheets col. I) → LLM del canal `meli_preventa` (Claude; Gemini de respaldo) responde. Sin ficha o si fallan ambos →
+grupo preventa (`resp <3dig>: …`, queda como caso de entrenamiento). **Nunca** un fallback genérico al cliente.
+Posventa (topic `messages`): API de mensajes con `x-version: 2`; adjuntos sin texto también alertan.
+
+**B · Orden pagada MeLi** (`sync-stock.md`). `orders_v2` paid → stock post-venta → `sincronizar_stock_todas_las_plataformas`.
+
+**C/E · WhatsApp → IA y pagos** (`whatsapp-routes.md`). `/whatsapp` :8081: comandos de grupo (`ok|no <3dig>` pagos,
+`resp …`, `posventa <cód>: …`, `facturar|envio|entregado <ref>`), modo humano, comprobantes. Los pagos de clientes son
+durables (`pagos_clientes.db`: sobreviven reinicios, 72 h → `vencido`, guardan quién decidió). Comandos del equipo
+suman al control de horas (±10 min). Espejo de grupos → `wa_chats.db`. ⚠️ `mensajeAPayloadHistorial` rechaza grupos a
+propósito; el espejo usa su payload **sin** `sender_phone`.
+
+**F/G/H · Facturación** (`facturacion-meli-alegra.md`). Política: **facturar al entregar**. MeLi:
+`MELI_AUTOFACTURA_ENTREGA_ACTIVO=0` **apagado a propósito desde 9-sep** (packs a medias + 41 packs facturados dos veces
+con astroselling); se factura con «Facturar ahora» = una factura por carrito, aborta si ya hay factura. Web: `entregado
+<ref>` en el grupo factura. Notas crédito MeLi: `scripts/emitir_notas_credito_cron.py` vuelve a chequear antes de cada
+emisión (10-ago: 4 duplicadas por no hacerlo). Pendiente: WhatsApp aún factura al confirmar pago.
+
+**I · Proveedores + `/cotizar` + mapamundi** (`proveedores.md`). Sin LLM. La web pública **nunca** muestra el nombre del
+proveedor. ⚠️ No poner `reveal` en contenedores de listas largas (quedan invisibles).
+
+**J · Contabilidad** (`contabilidad.md`). El Libro Mayor propio (`contabilidad_core.py`) es la fuente de verdad; Alegra
+queda para el contador. ⛔ Corte `CONTABILIDAD_FECHA_CORTE` = 2026-09-01 (lo anterior es del contador). Trampas:
+Mercado Pago = **130505** (retiro al banco es traslado, no ingreso); 2367 = IVA retenido; 2380 = acreedores varios;
+rendimientos = **236535**; un backfill necesita subir `CONTABILIDAD_LEDGER_BUDGET_S`; ante 503 de Alegra **releer antes
+de reintentar**; IVA de ventas nunca como total/1,19.
+
+**K/L/T · Despachos** (`logistica-despachos.md`). Pagos de mensajería por lote → Solicitudes de pago (un lote con
+`solicitud_pago_id` no se postea otra vez). Rótulos térmicos 10×15 **sin contenido ni valor declarado**; MeLi usa su
+etiqueta. Entregas Flex: ⚠️ no usar `meli.listar_ordenes_meli_por_estado` (corta la paginación en silencio).
+
+**M · Préstamos de terceros** (`prestamos.md`). 25 % E.A., 24 cuotas, retención 7 % contra 236535; documento soporte
+solo por intereses. Dígito del calendario DIAN = **6**.
+
+**N/Q · Socios y terceros** (`relaciones-socios-terceros.md`). Socios compran con tarjeta personal → **2380**; el asiento
+no toca Bancos (Débito 1435 / Crédito 2365 / Crédito 2380); el reintegro (Débito 2380 / Crédito 1110) es lo que se
+concilia. Sin IVA descontable (Art. 485 E.T.). Prestamistas familiares → 2295. El banco personal de un socio **nunca**
+entra a la conciliación de la empresa. Declarador: `/api/socios/*`, cada socio ve solo lo suyo.
+
+**O · Solicitudes de pago** (`pagos-solicitudes.md`, leerla antes de tocar pagos). Asiento nace al **aprobar**; la
+**cuenta PUC decide el impuesto**, el perfil tributario vive en el tercero; gross-up solo si está pactado; dos tokens
+(uno prepara en el banco, otro confirma con captura). Compras = copia fiel de la cotización (renglones activos en
+Alegra, IVA a 240810, total cuadrado al peso). ⚠️ Un PUT a Alegra **reemplaza** (no es parcial). Registro de facturas
+de compra apagado (`FACTURAS_COMPRA_REGISTRO_ACTIVO`).
+
+**P · Agente de ventas v2** (`agente-ventas-v2.md`). `WA_AGENTE_V2` / `WEB_AGENTE_V2` = `off|sombra|activo`. **WhatsApp
+activo desde 29-sep** (web en sombra): en horario cede al asesor y retoma a los 10 min solo si lo amerita
+(`_amerita_retomar` + `omitir_turno`), fuera de horario tiene el control; lo que escribió el asesor manda. El bot **no
+cierra la venta**: arma el pedido y avisa al asesor. Base de clientes en `clientes_wa.py`; copiloto del asesor en
+`auditor_canales.revision_asesor`. ⚠️ Nunca cambiar `os.environ` en caliente para elegir la base: `pedido.usando_modo()`
+(ContextVar). ⚠️ Un envío del bot fuera del webhook debe registrarse antes en `wa_chats.guardar(enviado_por="bot")`.
+
+**R · Ventas directas / Cotizar-Facturar** (`ventas-directas.md`). ⚠️ La lista de precios de Alegra guarda el precio
+**con IVA**: no cotizar ni facturar a mano en Alegra (duplica el IVA). Facturar marca `facturando` antes de llamar a
+Alegra. Venta MeLi con RUT liga la factura al pack. Comisión WhatsApp 3 %.
+
+**Producto: combos, EAN, etiquetas, canales, árbol** (`producto-cadena.md`, flujos U/W/X/Z/AD). Producto de inventario
+(materia prima) ≠ combo de venta (`C-…`, kit); el documento técnico describe la materia prima y el combo lo hereda por
+receta; el EAN nace del SKU de venta y se escribe en el campo `barcode` de Alegra. El **Taller de combos ya no existe**:
+es el **Árbol del producto** (Studio); `combos` es solo alias. `fijar_sku_documento()` edita una línea del YAML;
+`guardar_ficha` reemplaza la ficha entera (toda edición parcial pasa por `actualizar_campos_ficha`).
+La **tienda web se agrupa y nombra como el árbol** (`data/familias_arbol.json`, solo une y renombra, nunca separa);
+rutas de origen del mapa: `scripts/sincronizar_origen_materias.py` (vista previa; `--aplicar`).
+
+**Operación del equipo** (`operacion-equipo.md`: cese Y, chat del equipo AA, insumos AB, buscador de chats AC,
+bultos AE, solicitudes como misión AF). Cese global: `python3 scripts/cese_actividades.py --activar|--desactivar|--estado`.
+⚠️ Desde el 27-sep el cese se levantó con **despliegue gradual** (`despliegue_ventas.json`): MeLi, web y Cotizar/Facturar
+solo venden SKUs que se facturan; ampliar con `scripts/desplegar_ventas_facturables.py --ampliar`.
+
+**Revisión de pesos, medidas y empaques** (`operacion-equipo.md`, AG). Solicitud `subtipo=revision_empaque` con wizard
+(pesar cada combo → medir cada tipo de empaque → entregar → el admin aprueba y aplica en MeLi). Es la fuente de verdad
+de peso/medidas por SKU; nada se escribe en MeLi sin aprobar y antes se relee la publicación.
+
+**RRHH y horas** (`rrhh-horas.md`). ⚠️ **Nunca** poner horario de entrada/salida (convierte honorarios en contrato
+laboral). Tiempos solo cronometrados (≥5 muestras) o huella real, nunca estimados a mano. Salarios fuera de git.
+
+**Colaboradores** (`colaboradores.md`): desde el 3-oct un proyecto es **un solo mapa-cladograma por linaje** (cada tarjeta cuelga de la que la originó; `padre_id`, sin ciclos), con turno y ritmo «visto → respuesta»; el edificio se absorbió como rama «Proceso». Proyectos personales o compartidos por **miembros** (`colab_miembros`): cualquiera con el permiso `colaboradores` (Armando, Cynthia) crea e invita; cada quien ve solo los suyos. «Traer del chat» lee el WhatsApp exportado sin guardarlo. · **Grabar pantalla** e **iconografía** (`desktop-panel.md`) ·
+**Catálogo PDF, CLI, contenido multimedia y científico** (`contenido-catalogo.md`).
+
+## Endpoints (tabla completa: `docs/agentic/ENDPOINTS.md`)
+
+- `/notifications` de MeLi **solo** al proceso :8080. Callback público: `https://bot.mckennagroup.co/notifications`
+  (sin barra final). `routes.py` en :8081 lo define por legado: no duplicar.
+- `/api/*` y `/chat` exigen `Authorization: Bearer <CHAT_API_TOKEN>` (o token de sesión según módulo).
+  `/status`, `/api/metricas`, `/api/costos-ia` sin auth.
+- Un permiso oculto en el menú **no** restringe la API: cada ruta valida su permiso en backend.
+
+## Panel React (`desktop/`, detalle: `docs/agentic/modules/desktop-panel.md`)
+
+- `http://localhost:8081/app`. Build: `cd desktop && npm run build` (compila también `dist-colab/`), luego
+  `sudo systemctl restart agente-pro`. Dev: `npm run dev` → `:5173/app`.
+- `/app` y `/app/assets/*` exigen la cookie `mck_panel` (8 h, `app/spa_sesion.py`); sin ella, pantalla de ingreso.
+  Cuando vence con la app abierta, cargar un panel lazy da 403 → `main.tsx` recarga una vez (`vite:preloadError`).
+  `PANEL_SIN_SESION=1` = interruptor de emergencia. ⚠️ La APK Android debe entrar por
+  `/app/auth/google/start?app=android`.
+- ⚠️ Trampas de UI: `index.css` fuerza `position: relative; overflow: hidden` en todo `button` (posicionar un `div`);
+  un panel de lienzo va en **dos** listas (`Layout.tsx` y `ui/PanelTransition.tsx`); una piel nueva en `SKINS` **y** en
+  `tickets_db.actualizar_preferencias_ui`; React Flow necesita `onNodeClick` o las cartas no reciben clics — probar
+  con eventos reales (CDP), no `element.click()`.
 
 ## Sincronización de Stock (Diseño Actual)
 
@@ -1060,104 +331,6 @@ que el PUT simple siempre funciona en cuentas nuevas o reconfiguradas.
 (su `available_quantity` se puede leer vía `buscar_producto_siigo_por_sku` como referencia, pero nunca se escribe).
 
 ---
-
-## Sistema de Preventa MeLi
-
-### Archivos de persistencia
-
-```python
-# Preguntas sin responder (queue):
-app/data/preguntas_pendientes_preventa.json
-{
-  "preguntas": [{
-    "question_id": "13553987497",
-    "titulo_producto": "Jabón Potásico...",
-    "pregunta": "¿Se puede aplicar a flores?",
-    "timestamp": "2026-04-01T00:00:00",
-    "respondida": false
-  }]
-}
-
-# Casos aprendidos (few-shot):
-app/training/casos_preventa.json
-{
-  "casos": [{
-    "producto": "Urea Cosmética 250 Gr",
-    "pregunta": "¿Viene en polvo o líquida?",
-    "respuesta": "Hola veci, viene en estado sólido...",
-    "timestamp": "2026-03-31T13:17:48"
-  }]
-}
-```
-
-### Árbol de decisión
-
-```
-Nueva pregunta MeLi
-  │
-  ├─ Ficha técnica en Sheets → SI
-  │    └─ LLM del canal `meli_preventa` genera respuesta (Claude primero, Gemini de respaldo)
-  │         ├─ OK → responde automáticamente en MeLi
-  │         └─ Claude y Gemini fallan (503, timeout, presupuesto) → ❓ delega al grupo
-  │
-  └─ Ficha técnica → NO → ❓ delega al grupo
-
-Comando del grupo:
-  "resp <últimos3digID>: <respuesta>"
-  → Responde en MeLi
-  → Guarda como caso de entrenamiento
-```
-
-### Errores comunes en preventa
-
-- **El agente responde genéricamente**: `generar_respuesta_con_ficha()` falló y devolvió el fallback. **Fix aplicado**: ahora devuelve `None` en error y delega al grupo.
-- **Pregunta sin ficha**: producto no tiene datos en columna I de Sheets. Solución: llenar la ficha técnica en el Sheet.
-
----
-
-## Generación de Catálogo PDF
-
-```python
-# generar_catalogo.py - flujo:
-1. leer_productos_sheets() → lee Sheets, extrae meli_id_to_sku de col A
-2. fetch_meli_photos(token, meli_id_to_sku) → descarga 1ª foto por item_id
-3. Inyecta photo_path en cada producto
-4. draw_cover() → portada con logo + caja info
-5. draw_interior_pages() → 2 columnas, tarjetas por categoría
-6. draw_closing() → página final
-7. enviar_whatsapp_archivo(OUT_PDF) → envía al grupo
-
-# Diseño tarjeta (CARD_H = 82pt):
-┌────────────────────────────────────────┐
-│ [FOTO 58x58] NOMBRE DEL PRODUCTO       │
-│              Ref: SKU                   │
-│              MeLi: $XX.XXX ~~tachado~~ │
-│              $XX.XXX COP  Ahorras 10%  │
-└────────────────────────────────────────┘
-
-# Clave: fotos se obtienen por meli_id (col A de Sheets), NO por seller_custom_field.
-# El seller_custom_field de MeLi usa formato "AS-XX" diferente a los SKUs del catálogo.
-```
-
----
-
-## CLI Menu (app/cli.py)
-
-El servidor lanza un hilo con menú interactivo de **8 opciones** con submenús:
-
-```
-1  → Chat directo con Hugo García
-2  → Facturas MeLi ↔ Siigo  [submenú: inteligente / 24h / N días / fecha / pack ID]
-3  → Stock e inventario      [submenú: reporte completo / verificar SKUs / Sincronizar Web]
-4  → Consultar producto en Google Sheets
-5  → Forzar aprendizaje IA desde Q&A MeLi
-6  → Registrar facturas de compra en SIIGO (desde Gmail)
-7  → Generar contenido científico y publicar en WordPress
-8  → Salir
-```
-
----
-
 ## IA Principal (app/core.py)
 
 - **Modelo por canal**: asignado en `app/services/canales_config.py` / editable en Panel → Sistemas → Chat de Agentes → Canales (persistido en `app/data/canales_modelos.json`). Claude `claude-sonnet-5` es el default en `whatsapp`, `web_chat` y `meli_preventa`, vía `ANTHROPIC_API_KEY`. El canal `postventa` (borrador de respuesta a mensajes postventa MeLi recibidos por WhatsApp con `es_postventa=true`, ver Flujo C) usa `claude-opus-5` desde 2026-09-04 — prueba acotada por ser el caso con más ambigüedad; siempre pasa por aprobación humana antes de enviarse, así que un error de más solo cuesta una revisión extra, no un envío incorrecto.
@@ -1175,18 +348,6 @@ El servidor lanza un hilo con menú interactivo de **8 opciones** con submenús:
 - Para "¿cómo va conexión?": usar `refrescar_token_meli()`
 
 ---
-
-## Almacenamiento
-
-| Store | Tecnología | Propósito |
-|-------|-----------|-----------|
-| Conversaciones | SQLite (`app/tools/memoria.py`) | Historial chats |
-| Embeddings | ChromaDB (`memoria_vectorial/`) | Q&A MeLi aprendidas |
-| Catálogo/Inventario | Google Sheets | Fuente de verdad productos |
-| Pendientes/Config | JSON files (`app/data/`) | Estado del sistema |
-| Facturas/PDFs | Archivos locales | `facturas_descargadas/` |
-| Comprobantes | Archivos locales | `comprobantes/` |
-
 ### Convención — dónde debe vivir un archivo nuevo
 
 Tres ubicaciones posibles, en este orden de preferencia. **Antes de crear una carpeta nueva
@@ -1220,142 +381,6 @@ viven en el repo (nivel 2) mientras que los PNG derivados para imprimir viven fu
 — es una inconsistencia heredada, no un patrón a repetir para datos nuevos.
 
 ---
-
-## Archivos que NO deben estar en git
-
-```gitignore
-.env
-credenciales_meli.json
-credenciales_google.json
-credenciales_SIIGO.json
-mi-agente-ubuntu-*.json
-client_secret_cloud.json
-token_gmail.json
-venv/
-memoria_vectorial/    # puede ser grande
-backups_drive/        # .tar.gz del backup nocturno (local)
-*.log
-uploads/
-Etiquetas Modelo SVG/ # 495 masters .ai/.svg — pesado, cambia seguido
-IMAGENES_PRODUCTOS_CATALOGO/
-facturas_descargadas/
-```
-
----
-
-## Pipeline de Contenido Multimedia (scripts de consola)
-
-Capacidades de generación de contenido ya integradas. **No forman parte del CLI del agente** — se ejecutan directamente desde la terminal con `source venv/bin/activate` y el script correspondiente.
-
-### Flujo del pipeline completo
-
-```
-Gemini (copy + prompts)
-  └─ Ideogram (imagen de fondo con IA)
-       └─ PIL (composición: texto, logo, paleta de marca)
-            └─ ElevenLabs (narración TTS en español colombiano)
-                 └─ fal.ai / Kling v1.6 (video desde imagen o texto)
-                      └─ Facebook Graph API (publicación en página)
-```
-
-### Scripts
-
-| Script | Uso | Descripción |
-|--------|-----|-------------|
-| `pipeline_contenido_facebook.py` | `python3 pipeline_contenido_facebook.py --tipo ficha --slug acido-ascorbico` | Pipeline completo Copy→Imagen→Voz→Video→Facebook. `--auto` elige el contenido automáticamente |
-| `generar_infografias_facebook.py` | `python3 generar_infografias_facebook.py --tipo receta --n 3` | Infografías estáticas con PIL sin video ni audio |
-| `sincronizar_facebook.py` | `python3 sincronizar_facebook.py` | Borra y republica la página con productos, guías y blog posts actuales |
-
-### Tipos de contenido
-
-- `ficha` — Ingrediente: beneficios, concentración, compatibilidad
-- `receta` — Fórmula paso a paso con ingredientes
-- `comparativa` — Dos ingredientes frente a frente
-- `tip` — Consejo profesional de formulación
-
-### Fallback de video
-
-Si fal.ai no tiene saldo, `generar_video_ken_burns()` genera el video localmente con **ffmpeg** (efecto zoom cinematográfico sobre la imagen).
-
----
-
-## Generación de Contenido Científico y Web
-
-Scripts de investigación científica automatizada y publicación en WordPress. **No forman parte del CLI del agente** — se ejecutan directamente desde la terminal o desde la opción 7 del CLI.
-
-### Módulo principal: knowledge_agent.py
-
-```python
-# app/tools/knowledge_agent.py — flujo:
-1. buscar_pubmed(termino, max_results=5)
-     → NCBI E-utilities API (gratuita, sin key)
-     → Endpoints: esearch.fcgi + efetch.fcgi
-     → Extrae: PMID, título, abstract, autores, año, URL
-     → Query con filtros MeSH: cosmetic[MeSH] OR pharmaceutical[MeSH]
-     → Fallback sin filtros si no retorna resultados
-
-2. buscar_arxiv(termino, max_results=3)
-     → ArXiv API Atom (gratuita, sin key)
-     → URL: https://export.arxiv.org/api/query
-     → Parsea XML: <entry>, <title>, <summary>, <published>
-     → Útil para nanomateriales y tendencias emergentes
-
-3. scrape_url(url)
-     → scrapling (librería especializada de web scraping)
-     → Fallback: requests + regex sobre <p> y <div>
-     → Límite: 4000 caracteres por URL
-
-4. generar_y_publicar_contenido(tema, tipo, publicar=True)
-     → Tipos: "post_blog", "receta", "manual_uso", "ficha"
-     → Síntesis por defecto **Gemini 2.5-Pro** (API); Ollama local solo con `AGENTE_SYNTHESIS_PRIMARY=ollama` o fallback explícito (ver `.env.example`)
-     → Enriquece con referencias PubMed + ArXiv
-     → Almacena embeddings en ChromaDB (para respuestas preventa)
-     → Publica en WordPress vía REST API si publicar=True
-
-5. publicar_en_wordpress(titulo, contenido, categoria_id)
-     → Endpoint: https://mckennagroup.co/wp-json/wp/v2/posts
-     → Auth: Base64(WP_USER:WP_APP_PASSWORD)
-     → Variables: WP_USER, WP_APP_PASSWORD
-```
-
-### Scripts de generación masiva
-
-| Script | Descripción | Output |
-|--------|-------------|--------|
-| `generar_guias_masivas.py` | 62 ingredientes farmacéuticos/cosméticos. Cada guía tiene 7 secciones HTML: descripción, concentraciones (tabla), compatibilidad, incorporación, almacenamiento, normativa INVIMA, FAQ. Integra PubMed. | `/PAGINA_WEB/site/data/guias.json` |
-| `generar_posts_masivos.py` | 20+ posts comparativos (ej: Niacinamida vs Clindamicina). Cada post incluye hallazgos contrastados, gráficas SVG/CSS inline, bibliografía. Usa PubMed con filtros MeSH. | `/PAGINA_WEB/site/data/posts.json` |
-| `generar_recetas_masivas.py` | 40+ recetas de formulación en 4 categorías: cosmética, nutrición, perfumería, hogar. Genera ingredientes, cantidades, modo de preparación, precauciones con Gemini. | `/PAGINA_WEB/site/data/recetas.json` |
-
-### Uso desde consola
-
-```bash
-# Knowledge agent (artículo específico)
-source venv/bin/activate
-python3 -c "
-from app.tools.knowledge_agent import generar_y_publicar_contenido
-generar_y_publicar_contenido('Niacinamida cosmética', 'post_blog', publicar=True)
-"
-
-# Guías masivas (62 ingredientes)
-python3 generar_guias_masivas.py
-
-# Posts comparativos
-python3 generar_posts_masivos.py
-
-# Recetas de formulación
-python3 generar_recetas_masivas.py
-```
-
-### Variables de entorno requeridas
-
-```env
-WP_USER            # Usuario WordPress con permisos de editor
-WP_APP_PASSWORD    # Application Password (WP → Usuarios → Contraseñas de aplicación)
-WC_URL             # https://mckennagroup.co (también usado como WP_URL base)
-```
-
----
-
 ## Decisiones de Diseño Importantes
 
 1. **Fuente de verdad de stock**: cada plataforma es fuente de verdad de su propio stock cuando vende. No hay un "master" externo.
@@ -1396,3 +421,28 @@ WC_URL             # https://mckennagroup.co (también usado como WP_URL base)
    Alegra sigue recibiendo lo que ya recibía (facturación) y queda como herramienta de
    consulta/exportación para el contador, no como el sistema donde se lleva el control interno.
    Ver Flujo J y `docs/agentic/modules/contabilidad.md`.
+## Dónde está el detalle
+
+| Tema | Ficha |
+|------|-------|
+| Estructura de directorios y almacenamiento | `docs/agentic/ESTRUCTURA.md` |
+| Todos los endpoints | `docs/agentic/ENDPOINTS.md` |
+| Preventa / posventa MeLi (A, B) | `docs/agentic/modules/webhook-meli.md` |
+| WhatsApp y pagos de clientes (C, E) | `docs/agentic/modules/whatsapp-routes.md` |
+| Facturación MeLi/web, notas crédito (F, G, H) | `docs/agentic/modules/facturacion-meli-alegra.md` |
+| Proveedores y /cotizar (I) | `docs/agentic/modules/proveedores.md` |
+| Contabilidad (J) | `docs/agentic/modules/contabilidad.md` |
+| Mensajería, rótulos, Entregas Flex (K, L, T) | `docs/agentic/modules/logistica-despachos.md` |
+| Préstamos (M) | `docs/agentic/modules/prestamos.md` |
+| Socios, terceros, Declarador (N, Q) | `docs/agentic/modules/relaciones-socios-terceros.md` |
+| Solicitudes de pago (O) | `docs/agentic/modules/pagos-solicitudes.md` |
+| Agente de ventas v2 (P) | `docs/agentic/modules/agente-ventas-v2.md` |
+| Ventas directas (R) | `docs/agentic/modules/ventas-directas.md` |
+| Mapa, combos, EAN, canales, árbol del producto (U, W, X, Z, AD) | `docs/agentic/modules/producto-cadena.md` |
+| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión, revisión de empaques (Y, AA, AB, AC, AE, AF, AG) | `docs/agentic/modules/operacion-equipo.md` |
+| Rendimiento, mapa de funciones, control de horas | `docs/agentic/modules/rrhh-horas.md` |
+| Colaboradores | `docs/agentic/modules/colaboradores.md` |
+| Panel React, iconografía, grabar pantalla (V, S) | `docs/agentic/modules/desktop-panel.md` |
+| Stock multicanal | `docs/agentic/modules/sync-stock.md` |
+| Puertos y systemd | `docs/agentic/modules/ops-systemd.md` |
+| Catálogo PDF, CLI, contenido | `docs/agentic/modules/contenido-catalogo.md` |

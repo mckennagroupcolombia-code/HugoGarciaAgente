@@ -115,7 +115,7 @@ export interface ElementoImagen extends ElementoBase {
   type: "image";
   src: string;
   objectFit: "contain" | "cover";
-  /** Logo, código de barras o icono de bloque (ORIGEN, OLOR, …). */
+  /** Logo, código de barras o icono de bloque (ORIGEN, AROMA, …). */
   rolCapa?: RolCapaImagen;
 }
 
@@ -955,7 +955,7 @@ export function labelCapaElemento(
         casNumero: "CAS",
         origen: "ORIGEN",
         apariencia: "APARIENCIA",
-        olor: "OLOR",
+        olor: "AROMA",
         composicion: "COMPOSICIÓN",
         grado: "GRADO",
         almacenamiento: "CONSERVACIÓN",

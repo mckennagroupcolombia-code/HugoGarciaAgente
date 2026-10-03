@@ -120,6 +120,19 @@ def _conn(modo: str | None = None) -> sqlite3.Connection:
             error TEXT
         )"""
     )
+    columnas_turnos = {r[1] for r in c.execute("PRAGMA table_info(turnos)").fetchall()}
+    if "estado" not in columnas_turnos:
+        # respondido | omitido | diferido | descartado_asesor | sin_merito | sombra
+        c.execute("ALTER TABLE turnos ADD COLUMN estado TEXT")
+    if "motivo" not in columnas_turnos:
+        c.execute("ALTER TABLE turnos ADD COLUMN motivo TEXT")
+    # Último aviso "cliente esperando" enviado al asesor por chat (para no insistir).
+    c.execute(
+        """CREATE TABLE IF NOT EXISTS avisos_espera (
+            jid TEXT PRIMARY KEY,
+            ts REAL NOT NULL
+        )"""
+    )
     return c
 
 
@@ -318,9 +331,38 @@ def quitar_pausa(jids: set[str]) -> None:
         c.execute(f"DELETE FROM pausas WHERE jid IN ({','.join('?' * len(jids))})", tuple(jids))
 
 
+def ultimos_pedidos(jid: str, n: int = 3) -> list[Pedido]:
+    """Pedidos anteriores del cliente con productos (más recientes primero), sin el vigente."""
+    vigente = activo(jid, crear=False)
+    with _lock, _conn() as c:
+        filas = c.execute(
+            "SELECT * FROM pedidos WHERE jid=? AND items != '[]' ORDER BY actualizado DESC LIMIT ?",
+            (jid, int(n) + 1),
+        ).fetchall()
+    out = [_fila_a_pedido(r) for r in filas]
+    return [p for p in out if not vigente or p.id != vigente.id][:n]
+
+
+def aviso_espera_reciente(jid: str, horas: float = 2.0) -> bool:
+    with _lock, _conn() as c:
+        r = c.execute("SELECT ts FROM avisos_espera WHERE jid=?", (jid,)).fetchone()
+    return bool(r and time.time() - float(r["ts"]) < horas * 3600)
+
+
+def marcar_aviso_espera(jid: str) -> None:
+    with _lock, _conn() as c:
+        c.execute(
+            "INSERT INTO avisos_espera (jid, ts) VALUES (?, ?) ON CONFLICT(jid) DO UPDATE SET ts=excluded.ts",
+            (jid, time.time()),
+        )
+
+
 def registrar_turno(**kw) -> None:
     """Bitácora de cada turno (activo o sombra) para auditar calidad y costo."""
-    cols = ("jid", "modo", "entrada", "respuesta", "herramientas", "llamadas", "tokens_in", "tokens_out", "error")
+    cols = (
+        "jid", "modo", "entrada", "respuesta", "herramientas", "llamadas", "tokens_in", "tokens_out",
+        "error", "estado", "motivo",
+    )
     vals = [kw.get(k) for k in cols]
     try:
         with _lock, _conn() as c:

@@ -237,6 +237,67 @@ def registrar_evento_panel(
         db.commit()
 
 
+# Paneles que no son un destino: la Agenda es el origen (siempre a un clic) y
+# perfil/ajustes no son trabajo. Mostrarlos en los atajos solo ocuparía sitio.
+_SIN_ATAJO = {"hugo", "tickets", "perfil", "settings"}
+
+
+def atajos_frecuentes(
+    usuario_id: int,
+    *,
+    dias: int = 45,
+    vida_media_dias: float = 10.0,
+    limite: int = 8,
+    ahora: datetime | None = None,
+) -> dict:
+    """Los paneles a los que más va esta persona, sacados de sus `panel_view`.
+
+    No es un conteo plano: cada visita pesa `0.5 ** (antigüedad / vida_media_dias)`,
+    así que lo de esta semana manda sobre lo de hace un mes y el menú se acomoda
+    solo cuando alguien cambia de oficio (quien pasó de etiquetas a facturación no
+    carga etiquetas arriba durante meses). Devuelve también los últimos paneles
+    distintos visitados, para «volver a donde estaba».
+    """
+    ahora = ahora or datetime.now()
+    desde = (ahora - timedelta(days=dias)).strftime("%Y-%m-%d %H:%M:%S")
+    with _conn() as db:
+        filas = db.execute(
+            """SELECT panel, creado_en FROM panel_eventos_operativos
+                WHERE usuario_id=? AND tipo='panel_view' AND panel IS NOT NULL
+                  AND creado_en >= ?
+                ORDER BY creado_en DESC""",
+            (int(usuario_id), desde),
+        ).fetchall()
+
+    puntaje: dict[str, float] = {}
+    visitas: dict[str, int] = {}
+    ultima: dict[str, str] = {}
+    recientes: list[str] = []
+    for r in filas:
+        panel = r["panel"]
+        if panel in _SIN_ATAJO:
+            continue
+        cuando = _parse_dt(r["creado_en"])
+        if not cuando:
+            continue
+        edad = max(0.0, (ahora - cuando).total_seconds() / 86400)
+        puntaje[panel] = puntaje.get(panel, 0.0) + 0.5 ** (edad / vida_media_dias)
+        visitas[panel] = visitas.get(panel, 0) + 1
+        if panel not in ultima:
+            ultima[panel] = r["creado_en"]
+            if len(recientes) < 5:
+                recientes.append(panel)
+
+    orden = sorted(puntaje, key=lambda p: (-puntaje[p], p))[:limite]
+    return {
+        "frecuentes": [
+            {"panel": p, "visitas": visitas[p], "puntaje": round(puntaje[p], 2), "ultima": ultima[p]}
+            for p in orden
+        ],
+        "recientes": recientes,
+    }
+
+
 def log_panel_tarea(
     usuario: dict | None,
     tipo: str,

@@ -24,9 +24,22 @@ _speaker_default = os.getenv("QWEN3_TTS_SPEAKER", "ryan")  # minúsculas: ryan, 
 
 
 def qwen3_disponible() -> bool:
+    """
+    True solo si el motor puede realmente sintetizar.
+
+    Comprueba `torch` además de `qwen_tts`: desde la limpieza del venv del
+    20-sep-2026 torch ya no está instalado (lo arrastraban 7 GB de CUDA que
+    nada usaba), así que el paquete `qwen_tts` puede estar presente mientras
+    `_cargar_modelo()` falla con ModuleNotFoundError. Sin esta comprobación la
+    cascada de /api/voz/sintetizar elegía qwen3 y reventaba en vez de seguir
+    hacia ElevenLabs. El motor vivo es voicebox, en su propio venv.
+    """
     try:
         import importlib.util
-        return importlib.util.find_spec("qwen_tts") is not None
+        for mod in ("qwen_tts", "torch"):
+            if importlib.util.find_spec(mod) is None:
+                return False
+        return True
     except Exception:
         return False
 

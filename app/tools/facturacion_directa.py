@@ -37,7 +37,20 @@ def _telefono_a_jid(numero: str) -> str | None:
         return None
     if numero.endswith("@lid") or numero.endswith("@c.us") or numero.endswith("@g.us"):
         return numero
-    digits = re.sub(r"\D", "", numero)
+    jid = _celular_a_jid(numero)
+    if jid:
+        return jid
+    # Dos números en el mismo campo («3173033440-3204642331», «317… / 320…», «317… y 320…»):
+    # se usa el primero válido en vez de bloquear la factura (28-sep-2026, venta #40).
+    for parte in re.split(r"[-/,;|]|\s+(?:y|o)\s+", numero, flags=re.IGNORECASE):
+        jid = _celular_a_jid(parte)
+        if jid:
+            return jid
+    return None
+
+
+def _celular_a_jid(numero: str) -> str | None:
+    digits = re.sub(r"\D", "", numero or "")
     if len(digits) == 10 and digits.startswith("3"):
         return f"57{digits}@c.us"
     if len(digits) == 12 and digits.startswith("57") and digits[2] == "3":

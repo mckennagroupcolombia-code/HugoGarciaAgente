@@ -46,6 +46,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Escribe a quien dejó un pedido web sin pagar (máximo dos correos por pedido, con enlace que rearma el carrito). RECUPERACION_COMPRA_ACTIVO=0 lo apaga.",
         "script": "scripts/recuperacion_compra_cron.py",
     },
+    "precios_trm": {
+        "nombre": "Precios según TRM (propuesta)",
+        "descripcion": "Compara la TRM BanRep de hoy con la TRM con la que se fijó cada precio y propone subir o bajar (traslado y umbral en Rentabilidad → Precios TRM). No cambia nada: un administrador aprueba. PRECIOS_TRM_ACTIVO=0 lo apaga.",
+        "script": "scripts/precios_trm_cron.py",
+    },
     "auditoria_scripts": {
         "nombre": "Auditoría de scripts",
         "descripcion": "py_compile de los scripts del manifiesto; alerta por WhatsApp si algo falla.",
@@ -134,10 +139,20 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Acumula día a día en qué municipios reales se despachan pedidos de MercadoLibre (GET /shipments/{id} por envío nuevo), para la sección \"¿A dónde hemos llegado?\" del inicio de la tienda web. No hay backfill retroactivo: solo crece hacia adelante.",
         "script": "scripts/actualizar_cobertura_meli_cron.py",
     },
+    "entregas_flex": {
+        "nombre": "Entregas Flex MeLi (horas de entrega)",
+        "descripcion": "Guarda la hora de salida y de entrega de cada envío Flex (reparto propio en Bogotá) para ver en Atención → Entregas Flex cómo evoluciona semana a semana. Solo consulta envíos nuevos o abiertos de los últimos 10 días; sin IA. ENTREGAS_FLEX_CRON_ACTIVO=0 lo apaga.",
+        "script": "scripts/entregas_flex_cron.py",
+    },
     "contabilidad_autopost": {
         "nombre": "Auto-posteo contable (libro de partida doble)",
         "descripcion": "Postea al libro mayor propio (Contabilidad → Libro Mayor) las ventas MeLi/web/Siigo, compras, compras al exterior, servicios, impuestos y cuotas de créditos que ya agrega el libro operativo (Contabilidad → Ingresos y Egresos), para que el balance de comprobación refleje todo el negocio. Ventana móvil de los últimos días (default 10); reprocesar no duplica.",
         "script": "scripts/contabilidad_autopost_cron.py",
+    },
+    "adjuntar_soportes": {
+        "nombre": "Soportes del Libro Mayor (facturas adjuntas)",
+        "descripcion": "Baja de Alegra los PDF de facturas y notas crédito propias que falten, y adjunta a cada asiento sin soporte la factura PDF/XML de facturas_descargadas/ (compras por NIT + número leídos del XML de la DIAN; ventas por su FE), para que el contador la abra desde la columna «Soporte» de los CSV. Solo enlaza archivos, nunca pisa un soporte subido a mano ni toca lo anterior al corte; sin IA. ADJUNTAR_SOPORTES_CRON_ACTIVO=0 lo apaga.",
+        "script": "scripts/adjuntar_soportes_cron.py",
     },
     "revision_facturacion": {
         "nombre": "Revisión autónoma de facturación MeLi",

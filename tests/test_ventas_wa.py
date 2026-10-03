@@ -150,12 +150,167 @@ def test_pendientes_y_agrupacion(monkeypatch):
 
 def test_bot_se_calla_si_el_asesor_escribio(monkeypatch):
     monkeypatch.setattr("app.services.wa_jid.jids_relacionados", lambda j: {j})
+    monkeypatch.setattr(entrada, "en_horario_equipo", lambda: True)
     msgs = [_m(1, "cliente", "hola", 600), _m(2, "asesor", "Buen día, soy Jenniffer", 500), _m(3, "cliente", "gracias", 5)]
+    # En horario: el asesor tiene el chat y el bot programa un reintento a los 10 min.
+    assert entrada.evaluar_silencio("573000000004@c.us", msgs) == ("asesor_activo", 10)
     assert entrada.motivo_silencio("573000000004@c.us", msgs) == "asesor_activo"
     viejo = [_m(1, "asesor", "hola", 13 * 3600), _m(2, "cliente", "hola de nuevo", 5)]
     assert entrada.motivo_silencio("573000000004@c.us", viejo) is None
     ped_mod.pausar("573000000004@c.us", 1, "manual")
     assert entrada.motivo_silencio("573000000004@c.us", viejo) == "pausa_manual"
+
+
+def test_fuera_de_horario_el_bot_toma_el_control(monkeypatch):
+    monkeypatch.setattr("app.services.wa_jid.jids_relacionados", lambda j: {j})
+    monkeypatch.setattr(entrada, "en_horario_equipo", lambda: False)
+    hace_8_min = [_m(1, "cliente", "hola", 600), _m(2, "asesor", "te confirmo", 480), _m(3, "cliente", "creatina?", 5)]
+    assert entrada.evaluar_silencio("573000000010@c.us", hace_8_min) == (None, 0)  # responde ya
+    recien = [_m(1, "cliente", "hola", 100), _m(2, "asesor", "hola, dime", 60), _m(3, "cliente", "creatina?", 5)]
+    assert entrada.evaluar_silencio("573000000010@c.us", recien) == ("asesor_activo", 3)  # no lo pisa en caliente
+    # Al retomar (reintento diferido) el asesor ya no bloquea; la pausa manual sí.
+    assert entrada.evaluar_silencio("573000000010@c.us", recien, retomando=True) == (None, 0)
+    ped_mod.pausar("573000000010@c.us", 1, "manual")
+    assert entrada.evaluar_silencio("573000000010@c.us", recien, retomando=True) == ("pausa_manual", 0)
+
+
+def test_amerita_retomar_solo_cuando_aporta():
+    base = [_m(1, "cliente", "hola", 900), _m(2, "asesor", "Buen día, ¿qué necesitas?", 800)]
+    assert entrada._amerita_retomar(base + [_m(3, "cliente", "Muchas gracias 🙏", 600)]) == (False, "solo cortesía o cierre")
+    adj = dict(_m(3, "cliente", "[adjunto]", 600), tiene_media=1)
+    assert entrada._amerita_retomar(base + [adj])[0] is False
+    assert entrada._amerita_retomar(base + [_m(3, "cliente", "me comunicas con Jenniffer porfa", 600)])[0] is False
+    guia = [_m(1, "cliente", "listo pagué", 900), _m(2, "asesor", "gracias más tarde te envío la guía", 800), _m(3, "cliente", "y la guía?", 600)]
+    assert entrada._amerita_retomar(guia) == (False, "el asesor dejó algo pendiente de su parte")
+    ok, _ = entrada._amerita_retomar(base + [_m(3, "cliente", "¿tienen creatina de 500?", 600)])
+    assert ok
+
+
+def test_diferido_no_habla_si_el_asesor_respondio(monkeypatch):
+    monkeypatch.setattr("app.services.wa_jid.jids_relacionados", lambda j: {j})
+    monkeypatch.setattr(entrada, "en_horario_equipo", lambda: True)
+    monkeypatch.setattr(hist, "id_por_wa_id", lambda w: 3)
+    turnos = []
+    monkeypatch.setattr("app.agent.ventas_wa.agente.ejecutar_turno", lambda *a, **kw: turnos.append(kw) or None)
+    # El asesor contestó mientras el bot esperaba: el último mensaje ya no es el del cliente.
+    msgs = [_m(1, "cliente", "hola", 900), _m(2, "asesor", "hola", 800), _m(3, "cliente", "creatina?", 700), _m(4, "asesor", "kilo: 65.700", 60)]
+    monkeypatch.setattr(hist, "mensajes", lambda jid, **kw: msgs)
+    r = entrada.atender("573000000011@c.us", wa_id="x", esperar=False, retomando_min=10)
+    assert r["status"] == "v2_agrupado" and not turnos
+
+
+def test_diferido_sin_merito_avisa_al_asesor_y_no_gasta_modelo(monkeypatch):
+    monkeypatch.setattr("app.services.wa_jid.jids_relacionados", lambda j: {j})
+    monkeypatch.setattr(entrada, "en_horario_equipo", lambda: True)
+    monkeypatch.setattr(hist, "id_por_wa_id", lambda w: 3)
+    avisos = []
+    monkeypatch.setattr(hz, "enviar_alerta_asesor", lambda t: avisos.append(t) or True)
+    turnos = []
+    monkeypatch.setattr("app.agent.ventas_wa.agente.ejecutar_turno", lambda *a, **kw: turnos.append(kw) or None)
+    msgs = [_m(1, "cliente", "listo pagué", 900), _m(2, "asesor", "más tarde te envío la guía", 800), _m(3, "cliente", "vale gracias", 600)]
+    monkeypatch.setattr(hist, "mensajes", lambda jid, **kw: msgs)
+    r = entrada.atender("573000000012@c.us", wa_id="x", esperar=False, retomando_min=10)
+    assert r["status"] == "v2_sin_merito" and not turnos
+    assert len(avisos) == 1 and "esperando hace 10 min" in avisos[0]
+    assert ped_mod.listar_turnos("activo")[0]["estado"] == "sin_merito"
+    # Un segundo reintento en menos de 2 h no vuelve a avisar.
+    entrada.atender("573000000012@c.us", wa_id="x", esperar=False, retomando_min=10)
+    assert len(avisos) == 1
+
+
+def test_retoma_descarta_si_el_asesor_escribio_durante_el_turno(catalogo, monkeypatch):
+    from app.agent.ventas_wa import agente
+
+    monkeypatch.setattr("app.services.wa_jid.jids_relacionados", lambda j: {j})
+    monkeypatch.setattr(entrada, "en_horario_equipo", lambda: True)
+    monkeypatch.setattr(hist, "id_por_wa_id", lambda w: 3)
+    msgs = [_m(1, "cliente", "hola", 900), _m(2, "asesor", "hola", 800), _m(3, "cliente", "creatina?", 700)]
+    llamadas = {"n": 0}
+
+    def _mensajes(jid, **kw):
+        llamadas["n"] += 1
+        # La relectura posterior al turno ya trae al asesor escribiendo.
+        return msgs if llamadas["n"] == 1 else msgs + [_m(4, "asesor", "kilo 65.700", -1)]
+
+    monkeypatch.setattr(hist, "mensajes", _mensajes)
+    monkeypatch.setattr(agente, "ejecutar_turno", lambda *a, **kw: agente.ResultadoTurno(respuesta="Tenemos creatina", llamadas=1))
+    r = entrada.atender("573000000013@c.us", wa_id="x", esperar=False, retomando_min=10)
+    assert r == {"status": "v2_descartado_asesor", "respuesta": None}
+    assert ped_mod.listar_turnos("activo")[0]["estado"] == "descartado_asesor"
+
+
+def test_omitir_turno_solo_al_retomar_y_calla(catalogo, monkeypatch):
+    from app.agent.ventas_wa import agente
+
+    monkeypatch.setattr("app.services.llm_budget.permitir_llamada", lambda m, contexto="": (True, ""))
+    monkeypatch.setattr("app.services.llm_budget.registrar_llamada", lambda m, **kw: None)
+    assert "omitir_turno" not in {d["name"] for d in hz.definiciones("whatsapp")}
+    assert "omitir_turno" in {d["name"] for d in hz.definiciones("whatsapp", retomando=True)}
+
+    class _Omite:
+        def __init__(self):
+            self.messages = self
+            self.llamadas = []
+
+        def create(self, **kw):
+            self.llamadas.append(kw)
+            uso = SimpleNamespace(input_tokens=10, output_tokens=5, cache_creation_input_tokens=0, cache_read_input_tokens=0)
+            b = SimpleNamespace(type="tool_use", id="t1", name="omitir_turno", input={"motivo": "la guía la envía el asesor"})
+            return SimpleNamespace(stop_reason="tool_use", content=[b], usage=uso)
+
+    msgs = [_m(1, "cliente", "pagué", 900), _m(2, "asesor", "más tarde te envío la guía", 800), _m(3, "cliente", "y la guía?", 700)]
+    falso = _Omite()
+    res = agente.ejecutar_turno("573000000014@c.us", "x", msgs, cliente=falso, retomando_min=10)
+    assert res.respuesta is None and res.omitido == "la guía la envía el asesor" and len(falso.llamadas) == 1
+    assert "RETOMANDO" in falso.llamadas[0]["messages"][0]["content"]
+
+
+def test_precio_del_asesor_es_evidencia_valida(catalogo, monkeypatch):
+    from app.agent.ventas_wa import agente
+    from app.agent.ventas_wa import supervisor as sup
+
+    # Reglas: un monto que escribió el asesor no es "inventado".
+    assert sup.revisar_reglas("El kilo le queda en $81.000 como le dijo la asesora.", evidencia="ASESOR: te dejo el kilo en 81.000", cliente={}).ok
+    assert not sup.revisar_reglas("El kilo le queda en $81.000.", evidencia="", cliente={}).ok
+    # En el bucle, lo dicho por el asesor entra a la evidencia base.
+    monkeypatch.setattr("app.services.llm_budget.permitir_llamada", lambda m, contexto="": (True, ""))
+    monkeypatch.setattr("app.services.llm_budget.registrar_llamada", lambda m, **kw: None)
+    g = _ClaudeGuion(["Como le indicó la asesora, el kilo queda en $81.000, veci."])
+    msgs = [_m(1, "cliente", "precio proteína?", 900), _m(2, "asesor", "te puedo dejar el kilo en 81.000", 800), _m(3, "cliente", "y 5 kilos?", 700)]
+    res = agente.ejecutar_turno("573000000015@c.us", "x", msgs, modo="sombra", cliente=g)
+    assert res.respuesta and "$81.000" in res.respuesta and not res.supervision
+
+
+def test_revisor_no_llama_promesa_sin_expresion_de_tiempo():
+    from app.agent.ventas_wa import supervisor as sup
+
+    reparos = ["Hugo promete que el asesor revisa el precio, gestión que no puede cumplir.", "Da un precio que no está en la evidencia."]
+    assert sup.filtrar_promesas_sin_plazo("Un asesor revisa su precio y sigue con usted por este chat.", reparos) == reparos[1:]
+    assert sup.filtrar_promesas_sin_plazo("Un asesor le confirma en un momento.", reparos) == reparos
+    # Repetirle al cliente su propia cifra no es inventar un precio.
+    ev = "CLIENTE escribió en este turno:\nme lo dejaban a 78.000"
+    assert sup.revisar_reglas("Los $78.000 que menciona los revisa el asesor, veci.", evidencia=ev, cliente={}).ok
+
+
+def test_prompt_lleva_playbook_del_equipo():
+    from app.agent.ventas_wa.agente import SYSTEM_PROMPT
+
+    for frase in ("la libra (500 g)", "Lo que escribió un ASESOR manda", "franja de la tarde", "ya incluyen IVA", "Nunca des el número de WhatsApp"):
+        assert frase in SYSTEM_PROMPT
+
+
+def test_pedidos_anteriores_en_contexto(catalogo):
+    from app.agent.ventas_wa import agente
+
+    ctx = hz.ContextoTurno(jid="573000000016@c.us", display="x", modo="sombra")
+    hz.ejecutar(ctx, "actualizar_pedido", {"cambios": [{"ref": "C-CREMON500g", "cantidad": 2}]})
+    p = ped_mod.activo(ctx.jid)
+    p.estado = "cerrado"
+    ped_mod.guardar(p)
+    previos = ped_mod.ultimos_pedidos(ctx.jid)
+    assert len(previos) == 1 and previos[0].items[0].ref == "C-CREMON500g"
+    texto = agente.contexto_turno(ctx.jid, "x", [_m(1, "cliente", "el pedido de siempre")])
+    assert "Pedidos anteriores de este cliente" in texto and "CREATINA MONOHIDRATO 500g x2" in texto
 
 
 def test_transcripcion_marca_quien_habla():
@@ -203,7 +358,7 @@ def test_sin_presupuesto_no_inventa_y_avisa(catalogo, monkeypatch):
 
     monkeypatch.setattr("app.services.llm_budget.permitir_llamada", lambda m, contexto="": (False, "tope"))
     res = agente.ejecutar_turno("573000000006@c.us", "x", [_m(1, "cliente", "hola")], modo="sombra", cliente=_ClaudeFalso())
-    assert "avisé al equipo" in res.respuesta and res.handoff and res.llamadas == 0
+    assert "El equipo ya tiene su caso" in res.respuesta and res.handoff and res.llamadas == 0
 
 
 def test_filtro_quita_promesas_de_tiempo():

@@ -1,6 +1,27 @@
 {
   "historial": [
     {
+      "id": "20261001222152009-5758",
+      "sufijo": "5758",
+      "numero_factura": "FEE105758",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "total": 6562230.0,
+      "fecha_factura": "2026-09-29",
+      "items_count": 9,
+      "accion": "cubierta_por_solicitud_50",
+      "estado": "ok",
+      "origen": "claude",
+      "nuevos": 0,
+      "en_siigo": 0,
+      "items_resumen": [],
+      "ruta_excel": null,
+      "ruta_xml": null,
+      "siigo_id": null,
+      "mensaje": "",
+      "timestamp": "2026-10-01T22:21:52.009771"
+    },
+    {
       "id": "20260901201447641-5411",
       "sufijo": "5411",
       "numero_factura": "FE78255411",

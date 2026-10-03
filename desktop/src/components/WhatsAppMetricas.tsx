@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
 import { colorNota } from "./ui/ScoreRing";
@@ -413,7 +414,7 @@ export default function WhatsAppMetricas() {
               seccion === s.id ? "bg-accent/15 text-accent border border-accent/30" : "text-muted hover:text-ink"
             }`}
           >
-            <span>{s.icon}</span>
+            <span><Ico e={s.icon} /></span>
             {s.label}
             {s.id === "panorama" && alertas.length > 0 && (
               <span className="ml-0.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
@@ -515,7 +516,7 @@ export default function WhatsAppMetricas() {
                 <section className="rounded-xl border border-red-500/50 bg-red-500/5 p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-red-200 flex items-center gap-2">
-                      🚨 Intención de compra sin atención humana
+                      <Ico e="🚨" /> Intención de compra sin atención humana
                       <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">
                         {alertas.length}
                       </span>
@@ -540,7 +541,7 @@ export default function WhatsAppMetricas() {
                           </span>
                           <div className="flex items-center gap-2">
                             {a.bot_respondio && (
-                              <span className="text-[10px] text-sky-400">🤖 bot</span>
+                              <span className="text-[10px] text-sky-400"><Ico e="🤖" /> bot</span>
                             )}
                             {a.alerta_enviada && (
                               <span className="text-[10px] text-emerald-400">✓ alertado</span>

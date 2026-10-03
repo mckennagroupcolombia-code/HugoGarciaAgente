@@ -18,7 +18,7 @@ export default function NetContent({
         texto={"Contenido\nNeto"}
         editMode={editMode}
         styleKey="netContentTitulo"
-        defaultFontSize={17}
+        defaultFontSize={50}
         className="whitespace-pre-line text-center font-bold uppercase leading-[1.05] tracking-wide text-[color:var(--acento)]"
       />
       <EditableField
@@ -26,7 +26,7 @@ export default function NetContent({
         onChange={onChange}
         editMode={editMode}
         styleKey="netContent"
-        defaultFontSize={24}
+        defaultFontSize={30}
         className="text-center font-extrabold leading-none text-[#111111]"
       />
     </div>

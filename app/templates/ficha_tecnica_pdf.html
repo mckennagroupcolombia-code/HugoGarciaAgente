@@ -441,17 +441,14 @@ sub { font-size: 0.72em; vertical-align: sub; }
   {% include "_pdf_hdr_logo.html" %}
 </div>
 
-<!-- Meta: CAS / fecha / origen / fabricante -->
-{% if cas or fecha_revision or pais_origen or fabricante %}
+<!-- Meta: CAS / fecha / origen (el fabricante no se publica: solo país de origen) -->
+{% set meta = [] %}
+{% for lbl, val in [("CAS", cas), ("Revisión", fecha_revision), ("País de origen", pais_origen)] %}{% if val %}{% set _ = meta.append((lbl, val)) %}{% endif %}{% endfor %}
+{% if meta %}
 <table class="meta-table">
-  <tr>
-    <td>{% if cas %}<b>CAS:</b> {{ cas }}{% endif %}</td>
-    <td>{% if fecha_revision %}<b>Revisión:</b> {{ fecha_revision }}{% endif %}</td>
-  </tr>
-  <tr>
-    <td>{% if pais_origen %}<b>País de origen:</b> {{ pais_origen }}{% endif %}</td>
-    <td>{% if fabricante %}<b>Fabricante:</b> {{ fabricante }}{% endif %}</td>
-  </tr>
+  {% for grupo in meta | batch(2) %}
+  <tr>{% for lbl, val in grupo %}<td><b>{{ lbl }}:</b> {{ val }}</td>{% endfor %}</tr>
+  {% endfor %}
 </table>
 {% endif %}
 
@@ -512,12 +509,13 @@ sub { font-size: 0.72em; vertical-align: sub; }
 <div class="sec">
   <div class="sec-title">Composición</div>
   <table>
+    {% set con_valor = 1 in (composicion_cols or [0, 1]) %}
     <tr>
       <td class="td-key-dark" style="width:55%">Componente</td>
-      <td class="td-key-dark">% / Concentración</td>
+      {% if con_valor %}<td class="td-key-dark">% / Concentración</td>{% endif %}
     </tr>
     {% for componente, valor in composicion %}
-    <tr><td>{{ componente }}</td><td>{{ valor }}</td></tr>
+    <tr><td>{{ componente }}</td>{% if con_valor %}<td>{{ valor }}</td>{% endif %}</tr>
     {% endfor %}
   </table>
 </div>

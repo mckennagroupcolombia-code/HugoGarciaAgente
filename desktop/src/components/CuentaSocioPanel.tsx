@@ -53,11 +53,21 @@ const inputMini =
  * pasan por partida doble y son privados: cada socio ve solo los suyos (el
  * backend lo valida, no basta con ocultarlos aquí).
  */
-export default function CuentaSocioPanel() {
+export default function CuentaSocioPanel({
+  terceroId: terceroIdFijo,
+}: {
+  /** Embebido en el wizard de Socios: el socio ya está elegido y no se muestra
+   * el selector. Sin esta prop se comporta como siempre (selector para admin,
+   * o el propio socio de la sesión). */
+  terceroId?: number;
+} = {}) {
   const qc = useQueryClient();
   const bootTerceroId = useAppStore((s) => s.libroMayorBootTerceroId);
   const setBootTerceroId = useAppStore((s) => s.setLibroMayorBootTerceroId);
-  const [terceroId, setTerceroId] = useState<number | null>(null);
+  const [terceroId, setTerceroId] = useState<number | null>(terceroIdFijo ?? null);
+  useEffect(() => {
+    if (terceroIdFijo) setTerceroId(terceroIdFijo);
+  }, [terceroIdFijo]);
   const [gastoForm, setGastoForm] = useState({ fecha: hoy(), categoria: "", descripcion: "", monto: "" });
   const [msg, setMsg] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
 
@@ -133,7 +143,7 @@ export default function CuentaSocioPanel() {
 
   return (
     <div className="space-y-4">
-      {esAdmin && (
+      {esAdmin && !terceroIdFijo && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-ink-secondary">Ver cuenta de:</span>
           <select
