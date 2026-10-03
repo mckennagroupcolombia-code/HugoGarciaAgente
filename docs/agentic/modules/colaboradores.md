@@ -277,3 +277,11 @@ terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**
   · Proyecto 1: 64 nodos en 3 raíces (partida → … → primera venta; meta → roles; Proceso con 26 pasos).
   · Banco: `dev/colaboradores.html?abrir` (mapa), `&tarjeta=<id>`, `&chat`. Tests: `tests/test_colab_tablero.py`
     (linaje, ciclos, borrar sube al abuelo, padre de otro proyecto, absorber una sola vez).
+
+- **Guía animada del mapa (3-oct-2026)**: `colaboradores/GuiaMapa.tsx` + `guia-mapa.css`. Ocho escenas en un
+  mapa en miniatura: el árbol por linaje, «＋ rama», a quién le toca, «Estoy de acuerdo», traer del chat, pegar
+  capturas, mover/plegar y resaltar + ritmo. Cada escena es una función del tiempo `t` (bucle con 1 s quieto al
+  final); las transiciones CSS animan. Escenario 16:9 medido en `cqw` (igual en celular y PC). Con «reducir
+  movimiento» se ve el estado final quieto. Se abre sola la primera vez (`colab-guia-mapa-vista` en localStorage)
+  y con el botón «Guía» de la barra; ← → y Esc. Los tipos (nombre, sprite, color, `HIJO_DE`) viven en
+  `mapaTipos.ts`, compartidos por el mapa y la guía. Banco: `dev/colaboradores.html?abrir&guia=<n>`.

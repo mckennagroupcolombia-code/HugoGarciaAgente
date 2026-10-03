@@ -19,9 +19,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api/client";
 import { AuthImg, INP, MINI } from "./campos";
 import type { Adjunto } from "./modelo";
-import { Sprite, type SpriteId } from "./pixel";
+import { Sprite } from "./pixel";
+import { COLOR_TIPO, HIJO_DE, NOMBRE_TIPO, SECCIONES, SPRITE_TIPO, type TipoT } from "./mapaTipos";
+import GuiaMapa, { guiaYaVista } from "./GuiaMapa";
 
-type TipoT = "origen" | "meta" | "rol" | "resultado" | "obstaculo" | "decision" | "tarea" | "idea" | "acuerdo" | "paso";
 type Rel = "viene_de" | "resuelve" | "bloquea";
 type Fuente = { canal: string; autor: string; fecha: string; texto: string };
 export type Tarjeta = {
@@ -45,34 +46,6 @@ type Tablero = {
 };
 type Mensaje = { i: number; fecha: string; autor: string; texto: string };
 
-const SECCIONES: { tipo: TipoT; titulo: string; pregunta: string; sprite: SpriteId }[] = [
-  { tipo: "origen", titulo: "De dónde partimos", pregunta: "¿Cómo empezó esto y con qué contamos?", sprite: "cofre" },
-  { tipo: "meta", titulo: "La meta", pregunta: "¿Qué tiene que pasar para decir que funcionó?", sprite: "trofeo" },
-  { tipo: "rol", titulo: "Quién hace qué", pregunta: "¿Qué pone cada uno y qué recibe?", sprite: "jugador" },
-  { tipo: "obstaculo", titulo: "Lo que nos frena", pregunta: "Problemas abiertos y cómo se resolvieron", sprite: "alerta" },
-  { tipo: "decision", titulo: "Decisiones", pregunta: "Lo que hay que acordar entre los dos", sprite: "urna" },
-  { tipo: "tarea", titulo: "Próxima jugada", pregunta: "Qué sigue y a quién le toca", sprite: "reloj" },
-  { tipo: "resultado", titulo: "Resultados", pregunta: "Lo que ya salió, con fecha y prueba", sprite: "estrella" },
-  { tipo: "acuerdo", titulo: "Acuerdos", pregunta: "Precios, comisiones y reglas que ya quedaron", sprite: "pulgar" },
-  { tipo: "idea", titulo: "Ideas", pregunta: "Para después: sin compromiso todavía", sprite: "gema" },
-  { tipo: "paso", titulo: "Proceso", pregunta: "Un paso de cómo se hace", sprite: "control" },
-];
-/** Color de la cabeza de cada nodo (paleta PICO-8 del resto de Colaboradores) y su letra. */
-const COLOR_TIPO: Record<TipoT, [string, string]> = {
-  origen: ["#5F574F", "#fff"], meta: ["#FFA300", "#000"], rol: ["#29ADFF", "#000"], resultado: ["#008751", "#fff"],
-  obstaculo: ["#FF004D", "#fff"], decision: ["#7E2553", "#fff"], tarea: ["#1D2B53", "#fff"], idea: ["#83769C", "#fff"],
-  acuerdo: ["#AB5236", "#fff"], paso: ["#C2C3C7", "#000"],
-};
-/** Qué suele brotar de cada tipo al tocar «＋» (se puede cambiar en la hoja). */
-const HIJO_DE: Record<TipoT | "raiz", TipoT> = {
-  raiz: "origen", origen: "resultado", meta: "resultado", rol: "tarea", resultado: "resultado", obstaculo: "decision",
-  decision: "resultado", tarea: "resultado", idea: "tarea", acuerdo: "tarea", paso: "paso",
-};
-const NOMBRE_TIPO: Record<TipoT, string> = {
-  origen: "Punto de partida", meta: "Meta", rol: "Quién hace qué", resultado: "Resultado", obstaculo: "Obstáculo",
-  decision: "Decisión", tarea: "Próxima jugada", idea: "Idea", acuerdo: "Acuerdo", paso: "Paso del proceso",
-};
-const SPRITE_TIPO = Object.fromEntries(SECCIONES.map((s) => [s.tipo, s.sprite])) as Record<TipoT, SpriteId>;
 const REL_TXT: Record<Rel, string> = { viene_de: "viene de", resuelve: "resuelve", bloquea: "bloquea" };
 const CON_TURNO: TipoT[] = ["obstaculo", "decision", "tarea", "idea"];
 const CON_ACUERDO: TipoT[] = ["meta", "rol", "decision", "acuerdo"];
@@ -620,6 +593,7 @@ export default function MapaProyecto({ did, yoId, titulo, subir }: {
   const [hoja, setHoja] = useState<{ id: number | null; b: Borrador } | null>(null);
   const [chat, setChat] = useState(false);
   const [verRitmo, setVerRitmo] = useState(false);
+  const [guia, setGuia] = useState(() => !guiaYaVista());   // la primera vez, sola
   const [filtro, setFiltro] = useState<Filtro>("todo");
   const [zoom, setZoomState] = useState<number>(() => guardado(`colab-mapa-zoom-${did}`, typeof window !== "undefined" && window.innerWidth < 768 ? 0.65 : 1));
   const [plegados, setPlegadosState] = useState<number[] | null>(() => guardado<number[] | null>(`colab-mapa-plegados-${did}`, null));
@@ -724,6 +698,9 @@ export default function MapaProyecto({ did, yoId, titulo, subir }: {
         <button type="button" data-chat onClick={() => setChat(true)} className="px-btn flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-sm font-bold text-ink">
           <Sprite s="doc" px={1} /> Traer del chat
         </button>
+        <button type="button" data-guia-abrir onClick={() => setGuia(true)} className="px-btn flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-sm font-bold text-ink">
+          <Sprite s="bandera" px={1} /> Guía
+        </button>
         <div className="flex overflow-hidden rounded-lg border border-border text-sm font-bold" role="radiogroup" aria-label="Resaltar">
           {([["todo", "Todo"], ["mio", "Me toca"], ["abiertos", "Abiertos"]] as [Filtro, string][]).map(([k, txt]) => (
             <button key={k} type="button" role="radio" aria-checked={filtro === k} onClick={() => setFiltro(k)}
@@ -770,6 +747,7 @@ export default function MapaProyecto({ did, yoId, titulo, subir }: {
         </div>
       </div>
 
+      {guia && <GuiaMapa onCerrar={() => setGuia(false)} />}
       {chat && (
         <HojaChat did={did} part={t.participantes} yoId={yoId} onCerrar={() => setChat(false)} onRitmo={refrescar}
                   onCrear={(b) => setHoja({ id: null, b })} />

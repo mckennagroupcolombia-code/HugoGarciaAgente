@@ -1,3 +1,12 @@
+### 2026-10-03 - Colaboradores: guía animada del mapa
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Colaboradores, panel y app de colaborador). Sin LLM.
+- **Qué se implementó:**
+  - Botón «Guía» en el mapa, que además se abre solo la primera vez que cada persona entra: ocho escenas animadas con un mapa en miniatura (el árbol por linaje, brotar una rama, a quién le toca, decidir juntos, traer del chat, pegar capturas, mover y plegar, resaltar y ritmo), con pausa, anterior/siguiente y teclado.
+  - Respeta «reducir movimiento» del sistema (muestra cada escena quieta en su estado final).
+  - **Verificado:** `tsc`; `npm run build` con verificador de colaboradores (la guía está en los dos bundles); capturas en Chrome headless de las 8 escenas a 900 px y en celular a 390 px.
+- **Archivos Modificados:** `desktop/src/components/colaboradores/GuiaMapa.tsx`, `desktop/src/components/colaboradores/guia-mapa.css`, `desktop/src/components/colaboradores/mapaTipos.ts`, `desktop/src/components/colaboradores/MapaProyecto.tsx`, `desktop/dev/colaboradores.tsx`, `docs/agentic/modules/colaboradores.md`, `docs/team-recaps.md`
+
 ### 2026-10-03 - Colaboradores: todo el proyecto en un solo mapa-cladograma
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora (Colaboradores, panel y app de colaborador). Sin LLM.

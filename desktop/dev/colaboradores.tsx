@@ -247,6 +247,8 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
 const q = new URLSearchParams(location.search);
 // Cada captura arranca con el mapa como viene (sin plegados ni zoom guardados de otra corrida).
 try { Object.keys(localStorage).filter((k) => k.startsWith("colab-mapa-")).forEach((k) => localStorage.removeItem(k)); } catch { /* */ }
+// La guía se abre sola solo con ?guia (si no, taparía las demás capturas).
+try { if (q.has("guia")) localStorage.removeItem("colab-guia-mapa-vista"); else localStorage.setItem("colab-guia-mapa-vista", "1"); } catch { /* */ }
 if (q.has("abrir")) {
   const tocar = (sel: string, luego?: () => void, intentos = 40) => {
     const el = document.querySelector<HTMLElement>(sel);
@@ -263,6 +265,9 @@ if (q.has("abrir")) {
         document.querySelectorAll<HTMLInputElement>("[aria-label='Traer del chat'] input[type=checkbox]")[2]?.click();
       }, 300)), 200);
     }, 300)), 600);
+    // ?guia=<n>: la guía abierta en la escena n (0 = la primera).
+    const n = Number(q.get("guia") || 0);
+    for (let k = 0; k < n; k++) setTimeout(() => document.querySelector<HTMLElement>("[data-guia] [aria-label='Siguiente']")?.click(), 400 + k * 50);
     const id = q.get("sel");
     if (id) setTimeout(() => tocar(`[data-caja="${id}"] .eb-cuerpo`, () => {
       // ?medir: el estilo calculado de un campo de la hoja, al título (para --dump-dom).
