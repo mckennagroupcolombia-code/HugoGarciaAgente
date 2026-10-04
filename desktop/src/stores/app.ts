@@ -21,6 +21,7 @@ export type Panel =
   | "control-inventario"
   | "fichas"
   | "formulas"
+  | "ideas"
   | "pedidos"
   | "empaque"
   | "guias-envio"

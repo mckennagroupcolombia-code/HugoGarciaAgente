@@ -189,6 +189,12 @@ def create_app():
         print(f"⚠️ Fórmulas de producto: {e}")
 
     try:
+        from app.routes_ideas import register_ideas_routes
+        register_ideas_routes(app)
+    except Exception as e:
+        print(f"⚠️ Ideas de producto: {e}")
+
+    try:
         from app.routes_anulaciones import register_anulaciones_routes
         register_anulaciones_routes(app)
     except Exception as e:

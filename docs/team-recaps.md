@@ -4954,3 +4954,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Las cabezas de cada tarjeta del mapa (`mapaTipos.ts` → `COLOR_TIPO`) pintan con `var(--colab-<tipo>, #PICO8)` y su letra con `--colab-<tipo>-t`; cada tema (Barbie, Peach, Matrix, Bodega, Botica, Flujo) las define en `theme/mapa-temas.css`. La guía animada usa los mismos colores y la raíz va con el acento del tema.
   - **Verificado:** `npm run build`.
 - **Archivos Modificados:** `desktop/src/components/colaboradores/{pixel.css,guia-mapa.css,mapaTipos.ts,GuiaMapa.tsx,MapaProyecto.tsx}`, `desktop/src/theme/mapa-temas.css`, `docs/team-recaps.md`
+
+### 2026-10-04 - Diseño de producto: «Desarrollar idea» en cladograma
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva función (Diseño de producto)
+- **Qué se implementó:**
+  - Pestaña nueva «Desarrollar idea» (panel `ideas`) en Diseño, al lado de Fórmulas. Se escribe la idea (y, opcional, para quién, precio y restricciones) y «Desarrollar cladograma» la abre en un árbol: idea → 7 ramas del ciclo de diseño (usuario, requerimientos, arquitectura, ingeniería y DFM, prototipado, sostenibilidad, riesgos) → 17 sub-ramas → 3-5 puntos concretos cada una.
+  - El esqueleto de ramas es fijo (`RAMAS` en `ideas_db.py`); la IA (Gemini 2.5 Flash vía `documento_cientifico._sintetizar_texto`, límite 120 s) solo llena los puntos. Va en segundo plano con `coa_scan_jobs.iniciar_job` (POST → `job_id`, GET `/api/ideas/job/<id>`) por el corte de ~100 s del túnel.
+  - Cada nodo: clic para editar, ✨ ramifica con IA (con la ruta desde la raíz como contexto, sin repetir hijos existentes), + agrega a mano, × quita, ◂ contrae. «Solo ramas principales», «Expandir todo», «Copiar como texto» (esquema con sangría). Al terminar de desarrollar se guarda solo.
+  - Permiso propio `ideas` (Ajustes → «Diseño (desarrollar idea)»); administradores siempre. Datos en `app/data/ideas.json` con candado fcntl.
+  - **Verificado:** `npm run build`; reinicio de `agente-pro`; curl: desarrollar (7 ramas × sub-ramas × 5 puntos), ramificar «Materiales» (5 ramas nuevas), guardar y borrar una idea de prueba; captura en Chrome headless del cladograma en un arnés temporal ya retirado.
+- **Archivos Modificados:** `app/routes_ideas.py` (nuevo), `app/services/ideas_db.py` (nuevo), `agente_pro.py`, `desktop/src/components/ideas/IdeasPanel.tsx` (nuevo), `desktop/src/components/nav/DisenoNavTabs.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/{navStructure.ts,panelInfo.ts}`, `desktop/src/components/Settings.tsx`, `desktop/src/icons/mck/paths/panels.tsx`, `docs/team-recaps.md`
