@@ -1,3 +1,12 @@
+### 2026-10-04 - Cuenta 238095 «Otros acreedores varios»: compras de septiembre pagadas por Victor García
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección contable (Libro Mayor). Sin LLM.
+- **Qué se implementó:**
+  - Las tres compras de septiembre pagadas en efectivo (asientos 8279 Chemicol, 8280 D1 y 8281 Quimiesencias, $337.999 en total) estaban acreditadas a la caja menor 110505, que quedaba en −$337.999. En realidad las pagó Victor Hugo García Barrero con su propia plata. El crédito pasa a **238095 · Otros acreedores varios** a nombre de Victor (tercero 30). La caja queda en $0. Inventario e IVA descontable no cambian.
+  - Victor no es socio (se le pagan honorarios por asesoría técnica), así que no va en 2355. La cuenta 238095 se agrega a `PUC_MCKENNA` con su descripción, para que el plan de cuentas la siembre en cualquier base.
+  - El reintegro por transferencia (Débito 238095 / Crédito 1110) queda pendiente hasta que se haga el pago. No se tocó la `cuenta_por_pagar_id` de Victor porque `prestamos.py` la usa para su préstamo (2195).
+- **Archivos Modificados:** `app/services/puc_colombia.py`, `docs/team-recaps.md`. Los asientos se corrigieron directamente en `contabilidad.db` (no está en git).
+
 ### 2026-10-04 01:15 - Duck Hunt baja a ×1,5
 - **Autor:** Armando García
 - **Tipo de Cambio:** Ajuste (Agenda → Juegos). Sin LLM.

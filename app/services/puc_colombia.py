@@ -85,6 +85,7 @@ PUC_MCKENNA: tuple[tuple[str, str, str], ...] = (
     ("236535", "Retención — rendimientos financieros", "pasivo"),
     ("236540", "Retención — compras", "pasivo"),
     ("236595", "Retención — otras", "pasivo"),
+    ("238095", "Otros acreedores varios", "pasivo"),
     # ── 24 Impuestos, gravámenes y tasas: lo que McKenna debe como
     # CONTRIBUYENTE, distinto de las 23xx, que es lo que retuvo a terceros y
     # consigna a nombre de ellos. Confundirlos hace que el pago de una
@@ -277,6 +278,9 @@ DESCRIPCIONES: dict[str, str] = {
             "la DIAN, no impuesto propio.",
     "2368": "ICA retenido a terceros (reteICA), que se consigna a la Secretaría de Hacienda de "
             "Bogotá. Es municipal, no va en el 350 sino en la declaración bimestral de RTICA.",
+    "238095": "Lo que McKenna le debe a una persona que NO es socia y pagó algo de la empresa con su "
+              "propia plata (p. ej. un asesor que pagó compras en efectivo y espera el reintegro). Lo "
+              "de los socios va en 2355; los préstamos, en 2195.",
     "2404": "Impuesto de renta que McKenna debe como contribuyente (formulario 110).",
     "2408": "IVA por pagar: el generado en ventas menos el descontable en compras (formulario 300).",
     "240805": "IVA generado en las ventas. No es ingreso de McKenna: se cobra al cliente y se gira "
