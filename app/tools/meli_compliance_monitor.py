@@ -30,7 +30,7 @@ REFERENCIAS_COMPETIDOR: dict[str, dict] = {
         "nombre": "Citrato de magnesio 500g (competidor activo)",
         "url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
         "item_id_ejemplo": "MCO3127214600",
-        "category_id": "MCO441116",
+        "category_id": "MCO455503",  # categoría propia (el competidor está en MCO441116, sin me2)
         "domain_id": "",
         "line": "Materias primas alimentarias",
         "family_name_ejemplo": "Citrato De Magnesio Puro 500 G",
@@ -42,7 +42,7 @@ REFERENCIAS_COMPETIDOR: dict[str, dict] = {
         "nombre": "Citrato de magnesio 1kg (competidor activo)",
         "url": "https://www.mercadolibre.com.co/citrato-de-magnesio-1000-gramos-1000-gr-1000-gr-en-polvo-puro-1-kilo-1kg-1kg/up/MCOU3415632539",
         "item_id_ejemplo": "MCO1670758887",
-        "category_id": "MCO441116",
+        "category_id": "MCO455503",  # categoría propia (el competidor está en MCO441116, sin me2)
         "domain_id": "",
         "line": "Materias primas alimentarias",
         "family_name_ejemplo": "Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo",

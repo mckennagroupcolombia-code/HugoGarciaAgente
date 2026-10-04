@@ -51,8 +51,10 @@ _RE_SAL_DE_MINERAL = re.compile(
 # McKenna: NUNCA publicar en suplementos alimenticios
 CATEGORIA_SUPLEMENTOS_BLOQUEADA = "MCO8830"
 DOMAIN_SUPLEMENTOS_BLOQUEADO = "MCO-SUPPLEMENTS"
-# Fallback alimentario genérico (Alimentos y Bebidas > Almacén > Otros)
-CATEGORIA_FALLBACK_SIN_SUPLEMENTOS = "MCO441116"
+# Fallback alimentario genérico (Alimentos y Bebidas > Almacén > Repostería y Pastelería > Repostería > Otros).
+# No usar MCO441116 (Almacén > Otros): sus shipping_preferences no traen me2 y la publicación queda sin
+# Mercado Envíos (verificado 3-oct-2026). Pide MANUFACTURER y PRODUCT_NAME, que _construir_atributos_publicacion pone.
+CATEGORIA_FALLBACK_SIN_SUPLEMENTOS = "MCO455503"
 
 PERFILES = {
     "materia_prima_alimentaria": {
@@ -185,7 +187,7 @@ def predecir_categoria_meli(
     """
     Usa domain_discovery de MeLi para elegir category_id.
     NUNCA elige suplementos (MCO8830 / *SUPPLEMENT*): si solo hay eso,
-    cae a Almacén > Otros (MCO441116).
+    cae a CATEGORIA_FALLBACK_SIN_SUPLEMENTOS (Repostería > Otros).
     """
     del perfil  # reservado por compatibilidad
     q = " ".join(x for x in [(consulta or "").strip(), (presentacion or "").strip()] if x).strip()
@@ -278,7 +280,7 @@ def predecir_categoria_meli(
             "candidatos": [],
             "nota": (
                 "MeLi solo sugirió suplementos u opciones inválidas; "
-                f"se usa {CATEGORIA_FALLBACK_SIN_SUPLEMENTOS} (Almacén > Otros)."
+                f"se usa {CATEGORIA_FALLBACK_SIN_SUPLEMENTOS} (Repostería > Otros)."
             ),
         }
 
@@ -1664,9 +1666,9 @@ def _construir_atributos_publicacion(
         {"id": "EMPTY_GTIN_REASON", "value_id": "17055161"},
     ]
 
-    # Almacén > Otros (MCO441116) exige fabricante y nombre de producto
+    # Las «Otros» de Alimentos (fallback, Almacén > Otros MCO441116, MCO8383) exigen fabricante y nombre de producto
     cat = (category_id or "").strip().upper()
-    if cat == CATEGORIA_FALLBACK_SIN_SUPLEMENTOS or cat == "MCO8383":
+    if cat in (CATEGORIA_FALLBACK_SIN_SUPLEMENTOS, "MCO441116", "MCO8383"):
         manufacturer = str(
             atributos_compliance.get("MANUFACTURER") or "McKenna Group"
         ).strip()[:60]

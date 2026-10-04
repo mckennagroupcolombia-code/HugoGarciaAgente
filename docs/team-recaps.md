@@ -32,6 +32,17 @@
   - APK 1.2.0 (versionCode 3): `setDownloadListener` descarga los adjuntos que no son imagen (PDF, APK…) a «Descargas» con el `DownloadManager`, pasando la cookie y el user agent del WebView, con notificación al terminar. En Android 9 o anterior se le pasa al navegador (escribir en Descargas pediría un permiso que la app no tiene; los adjuntos llevan el token en la URL). Compilada, firmada y adjunta al TKT; sin emulador ni celular conectado, no se probó en un dispositivo.
 - **Archivos Modificados:** `android-colab/app/src/main/java/co/mckennagroup/colaboradores/MainActivity.java`, `android-colab/version.properties`, `android-colab/LEEME.md`, `docs/team-recaps.md`.
 
+### 2026-10-03 - MeLi moderadas: categorías con Mercado Envíos, alginato movido y cloruro de magnesio reactivado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + operación MeLi. Sin LLM.
+- **Qué se implementó:**
+  - Revisión de las 19 publicaciones moderadas (12 forbidden, 7 waiting_for_patch) y 19 cerradas: solo el cloruro de calcio (prohibido por caer en «Cloro para Piscinas») y la vainillina (categoría incorrecta) justifican una publicación nueva; el resto tiene otra activa o MeLi lo trata como medicamento/prohibido. Las moderadas se listan con `sub_status=forbidden|waiting_for_patch` (`status=under_review` devuelve 0).
+  - `CATEGORIA_FALLBACK_SIN_SUPLEMENTOS` pasó de MCO441116 (Almacén > Otros) a **MCO455503** (Repostería > Otros): las `shipping_preferences` de MCO441116 no traen me2 y una publicación nueva quedaba sin Mercado Envíos. También las referencias de competidor del monitor, que pisaban el fallback.
+  - Alginato 500g (MCO4488258886) movido de «Farmacia > Bicarbonato de Sodio» a MCO455503, sigue con envío gratis. El kit alginato + lactato no se puede mover (tiene ventas).
+  - Cloruro de magnesio 1 kg (MCO581493122, 1.040 ventas, pausada a mano tras el 30-sep) reactivado y agregado a `despliegue_ventas.json`; en la web a $30.510.
+  - Pendiente: cloruro de calcio (falta foto con la etiqueta nueva y precio), agua de rosas, vainillina y Lanette 250g (SKUs sin combo en Alegra).
+- **Archivos Modificados:** `app/tools/meli_compliance.py`, `app/tools/meli_compliance_monitor.py`, `app/data/despliegue_ventas.json`, `docs/team-recaps.md`.
+
 ### 2026-10-03 - Colaboradores: Cynthia y cualquiera con el permiso arman sus propios proyectos e invitan gente
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Colaboradores, panel y app de colaborador). Sin LLM.

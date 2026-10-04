@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-02T06:08:01",
+ "actualizado": "2026-10-03T23:33:52",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias).",
  "skus": {
@@ -2359,6 +2359,15 @@
    "alias_destino": "C-ACESEMUVA120mL-COPIA",
    "meli_ids": [
     "MCO591008771"
+   ]
+  },
+  "C-CLOMAGHEXKG": {
+   "nombre": "CLORURO MAGNESIO HEXAHIDRATADO",
+   "titulo_meli": "Cloruro De Magnesio  Alta Pureza 1 Kg Sal",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO581493122"
    ]
   }
  },
