@@ -16,12 +16,15 @@ export const SECCIONES: { tipo: TipoT; titulo: string; pregunta: string; sprite:
   { tipo: "idea", titulo: "Ideas", pregunta: "Para después: sin compromiso todavía", sprite: "gema" },
   { tipo: "paso", titulo: "Proceso", pregunta: "Un paso de cómo se hace", sprite: "control" },
 ];
-/** Color de la cabeza de cada nodo (paleta PICO-8 del resto de Colaboradores) y su letra. */
-export const COLOR_TIPO: Record<TipoT, [string, string]> = {
+/** Color de la cabeza de cada nodo y su letra: variables --colab-<tipo>(-t) que cada tema redefine en
+ *  theme/mapa-temas.css; el valor por defecto es la paleta PICO-8 del tema Pixel. */
+const PICO: Record<TipoT, [string, string]> = {
   origen: ["#5F574F", "#fff"], meta: ["#FFA300", "#000"], rol: ["#29ADFF", "#000"], resultado: ["#008751", "#fff"],
   obstaculo: ["#FF004D", "#fff"], decision: ["#7E2553", "#fff"], tarea: ["#1D2B53", "#fff"], idea: ["#83769C", "#fff"],
   acuerdo: ["#AB5236", "#fff"], paso: ["#C2C3C7", "#000"],
 };
+export const COLOR_TIPO = Object.fromEntries(Object.entries(PICO).map(([k, [f, l]]) =>
+  [k, [`var(--colab-${k}, ${f})`, `var(--colab-${k}-t, ${l})`]])) as Record<TipoT, [string, string]>;
 /** Qué suele brotar de cada tipo al tocar «＋» (se puede cambiar en la hoja). */
 export const HIJO_DE: Record<TipoT | "raiz", TipoT> = {
   raiz: "origen", origen: "resultado", meta: "resultado", rol: "tarea", resultado: "resultado", obstaculo: "decision",

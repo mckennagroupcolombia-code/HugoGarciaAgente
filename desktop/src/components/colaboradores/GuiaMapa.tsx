@@ -23,10 +23,10 @@ function Nodo({ x, y, tipo, titulo, chip, fuerte, foto, marca, apagado, visible 
   x: number; y: number; tipo?: TipoT; titulo: string; chip?: string; fuerte?: boolean; foto?: boolean; marca?: boolean;
   apagado?: boolean; visible?: boolean; cerrado?: boolean; pie?: string; raiz?: boolean;
 }) {
-  const [fondo, letra] = raiz ? ["#1D2B53", "#fff"] : COLOR_TIPO[tipo ?? "idea"];
+  const [fondo, letra] = raiz ? ["rgb(var(--mck-accent))", "#fff"] : COLOR_TIPO[tipo ?? "idea"];
   return (
     <div className={`gm-nodo ${visible ? "gm-si" : "gm-no"} ${apagado ? "gm-apagado" : ""} ${marca ? "gm-marca" : ""}`}
-         style={{ left: `${x}%`, top: `${y}%`, width: `${W}%`, minHeight: `${H}%`, background: raiz ? "#1D2B53" : undefined }}>
+         style={{ left: `${x}%`, top: `${y}%`, width: `${W}%`, minHeight: `${H}%`, background: raiz ? "rgb(var(--mck-accent))" : undefined }}>
       <div className="gm-cab" style={{ background: fondo, color: letra }}>
         {!raiz && tipo && <Sprite s={SPRITE_TIPO[tipo]} px={1} />}
         <span>{raiz ? "Proyecto" : NOMBRE_TIPO[tipo ?? "idea"]}{cerrado ? " ✓" : ""}</span>

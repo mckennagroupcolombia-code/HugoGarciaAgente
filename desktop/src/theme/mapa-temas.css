@@ -175,3 +175,39 @@ html[data-mck-skin] .mapa-vivo .px-hud button:not(.mv-nivel-on):not(.mv-ir-urgen
   color: var(--ed-crema, #FFF1E8);
   border-color: var(--ed-crema, #FFF1E8) !important;
 }
+
+/* ─── Colaboradores: la cabeza de cada tarjeta del mapa (3-oct-2026) ───
+   mapaTipos.ts pinta con var(--colab-<tipo>, #PICO8) y la letra con --colab-<tipo>-t. Rojo =
+   obstáculo y verde = resultado se leen igual en todos; el resto entra en la gama del tema. */
+html[data-mck-skin="barbie"] {
+  --colab-origen: #B5577E; --colab-meta: #FFD700; --colab-meta-t: #4A0D2E; --colab-rol: #FF69B4; --colab-rol-t: #4A0D2E;
+  --colab-resultado: #2E8B57; --colab-obstaculo: #D0103A; --colab-decision: #8A1253; --colab-tarea: #C2185B;
+  --colab-idea: #A0135F; --colab-acuerdo: #E0218A; --colab-paso: #FFD1E6; --colab-paso-t: #4A0D2E;
+}
+html[data-mck-skin="peach"] {
+  --colab-origen: #8E4A6E; --colab-meta: #FFE9A0; --colab-meta-t: #4A2040; --colab-rol: #A7D8F0; --colab-rol-t: #4A2040;
+  --colab-resultado: #3E8E6A; --colab-obstaculo: #E0457B; --colab-decision: #6E3560; --colab-tarea: #A8486E;
+  --colab-idea: #C97793; --colab-acuerdo: #B98A6E; --colab-paso: #F4C2D0; --colab-paso-t: #4A2040;
+}
+html[data-mck-skin="matrix"] {
+  --colab-origen: #0A3D14; --colab-origen-t: #CCFFD5; --colab-meta: #00FF41; --colab-meta-t: #000;
+  --colab-rol: #7CFF9B; --colab-rol-t: #000; --colab-resultado: #1F7A35; --colab-resultado-t: #CCFFD5;
+  --colab-obstaculo: #FF3B3B; --colab-obstaculo-t: #000; --colab-decision: #134D1F; --colab-decision-t: #CCFFD5;
+  --colab-tarea: #00220A; --colab-tarea-t: #00FF41; --colab-idea: #0F5A22; --colab-idea-t: #CCFFD5;
+  --colab-acuerdo: #3FA35A; --colab-acuerdo-t: #000; --colab-paso: #06280D; --colab-paso-t: #7CFF9B;
+}
+html[data-mck-skin="bodega"] {
+  --colab-origen: #8B5A3C; --colab-meta: #F2C14E; --colab-meta-t: #2E1A10; --colab-rol: #D9A77A; --colab-rol-t: #2E1A10;
+  --colab-resultado: #4F7A3A; --colab-obstaculo: #B5302A; --colab-decision: #5A2E1A; --colab-tarea: #6B4028;
+  --colab-idea: #A4441F; --colab-acuerdo: #7A4A2E; --colab-paso: #D9C3A5; --colab-paso-t: #2E1A10;
+}
+html[data-mck-skin="botica"] {
+  --colab-origen: #4A6E52; --colab-meta: #D9A826; --colab-meta-t: #14201A; --colab-rol: #B9CFBA; --colab-rol-t: #14201A;
+  --colab-resultado: #2E6B3F; --colab-obstaculo: #A8322D; --colab-decision: #23352A; --colab-tarea: #3D5A44;
+  --colab-idea: #56663A; --colab-acuerdo: #7A5C12; --colab-paso: #C9D3C3; --colab-paso-t: #14201A;
+}
+html[data-mck-skin="flujo"] {
+  --colab-origen: #475569; --colab-meta: #FDE047; --colab-meta-t: #0F172A; --colab-rol: #7DD3E8; --colab-rol-t: #0F172A;
+  --colab-resultado: #047857; --colab-obstaculo: #DC2626; --colab-decision: #0B3D4E; --colab-tarea: #0E7490;
+  --colab-idea: #0369A1; --colab-acuerdo: #155E75; --colab-paso: #CBD5E1; --colab-paso-t: #0F172A;
+}

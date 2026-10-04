@@ -693,7 +693,7 @@ export default function MapaProyecto({ did, yoId, titulo, subir }: {
       <div className="flex flex-wrap items-center gap-1.5">
         <button type="button" onClick={() => setVerRitmo((v) => !v)} aria-expanded={verRitmo}
                 className={`px-btn rounded-lg border border-border px-2.5 py-1 text-sm font-bold ${verRitmo ? "bg-accent text-white" : "text-ink"}`}>
-          Ritmo {miasAbiertas > 0 && <span className="ml-1 rounded bg-[#FF004D] px-1 text-[11px] text-white">te tocan {miasAbiertas}</span>}
+          Ritmo {miasAbiertas > 0 && <span className="ml-1 rounded bg-[var(--ed-rojo,#FF004D)] px-1 text-[11px] text-white">te tocan {miasAbiertas}</span>}
         </button>
         <button type="button" data-chat onClick={() => setChat(true)} className="px-btn flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-sm font-bold text-ink">
           <Sprite s="doc" px={1} /> Traer del chat

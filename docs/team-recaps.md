@@ -4882,3 +4882,12 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - La ventana flotante abre más alta (600 px) para que quepa el historial.
   - **Verificado:** `npm run build`; captura en Chrome headless con dos cuentas tecleadas y la calculadora desmontada y vuelta a montar (el historial sigue), en un arnés temporal ya retirado.
 - **Archivos Modificados:** `desktop/src/components/CalculadoraMagica.tsx`, `desktop/src/components/nav/CalculadoraFab.tsx`, `docs/team-recaps.md`
+
+### 2026-10-03 - El mapa de Colaboradores sigue el tema
+- **Autor:** Armando García
+- **Tipo de Cambio:** Arreglo (temas)
+- **Qué se implementó:**
+  - `colaboradores/pixel.css` le imponía la paleta PICO-8 (crema, negro, azul marino) a todo Colaboradores en cualquier tema. Ahora esa isla solo aplica en el tema Pixel (y en el mapa vivo, que ya pinta con `--ed-*`); en los demás, Colaboradores toma los `--mck-*` del tema. Los colores fijos (bordes, HUD, foco, cartas, campos) pasan a `--mck-ink`, `--ed-navy`, `--ed-amarillo`, etc.
+  - Las cabezas de cada tarjeta del mapa (`mapaTipos.ts` → `COLOR_TIPO`) pintan con `var(--colab-<tipo>, #PICO8)` y su letra con `--colab-<tipo>-t`; cada tema (Barbie, Peach, Matrix, Bodega, Botica, Flujo) las define en `theme/mapa-temas.css`. La guía animada usa los mismos colores y la raíz va con el acento del tema.
+  - **Verificado:** `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/colaboradores/{pixel.css,guia-mapa.css,mapaTipos.ts,GuiaMapa.tsx,MapaProyecto.tsx}`, `desktop/src/theme/mapa-temas.css`, `docs/team-recaps.md`
