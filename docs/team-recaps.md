@@ -1,3 +1,13 @@
+### 2026-10-03 - App de colaboradores: el 📎 ahora abre el selector de archivos en el celular (TKT-2026-1617)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (APK de colaboradores). Sin LLM.
+- **Qué se implementó:**
+  - Causa: la APK `android-colab/` es un WebView sin `WebChromeClient`; en Android un `<input type="file">` no hace nada si la app no implementa `onShowFileChooser`. Por eso el 📎 del arreglo anterior funcionaba en PC y no en el celular, y reiniciar la app no cambiaba nada.
+  - `MainActivity` implementa `onShowFileChooser` (selector del sistema, varios archivos a la vez) y `onActivityResult` (responde siempre, aun cancelado, para que el input no quede colgado). Sin permisos nuevos.
+  - APK 1.1.0 (versionCode 2, se instala encima de la 1.0.0) compilada y firmada; queda en /app → Ajustes → App de colaboradores para descargar. Enviada a Sebastián como adjunto del TKT (instalar desde Chrome: la 1.0 no descargaba).
+  - APK 1.2.0 (versionCode 3): `setDownloadListener` descarga los adjuntos que no son imagen (PDF, APK…) a «Descargas» con el `DownloadManager`, pasando la cookie y el user agent del WebView, con notificación al terminar. En Android 9 o anterior se le pasa al navegador (escribir en Descargas pediría un permiso que la app no tiene; los adjuntos llevan el token en la URL). Compilada, firmada y adjunta al TKT; sin emulador ni celular conectado, no se probó en un dispositivo.
+- **Archivos Modificados:** `android-colab/app/src/main/java/co/mckennagroup/colaboradores/MainActivity.java`, `android-colab/version.properties`, `android-colab/LEEME.md`, `docs/team-recaps.md`.
+
 ### 2026-10-03 - Colaboradores: Cynthia y cualquiera con el permiso arman sus propios proyectos e invitan gente
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Colaboradores, panel y app de colaborador). Sin LLM.

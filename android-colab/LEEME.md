@@ -17,6 +17,10 @@ No es la APK del panel con otro nombre:
 (build aparte: solo Colaboradores y su Agenda con Armando) y le niega los archivos del
 panel. Si Sebastián instalara la APK del panel, igual vería solo lo suyo.
 
+⚠️ Todo lo que en un navegador es automático y en un WebView no, va en `MainActivity`:
+p. ej. `<input type="file">` necesita `WebChromeClient.onShowFileChooser` o el botón no hace
+nada en el celular (TKT-2026-1617), y las descargas necesitan `setDownloadListener`. Un arreglo así exige APK nueva: reiniciar no basta.
+
 ## Compilar
 
 ```bash
