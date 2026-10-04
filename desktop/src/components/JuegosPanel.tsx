@@ -43,7 +43,7 @@ const JUEGOS: Juego[] = [
     nombre: "Duck Hunt",
     descripcion: "Apunta y dispara con clic o tocando la pantalla: 3 tiros por pato. El sonido arranca con el primer disparo.",
     // `?v=`: subirlo al cambiar el juego, para que ningún navegador siga con la versión vieja.
-    src: `${import.meta.env.BASE_URL}juegos/duckhunt/index.html?v=2`,
+    src: `${import.meta.env.BASE_URL}juegos/duckhunt/index.html?v=3`,
     ancho: 520,
     alto: 456,
   },

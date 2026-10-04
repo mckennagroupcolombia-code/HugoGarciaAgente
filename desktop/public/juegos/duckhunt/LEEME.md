@@ -18,4 +18,8 @@ Origen: https://github.com/grosbouddha/duckhunt (commit c591966, 2013), revisado
 - **Toque:** `src/Tactil.js`. cake.js calcula el objetivo una vez por cuadro con el último
   `mousemove`; con el dedo el disparo se evaluaba contra la posición anterior. Esa capa mueve la
   mira, recalcula el objetivo y recién entonces dispara.
+- **Velocidad ×2** (4-oct-2026): `AppConf.gameInfo.velocidad` (1 = la original). Pone el reloj del
+  lienzo de cake.js (`DH.gameCanvas.speed`, en `src/main.js`: movimientos y `after`), acelera el aleteo
+  de los sprites (`initAnimationConfig` en `externalLib/cake.js`) y divide los `setTimeout` del juego
+  (aparición de patos, huida, mensajes). Los sonidos siguen a su ritmo normal.
 - Al cambiar el juego, subir el `?v=` del `src` en `desktop/src/components/JuegosPanel.tsx`.

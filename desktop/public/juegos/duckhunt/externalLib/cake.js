@@ -5946,7 +5946,8 @@ ImageNode = Klass(Drawable, {
 	  if(typeof(jsonObj) == 'object') {
 		  this.animatedImageInfo = jsonObj ;
 		  this.isAnimatedImage = true ;
-		  this.animatedImageInfo.timeBetweenFrames  = Math.floor(1000/this.animatedImageInfo.fps) ;
+		  // McKenna: el aleteo sigue la velocidad del juego (AppConf.gameInfo.velocidad).
+		  this.animatedImageInfo.timeBetweenFrames  = Math.floor(1000/(this.animatedImageInfo.fps * ((window.AppConf && AppConf.gameInfo && AppConf.gameInfo.velocidad) || 1))) ;
 		  this.animatedImageInfo.timeSinceLastFrame = -1 ;
 		  this.animatedImageInfo.lastDrawTime = 0 ;
 	  }

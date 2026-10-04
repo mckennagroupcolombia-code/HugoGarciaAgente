@@ -104,7 +104,7 @@ YUI().use('node', function(Y) {
 					Y.log('SETTING ducks to flying away state !', 'info', 'DH.gameManager');
 					DH.gameState.setDuckFlyingAway(true) ;
 				},
-				AppConf.gameInfo.timeBeforeFleeing
+				AppConf.gameInfo.timeBeforeFleeing / AppConf.gameInfo.velocidad
 		);
 	};
 

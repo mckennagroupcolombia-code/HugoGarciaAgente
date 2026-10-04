@@ -38,7 +38,7 @@ YUI().use('node', function(Y) {
 					that.roundMessage = null;
 
 				},
-				AppConf.gameInfo.roundMessageDuration
+				AppConf.gameInfo.roundMessageDuration / AppConf.gameInfo.velocidad
 		);
 	};
 
@@ -63,7 +63,7 @@ YUI().use('node', function(Y) {
 					DH.gameCanvas.remove(that.flyAwayMessage) ;
 					that.flyAwayMessage = null;
 				},
-				AppConf.gameInfo.flyAwayMessageDuration
+				AppConf.gameInfo.flyAwayMessageDuration / AppConf.gameInfo.velocidad
 		);
 	} ;
 

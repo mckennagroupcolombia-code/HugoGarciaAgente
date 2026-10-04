@@ -1,3 +1,11 @@
+### 2026-10-04 01:00 - Duck Hunt corre al doble de velocidad
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Agenda → Juegos). Sin LLM.
+- **Qué se implementó:**
+  - Nuevo `AppConf.gameInfo.velocidad = 2`: el reloj del lienzo de cake.js corre ×2 (patos, perro y pausas), los sprites aletean ×2 y los temporizadores del juego (aparición de patos, huida a los 3,25 s en vez de 6,5 s, mensajes) duran la mitad. Los sonidos van a su ritmo normal.
+  - Probado en Chrome jugando una ronda a ×1 y ×2: el primer pato aparece a 4,5 s (antes 9,4 s), los patos huyen a 7,5 s (antes 14,7 s), sin errores. `?v=3` en `JuegosPanel.tsx` para no servir el juego viejo.
+- **Archivos Modificados:** `desktop/public/juegos/duckhunt/src/{AppConf,main,DuckManager,GameManager,MessageManager}.js`, `desktop/public/juegos/duckhunt/externalLib/cake.js`, `desktop/public/juegos/duckhunt/LEEME.md`, `desktop/src/components/JuegosPanel.tsx`, `docs/team-recaps.md`.
+
 ### 2026-10-04 00:40 - Tarea cumplida: el perro de Duck Hunt se ríe en vez de estrellas y confeti
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora (panel `/app` y app de colaboradores). Sin LLM.

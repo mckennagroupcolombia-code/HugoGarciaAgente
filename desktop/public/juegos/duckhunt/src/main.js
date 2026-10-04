@@ -10,6 +10,8 @@ YUI().use('node', function(Y) {
 		    		AppConf.gameCanvasInfo.width,
 		    		AppConf.gameCanvasInfo.height,
 		    		{'cursor' : 'crosshair'});
+			// El reloj del lienzo (movimientos y `after`) corre a la velocidad del juego.
+			DH.gameCanvas.speed = AppConf.gameInfo.velocidad ;
 
 			DH.gameCanvas.publishShot = function(evt) {
 		    	DH.publisher.fire(DH.Events.TRIGGER_PULL);

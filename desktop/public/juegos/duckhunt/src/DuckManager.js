@@ -34,7 +34,7 @@ YUI().use('node', function(Y) {
 						DH.gameCanvas.append(that.tmpActiveDucks[0].getDuckNode()) ;
 						that.tmpActiveDucks.splice(0, 1);
 					},
-					Math.floor(Math.random() * AppConf.gameInfo.duckSpawingWindowTime * 1000)
+					Math.floor(Math.random() * AppConf.gameInfo.duckSpawingWindowTime * 1000 / AppConf.gameInfo.velocidad)
 					);
 		}
 	};
@@ -81,7 +81,7 @@ YUI().use('node', function(Y) {
 						function() {
 							that.setFleeBehavior();
 						},
-						AppConf.gameInfo.flyAwayTime
+						AppConf.gameInfo.flyAwayTime / AppConf.gameInfo.velocidad
 				);
 			},
 			DH.duckManager
