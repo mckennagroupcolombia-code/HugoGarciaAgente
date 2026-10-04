@@ -1,3 +1,12 @@
+### 2026-10-04 00:40 - Tarea cumplida: el perro de Duck Hunt se ríe en vez de estrellas y confeti
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (panel `/app` y app de colaboradores). Sin LLM.
+- **Qué se implementó:**
+  - Al marcar una tarea como lista o completar una acción, en vez de la fanfarria con lluvia de estrellas y confeti asoma abajo al centro el perro que se ríe de Duck Hunt, con su risa. Sprite y MP3 son los mismos del juego interno (`public/juegos/duckhunt`, de Nintendo, solo uso interno detrás de la sesión), copiados a `desktop/src/assets/duckhunt/`.
+  - Animación como en el juego (`Dog.js` → `makeDogLaugh`): 2 cuadros a 10 fps, sube a 80 px/s, 500 ms arriba y baja (~2,5 s), a escala ×2. La risa respeta el interruptor 🔊; la moneda que acompaña la tarea va callada. Sigue siendo una vez por tarea y por día.
+  - Probado en Chrome con clic real: sprite visible, cuadros alternando, audio reproduciéndose y capa retirada al terminar.
+- **Archivos Modificados:** `desktop/src/lib/celebracionAprobado.ts`, `desktop/src/assets/duckhunt/`, `desktop/src/components/TicketsPanel.tsx` (comentario), `docs/team-recaps.md`.
+
 ### 2026-10-03 - App de colaboradores: el 📎 ahora abre el selector de archivos en el celular (TKT-2026-1617)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (APK de colaboradores). Sin LLM.

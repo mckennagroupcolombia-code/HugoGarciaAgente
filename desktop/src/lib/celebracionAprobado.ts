@@ -15,7 +15,9 @@
  * Se monta sola sobre `document.body` (no depende del panel abierto: la ficha puede volver al
  * taller justo al aprobar). El silencio es el mismo interruptor 🔊 del taller.
  */
-import { sonarAprobado, sonarRevisado } from "../components/combos/sonidoMoneda";
+import { sonarAprobado, sonarRevisado, sonidoActivo } from "../components/combos/sonidoMoneda";
+import spritePerro from "../assets/duckhunt/laughing_dog.png";
+import risaPerro from "../assets/duckhunt/laughingDog.mp3";
 
 type Tipo = "grande" | "moneda";
 
@@ -234,7 +236,7 @@ export function escucharMonedasDelServidor() {
   window.fetch = async (...args: Parameters<typeof fetch>) => {
     const res = await original(...args);
     try {
-      // La tarea cumplida lleva su propio efecto con sonido: la moneda que la acompaña va callada.
+      // La tarea cumplida la celebra el perro con su risa: la moneda que la acompaña va callada.
       const tarea = res.ok ? tareaCumplidaEn(args[0], args[1]) : null;
       const celebrada = tarea != null && celebrarTareaCumplida(tarea);
       const h = res.headers.get("X-Mck-Monedas");
@@ -289,93 +291,59 @@ function yaCelebradaHoy(id: number): boolean {
   return false;
 }
 
-const CSS_TAREA = `
-.mck-tarea-capa { position: fixed; inset: 0; z-index: 2147482999; pointer-events: none; overflow: hidden; }
-.mck-tarea-estrella { display: block; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
-  background: radial-gradient(circle, #fffaf0 0%, #ffe28a 35%, #f2b938 70%, #c98a12 100%); }
-.mck-tarea-estrella.rosa { background: radial-gradient(circle, #fff 0%, #ffc2df 45%, #ff4fa3 100%); }
-.mck-tarea-brillo { position: absolute; top: -40px; animation: mck-tarea-cae var(--dur, 2.8s) cubic-bezier(.3,.1,.6,1) var(--ret, 0ms) forwards;
-  filter: drop-shadow(0 0 6px rgb(255 205 80 / .95)) drop-shadow(0 0 14px rgb(255 190 60 / .6)); }
-.mck-tarea-estallido { position: absolute; left: 50%; top: 42%; }
-.mck-tarea-estallido .mck-tarea-brillo { top: 0; left: 0; animation: mck-tarea-sale 1.3s cubic-bezier(.15,.8,.3,1) var(--ret, 0ms) forwards; }
-.mck-tarea-destello { position: absolute; left: 50%; top: 42%; width: 360px; height: 360px; margin: -180px 0 0 -180px; border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 236 170 / .75) 0%, rgb(246 201 69 / .3) 35%, transparent 70%);
-  animation: mck-tarea-destello 1.1s ease-out forwards; }
-@keyframes mck-tarea-cae { 0% { transform: translate(0, 0) rotate(0) scale(.6); opacity: 0; } 8% { opacity: 1; }
-  100% { transform: translate(var(--dx, 0px), 110vh) rotate(var(--giro, 360deg)) scale(1); opacity: .15; } }
-@keyframes mck-tarea-sale { 0% { transform: translate(0, 0) scale(.2) rotate(0); opacity: 1; }
-  70% { opacity: 1; } 100% { transform: translate(var(--x), var(--y)) scale(1) rotate(var(--giro, 180deg)); opacity: 0; } }
-@keyframes mck-tarea-destello { 0% { transform: scale(.2); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .mck-tarea-capa { display: none; } }`;
+/**
+ * El perro que se ríe de Duck Hunt (4-oct-2026): el sprite y la risa son los MISMOS archivos del
+ * juego interno de /app → Agenda → Juegos (`public/juegos/duckhunt`, copiados a
+ * `assets/duckhunt/`; ver su LEEME: son de Nintendo, solo uso interno detrás de la sesión).
+ * Se anima como en el juego (`src/Dog.js` → `makeDogLaugh`): dos cuadros de 112×78 a 10 fps,
+ * sube a 80 px/s hasta asomar entero, espera 500 ms y baja igual; aquí a escala ×2.
+ */
+const ESCALA = 2;
+const CUADRO_W = 112 * ESCALA;
+const CUADRO_H = 78 * ESCALA;
+// 78 px a 80 px/s, ida y vuelta, más la pausa de 500 ms arriba.
+const SUBE_MS = Math.round((78 / 80) * 1000);
+const QUIETO_MS = 500;
+const TOTAL_MS = SUBE_MS * 2 + QUIETO_MS;
 
-function estrella(tam: number, rosa: boolean): HTMLElement {
-  const brillo = el("span", "mck-tarea-brillo");
-  const e = el("span", rosa ? "mck-tarea-estrella rosa" : "mck-tarea-estrella");
-  Object.assign(e.style, { width: `${tam}px`, height: `${tam}px` });
-  brillo.appendChild(e);
-  return brillo;
-}
+const CSS_TAREA = `
+.mck-perro-capa { position: fixed; left: 50%; bottom: 0; z-index: 2147482999; width: ${CUADRO_W}px; height: ${CUADRO_H}px;
+  margin-left: -${CUADRO_W / 2}px; pointer-events: none; overflow: hidden; }
+.mck-perro { width: ${CUADRO_W}px; height: ${CUADRO_H}px; background-size: ${CUADRO_W * 2}px ${CUADRO_H}px;
+  background-repeat: no-repeat; image-rendering: pixelated; transform: translateY(100%);
+  animation: mck-perro-risa 200ms steps(2) infinite, mck-perro-asoma ${TOTAL_MS}ms linear forwards; }
+@keyframes mck-perro-risa { from { background-position: 0 0; } to { background-position: -${CUADRO_W * 2}px 0; } }
+@keyframes mck-perro-asoma { 0% { transform: translateY(100%); } ${((SUBE_MS / TOTAL_MS) * 100).toFixed(2)}% { transform: translateY(0); }
+  ${(((SUBE_MS + QUIETO_MS) / TOTAL_MS) * 100).toFixed(2)}% { transform: translateY(0); } 100% { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .mck-perro { animation: none; transform: none; } }`;
 
 /**
- * El efecto de cumplir una tarea: una lluvia de estrellas doradas con un estallido al centro
- * (en el tema Barbie Agenda, casi todas de oro con algún destello rosa; en los demás temas, oro
- * y confeti). Una sola vez por tarea y por día, y con una sola fanfarria. Devuelve si celebró.
+ * El efecto de cumplir una tarea: el perro de Duck Hunt asoma abajo al centro y se ríe con su
+ * risa del juego (callada con el mismo interruptor 🔊 del taller). Una sola vez por tarea y por
+ * día. Devuelve si celebró.
  */
 export function celebrarTareaCumplida(id: number): boolean {
   if (typeof document === "undefined" || yaCelebradaHoy(id)) return false;
-  sonarAprobado();
   if (!document.getElementById("mck-tarea-estilo")) {
     const s = document.createElement("style");
     s.id = "mck-tarea-estilo";
     s.textContent = CSS_TAREA;
     document.head.appendChild(s);
   }
-  const barbie = document.documentElement.dataset.mckSkin === "barbie";
-  const capa = el("div", "mck-tarea-capa");
+  document.querySelector(".mck-perro-capa")?.remove();
+  const capa = el("div", "mck-perro-capa");
   capa.setAttribute("aria-hidden", "true");
-  capa.appendChild(el("div", "mck-tarea-destello"));
-
-  const lluvia = barbie ? 90 : 50;
-  for (let i = 0; i < lluvia; i++) {
-    const rosa = barbie && i % 7 === 3;
-    // Tamaño, caída y giro al azar (no por `i`): la misma tarea no cae siempre igual.
-    const p = estrella(16 + Math.round(Math.random() * 4) * 7, rosa);
-    Object.assign(p.style, { left: `${Math.round(Math.random() * 100)}%` });
-    p.style.setProperty("--ret", `${Math.round(Math.random() * 1000)}ms`);
-    p.style.setProperty("--dur", `${(2.3 + Math.random() * 1.25).toFixed(2)}s`);
-    p.style.setProperty("--dx", `${Math.round(Math.random() * 80) - 40}px`);
-    p.style.setProperty("--giro", `${Math.random() < 0.5 ? 420 : -360}deg`);
-    capa.appendChild(p);
-    if (!barbie && i % 2) {
-      const c = el("span", "mck-apr-confeti");
-      Object.assign(c.style, { left: `${Math.round(Math.random() * 100)}%`, animationDelay: `${Math.round(Math.random() * 900)}ms`, background: COLORES[i % COLORES.length] });
-      capa.appendChild(c);
-    }
-  }
-
-  const estallido = el("div", "mck-tarea-estallido");
-  const rayos = barbie ? 24 : 16;
-  for (let i = 0; i < rayos; i++) {
-    const ang = (i / rayos) * Math.PI * 2;
-    // La distancia y el tamaño varían al azar sobre el reparto parejo de ángulos (si el ángulo
-    // también fuera al azar, los rayos se amontonarían en vez de estallar parejo).
-    const dist = 140 + Math.random() * 180;
-    const p = estrella(22 + Math.round(Math.random() * 3) * 10, barbie && i % 6 === 5);
-    p.style.setProperty("--x", `${Math.cos(ang) * dist}px`);
-    p.style.setProperty("--y", `${Math.sin(ang) * dist}px`);
-    p.style.setProperty("--ret", `${Math.round(Math.random() * 160)}ms`);
-    estallido.appendChild(p);
-  }
-  capa.appendChild(estallido);
-
-  if (!document.getElementById("mck-apr-estilo")) {
-    // El confeti de los demás temas usa las clases de la celebración de aprobar.
-    const s = document.createElement("style");
-    s.id = "mck-apr-estilo";
-    s.textContent = CSS;
-    document.head.appendChild(s);
-  }
+  const perro = el("div", "mck-perro");
+  perro.style.backgroundImage = `url("${spritePerro}")`;
+  capa.appendChild(perro);
   document.body.appendChild(capa);
-  window.setTimeout(() => capa.remove(), 4800);
+  window.setTimeout(() => capa.remove(), TOTAL_MS + 100);
+  if (sonidoActivo()) {
+    const risa = new Audio(risaPerro);
+    risa.volume = 0.6;
+    void risa.play().catch(() => {
+      /* el navegador no dejó sonar (sin un toque previo en la página): el perro igual se ve */
+    });
+  }
   return true;
 }

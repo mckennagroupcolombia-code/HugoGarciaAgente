@@ -14264,7 +14264,7 @@ function SolicitudCard({
         await guardarProcedimientoDesdeSolicitud();
       }
       await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
-      // El sonido y las estrellas los pone celebrarTareaCumplida (lib/celebracionAprobado.ts).
+      // El perro que se ríe lo pone celebrarTareaCumplida (lib/celebracionAprobado.ts).
       setCelebrando(segundosCronometro || ticket.segundos_trabajo || 0);
       onChanged();
       setTimeout(() => onCerrarDetalle?.(), 3200);
