@@ -20,6 +20,7 @@ const CreditosAdquiridosPanel = lazy(() => import("./CreditosAdquiridosPanel"));
 const SociosPanel = lazy(() => import("./SociosPanel"));
 const MayorCuentasPanel = lazy(() => import("./MayorCuentasPanel"));
 const DocumentosSoporteTab = lazy(() => import("./DocumentosSoporte"));
+const RetencionesContadorTab = lazy(() => import("./RetencionesContador"));
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 
@@ -1310,6 +1311,7 @@ type SubvistaAvanzada =
   | "diario"
   | "libro-diario"
   | "documentos-soporte"
+  | "retenciones"
   | "mayor"
   | "rapido"
   | "plan-cuentas"
@@ -1356,6 +1358,9 @@ const GRUPOS: Grupo[] = [
       // Los documentos soporte de pagos a quien no factura: borradores por
       // emitir y los ya transmitidos. Se emiten a mano, como en AstroKiller.
       { id: "documentos-soporte", label: "Documentos soporte", icon: "receipt", desc: "Borradores por emitir y emitidos a la DIAN" },
+      // Certificados de lo que nos retuvieron (Mercado Pago) y los temas
+      // abiertos con el contador: lo que necesita para las declaraciones.
+      { id: "retenciones", label: "Retenciones y temas", icon: "receipt", desc: "Certificados de Mercado Pago y temas con el contador" },
       { id: "balance", label: "Balance", icon: "chartBar", desc: "Comprobación débito = crédito" },
       { id: "movimientos", label: "Asientos", icon: "listChecks", desc: "Todos los comprobantes" },
       { id: "cuentas-t", label: "Cuentas T", icon: "receipt", desc: "Debe / haber a dos columnas" },
@@ -1544,6 +1549,11 @@ function VistaEmpresa({
       {sub === "documentos-soporte" && (
         <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
           <DocumentosSoporteTab />
+        </Suspense>
+      )}
+      {sub === "retenciones" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <RetencionesContadorTab />
         </Suspense>
       )}
       {sub === "cuentas-t" && <CuentasTTab />}

@@ -468,3 +468,30 @@ sigue al consecutivo: NC145 = id 118, se busca). Las FV-2 de Siigo no: sus crede
 sirven tras la migración (401). ⚠️ `tests/test_ventas_directas.py` escribía en el `contabilidad.db` real
 (`causar_venta_directa` al facturar con Alegra falso): asientos 5762-5764 anulados el 28-sep. Toda prueba
 que llame `ventas_directas.facturar` debe aislar `contabilidad_core._DB_PATH`.
+
+## Retenciones que nos practicaron + temas con el contador (3-oct-2026)
+
+`app/services/certificados_retencion.py`: los certificados mensuales de Mercado Pago (retefuente 1,5 %,
+reteIVA 15 %, reteICA 4,14 ‰ sobre ventas con tarjeta) viven en `docs/contabilidad/Certificados_Retencion/
+<emisor>/<AAAA-MM>/` (gitignored); `python3 -m app.services.certificados_retencion --importar` los trae de los
+zips `Certificados-de-impuestos-<mes><año>-…-MercadoPago.zip` de ~/Descargas (idempotente). `listar()` relee los
+PDF con pdftotext en cada consulta. Rutas `GET /api/contabilidad/certificados-retencion` (+ `/pdf?archivo=`, con
+guard de ruta) y `/api/contabilidad/temas-reunion`: bajo `/api/contabilidad/` para que el perfil contador las lea.
+Panel: Libro Mayor → **Retenciones y temas** (`RetencionesContador.tsx`). Los temas para la reunión con William
+salen de `app/data/temas_reunion_contador.json`; `calculo` agrega cifras en vivo (p. ej. el IVA de las comisiones
+de pagos automáticos, sumado del extracto). ⚠️ Mayo a sep-2026: $6.059.669 certificados y **$0 causados** en
+135515/135517/135518. Ojo: en este libro el código `1355` se usó para «Cuentas por cobrar - socios» (alias → 1325).
+
+**Cuenta de cobro del contador ≠ pago (3-oct-2026).** `contabilidad_ledger._egresos_servicios_y_cobros` registraba
+cada cuenta de cobro de William que llega por correo como gasto pagado desde Bancos. Desde sep-2026 se le paga
+por Solicitudes de pago, que ya causan su asiento, así que septiembre quedó dos veces (#6058 duplicaba el #5590, 
+anulado). Ahora la fuente `cuenta_cobro_correo` omite la cuenta de cobro que `cuenta_cobro_contador.buscar_pago()`
+empareja con una solicitud pagada; julio y agosto, pagados sin solicitud, se siguen contando.
+
+**Listados de la DIAN (3-oct-2026).** `scripts/descargar_listados_dian.py [--desde AAAA-MM --hasta AAAA-MM]` baja de
+catalogo-vpfe.dian.gov.co los documentos electrónicos emitidos y recibidos, mes a mes, a
+`docs/contabilidad/DIAN_listados/dian_<desde>_<hasta>.xlsx` (gitignored). Necesita que el representante legal pida el
+token en el portal: el script toma el enlace del correo más reciente en mckenna.group.colombia@gmail.com y nunca lo
+imprime. La exportación es asíncrona: pide, espera en `/Document/TasksPartial` y descarga. Con rangos largos de 2025
+la DIAN devuelve Error; por eso va mes a mes. Es la misma fuente que usa el contador: 2025 cuadró al peso con el F110
+y 2026 con los F300.

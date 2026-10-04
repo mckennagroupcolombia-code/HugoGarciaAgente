@@ -11699,6 +11699,47 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    # Retenciones que le practicaron a McKenna (certificados de Mercado Pago) y
+    # temas para la reunión con el contador. Bajo /api/contabilidad/ para que el
+    # perfil contador los lea (lista blanca de `_guard_perfil_contador`).
+    @app.route("/api/contabilidad/certificados-retencion", methods=["GET"])
+    @app.route("/app/api/contabilidad/certificados-retencion", methods=["GET"])
+    def api_cc_certificados_retencion():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.certificados_retencion import listar
+
+            return jsonify(listar())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/certificados-retencion/pdf", methods=["GET"])
+    @app.route("/app/api/contabilidad/certificados-retencion/pdf", methods=["GET"])
+    def api_cc_certificados_retencion_pdf():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import send_file
+
+        from app.services.certificados_retencion import ruta_certificado
+
+        ruta = ruta_certificado(request.args.get("archivo") or "")
+        if not ruta:
+            return jsonify({"error": "Certificado no encontrado"}), 404
+        return send_file(ruta, mimetype="application/pdf", download_name=ruta.name, as_attachment=False)
+
+    @app.route("/api/contabilidad/temas-reunion", methods=["GET"])
+    @app.route("/app/api/contabilidad/temas-reunion", methods=["GET"])
+    def api_cc_temas_reunion():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.certificados_retencion import temas_reunion
+
+            return jsonify({"temas": temas_reunion()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/contabilidad/cc/arbol", methods=["GET"])
     @app.route("/app/api/contabilidad/cc/arbol", methods=["GET"])
     def api_cc_arbol_cuentas():

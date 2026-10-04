@@ -1,6 +1,209 @@
 {
   "archivos": [
     {
+      "nombre": "SEMILLA_DE_CALABAZA_250g_2_20261003_140014.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_2_20261003_140014.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_2_20261003_140014.pdf",
+      "subido_at": "2026-10-03T14:00:14",
+      "bytes": 184910
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_250g_2.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_2.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_2.pdf",
+      "subido_at": "2026-10-03T13:59:57",
+      "bytes": 184910
+    },
+    {
+      "nombre": "MANI_TOSTADO_PARTIDO_250g.pdf",
+      "ruta": "Etiquetas McKenna/MANI_TOSTADO_PARTIDO_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_TOSTADO_PARTIDO_250g.pdf",
+      "subido_at": "2026-10-03T13:45:33",
+      "bytes": 187912
+    },
+    {
+      "nombre": "MANI_TOSTADO_PARTIDO_500g.pdf",
+      "ruta": "Etiquetas McKenna/MANI_TOSTADO_PARTIDO_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_TOSTADO_PARTIDO_500g.pdf",
+      "subido_at": "2026-10-03T13:45:07",
+      "bytes": 188539
+    },
+    {
+      "nombre": "UVAS_PASAS_FLAME_250g.pdf",
+      "ruta": "Etiquetas McKenna/UVAS_PASAS_FLAME_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/UVAS_PASAS_FLAME_250g.pdf",
+      "subido_at": "2026-10-03T13:42:56",
+      "bytes": 186570
+    },
+    {
+      "nombre": "UVAS_PASAS_FLAME_500g.pdf",
+      "ruta": "Etiquetas McKenna/UVAS_PASAS_FLAME_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/UVAS_PASAS_FLAME_500g.pdf",
+      "subido_at": "2026-10-03T13:41:06",
+      "bytes": 186257
+    },
+    {
+      "nombre": "ALBARICOQUE_SECO_250g.pdf",
+      "ruta": "Etiquetas McKenna/ALBARICOQUE_SECO_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALBARICOQUE_SECO_250g.pdf",
+      "subido_at": "2026-10-03T13:39:01",
+      "bytes": 199390
+    },
+    {
+      "nombre": "ALBARICOQUE_SECO_500g.pdf",
+      "ruta": "Etiquetas McKenna/ALBARICOQUE_SECO_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALBARICOQUE_SECO_500g.pdf",
+      "subido_at": "2026-10-03T13:37:58",
+      "bytes": 211213
+    },
+    {
+      "nombre": "BAYAS_DE_GOJI_BERRY_250g_20261003_133424.pdf",
+      "ruta": "Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_250g_20261003_133424.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_250g_20261003_133424.pdf",
+      "subido_at": "2026-10-03T13:34:24",
+      "bytes": 171598
+    },
+    {
+      "nombre": "BAYAS_DE_GOJI_BERRY_250g_20261003_133402.pdf",
+      "ruta": "Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_250g_20261003_133402.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_250g_20261003_133402.pdf",
+      "subido_at": "2026-10-03T13:34:03",
+      "bytes": 171598
+    },
+    {
+      "nombre": "BAYAS_DE_GOJI_BERRY_250g.pdf",
+      "ruta": "Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_250g.pdf",
+      "subido_at": "2026-10-03T13:33:52",
+      "bytes": 171598
+    },
+    {
+      "nombre": "SEMILLA_DE_CHIA_250g_20261003_132838.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CHIA_250g_20261003_132838.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CHIA_250g_20261003_132838.pdf",
+      "subido_at": "2026-10-03T13:28:38",
+      "bytes": 177801
+    },
+    {
+      "nombre": "SEMILLA_DE_CHIA_250g_20261003_132821.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CHIA_250g_20261003_132821.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CHIA_250g_20261003_132821.pdf",
+      "subido_at": "2026-10-03T13:28:21",
+      "bytes": 177801
+    },
+    {
+      "nombre": "SEMILLA_DE_CHIA_250g_20261003_132805.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CHIA_250g_20261003_132805.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CHIA_250g_20261003_132805.pdf",
+      "subido_at": "2026-10-03T13:28:05",
+      "bytes": 177801
+    },
+    {
+      "nombre": "SEMILLA_DE_CHIA_250g_20261003_132755.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CHIA_250g_20261003_132755.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CHIA_250g_20261003_132755.pdf",
+      "subido_at": "2026-10-03T13:27:56",
+      "bytes": 177801
+    },
+    {
+      "nombre": "SEMILLA_DE_CHIA_500g_20261003_132607.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CHIA_500g_20261003_132607.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CHIA_500g_20261003_132607.pdf",
+      "subido_at": "2026-10-03T13:26:08",
+      "bytes": 178142
+    },
+    {
+      "nombre": "SEMILLA_DE_CHIA_500g_20261003_132554.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CHIA_500g_20261003_132554.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CHIA_500g_20261003_132554.pdf",
+      "subido_at": "2026-10-03T13:25:54",
+      "bytes": 178142
+    },
+    {
+      "nombre": "AJONJOLI_NEGRO_250g_2_20261003_132442.pdf",
+      "ruta": "Etiquetas McKenna/AJONJOLI_NEGRO_250g_2_20261003_132442.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AJONJOLI_NEGRO_250g_2_20261003_132442.pdf",
+      "subido_at": "2026-10-03T13:24:42",
+      "bytes": 188956
+    },
+    {
+      "nombre": "AJONJOLI_NEGRO_250g_2_20261003_132322.pdf",
+      "ruta": "Etiquetas McKenna/AJONJOLI_NEGRO_250g_2_20261003_132322.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AJONJOLI_NEGRO_250g_2_20261003_132322.pdf",
+      "subido_at": "2026-10-03T13:23:23",
+      "bytes": 188956
+    },
+    {
+      "nombre": "AJONJOLI_NEGRO_250g_2.pdf",
+      "ruta": "Etiquetas McKenna/AJONJOLI_NEGRO_250g_2.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AJONJOLI_NEGRO_250g_2.pdf",
+      "subido_at": "2026-10-03T13:18:45",
+      "bytes": 188956
+    },
+    {
+      "nombre": "AJONJOLI_NEGRO_500g_20261003_131639.pdf",
+      "ruta": "Etiquetas McKenna/AJONJOLI_NEGRO_500g_20261003_131639.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AJONJOLI_NEGRO_500g_20261003_131639.pdf",
+      "subido_at": "2026-10-03T13:16:39",
+      "bytes": 190334
+    },
+    {
+      "nombre": "AJONJOLI_NEGRO_500g_20261003_131612.pdf",
+      "ruta": "Etiquetas McKenna/AJONJOLI_NEGRO_500g_20261003_131612.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AJONJOLI_NEGRO_500g_20261003_131612.pdf",
+      "subido_at": "2026-10-03T13:16:12",
+      "bytes": 190334
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131056.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131056.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131056.pdf",
+      "subido_at": "2026-10-03T13:10:56",
+      "bytes": 198322
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131031.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131031.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131031.pdf",
+      "subido_at": "2026-10-03T13:10:31",
+      "bytes": 198322
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131020.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131020.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131020.pdf",
+      "subido_at": "2026-10-03T13:10:20",
+      "bytes": 198322
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131013.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131013.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131013.pdf",
+      "subido_at": "2026-10-03T13:10:13",
+      "bytes": 198322
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131007.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131007.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_131007.pdf",
+      "subido_at": "2026-10-03T13:10:07",
+      "bytes": 198322
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_130957.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_130957.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_130957.pdf",
+      "subido_at": "2026-10-03T13:09:57",
+      "bytes": 198322
+    },
+    {
+      "nombre": "SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_130452.pdf",
+      "ruta": "Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_130452.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_20261003_130452.pdf",
+      "subido_at": "2026-10-03T13:04:52",
+      "bytes": 198322
+    },
+    {
       "nombre": "CITRATO_ZINC_500g_20261002_142416.pdf",
       "ruta": "Etiquetas McKenna/CITRATO_ZINC_500g_20261002_142416.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_ZINC_500g_20261002_142416.pdf",
@@ -1196,209 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260918_095635.pdf",
       "subido_at": "2026-09-18T09:56:35",
       "bytes": 253356
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095407.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095407.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095407.pdf",
-      "subido_at": "2026-09-18T09:54:07",
-      "bytes": 257705
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095345.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095345.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095345.pdf",
-      "subido_at": "2026-09-18T09:53:45",
-      "bytes": 257705
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095313.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095313.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095313.pdf",
-      "subido_at": "2026-09-18T09:53:14",
-      "bytes": 257705
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095252.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095252.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260918_095252.pdf",
-      "subido_at": "2026-09-18T09:52:53",
-      "bytes": 257705
-    },
-    {
-      "nombre": "CREATINA_MONOHIDRATO_1000g_6.25x_20260918_094740.pdf",
-      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_1000g_6.25x_20260918_094740.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_1000g_6.25x_20260918_094740.pdf",
-      "subido_at": "2026-09-18T09:47:40",
-      "bytes": 534785
-    },
-    {
-      "nombre": "CREATINA_MONOHIDRATO_1000g_6.25x_20260918_094726.pdf",
-      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_1000g_6.25x_20260918_094726.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_1000g_6.25x_20260918_094726.pdf",
-      "subido_at": "2026-09-18T09:47:26",
-      "bytes": 534785
-    },
-    {
-      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_20260918_094609.pdf",
-      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_20260918_094609.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_20260918_094609.pdf",
-      "subido_at": "2026-09-18T09:46:09",
-      "bytes": 534101
-    },
-    {
-      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_20260918_094547.pdf",
-      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_20260918_094547.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_20260918_094547.pdf",
-      "subido_at": "2026-09-18T09:45:47",
-      "bytes": 534101
-    },
-    {
-      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_20260918_094533.pdf",
-      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_20260918_094533.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_20260918_094533.pdf",
-      "subido_at": "2026-09-18T09:45:33",
-      "bytes": 534101
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_2_20260918_094223.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260918_094223.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260918_094223.pdf",
-      "subido_at": "2026-09-18T09:42:23",
-      "bytes": 640596
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_2_20260918_094147.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260918_094147.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260918_094147.pdf",
-      "subido_at": "2026-09-18T09:41:47",
-      "bytes": 640596
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_2_20260918_094115.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260918_094115.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260918_094115.pdf",
-      "subido_at": "2026-09-18T09:41:15",
-      "bytes": 640596
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_2_20260918_094054.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260918_094054.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260918_094054.pdf",
-      "subido_at": "2026-09-18T09:40:55",
-      "bytes": 640596
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_093650.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093650.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093650.pdf",
-      "subido_at": "2026-09-18T09:36:50",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_093625.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093625.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093625.pdf",
-      "subido_at": "2026-09-18T09:36:25",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_093558.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093558.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093558.pdf",
-      "subido_at": "2026-09-18T09:35:58",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_093538.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093538.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093538.pdf",
-      "subido_at": "2026-09-18T09:35:38",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_093519.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093519.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093519.pdf",
-      "subido_at": "2026-09-18T09:35:19",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_093452.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093452.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093452.pdf",
-      "subido_at": "2026-09-18T09:34:52",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_093224.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093224.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_093224.pdf",
-      "subido_at": "2026-09-18T09:32:24",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_092549.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_092549.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_092549.pdf",
-      "subido_at": "2026-09-18T09:25:49",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_092528.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_092528.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_092528.pdf",
-      "subido_at": "2026-09-18T09:25:28",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_092514.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_092514.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_092514.pdf",
-      "subido_at": "2026-09-18T09:25:14",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2_20260918_092450.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_092450.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2_20260918_092450.pdf",
-      "subido_at": "2026-09-18T09:24:50",
-      "bytes": 103756
-    },
-    {
-      "nombre": "ACEITE_DE_RICINO_500mL_2.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_DE_RICINO_500mL_2.pdf",
-      "subido_at": "2026-09-18T09:24:34",
-      "bytes": 103756
-    },
-    {
-      "nombre": "GLICERINA_VEGETAL_500mL_2_20260918_092209.pdf",
-      "ruta": "Etiquetas McKenna/GLICERINA_VEGETAL_500mL_2_20260918_092209.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/GLICERINA_VEGETAL_500mL_2_20260918_092209.pdf",
-      "subido_at": "2026-09-18T09:22:09",
-      "bytes": 297471
-    },
-    {
-      "nombre": "GLICERINA_VEGETAL_500mL_2_20260918_092133.pdf",
-      "ruta": "Etiquetas McKenna/GLICERINA_VEGETAL_500mL_2_20260918_092133.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/GLICERINA_VEGETAL_500mL_2_20260918_092133.pdf",
-      "subido_at": "2026-09-18T09:21:33",
-      "bytes": 297471
-    },
-    {
-      "nombre": "GLICERINA_VEGETAL_500mL_2_20260918_092056.pdf",
-      "ruta": "Etiquetas McKenna/GLICERINA_VEGETAL_500mL_2_20260918_092056.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/GLICERINA_VEGETAL_500mL_2_20260918_092056.pdf",
-      "subido_at": "2026-09-18T09:20:56",
-      "bytes": 297471
-    },
-    {
-      "nombre": "GLICERINA_VEGETAL_500mL_2.pdf",
-      "ruta": "Etiquetas McKenna/GLICERINA_VEGETAL_500mL_2.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/GLICERINA_VEGETAL_500mL_2.pdf",
-      "subido_at": "2026-09-18T09:20:35",
-      "bytes": 297471
     }
   ]
 }

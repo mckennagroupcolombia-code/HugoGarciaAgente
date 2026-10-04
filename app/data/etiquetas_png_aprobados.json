@@ -2157,6 +2157,19 @@
         "aprobado_at": "2026-10-02T13:17:16",
         "por": "@cynthia"
       }
+    },
+    "f8eec381cad5": {
+      "barcode": "7700400502632",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Gelificantes & Espesantes & Emulsificantes/ALGINATO_DE_SODIO_50g.png",
+        "aprobado_at": "2026-10-03T14:21:14",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Gelificantes & Espesantes & Emulsificantes/ALGINATO_DE_SODIO_50g_digital.png",
+        "aprobado_at": "2026-10-03T14:21:14",
+        "por": "@cynthia"
+      }
     }
   }
 }

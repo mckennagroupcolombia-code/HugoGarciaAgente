@@ -42,8 +42,9 @@ neto girado **$2.600.857 (26,01%)**, desembolso total de McKenna $12.796.620.
 | 2 | Gloria Stella Velandia Cobos | $29.000.000 | 18-oct · $1.231.207 | banco |
 | 3 | Lira Carmenza Prieto Domínguez | $16.950.000 | 11-nov · $719.619 | banco |
 | 4 | Victor Hugo García Barrero | $20.000.000 | 19-oct · $849.108 | dos giros a Armando |
+| 5 | Cindy Milady Castellanos Prieto | $20.000.000 | 28-nov · $849.108 | banco, 28-sep (asiento #8241, MUT-2026-0005 enviado el 3-oct) |
 
-Total en 2295: **$81.950.000**. Los cuatro con **un mes de gracia** (decidido el
+Total en 2295 (hoy 2195 en el PUC real): **$101.950.000** con el #5. Los cuatro con **un mes de gracia** (decidido el
 2026-09-11) y contrato enviado ese día (MUT-2026-0001 a 0004).
 
 ⚠️ **$15.700.000 nunca llegaron a la cuenta de McKenna**: por cobrar en 1355 a Armando

@@ -79,7 +79,9 @@
     "135343126888496@lid",
     "573115399876@c.us",
     "1679802036272@lid",
-    "573123799097@c.us"
+    "573123799097@c.us",
+    "573044939122@c.us",
+    "203642250502245@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -162,408 +164,420 @@
     "135343126888496@lid": 1790952457.1331687,
     "573115399876@c.us": 1790952457.1331687,
     "1679802036272@lid": 1790964752.9185486,
-    "573123799097@c.us": 1790964752.9185486
+    "573123799097@c.us": 1790964752.9185486,
+    "573044939122@c.us": 1791068204.3958654,
+    "203642250502245@lid": 1791068204.3958654
   },
   "bot_auto_pausados": {
     "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe": {
       "timestamp": 1790178747.883747,
       "razon": "web_pago_pedido",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "85500551516276@lid": {
       "timestamp": 1790717602.359398,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573019229626@c.us": {
       "timestamp": 1790717602.359398,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573192247757@c.us": {
       "timestamp": 1790605714.6285589,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "16080508592159@lid": {
       "timestamp": 1790605714.6285589,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "256058081677329@lid": {
       "timestamp": 1790606269.6630688,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "235368536358931@lid": {
       "timestamp": 1790616349.0276742,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573204642331@c.us": {
       "timestamp": 1790616349.0276742,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573227203834@c.us": {
       "timestamp": 1790621260.2992072,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "172692212863191@lid": {
       "timestamp": 1790621260.2992072,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573104578432@c.us": {
       "timestamp": 1790621266.504241,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "174869778043120@lid": {
       "timestamp": 1790621266.504241,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "119026881671318@lid": {
       "timestamp": 1790621270.8016381,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573175195817@c.us": {
       "timestamp": 1790621270.8016381,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "120363023555909043@g.us": {
       "timestamp": 1790621282.216532,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "35567010074856@lid": {
       "timestamp": 1790629475.3355436,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "2367030300735@lid": {
       "timestamp": 1790687486.759396,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573014433084@c.us": {
       "timestamp": 1790687486.759396,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "120363393955474672@g.us": {
       "timestamp": 1790687490.7516515,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "233706501468198@lid": {
       "timestamp": 1790687494.875017,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573175764579@c.us": {
       "timestamp": 1790687494.875017,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "279529390088428@lid": {
       "timestamp": 1790692346.4918094,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573016708239@c.us": {
       "timestamp": 1790692346.4918094,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573248699507@c.us": {
       "timestamp": 1790692348.9461899,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "69884067238048@lid": {
       "timestamp": 1790692348.9461899,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "233276971216936@lid": {
       "timestamp": 1790693217.4421027,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573205031961@c.us": {
       "timestamp": 1790693217.4421027,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "56466169974985@lid": {
       "timestamp": 1790694656.988616,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573011487739@c.us": {
       "timestamp": 1790694656.988616,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573015675107@c.us": {
       "timestamp": 1790700667.1354527,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "246291007328392@lid": {
       "timestamp": 1790700667.1354527,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "121530763731073@lid": {
       "timestamp": 1790707954.6172817,
       "razon": "r\u00e1faga de 10 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573208299760@c.us": {
       "timestamp": 1790717536.10684,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "7421820989667@lid": {
       "timestamp": 1790717536.10684,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573168330664@c.us": {
       "timestamp": 1790720457.178922,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "171068597776517@lid": {
       "timestamp": 1790720457.178922,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "94700505694256@lid": {
       "timestamp": 1790721582.974034,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573024381676@c.us": {
       "timestamp": 1790721582.974034,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "251290466701322@lid": {
       "timestamp": 1790724056.6071713,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "249730957316313@lid": {
       "timestamp": 1790769085.355793,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573217953421@c.us": {
       "timestamp": 1790769085.355793,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573004054394@c.us": {
       "timestamp": 1790782759.8800378,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "123394527903825@lid": {
       "timestamp": 1790782759.8800378,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "258519064379559@lid": {
       "timestamp": 1790785398.3682761,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573042673171@c.us": {
       "timestamp": 1790785398.3682761,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573218851807@c.us": {
       "timestamp": 1790789766.5253491,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "4707519078573@lid": {
       "timestamp": 1790789766.5253491,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "187256463695894@lid": {
       "timestamp": 1790794900.371986,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573187462545@c.us": {
       "timestamp": 1790799706.730904,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "180496738828390@lid": {
       "timestamp": 1790799706.730904,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573202705050@c.us": {
       "timestamp": 1790799795.1634424,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "135025232183389@lid": {
       "timestamp": 1790799795.1634424,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573153867079@c.us": {
       "timestamp": 1790861770.1337762,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "225567504892142@lid": {
       "timestamp": 1790861770.1337762,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "112000482979882@lid": {
       "timestamp": 1790861773.5977583,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573053106833@c.us": {
       "timestamp": 1790861773.5977583,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "156272502517833@lid": {
       "timestamp": 1790865292.5371563,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573174346955@c.us": {
       "timestamp": 1790865292.5371563,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "211230820171855@lid": {
       "timestamp": 1790870407.6441956,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573163397382@c.us": {
       "timestamp": 1790870407.6441956,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573203141452@c.us": {
       "timestamp": 1790870410.6436343,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "156289699172555@lid": {
       "timestamp": 1790870410.6436343,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "267946567938297@lid": {
       "timestamp": 1790874682.5774674,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573223550780@c.us": {
       "timestamp": 1790874682.5774674,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "39170219229281@lid": {
       "timestamp": 1790878704.452641,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "61886284455978@lid": {
       "timestamp": 1790885688.9222305,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573207508278@c.us": {
       "timestamp": 1790885688.9222305,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "56083850748008@lid": {
       "timestamp": 1790896646.1583579,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573016371669@c.us": {
       "timestamp": 1790896646.1583579,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "En polvo ambos"
     },
     "197418255695940@lid": {
       "timestamp": 1790897426.9197032,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573219129462@c.us": {
       "timestamp": 1790897426.9197032,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573015823487@c.us": {
       "timestamp": 1790898643.126774,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
     },
     "77005307519219@lid": {
       "timestamp": 1790898643.126774,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
     },
     "177648537968832@lid": {
       "timestamp": 1790903028.9501169,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
     },
     "116054462361830@lid": {
       "timestamp": 1790949837.8833086,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573183954547@c.us": {
       "timestamp": 1790949837.8833086,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
     },
     "135343126888496@lid": {
       "timestamp": 1790952457.1331687,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573115399876@c.us": {
       "timestamp": 1790952457.1331687,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
     },
     "1679802036272@lid": {
       "timestamp": 1790964752.9185486,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
     },
     "573123799097@c.us": {
       "timestamp": 1790964752.9185486,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "En polvo ambos"
+    },
+    "573044939122@c.us": {
+      "timestamp": 1791068204.3958654,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "En polvo ambos"
+    },
+    "203642250502245@lid": {
+      "timestamp": 1791068204.3958654,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "En polvo ambos"
     }
   },
   "bot_global_activo": true,

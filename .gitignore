@@ -303,3 +303,6 @@ fotos_bultos/
 
 # Detalle de corridas de scripts operativos (ej. descuento_propio_meli.py)
 logs/
+# Certificados de retenciones que nos practicaron (Mercado Pago…): app/services/certificados_retencion.py
+docs/contabilidad/Certificados_Retencion/
+docs/contabilidad/DIAN_listados/

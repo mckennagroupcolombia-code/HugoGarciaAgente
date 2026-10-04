@@ -849,6 +849,14 @@
       "subida_meli": true,
       "proveedor": "Alegra",
       "actualizado_en": "2026-09-26T07:21:33"
+    },
+    "2000015065607043": {
+      "estado": "emitida",
+      "factura": "FE797",
+      "nc": "NC147",
+      "subida_meli": true,
+      "proveedor": "Alegra",
+      "actualizado_en": "2026-10-03T07:22:35"
     }
   }
 }

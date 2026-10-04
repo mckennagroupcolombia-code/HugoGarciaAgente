@@ -443,6 +443,22 @@ def _egresos_servicios_y_cobros(desde: str, hasta: str) -> tuple[list[dict], lis
 
     cobros: list[dict] = []
 
+    # Desde sep-2026 al contador se le paga por Solicitudes de pago, que ya
+    # causan su propio asiento (gasto + Bancos). Su cuenta de cobro llega por
+    # correo días después —a veces después de pagada— y contarla acá también
+    # duplicaba gasto y salida de banco (asiento #6058, sep-2026). Se empareja
+    # con la misma regla que usa la respuesta automática al contador.
+    solicitudes_contador: list[dict] = []
+    usadas_contador: set[int] = set()
+    try:
+        from app.services import cuenta_cobro_contador as ccc
+
+        t_contador = ccc.tercero_contador()
+        if t_contador:
+            solicitudes_contador = ccc._solicitudes_del_contador(int(t_contador["id"]))
+    except Exception:
+        ccc = None  # type: ignore[assignment]
+
     def _add_cobro(c: dict) -> None:
         fecha = _fecha10(c.get("fecha") or c.get("email_date") or "")
         if not _en_rango(fecha, desde, hasta):
@@ -453,6 +469,11 @@ def _egresos_servicios_y_cobros(desde: str, hasta: str) -> tuple[list[dict], lis
         # Evitar duplicar lo ya cargado desde Operativos → Servicios
         if (fecha, round(monto, 0)) in claves_srv:
             return
+        if solicitudes_contador and ccc is not None:
+            pago = ccc.buscar_pago(c, solicitudes_contador, usadas_contador)
+            if pago:
+                usadas_contador.add(int(pago["id"]))
+                return
         cobros.append(
             _row(
                 fecha=fecha,

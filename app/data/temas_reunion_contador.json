@@ -1,0 +1,23 @@
+{
+  "_doc": "Temas para la próxima reunión con el contador (William). Los ve en /app → Contabilidad → Libro Mayor → Retenciones y temas. `calculo` hace que app/services/certificados_retencion.temas_reunion() agregue las cifras en vivo.",
+  "temas": [
+    {
+      "id": "iva-comisiones-pagos-automaticos",
+      "creado": "2026-10-03",
+      "estado": "abierto",
+      "titulo": "IVA de las comisiones de pagos automáticos de Bancolombia: ¿gasto o descontable?",
+      "detalle": "Por cada pago a proveedor desde la sucursal virtual, Bancolombia cobra $3.990 de comisión («SERVICIO PAGO A PROVEEDORES») más $758,10 de IVA («COBRO IVA PAGOS AUTOMATICOS»). Hoy ese IVA está causado como gasto bancario (530505 contra 1110), en julio, agosto y septiembre. Como McKenna es responsable de IVA, puede que se deba llevar a IVA descontable (2408). Para definirlo, William probablemente pida los certificados de retenciones de Mercado Pago, que están en la sección «Certificados de retención» de esta misma vista.",
+      "pregunta": "¿Se reclasifica ese IVA a 2408 (descontable) o se deja como gasto? Si se reclasifica, se corrigen julio, agosto y septiembre juntos.",
+      "calculo": "iva_comisiones_bancarias"
+    },
+    {
+      "id": "retenciones-mercadopago-sin-causar",
+      "creado": "2026-10-03",
+      "estado": "abierto",
+      "titulo": "Retenciones que nos practicó Mercado Pago: certificados disponibles, todavía sin causar en el libro",
+      "detalle": "Mercado Pago (los bancos de las tarjetas) retiene renta 1,5 %, IVA 15 % e ICA 4,14 ‰ sobre las ventas con tarjeta, y expide certificados mensuales. Están cargados de mayo a septiembre de 2026. Ese valor es a favor de McKenna en el 350/renta, el 300 y el ICA, pero el Libro Mayor todavía no lo registra en 135515 / 135517 / 135518.",
+      "pregunta": "¿Cómo los está tomando hoy en las declaraciones? ¿Los causamos mes a mes contra lo que Mercado Pago dejó de girar?",
+      "calculo": "certificados_retencion"
+    }
+  ]
+}

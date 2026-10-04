@@ -3,6 +3,10 @@
   "familia": "FOR-ACIHIABAJPESmL",
   "nombre": "ÁCIDO HIALURÓNICO BAJO PESO"
  },
+ "C-ACDKOJDPAL30ML": {
+  "familia": "c-acdkojdpal30ml",
+  "nombre": "ÁCIDO KÓJICO D PALMITATO"
+ },
  "C-ACDLAC85P30ML": {
   "familia": "FOR-ACILAC85PmL",
   "nombre": "ÁCIDO LÁCTICO"
@@ -309,10 +313,6 @@
  },
  "C-ALGSOD50G": {
   "familia": "ALGSODg",
-  "nombre": "ALGINATO DE SODIO"
- },
- "C-ALGSODCLOCAL50G": {
-  "familia": "c-algsodclocal50g",
   "nombre": "ALGINATO DE SODIO"
  },
  "C-ALGSODLACCAL50G": {
@@ -1120,7 +1120,7 @@
   "nombre": "TEGO BETAÍNA DE COCO"
  },
  "C-TEGBETLT": {
-  "familia": "tego-betaina",
+  "familia": "c-tegbetlt",
   "nombre": "TEGO BETAÍNA DE COCO"
  },
  "C-TENSCI100G": {
@@ -1157,10 +1157,6 @@
  },
  "C-VAS400G": {
   "familia": "VASBLAUSPg",
-  "nombre": "VASELINA BLANCA"
- },
- "C-VAS900G": {
-  "familia": "vaselina",
   "nombre": "VASELINA BLANCA"
  },
  "C-VASPRE100ML": {
