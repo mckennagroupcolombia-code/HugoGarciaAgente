@@ -1,12 +1,13 @@
 """
 Ideas de producto (Diseño de producto → Desarrollar idea).
 
-Cada idea se desarrolla como un cladograma: la idea es la raíz y se abre en las
-siete ramas del ciclo de diseño (usuario, requerimientos, arquitectura,
-ingeniería y DFM, prototipado, sostenibilidad, riesgos); cada rama en sus
-sub-ramas y cada sub-rama en puntos concretos. El esqueleto de ramas es fijo
-(sale de aquí, no de la IA); la IA solo llena los puntos, y cualquier nodo se
-puede volver a ramificar o editar a mano desde el panel.
+Cada idea se construye como un cladograma, rama por rama: la idea es la raíz y
+el equipo decide qué ramas lleva. Las siete etapas del ciclo de diseño
+(usuario, requerimientos, arquitectura…) son solo una guía que el panel ofrece
+como sugerencia; cada proyecto tiene además sus propios parámetros (usuario,
+precio, manufactura, restricciones o los que se agreguen), y la IA los usa para
+proponer opciones en la rama que se esté desarrollando. Nada entra al árbol sin
+que alguien lo elija.
 
 Datos: app/data/ideas.json, bajo candado de archivo (fcntl) como las fórmulas.
 """
@@ -27,41 +28,6 @@ _CANDADO = _ARCHIVO + ".lock"
 
 _MAX_PROFUNDIDAD = 7
 _MAX_NODOS = 800
-
-# Las siete ramas del ciclo de diseño y sus sub-ramas (id, texto, qué debe cubrir).
-RAMAS: list[tuple[str, str, list[tuple[str, str, str]]]] = [
-    ("usuario", "1 · Usuario (Descubrir)", [
-        ("perfil", "Perfil del usuario", "arquetipo, contexto de uso diario y puntos de dolor"),
-        ("ergonomia", "Ergonomía y antropometría", "puntos de contacto, percentiles, agarre, peso objetivo, feedback táctil"),
-    ]),
-    ("requerimientos", "2 · Requerimientos (Definir)", [
-        ("funcionales", "Funcionales", "desempeño, vida útil, cargas, interacción"),
-        ("esteticos", "Estéticos y CMF", "ADN de marca, color-material-acabado, semiótica"),
-        ("comerciales", "Comerciales", "costo de manufactura objetivo (COGS), time-to-market"),
-    ]),
-    ("arquitectura", "3 · Arquitectura (Idear)", [
-        ("bom", "Componentes (BOM preliminar)", "carcasa, mecanismos, electrónica si aplica, fijaciones"),
-        ("ensamble", "Estrategia de ensamble", "secuencia de armado, mantenimiento, desensamble"),
-    ]),
-    ("ingenieria", "4 · Ingeniería y DFM (Desarrollar)", [
-        ("materiales", "Materiales", "resinas/metales/elastómeros con su justificación"),
-        ("dfm", "Reglas de manufactura", "espesores de pared, ángulos de desmolde, nervaduras, torres"),
-        ("uniones", "Tolerancias y uniones", "GD&T, snap-fits, ultrasonido, tornillería"),
-    ]),
-    ("prototipado", "5 · Prototipado y pruebas", [
-        ("validacion", "Secuencia de validación", "mock-up, prueba de concepto, alfa, beta"),
-        ("pruebas", "Pruebas y normativas", "caída, estanqueidad, fatiga, certificaciones"),
-    ]),
-    ("sostenibilidad", "6 · Sostenibilidad (ciclo de vida)", [
-        ("fin_vida", "Fin de vida", "desensamble, reciclabilidad, biomateriales"),
-        ("empaque", "Empaque y transporte", "eficiencia volumétrica, embalaje"),
-    ]),
-    ("riesgos", "7 · Riesgos y siguientes pasos", [
-        ("fmea", "FMEA preliminar", "modos de falla en fabricación y uso, con su mitigación"),
-        ("entregables", "Entregables para CAD 3D", "lo inmediato para arrancar el modelado"),
-    ]),
-]
-
 
 @contextlib.contextmanager
 def _candado():
@@ -114,6 +80,18 @@ def _nodo(raw: Any, profundidad: int, cuenta: list[int]) -> dict | None:
     return {"id": _texto(raw.get("id"), 40) or _nuevo_id(), "texto": texto, "hijos": hijos}
 
 
+def _parametros(raw: Any) -> list[dict]:
+    """Parámetros propios del proyecto: [{nombre, valor}], sin filas del todo vacías."""
+    salida = []
+    for p in raw if isinstance(raw, list) else []:
+        if not isinstance(p, dict):
+            continue
+        nombre, valor = _texto(p.get("nombre"), 80), _texto(p.get("valor"), 600)
+        if nombre or valor:
+            salida.append({"nombre": nombre, "valor": valor})
+    return salida[:30]
+
+
 def listar() -> list[dict]:
     return sorted(_load(), key=lambda i: i.get("actualizado") or "", reverse=True)
 
@@ -133,6 +111,7 @@ def guardar(body: dict, autor: str = "") -> dict:
             "id": idea_id if existente else uuid.uuid4().hex[:12],
             "titulo": titulo,
             "descripcion": _texto(body.get("descripcion"), 3000),
+            "parametros": _parametros(body.get("parametros")),
             "arbol": arbol,
             "creado": (existente or {}).get("creado") or _now(),
             "creado_por": (existente or {}).get("creado_por") or autor,
@@ -175,77 +154,44 @@ def _gemini(prompt: str) -> Any:
         raise RuntimeError("La IA no devolvió un cladograma legible; intenta de nuevo")
 
 
-def _hojas(valores: Any, maximo: int = 6) -> list[dict]:
-    if not isinstance(valores, list):
-        return []
-    return [{"id": _nuevo_id(), "texto": _texto(v, 300), "hijos": []} for v in valores if _texto(v, 300)][:maximo]
-
-
-def _contexto(titulo: str, descripcion: str) -> str:
+def _contexto(titulo: str, parametros: list[dict], descripcion: str = "") -> str:
+    lineas = [f"- {p['nombre'] or 'Dato'}: {p['valor']}" for p in _parametros(parametros) if p["valor"]]
     return (
         "Actúas como líder de diseño industrial y gestión de producto (Head of Hardware Design & Engineering).\n"
         f"Idea de producto: {titulo}\n"
-        + (f"Descripción y restricciones dadas por el equipo: {descripcion}\n" if descripcion else "")
+        + ("Parámetros de este proyecto:\n" + "\n".join(lineas) + "\n" if lineas else "")
+        + (f"Notas del equipo: {descripcion}\n" if descripcion else "")
         + "Escribe en español, en frases cortas y concretas (máximo 18 palabras cada una), con cifras "
-        "cuando aplique (mm, g, %, USD, ciclos). Nada genérico: todo debe ser propio de esta idea.\n"
+        "cuando aplique (mm, g, %, USD, ciclos). Nada genérico: todo debe responder a esta idea y sus parámetros.\n"
     )
 
 
-def desarrollar(titulo: str, descripcion: str = "") -> dict:
-    """Cladograma completo: raíz = idea, 7 ramas fijas, sus sub-ramas y 3-5 puntos en cada una."""
-    titulo = _texto(titulo, 160)
-    if not titulo:
-        raise ValueError("Escribe primero la idea")
-    claves = "\n".join(
-        f'- "{sub_id}": {sub_txt} — {cubre}'
-        for _, _, subs in RAMAS
-        for sub_id, sub_txt, cubre in subs
-    )
-    prompt = (
-        _contexto(titulo, _texto(descripcion, 3000))
-        + "Desarrolla la idea para cada una de estas claves (3 a 5 puntos cada una):\n"
-        + claves
-        + '\nResponde SOLO un objeto JSON {"clave": ["punto", ...], ...} con todas las claves, sin texto adicional.'
-    )
-    datos = _gemini(prompt)
-    if not isinstance(datos, dict):
-        raise RuntimeError("La IA no devolvió un cladograma legible; intenta de nuevo")
-    arbol = {
-        "id": _nuevo_id(),
-        "texto": titulo,
-        "hijos": [
-            {
-                "id": _nuevo_id(),
-                "texto": rama_txt,
-                "hijos": [
-                    {"id": _nuevo_id(), "texto": sub_txt, "hijos": _hojas(datos.get(sub_id))}
-                    for sub_id, sub_txt, _ in subs
-                ],
-            }
-            for _, rama_txt, subs in RAMAS
-        ],
-    }
-    return {"arbol": arbol}
-
-
-def ramificar(titulo: str, descripcion: str, ruta: list[str], existentes: list[str] | None = None) -> dict:
-    """Nuevas ramas (3-5) para un nodo; `ruta` va de la raíz al nodo, `existentes` son sus hijos actuales."""
+def ramificar(
+    titulo: str,
+    parametros: list[dict],
+    ruta: list[str],
+    existentes: list[str] | None = None,
+    descripcion: str = "",
+) -> dict:
+    """Opciones (5-6) para abrir un nodo; `ruta` va de la raíz al nodo, `existentes` son sus hijos actuales.
+    El panel las muestra para elegir: aquí no se toca el árbol guardado."""
     ruta = [_texto(r, 400) for r in ruta or [] if _texto(r, 400)]
     if not ruta:
         raise ValueError("Falta el nodo a ramificar")
     ya = [_texto(e, 300) for e in existentes or [] if _texto(e, 300)]
     prompt = (
-        _contexto(_texto(titulo, 160) or ruta[0], _texto(descripcion, 3000))
+        _contexto(_texto(titulo, 160) or ruta[0], parametros, _texto(descripcion, 3000))
         + "Rama del cladograma, de la raíz al nodo:\n"
         + "\n".join(f"{'  ' * k}→ {r}" for k, r in enumerate(ruta))
-        + f"\nAbre el último nodo («{ruta[-1]}») en 3 a 5 ramas hijas más específicas."
+        + f"\nPropón de 5 a 6 ramas hijas para el último nodo («{ruta[-1]}»), más específicas que él."
+        + (" Como es la raíz, propón las grandes áreas que este proyecto necesita desarrollar." if len(ruta) == 1 else "")
         + (f"\nYa tiene estas ramas, no las repitas: {json.dumps(ya, ensure_ascii=False)}" if ya else "")
         + '\nResponde SOLO un arreglo JSON de textos ["rama", ...], sin texto adicional.'
     )
     datos = _gemini(prompt)
     if isinstance(datos, dict):  # a veces envuelve el arreglo en un objeto
         datos = next((v for v in datos.values() if isinstance(v, list)), [])
-    hijos = _hojas(datos, 5)
-    if not hijos:
+    opciones = [_texto(v, 300) for v in datos if _texto(v, 300)][:6] if isinstance(datos, list) else []
+    if not opciones:
         raise RuntimeError("La IA no propuso ramas nuevas; intenta de nuevo")
-    return {"hijos": hijos}
+    return {"opciones": opciones}

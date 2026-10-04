@@ -4,8 +4,8 @@ Ideas de producto — API de Diseño de producto → Desarrollar idea (cladogram
 Endpoints bajo /api/ideas/* (y alias /app/api/ideas/*). Acceso: CHAT_API_TOKEN
 (admin) o usuario de tickets administrador o con permiso `ideas`.
 
-Datos: app/services/ideas_db.py (app/data/ideas.json). Desarrollar y ramificar
-llaman a Gemini en un job en segundo plano (POST → job_id, GET del estado): la
+Datos: app/services/ideas_db.py (app/data/ideas.json). Ramificar (opciones para
+elegir en una rama) llama a Gemini en un job en segundo plano (POST → job_id, GET del estado): la
 IA tarda 30-60 s y el túnel de Cloudflare corta a ~100 s.
 """
 
@@ -94,16 +94,6 @@ def register_ideas_routes(app):
             return jsonify({"error": "No existe esa idea"}), 404
         return jsonify({"ok": True})
 
-    @_dual(app, "/api/ideas/desarrollar", methods=["POST"])
-    @_auth
-    def ideas_desarrollar():
-        body = request.get_json(silent=True) or {}
-        titulo = str(body.get("titulo") or "").strip()
-        if not titulo:
-            return jsonify({"error": "Escribe primero la idea"}), 400
-        job_id = iniciar_job(idb.desarrollar, titulo, str(body.get("descripcion") or ""))
-        return jsonify({"ok": True, "status": "pending", "job_id": job_id}), 202
-
     @_dual(app, "/api/ideas/ramificar", methods=["POST"])
     @_auth
     def ideas_ramificar():
@@ -115,9 +105,10 @@ def register_ideas_routes(app):
         job_id = iniciar_job(
             idb.ramificar,
             str(body.get("titulo") or ""),
-            str(body.get("descripcion") or ""),
+            body.get("parametros") if isinstance(body.get("parametros"), list) else [],
             [str(r) for r in ruta],
             [str(e) for e in existentes],
+            str(body.get("descripcion") or ""),
         )
         return jsonify({"ok": True, "status": "pending", "job_id": job_id}), 202
 

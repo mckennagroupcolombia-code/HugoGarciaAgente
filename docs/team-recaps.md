@@ -4965,3 +4965,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Permiso propio `ideas` (Ajustes → «Diseño (desarrollar idea)»); administradores siempre. Datos en `app/data/ideas.json` con candado fcntl.
   - **Verificado:** `npm run build`; reinicio de `agente-pro`; curl: desarrollar (7 ramas × sub-ramas × 5 puntos), ramificar «Materiales» (5 ramas nuevas), guardar y borrar una idea de prueba; captura en Chrome headless del cladograma en un arnés temporal ya retirado.
 - **Archivos Modificados:** `app/routes_ideas.py` (nuevo), `app/services/ideas_db.py` (nuevo), `agente_pro.py`, `desktop/src/components/ideas/IdeasPanel.tsx` (nuevo), `desktop/src/components/nav/DisenoNavTabs.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/{navStructure.ts,panelInfo.ts}`, `desktop/src/components/Settings.tsx`, `desktop/src/icons/mck/paths/panels.tsx`, `docs/team-recaps.md`
+
+### 2026-10-04 - «Desarrollar idea»: el cladograma se construye rama por rama
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Diseño de producto → Desarrollar idea)
+- **Qué se implementó:**
+  - Pedido: los 7 bloques eran solo un ejemplo; cada proyecto tiene sus propias necesidades y el árbol se va construyendo. Se quitó «Desarrollar cladograma» (llenaba todo con IA de una vez; ruta `/api/ideas/desarrollar` eliminada).
+  - **Parámetros del proyecto** por idea (`parametros: [{nombre, valor}]`): una idea nueva arranca con los 5 del ejemplo (tipo de producto, usuario objetivo, rango de precio, proceso de manufactura, restricciones clave), que se llenan, se quitan o se amplían con «+ Parámetro propio».
+  - La idea arranca solo con la raíz. «＋» en cualquier rama abre una bandeja flotante con tres fuentes: **la guía** (las 7 etapas en la raíz; en cada etapa, sus sub-ramas), **«✨ Sugerir con IA»** (5-6 opciones según los parámetros y la ruta desde la raíz; `ramificar` ahora devuelve `opciones` y no toca el árbol) y **una rama escrita a mano**. Solo entra lo que se elige.
+  - **Verificado:** `npm run build`; reinicio de `agente-pro`; curl de ramificar con dos juegos de parámetros (agricultores de café / urbano premium) que dan opciones distintas; captura en Chrome headless de la bandeja en un arnés temporal ya retirado.
+- **Archivos Modificados:** `app/services/ideas_db.py`, `app/routes_ideas.py`, `desktop/src/components/ideas/IdeasPanel.tsx`, `docs/team-recaps.md`
