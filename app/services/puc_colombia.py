@@ -42,6 +42,7 @@ PUC_MCKENNA: tuple[tuple[str, str, str], ...] = (
     # ── 1 Activo ──
     ("1105", "Caja", "activo"),
     ("110505", "Caja general", "activo"),
+    ("110510", "Caja menor", "activo"),
     ("1110", "Bancos", "activo"),
     ("111005", "Moneda nacional", "activo"),
     ("1120", "Cuentas de ahorro", "activo"),
@@ -227,6 +228,10 @@ DESCRIPCIONES: dict[str, str] = {
     # ── 1 Activo ──
     "1105": "Efectivo en poder de la empresa.",
     "110505": "Caja general.",
+    "110510": "Fondo fijo de efectivo para compras pequeñas, con un responsable. Se constituye y se "
+              "repone SOLO con retiros del banco de McKenna (Débito 110510 / Crédito 1110, traslado, no "
+              "gasto; el 4x1000 del retiro sí es gasto). Cada compra va con factura a nombre de McKenna "
+              "contra esta cuenta. Nunca se llena con plata personal ni con ventas en efectivo.",
     "1110": "Saldos en cuentas bancarias. Se mueve cuando la plata sale o entra del banco de verdad, "
              "no cuando se causa la obligación.",
     "111005": "Bancolombia y demás cuentas en pesos.",

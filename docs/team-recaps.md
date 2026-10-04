@@ -1,3 +1,12 @@
+### 2026-10-04 - Cuenta 110510 «Caja menor» y reintegro a Victor García por solicitud de pago
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora contable (Libro Mayor + Solicitudes de pago). Sin LLM.
+- **Qué se implementó:**
+  - Nueva cuenta **110510 · Caja menor** en `PUC_MCKENNA`. Su guía dice cómo se maneja: se constituye y se repone solo con retiros del banco de McKenna (Débito 110510 / Crédito 1110, traslado; el 4x1000 sí es gasto), cada compra va con factura a nombre de McKenna, y nunca se llena con plata personal ni con ventas en efectivo. Saldo $0 hasta que se constituya.
+  - La deuda con Victor García por las compras de septiembre (asientos 8279-8281, $337.999) pasó de 238095 a **2335 Costos y gastos por pagar**, porque la categoría «Saldo pendiente» del wizard debita 2335 para quien no es socio (mismo caso que el reintegro de Jenniffer del 27-sep). La 238095 quedó en $0.
+  - Solicitud de pago **#66 (TKT-2026-1650)** pendiente de aprobación: Débito 2335 (Victor) / Crédito 1110, $337.999 por Bancolombia, sin retención ni documento soporte.
+- **Archivos Modificados:** `app/services/puc_colombia.py`, `docs/team-recaps.md`. Asientos y solicitud en `contabilidad.db` (no está en git).
+
 ### 2026-10-04 - Cuenta 238095 «Otros acreedores varios»: compras de septiembre pagadas por Victor García
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección contable (Libro Mayor). Sin LLM.
