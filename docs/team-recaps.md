@@ -1,3 +1,13 @@
+### 2026-10-04 - Colaboradores: simulador de precios y márgenes (Armando ↔ Sebastián)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (app de colaboradores y panel `/app`). Sin LLM.
+- **Qué se implementó:**
+  - Botón **«Precios»** en la barra del mapa del proyecto: abre un emergente donde se mueven el precio de la publicación y lo que McKenna le paga al colaborador, y se ve cuánto le queda a cada parte. Incluye barra con el reparto (comisión, envío, IVA, costo del colaborador, ganancias), marcadores con el mínimo de cada uno, tope de compra, piso del colaborador, publicación mínima y atajos.
+  - IVA «incluido en el precio» (factura) o «sobre el precio» (colchón). Desglose del costo de fabricación del colaborador con merma.
+  - «Guardar propuesta» guarda solo lo que cambió, deja historial (quién, de cuánto a cuánto) y reinicia los «de acuerdo»; con los dos de acuerdo queda **Precio acordado**. Es simulación: no toca Alegra, publicaciones ni inventario.
+  - Precargados en el proyecto 1 los collares L (C-COLPERGRAND) y M (C-COLPERSPEQUE). El simulador muestra que con $29.310 el L queda por debajo del costo de fabricación de Sebastián ($30.513).
+- **Archivos Modificados:** `app/services/colab_precios.py` (nuevo), `app/routes_colaboradores.py`, `desktop/src/components/colaboradores/{PreciosProyecto.tsx,precios.ts}` (nuevos), `MapaProyecto.tsx`, `desktop/dev/colaboradores.tsx`, `tests/test_colab_precios.py`, `docs/agentic/modules/colaboradores.md`, `docs/agentic/ENDPOINTS.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-04 - Cuenta 110510 «Caja menor» y reintegro a Victor García por solicitud de pago
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora contable (Libro Mayor + Solicitudes de pago). Sin LLM.

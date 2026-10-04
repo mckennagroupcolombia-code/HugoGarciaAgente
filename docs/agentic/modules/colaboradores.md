@@ -309,3 +309,27 @@ terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**
     y `routes_tickets` usan `anfitrion_id()`); si Cynthia invita a un externo, comparte el mapa pero no solicitudes.
   · Tests: `tests/test_colab_tablero.py` (anfitriona, personal, invitar da acceso, externo no invita, salirse,
     tres miembros, API).
+
+- **Precios y márgenes (4-oct-2026)** — botón «Precios» de la barra del mapa → emergente
+  `colaboradores/PreciosProyecto.tsx` (cálculo puro en `colaboradores/precios.ts`, backend
+  `app/services/colab_precios.py`, tablas `colab_precios` + `colab_precios_cambios`). Pedido: que Armando y
+  Sebastián jueguen con el precio de la publicación y lo que McKenna le paga, y vean cuánto le queda a cada uno.
+  · Por qué: el 4-oct el collar L se compraba a $35.425 y McKenna perdía $1.115; se bajó a $29.310 y quedó debajo
+    del costo de fabricación que Sebastián había calculado ($30.500, tarjeta 12 del proyecto 1). Cada uno veía solo su
+    mitad de la cuenta.
+  · Por producto (una unidad): publicación − comisión % − envío − IVA − otros = le entra a McKenna; − precio de compra =
+    le queda a McKenna; precio de compra − costo del colaborador (renglones + merma %) = le queda al colaborador.
+    Barra apilada con lo que se lleva cada quien (línea roja si lo repartido supera el precio), marcadores con el
+    mínimo de cada parte, tope de compra / piso del colaborador / publicación mínima para los dos y atajos.
+  · IVA: `iva_modo` «incluido» (lo que dice la factura, P×19/119) o «encima» (P×19 %, colchón; así se hizo la cuenta
+    del L). El colaborador no cobra IVA: McKenna no tiene IVA de compra que descontar.
+  · Deslizadores = solo cálculo local; «Guardar propuesta» manda SOLO los campos cambiados (PATCH), deja cada cambio en
+    el historial («precio de compra: 35.425 → 29.310», quién y cuándo) y reinicia los «de acuerdo» si tocó números;
+    con todos los miembros de acuerdo = «Precio acordado». Cambiar nombre/SKU/nota no reinicia el acuerdo.
+  · `proveedor_id` (quién fabrica) por defecto es el `colaborador_id` del proyecto.
+  · ⚠️ Simulación: no toca Alegra, publicaciones ni inventario. El bundle del colaborador no puede llevar «MeLi»/«Mercado
+    Libre»: en la UI se dice «plataforma» (el dato `plataforma` sí puede decirlo, viene de la API).
+  · Proyecto 1 precargado: L (58.500, 15 %, envío 4.300, compra 29.310, costo de la tarjeta 12) y M (55.000, envío
+    8.200, compra 21.893, sin costo de Sebastián todavía).
+  · Banco: `dev/colaboradores.html?abrir&precios` (`=ajustes` despliega supuestos). Tests: `tests/test_colab_precios.py`.
+

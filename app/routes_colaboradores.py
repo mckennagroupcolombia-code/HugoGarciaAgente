@@ -282,6 +282,51 @@ def register_colaboradores_routes(app):
         except ValueError as e:
             return jsonify({"error": str(e)}), 404
 
+    # ── Simulador de precios (app/services/colab_precios.py) ──────────────────
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/precios", methods=["GET", "POST"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/precios", methods=["GET", "POST"])
+    @_miembro
+    @_suyo
+    def colab_precios(did: int):
+        from app.services import colab_precios as cp
+
+        if request.method == "GET":
+            return jsonify({**cp.listar(did),
+                            "participantes": {str(u): col._nombre(u) for u in col.miembros_ids(did)}})
+        try:
+            return jsonify(cp.crear(did, int(g.colab_usuario["id"]), request.get_json(silent=True) or {})), 201
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/precios/<int:pid>", methods=["PATCH", "DELETE"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/precios/<int:pid>", methods=["PATCH", "DELETE"])
+    @_miembro
+    @_suyo
+    def colab_precio(did: int, pid: int):
+        from app.services import colab_precios as cp
+
+        try:
+            if request.method == "DELETE":
+                cp.borrar(did, pid, int(g.colab_usuario["id"]))
+                return jsonify({"ok": True})
+            return jsonify(cp.editar(did, pid, int(g.colab_usuario["id"]), request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404 if "no encontrado" in str(e) else 400
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/precios/<int:pid>/acuerdo", methods=["POST"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/precios/<int:pid>/acuerdo", methods=["POST"])
+    @_miembro
+    @_suyo
+    def colab_precio_acuerdo(did: int, pid: int):
+        from app.services import colab_precios as cp
+
+        d = request.get_json(silent=True) or {}
+        try:
+            return jsonify(cp.acordar(did, pid, int(g.colab_usuario["id"]), bool(d.get("de_acuerdo", True))))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+
     @app.route("/api/colaboradores/diagramas/<int:did>/chat", methods=["POST"])
     @app.route("/app/api/colaboradores/diagramas/<int:did>/chat", methods=["POST"])
     @_miembro

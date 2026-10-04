@@ -147,6 +147,17 @@ const ritmoDev = {
 const miembrosDev = [{ id: 8, nombre: "Armando García", rol: "dueno" }, { id: 20, nombre: "Sebastián García", rol: "miembro" }];
 
 const fetchReal = window.fetch.bind(window);
+// Simulador de precios: collar L (con el costo de Sebastián) y M (sin costo todavía).
+const basePrecio = { plataforma: "Vitrina", nota: "", comision_pct: 15, iva_pct: 19, iva_modo: "encima", otros_mckenna: 0,
+                     merma_pct: 0, meta_mckenna: 5000, meta_colaborador: 0, proveedor_id: 20, acuerdos: {}, actualizado_por: 8 };
+let preciosDev = [
+  { ...basePrecio, id: 1, nombre: "Collar cadena persa L", sku: "C-COLPERGRAND", precio_publicacion: 58500, envio: 4300, precio_compra: 29310,
+    merma_pct: 5, costos: [{ nombre: "Aros", monto: 12727 }, { nombre: "Mano de obra", monto: 10000 }, { nombre: "Empaque", monto: 3000 },
+                           { nombre: "Hebilla", monto: 2500 }, { nombre: "Termoencogible", monto: 833 }], actualizado_en: "2026-10-04 18:00:00" },
+  { ...basePrecio, id: 2, nombre: "Collar cadena persa M", sku: "C-COLPERSPEQUE", precio_publicacion: 55000, envio: 8200, precio_compra: 21893,
+    costos: [], acuerdos: { "20": "2026-10-04 18:00:00" }, actualizado_en: "2026-10-04 18:00:00" },
+];
+
 window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof entrada === "string" ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
   const ruta = new URL(url, location.origin).pathname.replace(/^\/app(?=\/api\/)/, "");
@@ -187,6 +198,20 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
   if (ruta === "/api/colaboradores/usuarios") {
     return json({ usuarios: [{ id: 7, nombre: "Victor Garcia", externo: false }, { id: 10, nombre: "Jenniffer Garcia", externo: false },
                              { id: 20, nombre: "Sebastián García", externo: true }] });
+  }
+  // Simulador de precios (colab_precios.py): los dos collares del 4-oct-2026.
+  if (ruta.endsWith("/precios") || /\/precios\/\d+(\/acuerdo)?$/.test(ruta)) {
+    const pm = ruta.match(/\/precios\/(\d+)(\/acuerdo)?$/);
+    if (pm && metodo === "PATCH") {
+      const b = JSON.parse(String(init?.body ?? "{}"));
+      preciosDev = preciosDev.map((x) => (x.id === Number(pm[1]) ? { ...x, ...b, acuerdos: {}, actualizado_en: ahoraMenos(0) } : x));
+    }
+    if (pm && pm[2]) {
+      preciosDev = preciosDev.map((x) => (x.id === Number(pm[1]) ? { ...x, acuerdos: { ...x.acuerdos, "8": ahoraMenos(0) } } : x));
+      return json(preciosDev.find((x) => x.id === Number(pm[1])));
+    }
+    return json({ productos: preciosDev, proveedor_defecto: 20, participantes: { "8": "Armando García", "20": "Sebastián García" },
+                  cambios: [{ id: 1, precio_id: 1, usuario_id: 8, campo: "precio de compra", antes: "35.425", despues: "29.310", en: ahoraMenos(30) }] });
   }
   if (ruta.endsWith("/tablero")) {
     return json({ tarjetas, ritmo: ritmoDev, participantes: { "8": "Armando García", "20": "Sebastián García" } });
@@ -279,6 +304,10 @@ if (q.has("abrir")) {
     const n = Number(q.get("guia") || 0);
     for (let k = 0; k < n; k++) setTimeout(() => document.querySelector<HTMLElement>("[data-guia] [aria-label='Siguiente']")?.click(), 400 + k * 50);
     if (q.has("miembros")) setTimeout(() => tocar("button[data-compartir]"), 700);
+    // ?precios: el simulador abierto; ?precios=ajustes además despliega «Costos y supuestos».
+    if (q.has("precios")) setTimeout(() => tocar("button[data-precios]", () => {
+      if (q.get("precios") === "ajustes") setTimeout(() => tocar("[data-producto] button[aria-expanded]"), 500);
+    }), 600);
     const id = q.get("sel");
     if (id) setTimeout(() => tocar(`[data-caja="${id}"] .eb-cuerpo`, () => {
       // ?medir: el estilo calculado de un campo de la hoja, al título (para --dump-dom).
