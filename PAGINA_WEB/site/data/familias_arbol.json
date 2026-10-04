@@ -315,6 +315,10 @@
   "familia": "ALGSODg",
   "nombre": "ALGINATO DE SODIO"
  },
+ "C-ALGSODCLOCAL50G": {
+  "familia": "c-algsodclocal50g",
+  "nombre": "ALGINATO DE SODIO"
+ },
  "C-ALGSODLACCAL50G": {
   "familia": "c-algsodlaccal50g",
   "nombre": "ALGINATO DE SODIO"
@@ -718,10 +722,6 @@
  "C-GOMXANKG": {
   "familia": "GOMXANg",
   "nombre": "GOMA XANTANA"
- },
- "C-GRADIG": {
-  "familia": "c-gradig",
-  "nombre": "GRAMERA BALANZA DIGITAL"
  },
  "C-GUSSED30ML": {
   "familia": "GUSSEDmL",
@@ -1157,6 +1157,10 @@
  },
  "C-VAS400G": {
   "familia": "VASBLAUSPg",
+  "nombre": "VASELINA BLANCA"
+ },
+ "C-VAS900G": {
+  "familia": "c-vas900g",
   "nombre": "VASELINA BLANCA"
  },
  "C-VASPRE100ML": {
