@@ -1,3 +1,10 @@
+### 2026-10-04 01:15 - Duck Hunt baja a ×1,5
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Agenda → Juegos). Sin LLM.
+- **Qué se implementó:**
+  - `AppConf.gameInfo.velocidad` pasa de 2 a 1.5: a ×2 era demasiado rápido. Probado en Chrome: primer pato a 5,9 s (original 9,4 s), los patos huyen a 9,9 s (original 14,7 s), sin errores. `?v=4` en `JuegosPanel.tsx`.
+- **Archivos Modificados:** `desktop/public/juegos/duckhunt/src/AppConf.js`, `desktop/public/juegos/duckhunt/LEEME.md`, `desktop/src/components/JuegosPanel.tsx`, `docs/team-recaps.md`.
+
 ### 2026-10-04 01:00 - Duck Hunt corre al doble de velocidad
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora (Agenda → Juegos). Sin LLM.

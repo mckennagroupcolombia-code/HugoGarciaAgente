@@ -23,9 +23,9 @@ YUI().use('node', function(Y) {
 		},
 
 		gameInfo : {
-				// Velocidad del juego (×2 desde el 4-oct-2026): multiplica el reloj del lienzo, el
+				// Velocidad del juego (×1,5 desde el 4-oct-2026; ×2 era demasiado rápido): multiplica el reloj del lienzo, el
 				// aleteo de los sprites y acorta los setTimeout del juego. 1 = la original.
-				velocidad : 2,
+				velocidad : 1.5,
 
 				mainThemeTimeInterval : 14000,
 				duckSpawingWindowTime : 2,
