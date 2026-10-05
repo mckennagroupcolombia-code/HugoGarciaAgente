@@ -5040,3 +5040,12 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - VITAMINA C 30% 30mL (`d2bc4f11f77f`) tenía dos timbres: se puso `sinTimbreCentro: true` solo en esa etiqueta (su plantilla de Vitaminas 30 mL la comparten Vitamina E, Retinol 5 % y D-Pantenol, que no se tocaron).
   - **Verificado:** arnés temporal (ya retirado) con la ficha real: las cuatro líneas del encabezado a 896,8 px = centro de la columna, en vista y edición; captura con un solo timbre; `npm run build`.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/etiqueta30ml.css`, `app/data/etiquetas_fichas.json` (dato), `docs/team-recaps.md`
+
+### 2026-10-05 - Editor de etiquetas: la etiqueta ya no parpadea al autoguardar
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Studio → editor de etiquetas)
+- **Qué se implementó:**
+  - Queja: las plantillas de Activos Cosméticos (y antes Vitamina C 30 mL) parpadeaban en el editor. Causa: la barra de herramientas es `flex-wrap` y tres piezas cambiaban de ancho con el autoguardado (texto «Sin guardar…/Guardando…/✓ Guardado h:mm», botón «Guardar borrador»→«Guardando…» −30 px, «Siguiente →»→«Guardando…»). En anchos de ventana cerca del límite (p. ej. 1440-1520 px) la barra saltaba entre una y dos líneas (30↔64 px) en cada guardado; la mesa cambiaba de alto y la etiqueta se movía/re-escalaba.
+  - El texto de estado va a ancho fijo (`w-36`, truncado con title) y los dos botones usan `RotuloEstable` (todas las variantes apiladas en una celda `inline-grid`, solo la actual visible).
+  - **Verificado:** arnés temporal (ya retirado) con el editor completo, GET reales y escrituras interceptadas: antes la barra alternaba 30/64 px a 1440 y 1500 px; después, un solo estado en 1280-1920 px con ÁCIDO GLICÓLICO, la plantilla de Activos 30 mL y Vitamina C. `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`

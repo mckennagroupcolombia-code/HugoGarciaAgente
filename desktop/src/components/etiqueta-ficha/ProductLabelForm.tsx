@@ -221,6 +221,22 @@ interface PropsFormulario {
   onSiguiente?: (fichaId: string) => void;
 }
 
+/** Rótulo de botón que cambia con el guardado sin cambiar de ancho: todas las
+ *  variantes ocupan la misma celda y solo se ve la actual. Si el botón se
+ *  encogiera, la barra de herramientas saltaba de línea en cada autoguardado y
+ *  la etiqueta, re-escalada, parpadeaba. */
+function RotuloEstable({ actual, opciones }: { actual: string; opciones: readonly string[] }) {
+  return (
+    <span className="inline-grid">
+      {opciones.map((o) => (
+        <span key={o} className={`col-start-1 row-start-1${o === actual ? "" : " invisible"}`} aria-hidden={o !== actual}>
+          {o}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 const horaCorta = () => new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
 
 export default function ProductLabelForm(props: PropsFormulario) {
@@ -2025,9 +2041,12 @@ function ProductLabelFormInner({
                     : "Se guarda sola al cambiar algo"
           }
         />
+        {/* Ancho fijo: si cambiara con el estado («Guardando…» → «✓ Guardado 1:14 p. m.»),
+            la barra saltaba entre una y dos líneas en cada guardado y la mesa, al cambiar
+            de alto, movía y re-escalaba la etiqueta: se veía parpadear. */}
         <span
-          className={`max-w-[16rem] truncate text-[11px] ${autoguardado.estado === "error" ? "text-red-600" : "text-muted"}`}
-          title={autoguardado.texto}
+          className={`w-36 shrink-0 truncate text-[11px] ${autoguardado.estado === "error" ? "text-red-600" : "text-muted"}`}
+          title={autoguardado.estado === "error" ? `No se guardó: ${autoguardado.texto ?? ""}` : autoguardado.texto}
         >
           {autoguardado.estado === "pendiente"
             ? "Sin guardar…"
@@ -2380,7 +2399,7 @@ function ProductLabelFormInner({
             title="Guarda ya la etiqueta tal como está, sin aprobarla ni generar PNG. Se puede seguir editando después."
             className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-hover disabled:cursor-wait disabled:opacity-60"
           >
-            {autoguardado.estado === "guardando" ? "Guardando…" : "Guardar borrador"}
+            <RotuloEstable actual={autoguardado.estado === "guardando" ? "Guardando…" : "Guardar borrador"} opciones={["Guardar borrador", "Guardando…"]} />
           </button>
 
           {onSiguiente && fichaId && (
@@ -2391,7 +2410,7 @@ function ProductLabelFormInner({
               title="Pasar a la siguiente etiqueta por aprobar de esta categoría, sin aprobar esta"
               className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-hover disabled:cursor-wait disabled:opacity-60"
             >
-              {saltoPendiente ? "Guardando…" : "Siguiente →"}
+              <RotuloEstable actual={saltoPendiente ? "Guardando…" : "Siguiente →"} opciones={["Siguiente →", "Guardando…"]} />
             </button>
           )}
 
