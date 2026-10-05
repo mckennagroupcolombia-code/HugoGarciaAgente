@@ -44,6 +44,8 @@ _memo: dict = {"mtime": None, "data": {}}
 # Líneas de la web cuyos productos no llevan etiqueta impresa (equipos, accesorios, kits):
 # no esperan aprobación de etiqueta para venderse.
 _SIN_ETIQUETA_LINEAS = {"Equipos y Materiales", "Otros", "Kits"}
+# Menos publicaciones que esto en relacion_codigos_cache.json = carga incompleta (hay ~480).
+_MIN_RELACION = 400
 
 
 def _u(s) -> str:
@@ -207,6 +209,13 @@ def sincronizar(*, usuario: str = "", simular: bool = False) -> dict:
     La web no necesita nada: lee la lista en cada petición."""
     if not activo():
         return {"ok": False, "error": "No hay despliegue activo"}
+    # Con la relación MeLi ↔ Siigo a medias (timeout de MeLi, o borrada al cambiar un SKU)
+    # las publicaciones caen al código de Siigo y la regla pausa/reactiva lo que no es.
+    rel = _leer(_RELACION_JSON)
+    n_rel = len(rel.get("items") or [])
+    if rel.get("error") or n_rel < _MIN_RELACION:
+        return {"ok": False, "error": f"Relación de códigos incompleta ({n_rel} publicaciones"
+                                      f"{', ' + str(rel.get('error'))[:80] if rel.get('error') else ''}): no se recalcula"}
     calc = calcular()
     pm = _pausa_mod()
     pausa = pm._leer()

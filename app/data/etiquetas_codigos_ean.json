@@ -663,7 +663,7 @@
     },
     {
       "id": "5f4f95298ee9",
-      "sku": "C-ACEESNMAN5mL",
+      "sku": "C-ACEESEMAND5mL",
       "nombre_producto": "ACEITE ESENCIAL MANDARINA 5mL",
       "numero_producto": 59,
       "presentacion": "005",
@@ -3116,6 +3116,17 @@
       "bimestre": 4,
       "codigo": "7702790012647",
       "creado_at": "2026-10-04T19:27:59"
+    },
+    {
+      "id": "2a27d4e6393f",
+      "sku": "C-DIH10g",
+      "nombre_producto": "DIHIDROXIACETONA 10g",
+      "numero_producto": 280,
+      "presentacion": "010",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702800102641",
+      "creado_at": "2026-10-05T15:50:44"
     },
     {
       "id": "9a3a65a71226",
