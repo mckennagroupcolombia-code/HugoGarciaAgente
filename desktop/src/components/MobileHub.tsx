@@ -10,6 +10,7 @@ import { useAppStore, type Panel, type MobileHubTab } from "../stores/app";
 import { usePanelChatMutation } from "../hooks/useChat";
 import { useConversaciones } from "../hooks/useConversaciones";
 import InboxConversaciones from "./tickets/InboxConversaciones";
+import MensajesConGrupos from "./chat_equipo/MensajesConGrupos";
 import { salirDelPanel } from "../hooks/usePanelSession";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { PanelIcon } from "../icons/PanelIcon";
@@ -729,7 +730,9 @@ export default function MobileHub({
         {tab === "chat" && <ChatTab />}
         {tab === "mensajes" && user && (
           <div className="flex h-full overflow-hidden">
-            <InboxConversaciones token={token} user={user} />
+            <MensajesConGrupos>
+              <InboxConversaciones token={token} user={user} />
+            </MensajesConGrupos>
           </div>
         )}
         {tab === "acciones" && <AccionesTab apiToken={apiToken ?? token ?? ""} user={user} onNavigateTo={navigateTo} />}

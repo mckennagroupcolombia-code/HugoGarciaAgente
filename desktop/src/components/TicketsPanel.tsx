@@ -87,6 +87,7 @@ import {
 import { api } from "../api/client";
 import { esAdminVistaEquipo } from "../lib/adminAccess";
 import InboxConversaciones from "./tickets/InboxConversaciones";
+import MensajesConGrupos from "./chat_equipo/MensajesConGrupos";
 import DondeEsta from "./bultos/DondeEsta";
 import RevisionEmpaqueEnSolicitud from "./revisionEmpaque/RevisionEmpaque";
 
@@ -30463,16 +30464,18 @@ export default function TicketsPanel() {
           />
         )}
         {view === "mensajes" && (
-          <InboxConversaciones
-            token={token}
-            user={user}
-            onCrearSolicitud={goCrearSolicitud}
-            onCrearAccion={goCrearAccion}
-            bootTicketId={solicitudBoot?.abrirTicketId ?? null}
-            onBootConsumed={() => setSolicitudBoot(null)}
-            bootTipo={mensajesBootTipo}
-            onBootTipoConsumed={() => setMensajesBootTipo(null)}
-          />
+          <MensajesConGrupos>
+            <InboxConversaciones
+              token={token}
+              user={user}
+              onCrearSolicitud={goCrearSolicitud}
+              onCrearAccion={goCrearAccion}
+              bootTicketId={solicitudBoot?.abrirTicketId ?? null}
+              onBootConsumed={() => setSolicitudBoot(null)}
+              bootTipo={mensajesBootTipo}
+              onBootTipoConsumed={() => setMensajesBootTipo(null)}
+            />
+          </MensajesConGrupos>
         )}
         {view === "contratos" && nivel >= 3 && (
           <ContratosView

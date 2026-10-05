@@ -47,11 +47,12 @@ export type RespCanalesEquipo = {
   grupos_wa: { jid: string; nombre: string; enlazado: boolean }[];
 };
 
-export function useCanalesEquipo() {
+export function useCanalesEquipo(enabled = true) {
   return useQuery<RespCanalesEquipo>({
     queryKey: ["canales-equipo"],
     queryFn: () => api.get("/api/canales"),
     refetchInterval: 9000,
+    enabled,
   });
 }
 

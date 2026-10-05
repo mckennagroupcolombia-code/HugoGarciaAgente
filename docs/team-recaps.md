@@ -5085,3 +5085,7 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Canales con `modulo` (Documentos técnicos, Fórmulas, Solicitudes de pago, Compras en el exterior, Guías de envío): `app/services/canales_vinculos.py`.
 - Mensajes con `ref` {modulo,id,titulo,detalle}: botón 🔗 en el hilo, chip que abre el módulo; `GET /api/canales/vinculos` respeta permisos del panel.
 - Grupos: Inventario y llegadas → COA y fichas técnicas; Compras USA y China → Compras en el exterior; nuevos Fórmulas, Solicitudes de pago, Guías y envíos.
+
+## 2026-10-05 — «Mensajes» = Solicitudes + Grupos
+- Se quitó la pestaña «Equipo» de la Agenda: «Mensajes» trae el selector Solicitudes | Grupos (`MensajesConGrupos`, `SelectorMensajes`), en escritorio (TicketsPanel) y móvil (MobileHub). El panel `chat-equipo` sigue existiendo (campana, burbuja) con el mismo selector.
+- Burbuja flotante (`SolicitudesEnProcesoFab`): pestañas Solicitudes | Grupos; los grupos se escriben ahí (`HiloCanal compacto`); el contador suma ambos.

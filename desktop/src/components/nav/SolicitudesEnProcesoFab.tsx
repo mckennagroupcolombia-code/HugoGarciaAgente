@@ -13,6 +13,9 @@ import {
 } from "../tickets/ticketsFormat";
 import { ticketsUploadUrl } from "../../lib/profilePhoto";
 import { Icon } from "../../icons";
+import { useCanalesEquipo, useResumenMensajes } from "../../hooks/useCanalesEquipo";
+import HiloCanal from "../chat_equipo/HiloCanal";
+import { guardarVistaMensajes } from "../chat_equipo/SelectorMensajes";
 
 /**
  * Burbuja de chat global (portal a body, mismo patrón que CrearSiigoFab): mensajería
@@ -27,6 +30,27 @@ import { Icon } from "../../icons";
  */
 
 const CLAVE_GRANDE = "mck_fab_chat_grande";
+const CLAVE_VISTA = "mck_fab_chat_vista";
+
+/** Dos conversaciones en la misma burbuja: las de las solicitudes y los grupos de trabajo (pestaña «Equipo»). */
+type VistaFab = "solicitudes" | "grupos";
+
+function leerVista(): VistaFab {
+  try {
+    return localStorage.getItem(CLAVE_VISTA) === "grupos" ? "grupos" : "solicitudes";
+  } catch {
+    return "solicitudes";
+  }
+}
+
+/** Los canales traen segundos Unix (no la fecha del servidor de las solicitudes). */
+function haceSeg(ts: number): string {
+  const s = Date.now() / 1000 - ts;
+  if (s < 60) return "recién";
+  if (s < 3600) return `${Math.round(s / 60)} min`;
+  if (s < 86400) return `${Math.round(s / 3600)} h`;
+  return `${Math.round(s / 86400)} d`;
+}
 
 type ItemChat =
   | { kind: "mensaje"; id: string; ts: string; ev: TimelineEvento }
@@ -56,12 +80,29 @@ export default function SolicitudesEnProcesoFab() {
   // La solicitud recién creada tarda un refresco en llegar a la lista: mientras, se usa esta.
   const [recien, setRecien] = useState<Conversacion | null>(null);
   const [grande, setGrande] = useState(leerGrande);
+  const [vista, setVistaState] = useState<VistaFab>(leerVista);
+  const [canalId, setCanalId] = useState<number | null>(null);
 
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
   const setCentroMandoView = useAppStore((s) => s.setCentroMandoView);
   const setSolicitudBoot = useAppStore((s) => s.setSolicitudBoot);
   const user = useTicketsAuth((s) => s.user);
+  const resumenGrupos = useResumenMensajes(Boolean(user));
+  const noLeidosGrupos = resumenGrupos.data?.canales_no_leidos ?? 0;
+  const grupos = useCanalesEquipo(Boolean(user) && abierta && vista === "grupos");
+  const listaGrupos = grupos.data?.canales ?? [];
+  const canal = canalId != null ? listaGrupos.find((c) => c.id === canalId) ?? null : null;
+
+  function setVista(v: VistaFab) {
+    setVistaState(v);
+    setCanalId(null);
+    try {
+      localStorage.setItem(CLAVE_VISTA, v);
+    } catch {
+      /* sin localStorage: solo esta vez */
+    }
+  }
 
   const { data: conversaciones = [] } = useConversaciones("todas", "mias");
   const enProceso = conversaciones
@@ -77,13 +118,14 @@ export default function SolicitudesEnProcesoFab() {
     if (!abierta) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (chatId != null) setChatId(null);
+      if (canalId != null) setCanalId(null);
+      else if (chatId != null) setChatId(null);
       else if (nuevo) setNuevo(false);
       else setAbierta(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [abierta, chatId, nuevo]);
+  }, [abierta, chatId, nuevo, canalId]);
 
   function abrirChat(c: Conversacion) {
     setNuevo(false);
@@ -137,7 +179,28 @@ export default function SolicitudesEnProcesoFab() {
           aria-label="Chat del equipo"
         >
           <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-accent/10 px-2 py-1.5">
-            {chat ? (
+            {vista === "grupos" && canal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setCanalId(null)}
+                  className="rounded-lg px-1.5 py-0.5 text-lg font-black leading-none text-accent hover:bg-surface-hover"
+                  title="Volver a los grupos"
+                  aria-label="Volver a los grupos"
+                >
+                  ‹
+                </button>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[11px] font-black text-accent">
+                  {canal.nombre.slice(0, 1).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-bold text-ink">{canal.nombre}</p>
+                  <p className="truncate text-[10px] text-muted">
+                    {canal.descripcion || (canal.miembros.length ? `${canal.miembros.length} miembros` : "Todo el equipo")}
+                  </p>
+                </div>
+              </>
+            ) : vista === "solicitudes" && chat ? (
               <>
                 <button
                   type="button"
@@ -158,7 +221,7 @@ export default function SolicitudesEnProcesoFab() {
                   </p>
                 </div>
               </>
-            ) : nuevo ? (
+            ) : vista === "solicitudes" && nuevo ? (
               <>
                 <button
                   type="button"
@@ -174,11 +237,29 @@ export default function SolicitudesEnProcesoFab() {
                 </span>
               </>
             ) : (
-              <div className="flex min-w-0 flex-1 items-center gap-1.5 px-1 text-accent">
-                <Icon name="chat" size={15} weight="bold" />
-                <span className="text-[11px] font-extrabold uppercase tracking-wide">
-                  Chats ({enProceso.length})
-                </span>
+              <div className="flex min-w-0 flex-1 items-center gap-1 px-0.5" role="tablist" aria-label="Tipo de chat">
+                {([
+                  ["solicitudes", `Solicitudes (${enProceso.length})`, noLeidos],
+                  ["grupos", "Grupos", noLeidosGrupos],
+                ] as const).map(([v, texto, n]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    role="tab"
+                    aria-selected={vista === v}
+                    onClick={() => setVista(v)}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide transition ${
+                      vista === v ? "bg-accent text-white" : "text-accent hover:bg-accent/10"
+                    }`}
+                  >
+                    {texto}
+                    {n > 0 && (
+                      <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-500 px-1 text-[9.5px] text-white">
+                        {n > 99 ? "99+" : n}
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
             )}
             <button
@@ -200,7 +281,57 @@ export default function SolicitudesEnProcesoFab() {
             </button>
           </div>
 
-          {chat ? (
+          {vista === "grupos" ? (
+            canal ? (
+              <HiloCanal key={canal.id} canal={canal} compacto />
+            ) : (
+              <>
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  {grupos.isLoading && <p className="px-4 py-6 text-center text-[12.5px] text-muted">Cargando grupos…</p>}
+                  {!grupos.isLoading && listaGrupos.length === 0 && (
+                    <p className="px-4 py-10 text-center text-[13px] text-muted">Todavía no hay grupos del equipo.</p>
+                  )}
+                  {listaGrupos.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => setCanalId(g.id)}
+                      className="flex w-full items-start gap-2.5 border-b border-border/40 px-3 py-2.5 text-left transition hover:bg-surface-hover"
+                    >
+                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[12px] font-black text-accent">
+                        {g.nombre.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">{g.nombre}</span>
+                          {g.ultimo && <span className="shrink-0 text-[10px] text-muted/70">{haceSeg(g.ultimo.creado_en)}</span>}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          <span className={`min-w-0 flex-1 truncate text-[12px] ${g.no_leidos > 0 ? "font-semibold text-ink" : "text-muted"}`}>
+                            {g.ultimo
+                              ? `${(g.ultimo.autor_nombre || "").split(" ")[0]}: ${g.ultimo.texto || (g.ultimo.adjunto_nombre ? "📎 adjunto" : "🔗 enlace")}`
+                              : g.descripcion || "Sin mensajes todavía"}
+                          </span>
+                          {g.no_leidos > 0 && (
+                            <span className="flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-white">
+                              {g.no_leidos > 99 ? "99+" : g.no_leidos}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { guardarVistaMensajes("grupos"); setPanel("chat-equipo"); setAbierta(false); }}
+                  className="shrink-0 border-t border-border px-3 py-2 text-center text-[12px] font-bold text-accent hover:bg-accent/5"
+                >
+                  Ver todo en Mensajes →
+                </button>
+              </>
+            )
+          ) : chat ? (
             <ChatHilo key={chat.id} conversacion={chat} onAbrirCompleto={() => irA(chat)} />
           ) : nuevo ? (
             <NuevoChat
@@ -309,18 +440,18 @@ export default function SolicitudesEnProcesoFab() {
             ? "border-accent bg-accent text-white"
             : "border-accent/70 bg-surface-panel text-accent hover:border-accent hover:bg-accent hover:text-white"
         }`}
-        title={noLeidos > 0 ? `${noLeidos} mensaje(s) sin leer` : "Chat del equipo"}
+        title={noLeidos + noLeidosGrupos > 0 ? `${noLeidos + noLeidosGrupos} mensaje(s) sin leer` : "Chat del equipo"}
         aria-label={abierta ? "Cerrar chat del equipo" : "Abrir chat del equipo"}
         aria-expanded={abierta}
       >
-        {(noLeidos > 0 || enProceso.length > 0) && (
+        {(noLeidos + noLeidosGrupos > 0 || enProceso.length > 0) && (
           <span
             className={`absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-black text-white shadow-sm ${
-              noLeidos > 0 ? "bg-emerald-500 animate-pulse" : "bg-accent"
+              noLeidos + noLeidosGrupos > 0 ? "bg-emerald-500 animate-pulse" : "bg-accent"
             }`}
           >
             {(() => {
-              const n = noLeidos > 0 ? noLeidos : enProceso.length;
+              const n = noLeidos + noLeidosGrupos > 0 ? noLeidos + noLeidosGrupos : enProceso.length;
               return n > 99 ? "99+" : n;
             })()}
           </span>

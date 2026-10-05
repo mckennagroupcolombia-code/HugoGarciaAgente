@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAppStore } from "../../stores/app";
+import { useTicketsAuth } from "../../stores/ticketsAuth";
 import { useCanalesEquipo } from "../../hooks/useCanalesEquipo";
+import { puedeVerTabInicio } from "../nav/InicioNavTabs";
+import { SelectorMensajes, guardarVistaMensajes } from "./SelectorMensajes";
 import HiloCanal from "./HiloCanal";
 import NuevoCanal from "./NuevoCanal";
 
@@ -22,9 +25,22 @@ function hace(ts?: number): string {
   return `${Math.round(s / 86400)} d`;
 }
 
-export default function ChatEquipoPanel() {
+/** `embebido`: dentro de «Mensajes» (MensajesConGrupos), que ya pone el selector y la altura. */
+export default function ChatEquipoPanel({ embebido = false }: { embebido?: boolean }) {
   const datos = useCanalesEquipo();
   const setPanel = useAppStore((s) => s.setPanel);
+  const setCentroMandoView = useAppStore((s) => s.setCentroMandoView);
+  const setTicketsBootView = useAppStore((s) => s.setTicketsBootView);
+  const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
+  const user = useTicketsAuth((s) => s.user);
+  const conSolicitudes = ["acciones", "solicitudes"].some((t) => puedeVerTabInicio(user?.permisos_secciones, user?.rol?.nivel ?? 1, t));
+  const irSolicitudes = () => {
+    guardarVistaMensajes("solicitudes");
+    setAccionesBootTab(null);
+    setTicketsBootView("mensajes");
+    setCentroMandoView("mensajes");
+    setPanel("hugo");
+  };
   const [sel, setSel] = useState<number | null>(() => {
     try {
       const v = sessionStorage.getItem(CLAVE);
@@ -49,8 +65,8 @@ export default function ChatEquipoPanel() {
 
   const filtrados = canales.filter((c) => !q.trim() || c.nombre.toLowerCase().includes(q.trim().toLowerCase()));
 
-  return (
-    <div className="mx-auto flex h-[calc(100dvh-190px)] min-h-[480px] w-full max-w-[1400px] gap-2">
+  const contenido = (
+    <div className={embebido ? "flex min-h-0 w-full min-w-0 flex-1 gap-2" : "mx-auto flex h-[calc(100dvh-230px)] min-h-[440px] w-full max-w-[1400px] gap-2"}>
       {/* Lista de canales (en móvil se oculta cuando hay uno abierto) */}
       <aside className={`${actual || creando ? "hidden lg:flex" : "flex"} w-full min-w-0 flex-col rounded-xl border border-border bg-surface-panel p-2 lg:w-[300px] lg:shrink-0`}>
         <div className="flex items-center gap-1.5">
@@ -109,6 +125,14 @@ export default function ChatEquipoPanel() {
           Elige un canal para ver la conversación.
         </div>
       )}
+    </div>
+  );
+  if (embebido) return contenido;
+  // Abierto como panel propio (campana, burbuja): el mismo selector para volver a Solicitudes.
+  return (
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-2">
+      <SelectorMensajes actual="grupos" conSolicitudes={conSolicitudes} onCambiar={(v) => { if (v === "solicitudes") irSolicitudes(); }} />
+      {contenido}
     </div>
   );
 }

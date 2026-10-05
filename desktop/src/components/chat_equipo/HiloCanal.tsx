@@ -93,7 +93,7 @@ function Burbuja({ m, propio, token, modulos, onIncidente }: { m: MensajeCanal; 
 }
 
 /** Un canal del equipo: se escribe sin cronómetro (a diferencia del hilo de un ticket). */
-export default function HiloCanal({ canal, onVolver }: { canal: CanalEquipo; onVolver?: () => void }) {
+export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalEquipo; onVolver?: () => void; compacto?: boolean }) {
   const token = useTicketsAuth((s) => s.token) || "";
   const yo = useTicketsAuth((s) => s.user?.id);
   const mensajes = useMensajesCanal(canal.id);
@@ -135,8 +135,9 @@ export default function HiloCanal({ canal, onVolver }: { canal: CanalEquipo; onV
   };
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border border-border bg-surface">
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+    <div className={`flex min-h-0 min-w-0 flex-1 flex-col bg-surface ${compacto ? "" : "rounded-xl border border-border"}`}>
+      {/* En la burbuja flotante (compacto) el nombre ya va en su propia cabecera. */}
+      {!compacto && <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         {onVolver && (
           <button onClick={onVolver} className="rounded-md border border-border px-2 py-1 text-[12px] lg:hidden" aria-label="Volver a los canales">←</button>
         )}
@@ -159,7 +160,7 @@ export default function HiloCanal({ canal, onVolver }: { canal: CanalEquipo; onV
         >
           Reportar incidente
         </button>
-      </div>
+      </div>}
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
         {mensajes.isLoading && <p className="text-[12px] text-muted">Cargando…</p>}
