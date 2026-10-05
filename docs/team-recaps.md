@@ -1,3 +1,16 @@
+### 2026-10-05 - Conciliación bancaria sep/ago, préstamo de Cindy Castellanos y base para los saldos iniciales
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección contable (Libro Mayor, conciliación, préstamos). Sin LLM.
+- **Qué se implementó:**
+  - **Septiembre conciliado entero** contra el extracto Bancolombia: comisiones e IVA de pagos automáticos (72 líneas, 530505), pagos a proveedores con su solicitud, cobros de clientes con su factura FE (incluidos los pagados por otra persona, con nota). Se corrigieron vínculos mal hechos: Amanda (asiento anulado), Gilberto (venta MeLi #936), Red Chocolate (factura de agosto).
+  - **8 facturas Siigo del 1-sep eran ventas MeLi contadas dos veces**: 6 anuladas tras verificar la cédula del comprador en MeLi (#503-#509, $329.686); quedan #510 y #511 (consumidor final) por confirmar con el PDF de Siigo.
+  - **Honorarios del contador duplicados**: la cuenta de cobro de septiembre se causaba de nuevo aunque ya estaba pagada por solicitud (#6058 anulado). `contabilidad_ledger` ahora omite la cuenta de cobro que `cuenta_cobro_contador.buscar_pago()` empareja con su pago.
+  - **Préstamo #5 — Cindy Milady Castellanos Prieto**: $20.000.000 del 28-sep, mismo esquema familiar (25 % E.A., 24 cuotas 30/70, 7 %, un mes de gracia desde el depósito), asiento #8241 vinculado al banco; contrato MUT-2026-0005 enviado a su correo.
+  - **Libro Mayor → «Retenciones y temas»** (visible para el perfil contador): certificados de retención de Mercado Pago may-sep ($6.059.670, sin causar en 135515/17/18) y temas para la reunión con William (IVA de comisiones bancarias ¿gasto o 2408?).
+  - **Agosto (antes del corte)**: 14 líneas con asiento y 11 vinculadas con nota `nota:precorte:<línea>` (retiros MP y cobros de clientes), sin crear ingresos de un período ya declarado. Quedan 6 abiertas.
+  - **`scripts/descargar_listados_dian.py`**: baja de la DIAN, mes a mes y con el token del correo, los documentos emitidos y recibidos. 2025 cuadró al peso con el F110 y 2026 con los F300 — base para reconstruir los saldos iniciales al 31-ago con lo declarado. Extractos Bancolombia dic-2025 → ago-2026 completos y encadenados.
+- **Archivos Modificados:** `app/services/certificados_retencion.py`, `desktop/src/components/RetencionesContador.tsx`, `app/data/temas_reunion_contador.json`, `app/services/contabilidad_ledger.py`, `scripts/descargar_listados_dian.py`, `app/routes.py`, `desktop/src/components/LibroMayorPanel.tsx`, `docs/agentic/modules/{contabilidad,prestamos}.md`, `.gitignore` (código ya entró en el auto-commit del 3-oct). Asientos y vínculos en `contabilidad.db` (no está en git).
+
 ### 2026-10-04 - Colaboradores: simulador de precios y márgenes (Armando ↔ Sebastián)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (app de colaboradores y panel `/app`). Sin LLM.
