@@ -1,3 +1,14 @@
+### 2026-10-05 - Libro Mayor más legible: escala de letra para toda la sección
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (panel `/app` → Contabilidad → Libro Mayor). Sin LLM.
+- **Qué se implementó:**
+  - Escala tipográfica propia de la sección, aplicada desde `.lm-root` a todas las pieles: lo que estaba en 9-12 px (305 textos a 12 px y 75 entre 9 y 11,5 px, medidos en pantalla) pasa a 11,5-14 px, `text-sm` a 15,5 y `text-base` a 17, con más interlineado. Las cifras de las tablas se alinean (`tabular-nums`). No se reescribieron las ~500 clases: la escala vive en `libroMayor.css`.
+  - El Taller de conciliación, que se abre por portal fuera del libro, recibe la misma escala con la clase `lm-escala`; sus contadores («conexiones hoy», «líneas conciliadas hoy», «sin causar») ganaron relleno porque el texto se salía de la caja.
+  - El riel lateral pasó de 218 a 256 px y sus etiquetas bajan de línea en vez de cortarse con «…».
+  - En celular la vista quedaba más ancha que la pantalla (la tabla del PUC la estiraba) y cortaba los filtros de período: la columna ahora se limita al ancho de la pantalla.
+  - Verificado con capturas reales antes/después (escritorio 1440 px y celular 390 px) del Plan de cuentas, Libro Diario, Tabla de contabilidad, Retenciones y el Taller.
+- **Archivos Modificados:** `desktop/src/components/libroMayor.css`, `LibroMayorPanel.tsx`, `TallerConciliacion.tsx`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`.
+
 ### 2026-10-05 - Conciliación bancaria sep/ago, préstamo de Cindy Castellanos y base para los saldos iniciales
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + corrección contable (Libro Mayor, conciliación, préstamos). Sin LLM.
@@ -4998,3 +5009,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - La idea arranca solo con la raíz. «＋» en cualquier rama abre una bandeja flotante con tres fuentes: **la guía** (las 7 etapas en la raíz; en cada etapa, sus sub-ramas), **«✨ Sugerir con IA»** (5-6 opciones según los parámetros y la ruta desde la raíz; `ramificar` ahora devuelve `opciones` y no toca el árbol) y **una rama escrita a mano**. Solo entra lo que se elige.
   - **Verificado:** `npm run build`; reinicio de `agente-pro`; curl de ramificar con dos juegos de parámetros (agricultores de café / urbano premium) que dan opciones distintas; captura en Chrome headless de la bandeja en un arnés temporal ya retirado.
 - **Archivos Modificados:** `app/services/ideas_db.py`, `app/routes_ideas.py`, `desktop/src/components/ideas/IdeasPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-10-05 - Modo de uso cosmético: aplicación en la piel en 20 palabras
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Documento técnico → sugerencia IA de Modo de uso)
+- **Qué se implementó:**
+  - Pedido: si el documento técnico es de un cosmético (grado solo cosmético), la IA sugiere cómo aplicarlo en la piel, en 20 palabras.
+  - El prompt cosmético de `modo_uso` ya no pide % de formulación: pide cuánto, dónde, cómo y con qué frecuencia se aplica en la piel, empezando por un verbo en infinitivo.
+  - `modo_uso_cosmetico` impone el tope (`MAX_PALABRAS_MODO_USO_COSMETICO = 20`, «Solo para uso externo.» incluido) con `recortar_a_palabras`, además del filtro de ingesta que ya tenía.
+  - **Verificado:** pruebas de la función con textos largos y con ingesta; Gemini real para manteca de karité (18 palabras) y aceite de rosa mosqueta (15); reinicio de `agente-pro`.
+- **Archivos Modificados:** `app/services/documento_cientifico.py`, `docs/team-recaps.md`
