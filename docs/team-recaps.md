@@ -1,3 +1,33 @@
+### 2026-10-05 - Despliegue de ventas: sin etiqueta aprobada no se vende (MeLi + web)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Regla de negocio (despliegue gradual de ventas). Sin LLM.
+- **Qué se implementó:**
+  - Un combo cuya etiqueta no tiene «Terminar y aprobar» (PNG registrado en `etiquetas_png_aprobados.json`, o el `_digital` de las aprobadas antes del registro) sale de la lista de `despliegue_ventas.json` con motivo «etiqueta sin aprobar»: la web lo oculta y la sincronización de stock no lo reactiva en MeLi.
+  - Exentos (no llevan etiqueta impresa): líneas Equipos y Materiales, Otros y Kits, y lo que no tiene diseño ni etiqueta en la receta (`_SIN_ETIQUETA_LINEAS`, `etiquetas_sin_aprobar()`).
+  - `despliegue_ventas.sincronizar()` pausa en MeLi lo que deja de cumplir y reactiva lo que pausó esta regla cuando ya cumple (anotado en `meli_pausa_global.json` → `pausadas_por_etiqueta`). La aprobación de una etiqueta (POST `/api/etiquetas/recursos-png` con `etiqueta_id`) la dispara en segundo plano, una corrida a la vez.
+  - Primera corrida: 50 publicaciones de 45 combos pausadas en MeLi, 0 fallos (lista habilitada: 259 → 193 SKUs).
+- **Archivos Modificados:** `app/services/despliegue_ventas.py`, `app/routes.py`, `docs/team-recaps.md`.
+
+### 2026-10-05 - Expediente contable (fases 2 y 3): observaciones del contador y paquete ZIP mensual
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección (Libro Mayor → Expediente contable). Sin LLM.
+- **Qué se implementó:**
+  - **Observaciones del contador** en el mes, en cada cuenta y en cada asiento: «Marcar revisado» de un clic o «Dejar nota» (pregunta / ajuste / nota). El autor lo pone el backend desde la sesión. Lo abierto sale al equipo en Revisión del libro → «Observaciones del contador por atender», con botón Resolver (solo equipo). El contador puede crear observaciones y pedir el paquete, pero sigue sin poder resolver, importar ni entrar a rutas nuevas (test con su perfil).
+  - **Paquete mensual (ZIP)** desde la tarjeta del mes: LEEME.md con cómo corroborar, manifest.json con SHA-256 de cada archivo y a qué asiento respalda, balance, auxiliares por cuenta, Libro Diario, extracto y conciliación, listado DIAN y cruces, borradores 350/RTICA con declaraciones y recibos, y 07_soportes con todos los documentos locales (sin duplicar). Septiembre real: 18 s, 43 MB, 957 archivos, 5 faltantes anotados. Se genera en segundo plano y el panel avisa si quedó desactualizado.
+  - **Corrección:** al confirmar un giro, la captura del banco borraba la factura adjuntada al aprobar el pago. Ahora factura y captura quedan como adjuntos con rol (`cc_movimiento_adjuntos`) y la factura sigue como comprobante principal.
+- **Archivos Modificados:** `app/services/{observaciones_contador,expediente_paquete}.py` (nuevos), `app/services/{contabilidad_core,pagos_wizard,revision_libro,expediente_contable}.py`, `app/routes.py`, `desktop/src/components/expediente/{CajaObservacion,PaquetePanel}.tsx` (nuevos), `EspinaPUC.tsx`, `TarjetaMes.tsx`, `expediente.css`, `tests/test_{observaciones_contador,expediente_paquete}.py` (nuevos), `docs/agentic/modules/contabilidad.md`, `docs/team-recaps.md`.
+
+### 2026-10-05 - Expediente contable: el libro por mes y por cuenta, para el contador (fase 1)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (panel `/app` → Contabilidad → Libro Mayor). Sin LLM.
+- **Qué se implementó:**
+  - **Expediente contable**, nueva entrada y landing del contador: tira de meses, tarjeta del estado del mes (partida doble, banco vs extracto, cruce con la DIAN, impuestos vs declarado, soportes) y las cuentas del PUC como fichas con insignias; cada cuenta abre su auxiliar y cada asiento su comprobante, documentos y verificaciones. Filtro «Por revisar» por defecto. Meses anteriores al corte = «período del contador» con sus fuentes.
+  - **Cruce con la DIAN documento por documento** (`dian_cruce.py`): importa los listados a `dian_documentos` y clasifica cada factura, nota y documento soporte en cuadra / difiere / solo DIAN / solo libro. Septiembre: 912 ventas en ambos (750 exactas), 131 notas crédito sin asiento, 10/10 documentos soporte cuadran, 46 facturas recibidas sin referencia.
+  - **Pasarela única de documentos** (`expediente_documentos.py`): comprobantes, facturas de compra (PDF+XML), facturas de venta por número FE (se bajan de Alegra si no están), documentos soporte en PDF/XML, recibos 490/SDH, declaraciones, certificados MP, contratos de préstamo, extractos y listados DIAN, con validación de raíces. El contador llega a todo sin abrirle rutas nuevas.
+  - Riel del Libro Mayor simplificado: Consultar = Expediente, Revisión, Plan de cuentas, Diario (los demás apartados viven como detalle de la cuenta). Arreglado el CSV del Libro Diario, que devolvía 401.
+  - Visita guiada con tres pasos nuevos sobre el expediente.
+- **Archivos Modificados:** `app/services/{expediente_contable,dian_cruce,expediente_documentos}.py` (nuevos), `app/services/{doc_soporte_pagos,alegra_espejo}.py`, `app/routes.py`, `desktop/src/components/ExpedienteContable.tsx` y `expediente/*` (nuevos), `LibroMayorPanel.tsx`, `RevisionLibro.tsx`, `VisitaGuiada.tsx`, `tests/test_{dian_cruce,expediente_contable,expediente_documentos}.py` (nuevos), `docs/agentic/modules/contabilidad.md`, `docs/team-recaps.md`.
+
 ### 2026-10-05 - Libro Mayor: «Revisión del libro», visita guiada y tamaño de letra por persona
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + corrección (panel `/app` → Contabilidad → Libro Mayor). Sin LLM.

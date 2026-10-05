@@ -24364,6 +24364,9 @@ REGLAS:
         entry = _registrar_png_recurso(nombre, destino, len(raw), meta=meta or None)
         if etiqueta_id:
             _registrar_etiqueta_aprobada(etiqueta_id, variante, entry.get("nombre") or nombre, barcode_aprob, usuario_aprob)
+            # Una etiqueta aprobada deja volver a la venta sus publicaciones (MeLi + web).
+            from app.services.despliegue_ventas import sincronizar_en_segundo_plano
+            sincronizar_en_segundo_plano(usuario=(usuario_aprob or {}).get("username") or "")
         return jsonify({"ok": True, **entry})
 
     # ── Logos corporativos (carpeta DISENO CORPORATIVO del repo) ─────────
