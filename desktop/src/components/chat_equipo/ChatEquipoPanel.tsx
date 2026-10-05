@@ -100,7 +100,7 @@ export default function ChatEquipoPanel() {
       </aside>
 
       {creando && datos.data && (
-        <NuevoCanal grupos={datos.data.grupos_wa} onCancelar={() => setCreando(false)}
+        <NuevoCanal grupos={datos.data.grupos_wa} modulos={datos.data.modulos ?? []} onCancelar={() => setCreando(false)}
           onCreado={(c) => { setCreando(false); setSel(c.id); }} />
       )}
       {!creando && actual && <HiloCanal key={actual.id} canal={actual} onVolver={() => setSel(null)} />}

@@ -100,6 +100,8 @@ def _conn() -> sqlite3.Connection:
                 tickets_db._safe_migrate(lambda: c.execute(
                     "INSERT OR IGNORE INTO categorias (slug, nombre, color, icono) "
                     "VALUES ('incidente', 'Incidente', '#b54a3c', '🛠️')"))
+                # Grupos de trabajo: el canal se vincula a un módulo (canales_vinculos.MODULOS).
+                tickets_db._safe_migrate(lambda: c.execute("ALTER TABLE canales_internos ADD COLUMN modulo TEXT"))
                 c.commit()
                 _listo[ruta] = True
     return c
@@ -152,8 +154,10 @@ def crear_canal(
     wa_jid: str = "",
     espejo_salida: bool = False,
     clave: str | None = None,
+    modulo: str = "",
 ) -> dict:
     nombre = (nombre or "").strip()[:80]
+    modulo = _modulo_valido(modulo)
     if not nombre:
         raise ValueError("El canal necesita un nombre")
     wa_jid = (wa_jid or "").strip() or None
@@ -163,10 +167,10 @@ def crear_canal(
         if wa_jid and c.execute("SELECT 1 FROM canales_internos WHERE wa_jid=?", (wa_jid,)).fetchone():
             raise ValueError("Ese grupo de WhatsApp ya está enlazado a otro canal")
         cur = c.execute(
-            "INSERT INTO canales_internos (nombre, descripcion, tipo, clave, wa_jid, espejo_salida, creado_por, creado_en) "
-            "VALUES (?,?,?,?,?,?,?,?)",
+            "INSERT INTO canales_internos (nombre, descripcion, tipo, clave, wa_jid, espejo_salida, creado_por, creado_en, modulo) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
             (nombre, (descripcion or "").strip()[:300], "grupo", clave, wa_jid, 1 if espejo_salida else 0,
-             (usuario or {}).get("id"), time.time()),
+             (usuario or {}).get("id"), time.time(), modulo),
         )
         cid = int(cur.lastrowid)
         for uid in sorted({int(u) for u in (miembros or [])}):
@@ -176,7 +180,7 @@ def crear_canal(
 
 
 def actualizar_canal(canal_id: int, usuario: dict, **campos: Any) -> dict | None:
-    permitidos = {"nombre", "descripcion", "espejo_salida", "archivado", "wa_jid"}
+    permitidos = {"nombre", "descripcion", "espejo_salida", "archivado", "wa_jid", "modulo"}
     sets, vals = [], []
     for k, v in campos.items():
         if k not in permitidos or v is None:
@@ -187,6 +191,8 @@ def actualizar_canal(canal_id: int, usuario: dict, **campos: Any) -> dict | None
             v = (str(v).strip() or None)
             if v and "@g.us" not in v:
                 raise ValueError("Solo se enlazan grupos de WhatsApp (@g.us)")
+        if k == "modulo":
+            v = _modulo_valido(v)
         sets.append(f"{k}=?")
         vals.append(v)
     with _conn() as c:
@@ -198,6 +204,18 @@ def actualizar_canal(canal_id: int, usuario: dict, **campos: Any) -> dict | None
                 c.execute("INSERT OR IGNORE INTO canal_miembros (canal_id, usuario_id, agregado_en) VALUES (?,?,?)",
                           (canal_id, uid, time.time()))
     return obtener_canal(canal_id, usuario, forzar=True)
+
+
+def _modulo_valido(modulo: Any) -> str | None:
+    """'' quita el vínculo; un módulo que no existe es un error."""
+    from app.services.canales_vinculos import MODULOS
+
+    modulo = str(modulo or "").strip()
+    if not modulo:
+        return None
+    if modulo not in MODULOS:
+        raise ValueError("Módulo desconocido")
+    return modulo
 
 
 def canal_por_clave(clave: str) -> dict | None:
@@ -250,6 +268,7 @@ def _fila_canal(c: sqlite3.Connection, r: sqlite3.Row, usuario_id: int | None) -
         "nombre": r["nombre"],
         "descripcion": r["descripcion"] or "",
         "clave": r["clave"],
+        "modulo": r["modulo"] if "modulo" in r.keys() else None,
         "wa_jid": r["wa_jid"] or "",
         "wa_nombre": nombre_wa,
         "espejo_salida": bool(r["espejo_salida"]),
@@ -324,7 +343,7 @@ def enviar_mensaje(
 ) -> dict:
     """Mensaje del panel (o de sistema si `usuario` es None). Devuelve el mensaje guardado."""
     texto = (texto or "").strip()[:4000]
-    if not texto and not adjunto:
+    if not texto and not adjunto and not ref:
         raise ValueError("Mensaje vacío")
     with _conn() as c:
         canal = _canal(c, canal_id)

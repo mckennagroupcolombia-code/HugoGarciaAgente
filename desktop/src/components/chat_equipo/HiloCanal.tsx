@@ -2,12 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
 import { useAppStore } from "../../stores/app";
 import {
+  useCanalesEquipo,
   useEnviarCanal,
   useMarcarCanalLeido,
   useMensajesCanal,
   type CanalEquipo,
   type MensajeCanal,
+  type ModuloCanal,
+  type RefMensaje,
 } from "../../hooks/useCanalesEquipo";
+import { ChipVinculo, SelectorVinculo } from "./VinculoModulo";
 
 function hora(ts: number): string {
   const d = new Date(ts * 1000);
@@ -35,7 +39,8 @@ function urlAdjunto(m: MensajeCanal, token: string): string | null {
 /** Un mensaje del chat → solicitud en la Agenda (con responsable y cronómetro), ya llenada. */
 function reportarIncidente(canal: CanalEquipo, m?: MensajeCanal) {
   const st = useAppStore.getState();
-  const origen = m ? `${m.autor_nombre} escribió en «${canal.nombre}»: ${m.texto || "(foto)"}` : `Reportado desde el canal «${canal.nombre}».`;
+  const enlace = m?.ref && typeof m.ref.titulo === "string" ? `\nVinculado: ${m.ref.titulo}${m.ref.detalle ? ` (${String(m.ref.detalle)})` : ""}` : "";
+  const origen = (m ? `${m.autor_nombre} escribió en «${canal.nombre}»: ${m.texto || "(foto)"}` : `Reportado desde el canal «${canal.nombre}».`) + enlace;
   st.setSolicitudBoot({
     abrirWizard: true,
     prefillTitulo: m?.texto ? `Incidente: ${m.texto.slice(0, 70)}` : "Incidente: ",
@@ -45,13 +50,14 @@ function reportarIncidente(canal: CanalEquipo, m?: MensajeCanal) {
   st.setPanel("hugo");
 }
 
-function Burbuja({ m, propio, token, onIncidente }: { m: MensajeCanal; propio: boolean; token: string; onIncidente: () => void }) {
+function Burbuja({ m, propio, token, modulos, onIncidente }: { m: MensajeCanal; propio: boolean; token: string; modulos: ModuloCanal[]; onIncidente: () => void }) {
   const url = urlAdjunto(m, token);
   if (m.tipo === "sistema") {
     return (
       <div className="mx-auto max-w-[85%] rounded-lg border border-accent/30 bg-accent/5 px-3 py-1.5 text-center text-[11.5px] text-ink">
         <span className="font-mono text-[9.5px] uppercase tracking-wide text-muted">{m.autor_nombre} · {hora(m.creado_en)}</span>
         <p className="whitespace-pre-wrap">{m.texto}</p>
+        <div className="flex justify-center"><ChipVinculo refm={m.ref} modulos={modulos} /></div>
       </div>
     );
   }
@@ -75,6 +81,7 @@ function Burbuja({ m, propio, token, onIncidente }: { m: MensajeCanal; propio: b
           </a>
         )}
         {m.texto && <p className="whitespace-pre-wrap break-words text-[13px] leading-snug text-ink">{m.texto}</p>}
+        <ChipVinculo refm={m.ref} modulos={modulos} />
         <p className="mt-0.5 flex items-center justify-end gap-2 font-mono text-[9.5px] text-muted">
           <button onClick={onIncidente} className="mck-btn-no-fx opacity-60 hover:text-accent hover:opacity-100"
             title="Convertir este mensaje en una solicitud de la Agenda (con responsable)">→ tarea</button>
@@ -90,6 +97,10 @@ export default function HiloCanal({ canal, onVolver }: { canal: CanalEquipo; onV
   const token = useTicketsAuth((s) => s.token) || "";
   const yo = useTicketsAuth((s) => s.user?.id);
   const mensajes = useMensajesCanal(canal.id);
+  const modulos = useCanalesEquipo().data?.modulos ?? [];
+  const moduloCanal = modulos.find((x) => x.clave === canal.modulo) ?? null;
+  const [vinculo, setVinculo] = useState<RefMensaje | null>(null);
+  const [eligiendo, setEligiendo] = useState(false);
   const enviar = useEnviarCanal(canal.id);
   const leido = useMarcarCanalLeido();
   const [texto, setTexto] = useState("");
@@ -111,12 +122,13 @@ export default function HiloCanal({ canal, onVolver }: { canal: CanalEquipo; onV
   useEffect(() => () => { if (vistaPrevia) URL.revokeObjectURL(vistaPrevia); }, [vistaPrevia]);
 
   const mandar = async () => {
-    if (!texto.trim() && !archivo) return;
+    if (!texto.trim() && !archivo && !vinculo) return;
     setError(null);
     try {
-      await enviar.mutateAsync({ texto: texto.trim(), archivo });
+      await enviar.mutateAsync({ texto: texto.trim(), archivo, ref: vinculo });
       setTexto("");
       setArchivo(null);
+      setVinculo(null);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -131,6 +143,7 @@ export default function HiloCanal({ canal, onVolver }: { canal: CanalEquipo; onV
         <div className="min-w-0 flex-1">
           <p className="truncate text-[14px] font-bold text-ink">{canal.nombre}</p>
           <p className="truncate text-[11px] text-muted">
+            {moduloCanal && <span className="mr-1 rounded bg-accent/15 px-1 font-bold text-accent" title="Grupo de trabajo vinculado a este módulo">↔ {moduloCanal.nombre}</span>}
             {canal.descripcion || (canal.miembros.length ? `${canal.miembros.length} miembros` : "Todo el equipo")}
             {canal.wa_jid && (
               <span title="Lo que se escribe en el grupo de WhatsApp aparece aquí">
@@ -154,7 +167,7 @@ export default function HiloCanal({ canal, onVolver }: { canal: CanalEquipo; onV
           <p className="py-8 text-center text-[12px] text-muted">Todavía no hay mensajes. Lo que se escriba aquí queda registrado y cuenta como actividad.</p>
         )}
         {lista.map((m) => (
-          <Burbuja key={m.id} m={m} propio={m.origen === "panel" && m.usuario_id === yo} token={token}
+          <Burbuja key={m.id} m={m} propio={m.origen === "panel" && m.usuario_id === yo} token={token} modulos={modulos}
             onIncidente={() => reportarIncidente(canal, m)} />
         ))}
         <div ref={finRef} />
@@ -168,6 +181,19 @@ export default function HiloCanal({ canal, onVolver }: { canal: CanalEquipo; onV
             <button onClick={() => setArchivo(null)} className="rounded px-2 text-[12px] text-muted hover:text-ink" aria-label="Quitar adjunto">✕</button>
           </div>
         )}
+        {eligiendo && modulos.length > 0 && (
+          <SelectorVinculo modulos={modulos} moduloInicial={canal.modulo} onCerrar={() => setEligiendo(false)}
+            onElegir={(r) => { setVinculo(r); setEligiendo(false); }} />
+        )}
+        {vinculo && (
+          <div className="mb-2 flex items-center gap-2 rounded-lg border border-accent/40 bg-surface-input p-1.5">
+            <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-wide text-accent">
+              {modulos.find((x) => x.clave === vinculo.modulo)?.item || "Enlace"}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[11.5px] text-ink">{vinculo.titulo}</span>
+            <button onClick={() => setVinculo(null)} className="rounded px-2 text-[12px] text-muted hover:text-ink" aria-label="Quitar vínculo">✕</button>
+          </div>
+        )}
         {error && <p className="mb-1 text-[11.5px] text-accent-rose">{error}</p>}
         <div className="flex items-end gap-1.5">
           <input ref={fotoRef} type="file" accept="image/*" capture="environment" className="hidden"
@@ -177,6 +203,11 @@ export default function HiloCanal({ canal, onVolver }: { canal: CanalEquipo; onV
             onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); e.target.value = ""; }} />
           <button onClick={() => fotoRef.current?.click()} className="rounded-lg border border-border bg-surface-input px-2.5 py-2 text-[15px]" title="Tomar o subir una foto" aria-label="Foto">📷</button>
           <button onClick={() => archivoRef.current?.click()} className="rounded-lg border border-border bg-surface-input px-2.5 py-2 text-[15px]" title="Adjuntar archivo" aria-label="Adjuntar">📎</button>
+          {modulos.length > 0 && (
+            <button onClick={() => setEligiendo((v) => !v)} aria-pressed={eligiendo}
+              className={`rounded-lg border px-2.5 py-2 text-[15px] ${eligiendo || vinculo ? "border-accent bg-accent/10" : "border-border bg-surface-input"}`}
+              title={`Vincular ${moduloCanal ? moduloCanal.item.toLowerCase() : "un elemento"} a este mensaje`} aria-label="Vincular">🔗</button>
+          )}
           <textarea
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
@@ -192,7 +223,7 @@ export default function HiloCanal({ canal, onVolver }: { canal: CanalEquipo; onV
           />
           <button
             onClick={() => void mandar()}
-            disabled={enviar.isPending || (!texto.trim() && !archivo)}
+            disabled={enviar.isPending || (!texto.trim() && !archivo && !vinculo)}
             className="rounded-lg bg-accent px-3 py-2 text-[13px] font-bold text-white disabled:opacity-50"
           >
             {enviar.isPending ? "…" : "Enviar"}

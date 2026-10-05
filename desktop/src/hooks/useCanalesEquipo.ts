@@ -8,6 +8,8 @@ export type CanalEquipo = {
   nombre: string;
   descripcion: string;
   clave: string | null;
+  /** Grupo de trabajo: módulo del panel al que está vinculado (canales_vinculos.MODULOS). */
+  modulo: string | null;
   wa_jid: string;
   wa_nombre: string;
   espejo_salida: boolean;
@@ -33,9 +35,15 @@ export type MensajeCanal = {
   creado_en: number;
 };
 
+export type ModuloCanal = { clave: string; nombre: string; panel: string; item: string };
+
+/** Elemento de un módulo vinculado en un mensaje. */
+export type RefMensaje = { modulo: string; id: string; titulo: string; detalle: string };
+
 export type RespCanalesEquipo = {
   canales: CanalEquipo[];
   puede_administrar: boolean;
+  modulos: ModuloCanal[];
   grupos_wa: { jid: string; nombre: string; enlazado: boolean }[];
 };
 
@@ -59,20 +67,31 @@ export function useMensajesCanal(canalId: number | null) {
 export function useEnviarCanal(canalId: number | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ texto, archivo }: { texto: string; archivo?: File | null }) => {
+    mutationFn: async ({ texto, archivo, ref }: { texto: string; archivo?: File | null; ref?: RefMensaje | null }) => {
       if (canalId == null) throw new Error("Sin canal");
       if (archivo) {
         const form = new FormData();
         form.append("texto", texto);
         form.append("archivo", archivo);
+        if (ref) form.append("ref", JSON.stringify(ref));
         return api.upload<MensajeCanal>(`/api/canales/${canalId}/mensajes`, form, { timeoutMs: 120_000 });
       }
-      return api.post<MensajeCanal>(`/api/canales/${canalId}/mensajes`, { texto });
+      return api.post<MensajeCanal>(`/api/canales/${canalId}/mensajes`, { texto, ref: ref ?? null });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["canales-equipo-mensajes", canalId] });
       void qc.invalidateQueries({ queryKey: ["canales-equipo"] });
     },
+  });
+}
+
+export function useBuscarVinculos(modulo: string, q: string) {
+  return useQuery<{ items: { id: string; titulo: string; detalle: string }[] }>({
+    queryKey: ["canales-vinculos", modulo, q],
+    queryFn: () => api.get(`/api/canales/vinculos?modulo=${encodeURIComponent(modulo)}&q=${encodeURIComponent(q)}`),
+    enabled: !!modulo,
+    staleTime: 30_000,
+    retry: false,
   });
 }
 

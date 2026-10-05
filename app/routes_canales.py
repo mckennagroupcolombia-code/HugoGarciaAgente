@@ -60,9 +60,12 @@ def register_canales_routes(app):
     def canales_listar():
         u = _u()
         admin = CI.puede_administrar(u)
+        from app.services.canales_vinculos import catalogo
+
         return jsonify({
             "canales": CI.listar_canales(u, incluir_archivados=request.args.get("archivados") == "1"),
             "puede_administrar": admin,
+            "modulos": catalogo(),
             "grupos_wa": CI.grupos_oficiales() if admin else [],
         })
 
@@ -77,7 +80,7 @@ def register_canales_routes(app):
             canal = CI.crear_canal(
                 u, d.get("nombre") or "", descripcion=d.get("descripcion") or "",
                 miembros=d.get("miembros") or [], wa_jid=d.get("wa_jid") or "",
-                espejo_salida=bool(d.get("espejo_salida")),
+                espejo_salida=bool(d.get("espejo_salida")), modulo=d.get("modulo") or "",
             )
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
@@ -92,7 +95,7 @@ def register_canales_routes(app):
         d = request.get_json(silent=True) or {}
         try:
             canal = CI.actualizar_canal(canal_id, u, **{k: d.get(k) for k in
-                                        ("nombre", "descripcion", "espejo_salida", "archivado", "wa_jid", "miembros") if k in d})
+                                        ("nombre", "descripcion", "espejo_salida", "archivado", "wa_jid", "miembros", "modulo") if k in d})
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         if not canal:
@@ -112,14 +115,37 @@ def register_canales_routes(app):
             return jsonify({"error": "Canal no encontrado"}), 404
         return jsonify({"mensajes": msgs})
 
+    @app.route("/api/canales/vinculos", methods=["GET"])
+    @_auth
+    def canales_vinculos_buscar():
+        """Elementos de un módulo para vincular en un mensaje (según los permisos del panel)."""
+        from app.services.canales_vinculos import buscar
+
+        try:
+            items = buscar(request.args.get("modulo") or "", request.args.get("q") or "", _u())
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except PermissionError as e:
+            return jsonify({"error": str(e), "items": []}), 403
+        return jsonify({"items": items})
+
     @app.route("/api/canales/<int:canal_id>/mensajes", methods=["POST"])
     @_auth
     def canales_enviar(canal_id: int):
+        import json as _json
+
+        from app.services.canales_vinculos import normalizar_ref
+
         u = _u()
         adjunto = None
+        ref_raw = None
         if request.files:
             f = request.files.get("archivo")
             texto = request.form.get("texto") or ""
+            try:
+                ref_raw = _json.loads(request.form.get("ref") or "null")
+            except ValueError:
+                ref_raw = None
             if f and f.filename:
                 ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
                 if ext not in _EXT_ADJUNTO:
@@ -132,9 +158,11 @@ def register_canales_routes(app):
                 f.save(os.path.join(CI.UPLOADS_DIR, archivo))
                 adjunto = {"archivo": archivo, "nombre": f.filename[:160], "mime": f.content_type or ""}
         else:
-            texto = (request.get_json(silent=True) or {}).get("texto") or ""
+            cuerpo = request.get_json(silent=True) or {}
+            texto = cuerpo.get("texto") or ""
+            ref_raw = cuerpo.get("ref")
         try:
-            msg = CI.enviar_mensaje(canal_id, u, texto, adjunto=adjunto)
+            msg = CI.enviar_mensaje(canal_id, u, texto, adjunto=adjunto, ref=normalizar_ref(ref_raw))
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         except PermissionError as e:
