@@ -1,3 +1,15 @@
+### 2026-10-05 - Libro Mayor: «Revisión del libro», visita guiada y tamaño de letra por persona
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección (panel `/app` → Contabilidad → Libro Mayor). Sin LLM.
+- **Qué se implementó:**
+  - Nueva vista de entrada **«Revisión del libro»**, pensada para abrir la reunión con el contador: un veredicto en una frase, **lo que tenemos** y **lo que nos falta** lado a lado, **para ajustar hoy** numerado y **para hablar con el contador**. Minimalista primero (un renglón por tema en letra grande); al tocarlo se despliega el detalle y un botón a la vista donde se resuelve. Datos vivos desde `GET /api/contabilidad/revision`.
+  - Lo pendiente se separa de lo que solo espera el extracto del mes (octubre), para no presentar como error lo que el banco aún no muestra. Las facturas de Siigo se nombran «factura de Siigo a consumidor final» en vez del UUID.
+  - **Visita guiada** de 11 pasos: ilumina cada parte (veredicto, tenemos, falta, ajustar, temas, riel, plan de cuentas, diario, retenciones, conciliar, letra), cambia de vista sola y se maneja con ← → y Esc. Se invita a hacerla la primera vez.
+  - **Control A−/A+** en el encabezado (100-150 %, por persona): escala solo el texto de la sección sin romper el diseño.
+  - Dos temas nuevos para la reunión: los $499.770 de efectivo de la renta 2025 que no están en el banco y la composición de los $272M de pasivos.
+  - Corrección: el checklist del hub decía «no hay préstamos con saldo vigente» con cinco vivos ($101.950.000). `resumen_prestamos()` buscaba la 2295 (ahora 2195) y solo los últimos 2.000 asientos. Test nuevo en `tests/test_prestamos.py`.
+- **Archivos Modificados:** `app/services/revision_libro.py` (nuevo), `app/data/revision_libro_insumos.json` (nuevo), `app/data/temas_reunion_contador.json`, `app/routes.py`, `app/services/contabilidad_core.py`, `desktop/src/components/{RevisionLibro,VisitaGuiada}.tsx` (nuevos), `LibroMayorPanel.tsx`, `libroMayor.css`, `tests/test_prestamos.py`, `docs/agentic/modules/contabilidad.md`, `docs/team-recaps.md`.
+
 ### 2026-10-05 - Libro Mayor más legible: escala de letra para toda la sección
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora de interfaz (panel `/app` → Contabilidad → Libro Mayor). Sin LLM.
@@ -5019,3 +5031,12 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - `modo_uso_cosmetico` impone el tope (`MAX_PALABRAS_MODO_USO_COSMETICO = 20`, «Solo para uso externo.» incluido) con `recortar_a_palabras`, además del filtro de ingesta que ya tenía.
   - **Verificado:** pruebas de la función con textos largos y con ingesta; Gemini real para manteca de karité (18 palabras) y aceite de rosa mosqueta (15); reinicio de `agente-pro`.
 - **Archivos Modificados:** `app/services/documento_cientifico.py`, `docs/team-recaps.md`
+
+### 2026-10-05 - Vitamina C 30 mL: encabezado técnico centrado y un solo timbre
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Studio → etiqueta 30 mL)
+- **Qué se implementó:**
+  - En edición, «TDS - COA - SDS» (un input al 94 % dentro de una casilla al 100 %) quedaba pegado a la izquierda, ~10 px corrido de «Información técnica», «Disponible en» y la web. `.e30-info-docs` lleva `margin-inline: auto`; en vista ya estaba centrado. Aplica a todas las etiquetas 30 mL.
+  - VITAMINA C 30% 30mL (`d2bc4f11f77f`) tenía dos timbres: se puso `sinTimbreCentro: true` solo en esa etiqueta (su plantilla de Vitaminas 30 mL la comparten Vitamina E, Retinol 5 % y D-Pantenol, que no se tocaron).
+  - **Verificado:** arnés temporal (ya retirado) con la ficha real: las cuatro líneas del encabezado a 896,8 px = centro de la columna, en vista y edición; captura con un solo timbre; `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/etiqueta30ml.css`, `app/data/etiquetas_fichas.json` (dato), `docs/team-recaps.md`
