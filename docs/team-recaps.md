@@ -5089,3 +5089,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 ## 2026-10-05 — «Mensajes» = Solicitudes + Grupos
 - Se quitó la pestaña «Equipo» de la Agenda: «Mensajes» trae el selector Solicitudes | Grupos (`MensajesConGrupos`, `SelectorMensajes`), en escritorio (TicketsPanel) y móvil (MobileHub). El panel `chat-equipo` sigue existiendo (campana, burbuja) con el mismo selector.
 - Burbuja flotante (`SolicitudesEnProcesoFab`): pestañas Solicitudes | Grupos; los grupos se escriben ahí (`HiloCanal compacto`); el contador suma ambos.
+
+## 2026-10-05 — Fórmulas: «Leer de pantallazo»
+- Botón «📷 Leer de pantallazo» en el paso 1 del editor de fórmulas: se pega (Ctrl+V), arrastra o elige una captura; se ve «cantidad en la captura → %» y «Usar estos porcentajes» reemplaza los ingredientes (pide confirmar si ya había). Si la captura traía cantidades, la calculadora queda en ese total.
+- `POST /api/formulas/leer-captura` → `app/services/formulas_captura.py`: Gemini Vision (`_gemini_vision`, 80 s, contexto `formulas_captura`) solo transcribe; Python calcula el % (kg/mg/L/oz/gotas a g o mL, g y mL 1:1 con aviso, fila TOTAL ignorada, redondeo que suma exactamente 100). Si solo hay %, se normalizan a 100.
+- **Verificado:** captura sintética de 5 ingredientes (1000 g) → 70/15/5/8/2 % por la ruta real; `npm run build`.
+- **Archivos Modificados:** `app/services/formulas_captura.py`, `app/routes_formulas.py`, `desktop/src/components/formulas/FormulasPanel.tsx`, `docs/team-recaps.md`
