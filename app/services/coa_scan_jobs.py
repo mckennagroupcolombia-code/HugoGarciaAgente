@@ -20,6 +20,24 @@ _lock = threading.Lock()
 OnProgreso = Callable[[str], None]
 
 
+def _valor_a_texto(v: Any) -> str:
+    """Gemini a veces devuelve listas (tabla de resultados, aplicaciones): una línea por
+    elemento, y cada fila de tabla como Parametro|Espec|Resultado. Antes se descartaban."""
+    if isinstance(v, dict):
+        return "\n".join(f"{k}|{_valor_a_texto(x)}" for k, x in v.items() if x not in (None, ""))
+    if isinstance(v, (list, tuple)):
+        lineas = []
+        for f in v:
+            if isinstance(f, (list, tuple)):
+                lineas.append("|".join(str(c if c is not None else "").strip() for c in f))
+            elif isinstance(f, dict):
+                lineas.append("|".join(str(c if c is not None else "").strip() for c in f.values()))
+            elif f is not None:
+                lineas.append(str(f).strip())
+        return "\n".join(ln for ln in lineas if ln.strip("| "))
+    return str(v)
+
+
 def _limpiar_jobs() -> None:
     limite = time.time() - _JOB_TTL_SEC
     with _lock:
@@ -63,9 +81,7 @@ def empaquetar_resultado_coa_scan(
         for k, v in parsed.items():
             if v is None or str(k).startswith("_") or k == "firma_bbox":
                 continue
-            if isinstance(v, (list, dict)):
-                continue
-            s = str(v).strip()
+            s = _valor_a_texto(v).strip()
             if s:
                 campos[str(k)] = s
 
@@ -235,9 +251,7 @@ def empaquetar_resultado_ft_scan(parsed: dict[str, Any] | None) -> dict[str, Any
         for k, v in parsed.items():
             if str(k).startswith("_") or v is None:
                 continue
-            if isinstance(v, (list, dict)):
-                continue
-            s = str(v).strip()
+            s = _valor_a_texto(v).strip()
             if s:
                 campos[str(k)] = s
 

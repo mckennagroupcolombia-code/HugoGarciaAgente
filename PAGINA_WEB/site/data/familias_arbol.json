@@ -583,6 +583,14 @@
   "familia": "COLHIDg",
   "nombre": "COLÁGENO HIDROLIZADO"
  },
+ "C-COLPERGRAND": {
+  "familia": "COLPERPERSL",
+  "nombre": "COLLAR CADENA PERRO ESTILO PERSA PLATEADO L"
+ },
+ "C-COLPERSPEQUE": {
+  "familia": "COLPERPERSM",
+  "nombre": "COLLAR CADENA PERRO ESTILO PERSA PLATEADO M"
+ },
  "C-CREMON1000G": {
   "familia": "AMICREMONg",
   "nombre": "CREATINA MONOHIDRATO"
@@ -723,6 +731,10 @@
   "familia": "GOMXANg",
   "nombre": "GOMA XANTANA"
  },
+ "C-GRADIG": {
+  "familia": "c-gradig",
+  "nombre": "GRAMERA BALANZA DIGITAL"
+ },
  "C-GUSSED30ML": {
   "familia": "GUSSEDmL",
   "nombre": "GUSANO DE SEDA"
@@ -817,10 +829,6 @@
  },
  "C-MANKARAMA500G": {
   "familia": "MANKARAMAg",
-  "nombre": "MANTECA KARITÉ"
- },
- "C-MANKARAMAKG": {
-  "familia": "manteca-karite-amarilla",
   "nombre": "MANTECA KARITÉ"
  },
  "C-MANKARBLA125G": {
@@ -1160,7 +1168,7 @@
   "nombre": "VASELINA BLANCA"
  },
  "C-VAS900G": {
-  "familia": "c-vas900g",
+  "familia": "vaselina",
   "nombre": "VASELINA BLANCA"
  },
  "C-VASPRE100ML": {

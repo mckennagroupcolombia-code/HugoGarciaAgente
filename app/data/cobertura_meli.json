@@ -66,7 +66,7 @@
     "Bogotá D.C.|Kennedy": {
       "departamento": "Bogotá D.C.",
       "municipio": "Kennedy",
-      "n_pedidos": 76,
+      "n_pedidos": 77,
       "primera_vez": "2026-08-12",
       "ultima_vez": "2026-10-03"
     },
@@ -136,9 +136,9 @@
     "Bolívar|Cartagena De Indias": {
       "departamento": "Bolívar",
       "municipio": "Cartagena De Indias",
-      "n_pedidos": 17,
+      "n_pedidos": 19,
       "primera_vez": "2026-08-13",
-      "ultima_vez": "2026-09-17"
+      "ultima_vez": "2026-10-03"
     },
     "Cesar|San Alberto": {
       "departamento": "Cesar",
@@ -171,9 +171,9 @@
     "Bogotá D.C.|Bosa": {
       "departamento": "Bogotá D.C.",
       "municipio": "Bosa",
-      "n_pedidos": 23,
+      "n_pedidos": 24,
       "primera_vez": "2026-08-20",
-      "ultima_vez": "2026-09-29"
+      "ultima_vez": "2026-10-02"
     },
     "Meta|Villavicencio": {
       "departamento": "Meta",
@@ -213,9 +213,9 @@
     "Atlántico|Barranquilla": {
       "departamento": "Atlántico",
       "municipio": "Barranquilla",
-      "n_pedidos": 36,
+      "n_pedidos": 37,
       "primera_vez": "2026-08-12",
-      "ultima_vez": "2026-10-01"
+      "ultima_vez": "2026-10-03"
     },
     "Bogotá D.C.|Puente Aranda": {
       "departamento": "Bogotá D.C.",
@@ -1315,6 +1315,13 @@
       "n_pedidos": 1,
       "primera_vez": "2026-10-02",
       "ultima_vez": "2026-10-02"
+    },
+    "Nariño|Yacuanquer": {
+      "departamento": "Nariño",
+      "municipio": "Yacuanquer",
+      "n_pedidos": 1,
+      "primera_vez": "2026-10-03",
+      "ultima_vez": "2026-10-03"
     }
   },
   "shipping_ids_vistos": [
@@ -2665,8 +2672,10 @@
     "48139229565",
     "48139859495",
     "48139934342",
+    "48140183320",
     "48140599601",
     "48140627281",
+    "48141084470",
     "48141236003",
     "48141380383",
     "48141427764",
@@ -2714,6 +2723,7 @@
     "48149491282",
     "48149561208",
     "48149595265",
+    "48149794877",
     "48149998853",
     "48150872113",
     "48151182819",
@@ -2721,6 +2731,7 @@
     "48151265483",
     "48151515925",
     "48151729510",
+    "48151828752",
     "48151911696",
     "48152126354",
     "48152185039",
@@ -2739,9 +2750,11 @@
     "48155531124",
     "48155535504",
     "48155759872",
-    "48155974828"
+    "48155974828",
+    "48156580578",
+    "48156676923"
   ],
-  "actualizado_en": "2026-10-03T06:54:08",
+  "actualizado_en": "2026-10-04T06:56:25",
   "envios_por_fecha": {
     "2026-08-13": 33,
     "2026-08-12": 9,
@@ -2788,7 +2801,7 @@
     "2026-09-28": 16,
     "2026-09-30": 38,
     "2026-10-01": 43,
-    "2026-10-02": 40,
-    "2026-10-03": 6
+    "2026-10-02": 41,
+    "2026-10-03": 11
   }
 }

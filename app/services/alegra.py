@@ -3009,11 +3009,13 @@ def crear_combo_en_alegra(
             }
 
     subitems = []
+    nombres_comp: dict[str, str] = {}
     for c, qty in comps_raw:
         prod = buscar_producto_alegra_por_referencia(c)
         if not prod:
             return {"ok": False, "error": f"Componente '{c}' no existe en Alegra. Créalo primero o verifica el código."}
         subitems.append({"item": {"id": prod["id"]}, "quantity": qty})
+        nombres_comp[c] = (prod.get("name") or prod.get("nombre") or "").strip()
 
     tax_id = _env_int("ALEGRA_IVA_TAX_ID")
     payload = {
@@ -3038,7 +3040,7 @@ def crear_combo_en_alegra(
             from app.services.alegra_catalogo_db import upsert_item_desde_alegra
 
             comps_local = [
-                {"reference": c, "quantity": qty, "name": ""}
+                {"reference": c, "quantity": qty, "name": nombres_comp.get(c, "")}
                 for c, qty in comps_raw
             ]
             if not data.get("reference"):

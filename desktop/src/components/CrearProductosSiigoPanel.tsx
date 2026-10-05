@@ -772,6 +772,11 @@ export default function CrearProductosSiigoPanel({
       return;
     }
     const combo = esComboSiigo(item);
+    // Un combo existente se carga con su receta (y queda bloqueado si tiene movimientos).
+    if (combo) {
+      ajustarDesdeHallazgo(item);
+      return;
+    }
     setResultado(null);
     setCatalogoAbierto(false);
     setOrigenCombo(null);

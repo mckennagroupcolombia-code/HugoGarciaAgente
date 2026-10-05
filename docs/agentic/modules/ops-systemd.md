@@ -20,6 +20,10 @@ Mantener servicios productivos sin procesos duplicados: agente Flask, webhook Me
 - `webhook_meli.py` usa flock y puerto 8080.
 - `agente_pro.py` sirve puerto 8081.
 - Bridge WhatsApp corre desde `bot-mckenna/` en puerto 3000.
+- ⚠️ Arranque atascado del bridge (2, 3 y 4-oct-2026, 3 de cada ~10 `systemctl restart`): WhatsApp Web autentica pero
+  whatsapp-web.js nunca emite `ready` (`DataError ... IDBObjectStore`); el proceso sigue vivo y systemd no lo relanza.
+  Desde el 4-oct `server.js` se autorreinicia (`exit 1`) si a los `WA_ARRANQUE_MAX_SEG` (240) no hay `ready` y no hay
+  QR pendiente; evento `whatsapp_arranque_atascado` en el log.
 
 ## Riesgos
 

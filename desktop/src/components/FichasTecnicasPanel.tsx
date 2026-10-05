@@ -243,7 +243,7 @@ function DocDelCombo({ onAbrir, editando, onVolver }: {
   );
 }
 
-function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => void }) {
+function BibliotecaTab({ onEditar, onNuevo }: { onEditar: (r: BibliotecaDatosResult) => void; onNuevo: () => void }) {
   const [busqueda, setBusqueda] = useState("");
   // Llegada desde el taller de combos: la biblioteca abre buscando el documento de ese producto.
   const tallerSalto = useAppStore((st) => st.tallerSalto);
@@ -355,6 +355,12 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2">
+        <p className="text-[12px] text-muted">¿El producto no tiene documento todavía?</p>
+        <button type="button" onClick={onNuevo} className="rounded-md border border-accent bg-accent px-3 py-1 text-[12px] font-bold text-white hover:opacity-90">
+          ＋ Nuevo documento desde cero
+        </button>
+      </div>
       {/* La biblioteca es la lista de PDF generados. Escanear un COA y publicar en la web son tareas
           ocasionales: una fila compacta (el escáner plegado) en vez de media pantalla sobre la lista. */}
       <div className="grid gap-2 md:grid-cols-2">
@@ -1864,15 +1870,54 @@ function ReferenciaEnlazada({
   );
 }
 
+/**
+ * Arriba del editor: dice si se está redactando un documento nuevo o editando uno que ya existe, y deja
+ * empezar uno desde cero. Si el formulario tiene algo escrito, pide confirmar (en línea, sin diálogo).
+ */
+function BarraNuevoDocumento({ tituloAbierto, hayCambios, onNuevo }: { tituloAbierto: string; hayCambios: boolean; onNuevo: () => void }) {
+  const [confirmar, setConfirmar] = useState(false);
+  const nuevo = !tituloAbierto;
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-panel px-3 py-2">
+      <span className={`rounded-full border px-2 py-0.5 text-[10.5px] font-bold uppercase ${nuevo ? "border-accent/60 bg-accent/10 text-accent" : "border-border text-muted"}`}>
+        {nuevo ? "Documento nuevo" : "Editando"}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
+        {nuevo ? "Escribe el nombre del producto y llena las tres secciones (FT → COA → SDS)." : tituloAbierto}
+      </span>
+      {confirmar ? (
+        <span className="flex flex-wrap items-center gap-2 text-[12px]">
+          <span className="text-ink">Lo que no hayas guardado se pierde.</span>
+          <button type="button" onClick={() => { setConfirmar(false); onNuevo(); }} className="rounded-md border border-accent bg-accent px-2.5 py-1 font-bold text-white hover:opacity-90">
+            Empezar de cero
+          </button>
+          <button type="button" onClick={() => setConfirmar(false)} className="rounded-md border border-border px-2.5 py-1 font-semibold text-ink hover:border-accent">
+            Cancelar
+          </button>
+        </span>
+      ) : (
+        (!nuevo || hayCambios) && (
+          <button type="button" onClick={() => (hayCambios ? setConfirmar(true) : onNuevo())} className="rounded-md border border-accent px-3 py-1 text-[12px] font-bold text-accent hover:bg-accent/10">
+            ＋ Nuevo documento desde cero
+          </button>
+        )
+      )}
+    </div>
+  );
+}
+
 function DocumentoCompletoTabContent({
   producto,
   preload,
   onVolver,
+  onNuevo,
 }: {
   producto: ProductoDocumentacion | null;
   preload: Record<string, unknown> | null;
   /** Dentro de la ventana del taller: volver al combo tras dar el visto bueno. */
   onVolver?: () => void;
+  /** Vacía el editor para redactar un documento nuevo (sin YAML de partida). */
+  onNuevo?: () => void;
 }) {
   /* FT — delegado a FichaTecnicaForm mediante refs */
   const buildFtRef = useRef<() => Record<string, unknown>>(() => ({}));
@@ -2400,8 +2445,13 @@ function DocumentoCompletoTabContent({
     ? nombre.trim() ? borradores.filter((b) => normTitulo(b.titulo) === normTitulo(nombre)) : []
     : borradores;
 
+  const tituloAbierto = String(preload?.titulo || preload?.nombre_producto || "").trim();
   return (
     <div className="relative space-y-4 pb-28">
+
+      {onNuevo && !desdeTaller && (
+        <BarraNuevoDocumento tituloAbierto={tituloAbierto} hayCambios={Boolean(nombre.trim())} onNuevo={onNuevo} />
+      )}
 
       {borradoresVisibles.length > 0 && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 space-y-2">
@@ -2907,6 +2957,12 @@ export default function FichasTecnicasPanel({ onVolver, archivoInicial }: {
     setTab("completo");
   };
 
+  const nuevoDesdeCero = useCallback(() => {
+    setCompletoPreload(null);
+    setCompletoKey((k) => k + 1);
+    setTab("completo");
+  }, [setTab]);
+
   // Documento que llega desde el taller: editor limpio (key nueva) con ese YAML.
   const handleEditarRef = useRef(handleEditar);
   handleEditarRef.current = handleEditar;
@@ -2945,8 +3001,8 @@ export default function FichasTecnicasPanel({ onVolver, archivoInicial }: {
       {tab === "ft" && <FichaTecnicaTabContent producto={null} preload={ftPreload} />}
       {tab === "coa" && <CoaTabContent producto={null} preload={coaPreload} />}
       {tab === "sds" && <SdsTabContent producto={null} preload={sdsPreload} />}
-      {tab === "completo" && <DocumentoCompletoTabContent key={completoKey} producto={null} preload={completoPreload} onVolver={onVolver} />}
-      {tab === "biblioteca" && <BibliotecaTab onEditar={handleEditar} />}
+      {tab === "completo" && <DocumentoCompletoTabContent key={completoKey} producto={null} preload={completoPreload} onVolver={onVolver} onNuevo={nuevoDesdeCero} />}
+      {tab === "biblioteca" && <BibliotecaTab onEditar={handleEditar} onNuevo={nuevoDesdeCero} />}
       {tab === "revision" && (
         <DocumentosCatalogoTab
           onGenerar={(producto) => {
