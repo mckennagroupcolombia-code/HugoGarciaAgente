@@ -5155,3 +5155,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Primer uso: agradecimiento y ajuste de salario a Stella (id 9) y Victor (id 7).
 - **Verificado:** `npm run build`; reinicio de agente-pro; la ruta responde 401 sin sesión; los dos avisos creados.
 - **Archivos Modificados:** `app/services/avisos_personales.py`, `app/routes_avisos_personales.py`, `agente_pro.py`, `desktop/src/components/nav/AvisoPersonal.tsx`, `desktop/src/App.tsx`, `app/data/avisos_personales.json`, `docs/team-recaps.md`
+
+## 2026-10-05 — Documento técnico: las etiquetas enlazadas a la ficha antigua toman la versión nueva
+- Problema: al generar el documento FT+COA+SDS se escribe `ft_coa_sds_<producto>.yaml`, pero 35 etiquetas seguían enlazadas a la ficha antigua de solo TDS (`elastina`, `sci`, `urea`…). La propagación solo alcanzaba `[slug, borrador_slug]`: esas etiquetas y el formulario que se abre desde ellas se quedaban con la versión vieja.
+- `FichasTecnicasPanel.tsx` (`handleGenerar`): la propagación incluye también la ficha antigua (`ft_coa_sds_` quitado); `sincronizar_etiquetas_con_ficha_tecnica` ya las re-enlaza al documento vigente.
+- Pasada única: 23 documentos, 32 etiquetas re-enlazadas y actualizadas (fotos con `patchDesdeDatos`/`fotoFicha` compilados con esbuild); las 3 plantillas de categoría se saltan. Respaldo `/tmp/etiquetas_fichas.antes_relink_ft_antigua_2233.json`.
+- **Verificado:** `npm run build`; ELASTINA HIDROLIZADA 30mL enlaza ahora `ft_coa_sds_elastina` con el modo de uso nuevo.
+- **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`

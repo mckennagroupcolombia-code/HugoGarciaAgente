@@ -2337,7 +2337,10 @@ function DocumentoCompletoTabContent({
       if (json.slug) {
         try {
           const { propagarFichaTecnicaAEtiquetas } = await import("../lib/fichaTecnicaAplicar");
-          const cambiadas = await propagarFichaTecnicaAEtiquetas([json.slug, `borrador_${json.slug}`]);
+          // También pasan al documento final las enlazadas a la ficha antigua de solo TDS del
+          // mismo producto («elastina» → «ft_coa_sds_elastina»): si no, seguían leyendo la vieja.
+          const fichaAntigua = String(json.slug).replace(/^ft_coa_sds_/, "");
+          const cambiadas = await propagarFichaTecnicaAEtiquetas([json.slug, `borrador_${json.slug}`, fichaAntigua]);
           void qc.invalidateQueries({ queryKey: ["etiquetas-fichas"] });
           setEtiquetasSync({
             ok: true,
