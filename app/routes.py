@@ -25197,6 +25197,36 @@ REGLAS:
         if err:
             return jsonify({"error": err}), 404
         from flask import send_file
+        # ?ancho=N: copia reducida (tarjetas de Plantillas por categoría). El PNG de
+        # impresión pesa demasiado para una cuadrícula; la copia se guarda en el
+        # temporal con la fecha del archivo en la clave, así que re-aprobar la renueva.
+        try:
+            ancho = int(request.args.get("ancho") or 0)
+        except ValueError:
+            ancho = 0
+        if ancho > 0:
+            import hashlib
+            import tempfile
+
+            ancho = max(80, min(ancho, 800))
+            try:
+                st = os.stat(ruta)
+                clave = hashlib.sha1(f"{os.path.realpath(ruta)}|{st.st_mtime_ns}|{st.st_size}|{ancho}".encode()).hexdigest()
+                carpeta = os.path.join(tempfile.gettempdir(), "mck_miniaturas_png")
+                destino = os.path.join(carpeta, f"{clave}.png")
+                if not os.path.isfile(destino):
+                    from PIL import Image as _PILMini
+
+                    os.makedirs(carpeta, exist_ok=True)
+                    with _PILMini.open(ruta) as im:
+                        im = im.convert("RGBA")
+                        im.thumbnail((ancho, ancho * 4))
+                        tmp = f"{destino}.{os.getpid()}.tmp"
+                        im.save(tmp, format="PNG", optimize=True)
+                    os.replace(tmp, destino)
+                return send_file(destino, mimetype="image/png", conditional=True, max_age=86400)
+            except Exception:
+                pass  # sin copia: va el archivo completo
         mime = "image/jpeg" if nombre.lower().endswith((".jpg", ".jpeg", ".jpe")) else "image/png"
         return send_file(ruta, mimetype=mime, conditional=True)
 

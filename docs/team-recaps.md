@@ -5227,3 +5227,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Datos: `sinTimbreCentro: true` en las etiquetas D PANTENOL 50 mL y SHAROMIX 705 50mL (sin tocar sus plantillas).
 - **Verificado:** `npm run build` (tsc + vite) limpio.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/{etiqueta30mlTypes.ts,RightDocumentationPanel.tsx}`, `docs/team-recaps.md`
+
+## 2026-10-06 — Plantillas por categoría: etiquetas en tarjetas con miniatura
+- Pedido del usuario: la lista de nombres en columnas no era cómoda. Ahora cada etiqueta es una tarjeta (miniatura del PNG aprobado, nombre, estado y tamaño), siguen los grupos «Por aprobar» / «Aprobadas»; las por aprobar llevan borde ámbar y «Sin PNG aprobado». La × de eliminar aparece al pasar el mouse.
+- `GET /api/etiquetas/recursos-png/archivo/<nombre>?ancho=N` (80–800): copia reducida cacheada en el temporal (clave con mtime, re-aprobar la renueva). 650 KB → 31 KB por tarjeta. Las tarjetas la piden solo al entrar en pantalla.
+- **Verificado:** `npm run build` limpio; ruta probada en localhost:8080 tras reiniciar `agente-pro`.
+- **Archivos Modificados:** `app/routes.py`, `desktop/src/components/plantillas-visuales/StudioCategoriasPanel.tsx`, `docs/team-recaps.md`
