@@ -5170,3 +5170,8 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Las 12 fórmulas quedaron asociadas (Vitamina C suspensión → `FOR-VITC30mL`). Respaldo `/tmp/formulas.antes_sku.json`.
 - **Verificado:** `npm run build`; reinicio de agente-pro; `/api/formulas/combos` responde con token; rechaza SKU repetido o inexistente.
 - **Archivos Modificados:** `app/services/formulas_db.py`, `app/routes_formulas.py`, `desktop/src/components/formulas/FormulasPanel.tsx`, `app/data/formulas.json`, `docs/team-recaps.md`
+
+## 2026-10-05 — Documentos técnicos enlazados a los combos de fórmula (C-FOR)
+- `mapa_producto.fijar_sku_documento`: `referencia` = combo C-FOR en azul de metileno, violeta de genciana, verde malaquita, hialurónico alto peso (borrador), kójico, kójico D palmitato (borrador), aloe vera (`ft_coa_sds_`), glicólico (borrador), láctico y jabón potásico. Hialurónico bajo peso conserva `FOR-ACIHIABAJPESmL` y agrega `C-FOR-ACIHIABAJPESmL` en `referencias_equivalentes` (lo usa el combo de 30 mL). Vitamina C ya estaba (`FOR-VITC30mL`).
+- **Verificado:** foto del mapa antes/después: solo cambiaron combos C-FOR (6 que estaban unidos por parecido a agua destilada, salicílico o kójico); ningún combo de 30 mL cambió de documento. Los 12 combos de fórmula quedan «unido por SKU».
+- **Archivos Modificados:** 11 YAML en `fichas_word/datos/` (fuera de git; respaldos de `fijar_sku_documento`), `docs/team-recaps.md`
