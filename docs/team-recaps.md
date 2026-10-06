@@ -5175,3 +5175,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `mapa_producto.fijar_sku_documento`: `referencia` = combo C-FOR en azul de metileno, violeta de genciana, verde malaquita, hialurónico alto peso (borrador), kójico, kójico D palmitato (borrador), aloe vera (`ft_coa_sds_`), glicólico (borrador), láctico y jabón potásico. Hialurónico bajo peso conserva `FOR-ACIHIABAJPESmL` y agrega `C-FOR-ACIHIABAJPESmL` en `referencias_equivalentes` (lo usa el combo de 30 mL). Vitamina C ya estaba (`FOR-VITC30mL`).
 - **Verificado:** foto del mapa antes/después: solo cambiaron combos C-FOR (6 que estaban unidos por parecido a agua destilada, salicílico o kójico); ningún combo de 30 mL cambió de documento. Los 12 combos de fórmula quedan «unido por SKU».
 - **Archivos Modificados:** 11 YAML en `fichas_word/datos/` (fuera de git; respaldos de `fijar_sku_documento`), `docs/team-recaps.md`
+
+## 2026-10-05 — Documentos técnicos ajustados a las fórmulas C-FOR (las fórmulas mandan)
+- Regla del usuario: los combos C-FOR son la composición definitiva; el documento se corrige aunque dijera otra cosa.
+- Azul de metileno y verde malaquita 1 % → 0,1 %; violeta de genciana 5 %/95 % → 0,1 %/99,9 %; ácido kójico 5 % → 1 % (descripción, recomendaciones, estabilidad); fila COMPONENTES con los % de la fórmula (también en jabón potásico).
+- Hialurónico alto y bajo peso (borradores): `composicion` y `_sds.composicion` con los % de la fórmula; alto peso «al 2 %». Aloe vera (publicado): 90 % → 80 % y composición 80 % extracto + 20 % solución de hialurónico.
+- Sin cambiar, pendientes de decisión: ácido láctico 85 % y glicólico 50 % (la fórmula usa la materia prima al 25 % / 60 %; falta la pureza de esa materia prima) y kójico D palmitato (la fórmula usa ácido kójico en polvo, el documento describe el dipalmitato).
+- Respaldos en `fichas_word/datos/_respaldo_edicion/`; rastro en `_ediciones`. No se regeneraron PDF ni etiquetas.
