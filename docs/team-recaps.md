@@ -5162,3 +5162,11 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Pasada única: 23 documentos, 32 etiquetas re-enlazadas y actualizadas (fotos con `patchDesdeDatos`/`fotoFicha` compilados con esbuild); las 3 plantillas de categoría se saltan. Respaldo `/tmp/etiquetas_fichas.antes_relink_ft_antigua_2233.json`.
 - **Verificado:** `npm run build`; ELASTINA HIDROLIZADA 30mL enlaza ahora `ft_coa_sds_elastina` con el modo de uso nuevo.
 - **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Fórmulas: combos C-FOR en Alegra y SKU de Alegra en cada fórmula
+- En Alegra se crearon con `alegra.crear_combo_en_alegra` los combos de las fórmulas consolidadas, igual que el ejemplo `C-FOR-ACIHIAALTPESmL`: «FORMULA … mL», IVA, precio 0, cantidad = % ÷ 100 por 1 mL (ids 809–817 y 821: ACILAC85P, AZUMET, VIOGEN, VERMAL, ACIGLI50P, ACIHIABAJPES, ACIKOJ, ACIKOJPAL, EXTALOVER, JABPOT).
+- `formulas_db`: campo `sku_alegra` (ítem activo de la copia local; uno por fórmula; sin la clave en el cuerpo se conserva). `listar` agrega `sku_alegra_nombre`. Nueva ruta `GET /api/formulas/combos?q=` (solo combos).
+- `FormulasPanel.tsx`: «SKU en Alegra» bajo el nombre (buscador de combos / chip con «Quitar»); la lista muestra el SKU o «Sin SKU de Alegra».
+- Las 12 fórmulas quedaron asociadas (Vitamina C suspensión → `FOR-VITC30mL`). Respaldo `/tmp/formulas.antes_sku.json`.
+- **Verificado:** `npm run build`; reinicio de agente-pro; `/api/formulas/combos` responde con token; rechaza SKU repetido o inexistente.
+- **Archivos Modificados:** `app/services/formulas_db.py`, `app/routes_formulas.py`, `desktop/src/components/formulas/FormulasPanel.tsx`, `app/data/formulas.json`, `docs/team-recaps.md`

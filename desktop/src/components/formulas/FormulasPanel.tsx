@@ -6,6 +6,7 @@
  * conservan al guardar, pero ya no se muestran). Los gramos se calculan
  * para la cantidad que se escriba. Se guarda la fórmula en %, que no
  * cambia con el lote (API: app/routes_formulas.py).
+ * Cada fórmula se asocia a su SKU de Alegra (el combo C-FOR-…mL que la representa).
  * «Leer de pantallazo» llena los ingredientes desde una captura: la IA
  * transcribe y el servidor calcula los porcentajes (formulas_captura.py).
  */
@@ -30,6 +31,10 @@ interface Formula {
   categoria: string;
   descripcion: string;
   ingredientes: Ingrediente[];
+  /** Combo de Alegra que representa la fórmula ("" = sin asociar). */
+  sku_alegra?: string;
+  /** Nombre de ese combo en Alegra (solo lectura, lo agrega el servidor). */
+  sku_alegra_nombre?: string;
   /** Cantidad a preparar, en la unidad de `unidad` (el nombre del campo es histórico). */
   lote_g: number;
   unidad?: Unidad;
@@ -80,7 +85,7 @@ export default function FormulasPanel() {
     const q = buscar.trim().toLowerCase();
     if (!q) return formulas;
     return formulas.filter((f) =>
-      [f.nombre, f.categoria, ...f.ingredientes.map((i) => i.nombre)].some((t) => (t || "").toLowerCase().includes(q)),
+      [f.nombre, f.categoria, f.sku_alegra, ...f.ingredientes.map((i) => i.nombre)].some((t) => (t || "").toLowerCase().includes(q)),
     );
   }, [formulas, buscar]);
 
@@ -159,6 +164,12 @@ export default function FormulasPanel() {
                 >
                   <span className="block truncate text-sm font-medium text-ink">{f.nombre}</span>
                   <span className="block truncate text-[11px] text-muted">
+                    {f.sku_alegra ? (
+                      <span className="font-medium text-accent">{f.sku_alegra}</span>
+                    ) : (
+                      <span className="text-amber-600">Sin SKU de Alegra</span>
+                    )}
+                    {" · "}
                     {f.ingredientes.length} ingredientes
                   </span>
                 </button>
@@ -324,6 +335,12 @@ function EditorFormula({
           className={CAMPO}
         />
       </label>
+
+      <SkuAlegra
+        sku={formula.sku_alegra || ""}
+        nombre={formula.sku_alegra_nombre || ""}
+        onElegir={(sku_alegra, sku_alegra_nombre) => onChange({ sku_alegra, sku_alegra_nombre })}
+      />
 
       {/* ── Paso 1: ingredientes y porcentajes ── */}
       <div className="rounded-xl border border-border bg-surface p-3">
@@ -836,6 +853,87 @@ function BuscadorIngrediente({
               </button>
             </li>
           ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** SKU de Alegra de la fórmula: se elige entre los combos (C-FOR-…mL). */
+function SkuAlegra({ sku, nombre, onElegir }: { sku: string; nombre: string; onElegir: (sku: string, nombre: string) => void }) {
+  const [q, setQ] = useState("");
+  const [qDeb, setQDeb] = useState("");
+  const [abierto, setAbierto] = useState(false);
+  const caja = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setQDeb(q.trim()), 250);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => {
+    if (!abierto) return;
+    const fuera = (e: MouseEvent) => {
+      if (caja.current && !caja.current.contains(e.target as Node)) setAbierto(false);
+    };
+    document.addEventListener("mousedown", fuera);
+    return () => document.removeEventListener("mousedown", fuera);
+  }, [abierto]);
+
+  const { data, isFetching } = useQuery({
+    queryKey: ["formulas-combos", qDeb],
+    queryFn: () => api.get<{ items: { codigo: string; nombre: string }[] }>(`/api/formulas/combos?q=${encodeURIComponent(qDeb)}`),
+    enabled: abierto && qDeb.length >= 2,
+    staleTime: 60_000,
+  });
+  const items = data?.items ?? [];
+
+  if (sku) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+        SKU en Alegra
+        <span className="rounded-full border border-accent/50 bg-accent/10 px-2.5 py-1 font-semibold text-accent">{sku}</span>
+        {nombre && <span className="text-ink">{nombre}</span>}
+        <button type="button" className="text-muted underline hover:text-red-600" onClick={() => onElegir("", "")}>
+          Quitar
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={caja} className="relative flex flex-col gap-1 text-xs text-muted">
+      SKU en Alegra
+      <input
+        value={q}
+        onChange={(e) => {
+          setQ(e.target.value);
+          setAbierto(true);
+        }}
+        onFocus={() => setAbierto(true)}
+        placeholder="Buscar el combo de la fórmula, p. ej. C-FOR o FORMULA…"
+        className={CAMPO}
+      />
+      {abierto && qDeb.length >= 2 && (
+        <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-border bg-surface shadow-lg">
+          {items.map((it) => (
+            <li key={it.codigo}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onElegir(it.codigo, it.nombre);
+                  setQ("");
+                  setAbierto(false);
+                }}
+                className="w-full px-2.5 py-1.5 text-left text-xs text-ink hover:bg-accent/10"
+              >
+                <span className="font-semibold">{it.codigo}</span>
+                <span className="ml-1.5 text-muted">{it.nombre}</span>
+              </button>
+            </li>
+          ))}
+          {!isFetching && items.length === 0 && <li className="px-2.5 py-1.5 text-xs text-muted">Ningún combo coincide.</li>}
         </ul>
       )}
     </div>

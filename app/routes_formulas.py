@@ -6,7 +6,8 @@ Endpoints bajo /api/formulas/* (y alias /app/api/formulas/*). Acceso: CHAT_API_T
 receta propia de la empresa, no las ve todo el equipo como las etiquetas.
 
 Datos: app/services/formulas_db.py (app/data/formulas.json). Los ingredientes se buscan
-en la copia local del catálogo de Alegra, sin combos. Ninguna ruta escribe en Alegra. Solo «Leer de pantallazo»
+en la copia local del catálogo de Alegra, sin combos; el SKU de la fórmula
+(`sku_alegra`) se elige entre los combos (GET /api/formulas/combos). Ninguna ruta escribe en Alegra. Solo «Leer de pantallazo»
 (POST /api/formulas/leer-captura) llama a Gemini Vision, y solo para transcribir la
 captura: los porcentajes los calcula app/services/formulas_captura.py.
 """
@@ -110,6 +111,22 @@ def register_formulas_routes(app):
         except Exception as e:
             return jsonify({"items": [], "error": str(e)})
         return jsonify({"items": [{"codigo": i["codigo"], "nombre": i["nombre"]} for i in items]})
+
+    @_dual(app, "/api/formulas/combos", methods=["GET"])
+    @_auth
+    def formulas_combos():
+        """Combos de Alegra para asociar la fórmula a su SKU (catálogo local)."""
+        q = (request.args.get("q") or "").strip()
+        if len(q) < 2:
+            return jsonify({"items": []})
+        try:
+            from app.services.alegra_catalogo_db import buscar_picker_local
+
+            items = buscar_picker_local(q, max_items=60, excluir_combos=False)
+        except Exception as e:
+            return jsonify({"items": [], "error": str(e)})
+        combos = [{"codigo": i["codigo"], "nombre": i["nombre"]} for i in items if i.get("type") == "Combo"]
+        return jsonify({"items": combos[:20]})
 
     @_dual(app, "/api/formulas/leer-captura", methods=["POST"])
     @_auth

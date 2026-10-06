@@ -2,7 +2,7 @@
   "formulas": [
     {
       "id": "33cc5c37a968",
-      "nombre": "VITAMINA C  SUSPENCION",
+      "nombre": "VITAMINA C  SUSPENSION mL",
       "categoria": "",
       "descripcion": "",
       "ingredientes": [
@@ -28,14 +28,426 @@
           "funcion": ""
         }
       ],
-      "lote_g": 1000.0,
+      "lote_g": 1.0,
       "unidad": "mL",
       "procedimiento": "",
       "notas": "",
       "creado": "2026-10-01T23:54:53",
       "creado_por": "Cynthia Ruiz",
-      "actualizado": "2026-10-02T00:04:14",
-      "actualizado_por": "Cynthia Ruiz"
+      "actualizado": "2026-10-05T22:05:14",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "FOR-VITC30mL"
+    },
+    {
+      "id": "f5eb74b1cab4",
+      "nombre": "ACIDO LACTICO  85% mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "ACILACg",
+          "nombre": "ACIDO LACTICO g",
+          "fase": "",
+          "porcentaje": 25.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "HIDg",
+          "nombre": "HIDANTATOINAG",
+          "fase": "",
+          "porcentaje": 0.2,
+          "funcion": ""
+        },
+        {
+          "codigo": "AGUDESmL",
+          "nombre": "AGUA DESTILADA mL",
+          "fase": "",
+          "porcentaje": 74.8,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1.0,
+      "unidad": "mL",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T19:28:30",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T22:04:48",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-ACILAC85PmL"
+    },
+    {
+      "id": "058727b4b7fb",
+      "nombre": "VIOLETA DE GENCIANA mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "VIOGENg",
+          "nombre": "VIOLETA DE GENCIANA g",
+          "fase": "",
+          "porcentaje": 0.1,
+          "funcion": ""
+        },
+        {
+          "codigo": "AGUDESmL",
+          "nombre": "AGUA DESTILADA mL",
+          "fase": "",
+          "porcentaje": 99.9,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1.0,
+      "unidad": "g",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T19:47:05",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T22:04:27",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-VIOGENmL"
+    },
+    {
+      "id": "f3ddebdb6124",
+      "nombre": "AZUL DE METILENO mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "AZUMETg",
+          "nombre": "AZUL METILENO G",
+          "fase": "",
+          "porcentaje": 0.1,
+          "funcion": ""
+        },
+        {
+          "codigo": "AGUDESmL",
+          "nombre": "AGUA DESTILADA mL",
+          "fase": "",
+          "porcentaje": 99.9,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1.0,
+      "unidad": "g",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T20:17:33",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T22:04:23",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-AZUMETmL"
+    },
+    {
+      "id": "38781b66d279",
+      "nombre": "VERDE MALAQUITA mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "VERMALg",
+          "nombre": "VERDE MALAQUITA g",
+          "fase": "",
+          "porcentaje": 0.1,
+          "funcion": ""
+        },
+        {
+          "codigo": "AGUDESmL",
+          "nombre": "AGUA DESTILADA mL",
+          "fase": "",
+          "porcentaje": 99.9,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1.0,
+      "unidad": "g",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T20:23:09",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T22:24:21",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-VERMALmL"
+    },
+    {
+      "id": "72c3f03252ee",
+      "nombre": "ACIDO GLICOLICO AL 50% mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "ACIGLIg",
+          "nombre": "ACIDO GLICOLICO",
+          "fase": "",
+          "porcentaje": 60.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "AGUDESmL",
+          "nombre": "AGUA DESTILADA mL",
+          "fase": "",
+          "porcentaje": 40.0,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1.0,
+      "unidad": "mL",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T20:27:17",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T22:37:56",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-ACIGLI50PmL"
+    },
+    {
+      "id": "315567ab37c6",
+      "nombre": "ACIDO HIALURONICO ALTO PESO MOLECULAR mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "ACIHIAALTPESg",
+          "nombre": "ACIDO HALURONICO ALTO PESO G",
+          "fase": "",
+          "porcentaje": 2.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "HIDg",
+          "nombre": "HIDANTATOINA g",
+          "fase": "",
+          "porcentaje": 0.004,
+          "funcion": ""
+        },
+        {
+          "codigo": "AGUDESmL",
+          "nombre": "AGUA DESTILADA mL",
+          "fase": "",
+          "porcentaje": 97.996,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1.0,
+      "unidad": "mL",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T20:30:29",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T22:04:57",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-ACIHIAALTPESmL"
+    },
+    {
+      "id": "c040a4d0b2d5",
+      "nombre": "ACIDO  HIALURONICO BAJO PESO mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "ACIHIABAPESg",
+          "nombre": "ACIDO HIALURONICO BAJO PESO ML",
+          "fase": "",
+          "porcentaje": 27.5862,
+          "funcion": ""
+        },
+        {
+          "codigo": "HIDg",
+          "nombre": "HIDANTATOINA g",
+          "fase": "",
+          "porcentaje": 3.4483,
+          "funcion": ""
+        },
+        {
+          "codigo": "FOR-ACIHIAALTPESmL",
+          "nombre": "ACIDO HIALURONICO ALTO PESO ML",
+          "fase": "",
+          "porcentaje": 68.9655,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1.0,
+      "unidad": "mL",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T20:34:30",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T21:59:44",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-ACIHIABAJPESmL"
+    },
+    {
+      "id": "d46c27bf1659",
+      "nombre": "JABON POTASICO mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "POTCAUg",
+          "nombre": "POTASA CAUSTICA",
+          "fase": "",
+          "porcentaje": 3.5,
+          "funcion": ""
+        },
+        {
+          "codigo": "ACEVEGmL",
+          "nombre": "ACEITE VEGETAL mL",
+          "fase": "",
+          "porcentaje": 3.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "AZUMICg",
+          "nombre": "AZUFRE MICRONIZADO g",
+          "fase": "",
+          "porcentaje": 0.5,
+          "funcion": ""
+        },
+        {
+          "codigo": "ACISALg",
+          "nombre": "ACIDO SALICILICO G",
+          "fase": "",
+          "porcentaje": 0.5,
+          "funcion": ""
+        },
+        {
+          "codigo": "AGUDESmL",
+          "nombre": "AGUA DESTILADA mL",
+          "fase": "",
+          "porcentaje": 92.5,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 200000.0,
+      "unidad": "mL",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T22:03:58",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T22:38:32",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-JABPOTmL"
+    },
+    {
+      "id": "6f45525c2376",
+      "nombre": "ACIDO KOJICO PALMITATO mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "ACIKOJg",
+          "nombre": "ACIDO KOJICO POLVO G",
+          "fase": "",
+          "porcentaje": 10.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "MIRISOmL",
+          "nombre": "MIRISTATO DE ISOPROPILO",
+          "fase": "",
+          "porcentaje": 90.0,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1.0,
+      "unidad": "g",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T22:08:04",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T22:08:42",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-ACIKOJPALmL"
+    },
+    {
+      "id": "d54da879d9fc",
+      "nombre": "ACIDO KOJICO mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "ACIKOJg",
+          "nombre": "ACIDO KOJICO POLVO G",
+          "fase": "",
+          "porcentaje": 1.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "GLIVEGg",
+          "nombre": "GLICERINA VEGETAL G",
+          "fase": "",
+          "porcentaje": 25.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "AGUROSmL",
+          "nombre": "AGUA ROSAS ML",
+          "fase": "",
+          "porcentaje": 2.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "VITCACIASCg",
+          "nombre": "VITAMINA C ACIDO ASCORBICO G",
+          "fase": "",
+          "porcentaje": 0.2,
+          "funcion": ""
+        },
+        {
+          "codigo": "AGUDESmL",
+          "nombre": "AGUA DESTILADA mL",
+          "fase": "",
+          "porcentaje": 61.8,
+          "funcion": ""
+        },
+        {
+          "codigo": "FOR-ACIHIAALTPESmL",
+          "nombre": "ACIDO HIALURONICO ALTO PESO ML",
+          "fase": "",
+          "porcentaje": 10.0,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1.0,
+      "unidad": "g",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T22:09:59",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T22:24:29",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-ACIKOJmL"
+    },
+    {
+      "id": "c6b65aa47210",
+      "nombre": "ALOE VERA mL",
+      "categoria": "",
+      "descripcion": "",
+      "ingredientes": [
+        {
+          "codigo": "EXTALOVERg",
+          "nombre": "EXTRACTO ALOE VERA G",
+          "fase": "",
+          "porcentaje": 80.0,
+          "funcion": ""
+        },
+        {
+          "codigo": "FOR-ACIHIAALTPESmL",
+          "nombre": "ACIDO HIALURONICO ALTO PESO ML",
+          "fase": "",
+          "porcentaje": 20.0,
+          "funcion": ""
+        }
+      ],
+      "lote_g": 1.0,
+      "unidad": "mL",
+      "procedimiento": "",
+      "notas": "",
+      "creado": "2026-10-05T22:20:20",
+      "creado_por": "Cynthia Ruiz",
+      "actualizado": "2026-10-05T22:21:12",
+      "actualizado_por": "Cynthia Ruiz",
+      "sku_alegra": "C-FOR-EXTALOVERmL"
     }
   ]
 }

@@ -7,6 +7,9 @@ texto libre—, fase, procedimiento y notas. El panel calcula los gramos de cada
 ingrediente para el tamaño de lote que se pida; aquí solo se guarda la fórmula
 en porcentajes, que es lo que no cambia con el lote.
 
+Cada fórmula puede ir asociada a su SKU de Alegra (`sku_alegra`): el combo
+`C-FOR-…mL` que la representa allá. Un SKU pertenece a una sola fórmula.
+
 Datos: app/data/formulas.json, escrito bajo candado de archivo (fcntl) como las
 etiquetas del Studio, porque el panel lo abren varias personas a la vez.
 """
@@ -112,8 +115,34 @@ def _enlazar_alegra(ingredientes: list[dict]) -> list[dict]:
     return ingredientes
 
 
+def _sku_alegra(sku: str) -> str:
+    """SKU escrito → el `reference` exacto de un ítem activo de Alegra (copia local)."""
+    from app.services import alegra_catalogo_db as ac
+
+    item = ac.obtener_item(sku)
+    if not item or (item.get("status") or "active") != "active":
+        raise ValueError(f"`{sku}` no es un producto ni un combo activo en Alegra")
+    return str(item["reference"])
+
+
+def _con_nombre_alegra(formulas: list[dict]) -> list[dict]:
+    """Agrega `sku_alegra_nombre` (solo para mostrar; no se guarda)."""
+    try:
+        from app.services import alegra_catalogo_db as ac
+    except Exception:
+        return formulas
+    for f in formulas:
+        if f.get("sku_alegra"):
+            try:
+                item = ac.obtener_item(f["sku_alegra"]) or {}
+            except Exception:
+                item = {}
+            f["sku_alegra_nombre"] = str(item.get("name") or "")
+    return formulas
+
+
 def listar() -> list[dict]:
-    return sorted(_load(), key=lambda f: (f.get("nombre") or "").lower())
+    return _con_nombre_alegra(sorted(_load(), key=lambda f: (f.get("nombre") or "").lower()))
 
 
 def guardar(body: dict, autor: str = "") -> dict:
@@ -123,15 +152,26 @@ def guardar(body: dict, autor: str = "") -> dict:
     ingredientes = _enlazar_alegra([i for i in map(_ingrediente, body.get("ingredientes") or []) if i])
     lote = _numero(body.get("lote_g"))
     formula_id = _texto(body.get("id"), 40)
+    # Sin la clave en el cuerpo se conserva la que ya tenía; "" la quita.
+    sku = _texto(body.get("sku_alegra"), 40) if "sku_alegra" in body else None
+    if sku:
+        sku = _sku_alegra(sku)
     with _candado():
         todas = _load()
         existente = next((f for f in todas if f.get("id") == formula_id), None) if formula_id else None
+        if sku is None:
+            sku = str((existente or {}).get("sku_alegra") or "")
+        otra = next((f for f in todas if sku and f is not existente
+                     and str(f.get("sku_alegra") or "").lower() == sku.lower()), None)
+        if otra:
+            raise ValueError(f"{sku} ya está asociado a la fórmula «{otra.get('nombre')}»")
         entrada = {
             "id": formula_id if existente else uuid.uuid4().hex[:12],
             "nombre": nombre,
             "categoria": _texto(body.get("categoria"), 120),
             "descripcion": _texto(body.get("descripcion"), 1000),
             "ingredientes": ingredientes,
+            "sku_alegra": sku,
             "lote_g": lote,
         # La cantidad a preparar va en gramos o mililitros (el listado sale en la misma unidad).
         "unidad": "mL" if str(body.get("unidad") or "").strip().lower() == "ml" else "g",
@@ -147,7 +187,7 @@ def guardar(body: dict, autor: str = "") -> dict:
         else:
             todas.append(entrada)
         _save(todas)
-    return entrada
+    return _con_nombre_alegra([dict(entrada)])[0]
 
 
 def eliminar(formula_id: str) -> bool:
