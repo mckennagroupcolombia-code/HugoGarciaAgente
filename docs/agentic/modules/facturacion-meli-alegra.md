@@ -357,6 +357,33 @@ facturas y 30 NC más recientes, y la renueva en segundo plano; `calentar_base_a
 arrancar y cada 30 min (agente_pro.py), y `_facturas_alegra_cacheadas` es de una sola descarga a la vez.
 🔄 sobre 2000018361505814: 90 s → 42 s. «Subir PDF» y «Anular» actualizan la fila en segundo plano.
 
+## 14. Falsos «sin facturar», canceladas cubiertas por MeLi y cron de 48 h (5-oct-2026)
+
+**Falso «sin facturar» (pack 2000015048323195, FE451 vigente).** `obtener_facturas_alegra_paginadas`
+cortaba en silencio si una página fallaba (timeout/429) y `_facturas_alegra_cacheadas` guardaba esa lista
+PARCIAL como base hasta 6 h; la consulta puntual solo le suma las 60 más recientes. Toda factura del hueco
+(FE451, del 18-sep) desaparecía y la venta quedaba «sin facturar» en el histórico (117 filas así). Además,
+`consultar_venta_individual` seguía con lista vacía si Alegra fallaba y guardaba la fila. Ahora: descarga
+**estricta** (facturas y NC), si falla o trae menos facturas que la base anterior se conserva la anterior,
+y sin base no se calcula ni se guarda nada. ⚠️ `_facturas_alegra_existentes` (barrera de «Facturar ahora»)
+solo mira las últimas 60 facturas: con una fila falsa, el botón podía emitir un doble de una venta vieja
+(la protegían el estado local y el documento fiscal de MeLi).
+
+**Canceladas: solo se anula si nos quitaron la plata.** En `payments[]` de la orden:
+`status_detail = bpp_covered` = la devolución la pagó el programa de protección de MeLi (refund con
+`source.type = bpp`, comisiones NO devueltas, el neto se nos liberó) → la venta se cobró y la factura se
+queda. `refunded` / `bpp_refunded` = nos descontaron → NC. `emitir_notas_credito_cron.py` lo aplica
+(`_reembolso_descontado`): `cubierto_por_meli` / `sin_reembolso` no anulan; reembolso o cancelación
+parcial del carrito → `reembolso_parcial`, decisión humana; toma la factura VIGENTE del pack (no la primera).
+El motor RA (`anulaciones_motor.clasificar`) marca `financia=meli` con `bpp_covered` (→ manual).
+Caso: FE797 (pack 2000015065607043) anulada con NC147 el 3-oct aunque estaba `bpp_covered`.
+
+**Cron 48 h** (`scripts/facturar_entregadas_cron.py`, 9:05/13:05/17:05, job `facturar_entregadas_48h`):
+ventas MeLi pagadas (ventanas de 3 días), sin factura vigente en la base completa de Alegra, con estado
+`sin_facturar` (entregada hace >48 h) → `facturar_pack_meli_manual` (mismas barreras que el botón).
+Tope 20/corrida, `--simular`, `FACTURACION_ENTREGADAS_CRON_ACTIVO=0` lo apaga. El webhook
+(`MELI_AUTOFACTURA_ENTREGA_ACTIVO`) sigue apagado.
+
 ---
 
 ## Traído de CLAUDE.md (27-sep-2026)

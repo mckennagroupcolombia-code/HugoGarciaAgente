@@ -10,6 +10,7 @@
  * tronco, así el árbol se acomoda solo a cualquier número de presentaciones.
  */
 import { Sprite, type SpriteId } from "../../colaboradores/pixel";
+import { CambiarSku } from "./CambiarSku";
 import { CopiarSku } from "./CopiarSku";
 import { CAJA, PIEZAS, PUNTO, TOTAL_PIEZAS, estadoFamilia, type Categoria, type ClavePieza, type Familia, type Presentacion } from "./tipos";
 
@@ -45,11 +46,13 @@ function Segmentos({ p }: { p: Presentacion }) {
   );
 }
 
-export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, onDocumento, onEditarDocumento }: {
+export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, onDocumento, onEditarDocumento, onSkuCambiado }: {
   familia: Familia;
   categoria: string;
   sel: string | null;
   onElegir: (ref: string) => void;
+  /** Se corrigió el SKU de un combo sin movimientos (✎ junto al código). */
+  onSkuCambiado: (anterior: string, nuevo: string) => void | Promise<void>;
   onPieza: (ref: string, clave: ClavePieza) => void;
   /** El documento es de la materia prima (la raíz): se resuelve desde ella. Si ya hay PDF
    *  aprobado, lo abre; si no, abre el formulario. */
@@ -117,6 +120,7 @@ export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, 
                     <span className="flex max-w-full items-center gap-1">
                       <code className="min-w-0 truncate text-[10px] text-ink-secondary">{p.ref}</code>
                       <CopiarSku sku={p.ref} />
+                      <CambiarSku sku={p.ref} onCambiado={(nuevo) => onSkuCambiado(p.ref, nuevo)} />
                     </span>
                     <ALaVenta p={p} />
                     <Segmentos p={p} />

@@ -9,6 +9,9 @@ import { salirDelPanel } from "../../hooks/usePanelSession";
 import { modoAvanzadoEfectivo } from "../../lib/adminAccess";
 import { useUiMode } from "../../stores/uiMode";
 import { Icon } from "../../icons";
+import { usePanelTheme } from "../../stores/panelTheme";
+import { useThemesDialog } from "../../stores/themesDialog";
+import { rgbToHex } from "../../theme/applyTheme";
 
 /** Reemplaza la tarjeta de perfil + ajustes + logout que antes vivían en el
  * sidebar izquierdo (ya retirado) — todo cabe en este menú del avatar, en el
@@ -25,6 +28,14 @@ export default function UserMenuButton() {
   const totalAlerts = (preventaData?.total ?? 0) + (postventaData?.total ?? 0);
 
   const [open, setOpen] = useState(false);
+  // Temas y claro/oscuro viven aquí (5-oct-2026), no fijos en el cabezote.
+  const themeMode = usePanelTheme((s) => s.mode);
+  const setThemeMode = usePanelTheme((s) => s.setMode);
+  const accentHex = rgbToHex(usePanelTheme((s) => s.accentRgb));
+  const abrirTemas = useThemesDialog((s) => s.setOpen);
+  const oscuro =
+    themeMode === "dark" ||
+    (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const ref = useRef<HTMLDivElement>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -114,6 +125,27 @@ export default function UserMenuButton() {
             className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-semibold ${panel === "settings" ? "bg-accent/10 text-accent" : "text-ink-secondary hover:bg-surface-hover hover:text-ink"}`}
           >
             <Icon name="wrench" size={16} weight="duotone" /> Ajustes
+          </button>
+          <button
+            type="button"
+            onClick={() => { abrirTemas(true); setOpen(false); }}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-semibold text-ink-secondary hover:bg-surface-hover hover:text-ink"
+          >
+            <Icon name="palette" size={16} weight="duotone" /> Temas
+            <span
+              className="ml-auto h-3.5 w-3.5 shrink-0 rounded-full border border-border"
+              style={{ backgroundColor: accentHex }}
+              aria-hidden
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => setThemeMode(oscuro ? "light" : "dark")}
+            aria-pressed={oscuro}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-semibold text-ink-secondary hover:bg-surface-hover hover:text-ink"
+          >
+            <Icon name={oscuro ? "sun" : "moon"} size={16} weight="duotone" />
+            {oscuro ? "Modo claro" : "Modo oscuro"}
           </button>
           <button
             type="button"

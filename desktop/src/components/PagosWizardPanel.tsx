@@ -2703,6 +2703,15 @@ function FichaSolicitud({
             {verAsiento ? "Ocultar asiento" : "Ver asiento"}
           </button>
         )}
+        {/* Lo aprobado ya tiene asiento: su comprobante de egreso se imprime o se archiva. */}
+        {(EN_GIRO.has(s.estado) || s.estado === "pagada") && s.movimiento_id && !s.es_plantilla && (
+          <button type="button"
+                  onClick={() => { void fetchAuthBlobUrl(`/api/pagos/solicitudes/${s.id}/comprobante-egreso`).then((u) => { if (u) window.open(u, "_blank"); }); }}
+                  title="Comprobante de egreso en PDF, para imprimir o archivar"
+                  className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent">
+            <Ico e="🖨️" /> Comprobante de egreso
+          </button>
+        )}
         {(NECESITA_ACCION.has(s.estado) || EN_GIRO.has(s.estado)) && puedeFirmar && !s.es_plantilla && (
           <button type="button" onClick={() => void corregir()} disabled={!!ocupado}
                   title="Anula el asiento y la devuelve a borrador para corregirla"

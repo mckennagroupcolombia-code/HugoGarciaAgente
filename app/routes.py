@@ -3946,6 +3946,12 @@ def register_routes(app):
                 return None
             if request.method == "POST" and _re.fullmatch(r"/api/contabilidad/cc/terceros/\d+/historial", path):
                 return None
+            # Expediente contable: deja observaciones (el autor se fuerza desde su sesión)
+            # y pide el paquete del mes. Resolver observaciones e importar DIAN siguen negados.
+            if request.method == "POST" and _re.fullmatch(
+                r"/api/contabilidad/expediente/(observaciones|\d{4}-\d{2}/paquete/generar)", path
+            ):
+                return None
         return jsonify({"error": "Perfil contador: solo consulta de la contabilidad "
                                  "(y comentarios en el historial de terceros)."}), 403
 
@@ -8345,6 +8351,14 @@ def register_routes(app):
                     }), status
                 codigo_nuevo = r_sku.get("codigo_nuevo") or nuevo_codigo
                 cat.renombrar_referencia_local(codigo, codigo_nuevo)
+                # El árbol del producto y Canales guardan 90 s el código viejo.
+                try:
+                    from app.services import canales_producto, mapa_producto
+
+                    mapa_producto.invalidar()
+                    canales_producto.invalidar()
+                except Exception:
+                    pass
                 cambios["codigo_anterior"] = codigo
                 codigo = codigo_nuevo
                 cambios["codigo"] = codigo
@@ -11714,6 +11728,132 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    # Borradores del 350 (retefuente + reteIVA) y del RTICA Bogotá, armados desde
+    # el Libro Mayor para revisarlos con el contador antes de que los presente.
+    # Ver app/services/declaraciones_impuestos.py. GET lo lee también el perfil
+    # contador; las escrituras se las niega `_guard_perfil_contador`.
+    @app.route("/api/contabilidad/declaraciones", methods=["GET"])
+    @app.route("/app/api/contabilidad/declaraciones", methods=["GET"])
+    def api_cc_declaraciones():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.declaraciones_impuestos import obligaciones
+
+            return jsonify({"obligaciones": obligaciones()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/declaraciones/contraste", methods=["GET"])
+    @app.route("/app/api/contabilidad/declaraciones/contraste", methods=["GET"])
+    def api_cc_declaraciones_contraste():
+        """Lo que declaró el contador contra el libro, declaración por declaración."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.declaraciones_impuestos import contraste_contador
+
+            return jsonify(contraste_contador())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/declaraciones/cruce", methods=["GET"])
+    @app.route("/app/api/contabilidad/declaraciones/cruce", methods=["GET"])
+    def api_cc_declaraciones_cruce():
+        """Lo declarado ↔ reportes de la DIAN ↔ extractos de la empresa."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.declaraciones_impuestos import cruce_tripartito
+
+            anio = request.args.get("anio", type=int)
+            return jsonify(cruce_tripartito(anio))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/declaraciones/actualizar-fuentes", methods=["POST"])
+    @app.route("/app/api/contabilidad/declaraciones/actualizar-fuentes", methods=["POST"])
+    def api_cc_declaraciones_actualizar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.declaraciones_impuestos import actualizar_fuentes
+
+            return jsonify(actualizar_fuentes())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/declaraciones/pdf", methods=["GET"])
+    @app.route("/app/api/contabilidad/declaraciones/pdf", methods=["GET"])
+    def api_cc_declaraciones_pdf():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import send_file
+
+        from app.services.declaraciones_impuestos import ruta_soporte
+
+        ruta = ruta_soporte(request.args.get("archivo") or "")
+        if not ruta:
+            return jsonify({"error": "Documento no encontrado"}), 404
+        return send_file(ruta, mimetype="application/pdf", download_name=ruta.name, as_attachment=False)
+
+    @app.route("/api/contabilidad/declaraciones/<formulario>/<periodo>", methods=["GET", "POST"])
+    @app.route("/app/api/contabilidad/declaraciones/<formulario>/<periodo>", methods=["GET", "POST"])
+    def api_cc_declaracion_borrador(formulario: str, periodo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services import declaraciones_impuestos as di
+
+            if request.method == "GET":
+                return jsonify(di.borrador(formulario, periodo))
+            body = request.get_json(silent=True) or {}
+            u = _panel_tickets_usuario() or {}
+            return jsonify(di.guardar_estado(
+                formulario, periodo,
+                estado=body.get("estado"), ajustes=body.get("ajustes"), notas=body.get("notas"),
+                numero_formulario=body.get("numero_formulario"),
+                usuario=(u.get("nombre") or u.get("username") or ""),
+            ))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/declaraciones/<formulario>/<periodo>/csv", methods=["GET"])
+    @app.route("/app/api/contabilidad/declaraciones/<formulario>/<periodo>/csv", methods=["GET"])
+    def api_cc_declaracion_csv(formulario: str, periodo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.declaraciones_impuestos import csv_borrador
+
+            resp = make_response(csv_borrador(formulario, periodo).encode("utf-8-sig"))
+            resp.headers["Content-Type"] = "text/csv; charset=utf-8"
+            resp.headers["Content-Disposition"] = f'attachment; filename="borrador_{formulario}_{periodo}.csv"'
+            return resp
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/contabilidad/declaraciones/<formulario>/<periodo>/enviar", methods=["POST"])
+    @app.route("/app/api/contabilidad/declaraciones/<formulario>/<periodo>/enviar", methods=["POST"])
+    def api_cc_declaracion_enviar(formulario: str, periodo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.declaraciones_impuestos import enviar_al_contador
+
+            body = request.get_json(silent=True) or {}
+            u = _panel_tickets_usuario() or {}
+            return jsonify(enviar_al_contador(
+                formulario, periodo, destinatario=body.get("destinatario") or "",
+                nota=body.get("nota") or "", usuario=(u.get("nombre") or u.get("username") or ""),
+            ))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/contabilidad/certificados-retencion/pdf", methods=["GET"])
     @app.route("/app/api/contabilidad/certificados-retencion/pdf", methods=["GET"])
     def api_cc_certificados_retencion_pdf():
@@ -11727,6 +11867,249 @@ def register_routes(app):
         if not ruta:
             return jsonify({"error": "Certificado no encontrado"}), 404
         return send_file(ruta, mimetype="application/pdf", download_name=ruta.name, as_attachment=False)
+
+    @app.route("/api/contabilidad/revision", methods=["GET"])
+    @app.route("/app/api/contabilidad/revision", methods=["GET"])
+    def api_cc_revision_libro():
+        """Libro Mayor → Revisión del libro: qué tenemos, qué falta y qué ajustar
+        (app/services/revision_libro.py). Solo lectura: lo abre el contador."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.revision_libro import estado_revision
+
+            return jsonify(estado_revision())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── Expediente contable: el libro por mes y por cuenta, para el contador ──
+    # (app/services/expediente_contable.py). Todo GET bajo /api/contabilidad/ ya
+    # está en la lista blanca del perfil contador; los POST siguen negados salvo
+    # las excepciones explícitas de `_guard_perfil_contador`.
+    def _periodo_ok(p: str) -> bool:
+        import re as _re2
+
+        return bool(_re2.fullmatch(r"\d{4}-\d{2}", p or ""))
+
+    @app.route("/api/contabilidad/expediente/periodos", methods=["GET"])
+    @app.route("/app/api/contabilidad/expediente/periodos", methods=["GET"])
+    def api_expediente_periodos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.expediente_contable import periodos
+
+            return jsonify({"periodos": periodos()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/expediente/documento", methods=["GET"])
+    @app.route("/app/api/contabilidad/expediente/documento", methods=["GET"])
+    def api_expediente_documento():
+        """Una sola puerta para todo soporte: ?ref=<tipo>:<id> (ver expediente_documentos)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import send_file
+
+        from app.services.expediente_documentos import resolver
+
+        try:
+            r = resolver(request.args.get("ref") or "")
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        if not r:
+            return jsonify({"error": "Documento no disponible"}), 404
+        ruta, mime, nombre = r
+        return send_file(str(ruta), mimetype=mime, download_name=nombre,
+                         as_attachment=request.args.get("inline") != "1")
+
+    @app.route("/api/contabilidad/expediente/dian/importar", methods=["POST"])
+    @app.route("/app/api/contabilidad/expediente/dian/importar", methods=["POST"])
+    def api_expediente_dian_importar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.dian_cruce import importar
+
+            return jsonify(importar(todos=bool((request.get_json(silent=True) or {}).get("todos"))))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/expediente/<periodo>", methods=["GET"])
+    @app.route("/app/api/contabilidad/expediente/<periodo>", methods=["GET"])
+    def api_expediente_mes(periodo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if not _periodo_ok(periodo):
+            return jsonify({"error": "Período inválido (AAAA-MM)"}), 400
+        try:
+            from app.services.expediente_contable import expediente_mes
+
+            return jsonify(expediente_mes(periodo))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/expediente/<periodo>/cuenta/<codigo>", methods=["GET"])
+    @app.route("/app/api/contabilidad/expediente/<periodo>/cuenta/<codigo>", methods=["GET"])
+    def api_expediente_cuenta(periodo: str, codigo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if not _periodo_ok(periodo) or not codigo.isdigit():
+            return jsonify({"error": "Período o cuenta inválidos"}), 400
+        try:
+            from app.services.expediente_contable import auxiliar_cuenta
+
+            a = request.args
+            return jsonify(auxiliar_cuenta(
+                periodo, codigo, incluir_subcuentas=a.get("subcuentas") == "1",
+                tercero_id=int(a["tercero_id"]) if (a.get("tercero_id") or "").isdigit() else None,
+                limite=int(a.get("limite") or 200), offset=int(a.get("offset") or 0),
+                agrupar=a.get("agrupar") or None,
+            ))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/expediente/<periodo>/asiento/<int:movimiento_id>", methods=["GET"])
+    @app.route("/app/api/contabilidad/expediente/<periodo>/asiento/<int:movimiento_id>", methods=["GET"])
+    def api_expediente_asiento(periodo: str, movimiento_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if not _periodo_ok(periodo):
+            return jsonify({"error": "Período inválido (AAAA-MM)"}), 400
+        try:
+            from app.services.expediente_contable import asiento
+
+            return jsonify(asiento(periodo, movimiento_id))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/expediente/<periodo>/banco", methods=["GET"])
+    @app.route("/app/api/contabilidad/expediente/<periodo>/banco", methods=["GET"])
+    def api_expediente_banco(periodo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if not _periodo_ok(periodo):
+            return jsonify({"error": "Período inválido (AAAA-MM)"}), 400
+        try:
+            from app.services.expediente_contable import conciliacion_mes
+
+            return jsonify(conciliacion_mes(periodo))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/expediente/<periodo>/dian", methods=["GET"])
+    @app.route("/app/api/contabilidad/expediente/<periodo>/dian", methods=["GET"])
+    def api_expediente_dian(periodo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if not _periodo_ok(periodo):
+            return jsonify({"error": "Período inválido (AAAA-MM)"}), 400
+        try:
+            from app.services.dian_cruce import cruce_mes
+
+            return jsonify(cruce_mes(periodo))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/expediente/observaciones", methods=["GET"])
+    @app.route("/app/api/contabilidad/expediente/observaciones", methods=["GET"])
+    def api_expediente_observaciones():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.observaciones_contador import listar
+
+        a = request.args
+        ab = a.get("abiertas")
+        try:
+            return jsonify({"observaciones": listar(
+                periodo=a.get("periodo") or None, objeto_tipo=a.get("objeto_tipo") or None,
+                objeto_id=a.get("objeto_id") if a.get("objeto_id") is not None else None,
+                abiertas=True if ab == "1" else False if ab == "0" else None,
+            )})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/expediente/observaciones", methods=["POST"])
+    @app.route("/app/api/contabilidad/expediente/observaciones", methods=["POST"])
+    def api_expediente_observacion_crear():
+        """El contador y el equipo dejan observaciones. El autor sale de la sesión: nunca del body."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.observaciones_contador import crear, quitar_revisado
+
+        d = request.get_json(silent=True) or {}
+        u = _panel_tickets_usuario()
+        por = (u or {}).get("nombre") or (u or {}).get("username") or ("Equipo" if u is None else "Usuario")
+        try:
+            if d.get("quitar_revisado"):
+                return jsonify({"ok": quitar_revisado(str(d.get("periodo") or ""), str(d.get("objeto_tipo") or ""), str(d.get("objeto_id") or ""))})
+            return jsonify(crear(
+                str(d.get("periodo") or ""), str(d.get("objeto_tipo") or ""), str(d.get("objeto_id") or ""),
+                str(d.get("estado") or ""), str(d.get("texto") or ""),
+                por=por, por_usuario_id=(u or {}).get("id"),
+            ))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/expediente/observaciones/<int:obs_id>/resolver", methods=["POST"])
+    @app.route("/app/api/contabilidad/expediente/observaciones/<int:obs_id>/resolver", methods=["POST"])
+    def api_expediente_observacion_resolver(obs_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.observaciones_contador import resolver
+
+        d = request.get_json(silent=True) or {}
+        u = _panel_tickets_usuario()
+        try:
+            return jsonify(resolver(obs_id, respuesta=str(d.get("respuesta") or ""),
+                                    por=(u or {}).get("nombre") or (u or {}).get("username") or "Equipo"))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/expediente/<periodo>/paquete", methods=["GET"])
+    @app.route("/app/api/contabilidad/expediente/<periodo>/paquete", methods=["GET"])
+    def api_expediente_paquete_estado(periodo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if not _periodo_ok(periodo):
+            return jsonify({"error": "Período inválido (AAAA-MM)"}), 400
+        from app.services.expediente_paquete import estado
+
+        return jsonify(estado(periodo))
+
+    @app.route("/api/contabilidad/expediente/<periodo>/paquete/generar", methods=["POST"])
+    @app.route("/app/api/contabilidad/expediente/<periodo>/paquete/generar", methods=["POST"])
+    def api_expediente_paquete_generar(periodo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if not _periodo_ok(periodo):
+            return jsonify({"error": "Período inválido (AAAA-MM)"}), 400
+        from app.services.expediente_paquete import generar_async
+
+        d = request.get_json(silent=True) or {}
+        return jsonify(generar_async(periodo, incluir_pdf_ventas=bool(d.get("pdf_ventas"))))
+
+    @app.route("/api/contabilidad/expediente/<periodo>/paquete/descargar", methods=["GET"])
+    @app.route("/app/api/contabilidad/expediente/<periodo>/paquete/descargar", methods=["GET"])
+    def api_expediente_paquete_descargar(periodo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if not _periodo_ok(periodo):
+            return jsonify({"error": "Período inválido (AAAA-MM)"}), 400
+        from flask import send_file
+
+        from app.services.expediente_paquete import ruta_zip
+
+        ruta = ruta_zip(periodo)
+        if not ruta:
+            return jsonify({"error": "El paquete no está generado"}), 404
+        return send_file(str(ruta), mimetype="application/zip", download_name=f"expediente_{periodo}.zip", as_attachment=True)
 
     @app.route("/api/contabilidad/temas-reunion", methods=["GET"])
     @app.route("/app/api/contabilidad/temas-reunion", methods=["GET"])
@@ -12982,6 +13365,29 @@ def register_routes(app):
             return jsonify({"error": "Archivo no encontrado"}), 404
         return send_file(ruta, download_name=s_.get("comprobante_nombre") or os.path.basename(ruta))
 
+    @app.route("/api/pagos/solicitudes/<int:sid>/comprobante-egreso", methods=["GET"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/comprobante-egreso", methods=["GET"])
+    def api_pagos_comprobante_egreso(sid: int):
+        """Comprobante de egreso imprimible (PDF) de una solicitud ya aprobada."""
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        from app.services.pagos_wizard import obtener
+        from app.tools.comprobante_egreso import generar_pdf
+        s_ = obtener(sid)
+        if not s_:
+            return jsonify({"error": "Solicitud no encontrada"}), 404
+        if s_.get("estado") not in ("aprobada", "en_banco", "pagada"):
+            return jsonify({"error": "Solo hay comprobante de egreso de una solicitud aprobada"}), 400
+        try:
+            pdf = generar_pdf(s_)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        import io
+        from flask import send_file
+        return send_file(io.BytesIO(pdf), mimetype="application/pdf",
+                         download_name=f"Comprobante_egreso_{sid}.pdf")
+
     @app.route("/api/pagos/solicitudes/<int:sid>/rechazar", methods=["POST"])
     @app.route("/app/api/pagos/solicitudes/<int:sid>/rechazar", methods=["POST"])
     def api_pagos_rechazar(sid: int):
@@ -13065,6 +13471,7 @@ def register_routes(app):
                 meses_tramo1=int(d.get("meses_tramo1", 12)),
                 pct_capital_tramo1=float(d.get("pct_capital_tramo1", 0.30)),
                 retencion_pct=float(d.get("retencion_pct", 0.07)),
+                reteica_pct=float(d.get("reteica_pct", 0.01104)),
                 gross_up=bool(d.get("gross_up")),
                 fecha_desembolso=d.get("fecha_desembolso") or None,
                 dia_pago=int(d.get("dia_pago") or 0) or None,
@@ -13193,6 +13600,7 @@ def register_routes(app):
                 (d.get("tipo") or "contrato"),
                 corte=(d.get("corte") or None),
                 destinatario=(d.get("destinatario") or None),
+                motivo_reenvio=(d.get("motivo_reenvio") or None),
             )
             return jsonify(r)
         except ValueError as e:
@@ -13471,7 +13879,6 @@ def register_routes(app):
     def api_servicios_save():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-                reteica_pct=float(d.get("reteica_pct", 0.01104)),
         data = request.get_json(silent=True) or {}
         if not (data.get("empresa") or "").strip():
             return jsonify({"error": "Se requiere empresa"}), 400
@@ -13600,7 +14007,6 @@ def register_routes(app):
         import os
         from datetime import datetime as _dt
         try:
-                motivo_reenvio=(d.get("motivo_reenvio") or None),
             import openpyxl as _opxl
         except ImportError:
             return jsonify({"error": "openpyxl no instalado"}), 500

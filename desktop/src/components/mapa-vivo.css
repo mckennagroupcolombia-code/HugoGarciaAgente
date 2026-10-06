@@ -205,3 +205,22 @@
   .mapa-vivo .mv-panel.mv-urgente,
   .mapa-vivo .px-hud .mv-ir-urgente { animation: none; }
 }
+
+/* Celular: HUD de una fila (5-oct-2026). Lo ancho se esconde; «⋯» y lo urgente flotante aparecen. */
+.mapa-vivo .mv-solo-movil { display: none !important; }
+.mapa-vivo .px-hud.mv-mas-menu {
+  position: absolute; top: calc(100% + 4px); right: 4px; z-index: 30;
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 170px;
+}
+.mapa-vivo .mv-mas-menu .mv-nivel { text-align: left; padding: 8px 10px; }
+.mapa-vivo .px-hud.mv-urgente-flotante {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 15;
+  padding: 0; border: 0; background: transparent; box-shadow: none;
+}
+.mapa-vivo .mv-urgente-flotante .mv-ir-urgente { padding: 8px 12px; font-size: 12px !important; box-shadow: 3px 3px 0 var(--ed-negro, #000); }
+@media (max-width: 639px) {
+  .mapa-vivo .mv-solo-ancho { display: none !important; }
+  .mapa-vivo .mv-solo-movil { display: inline-flex !important; }
+  .mapa-vivo .px-hud { flex-wrap: nowrap; }
+  .mapa-vivo .px-hud .mv-nivel { padding: 6px 8px; }
+}

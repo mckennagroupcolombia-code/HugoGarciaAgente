@@ -168,6 +168,32 @@ def _mas_viejo_que_margen(orden: dict, margen_horas: float) -> bool:
     return ahora - fecha >= timedelta(hours=margen_horas)
 
 
+def _reembolso_descontado(ordenes: list[dict]) -> tuple[float, float]:
+    """(plata devuelta al comprador QUE NOS DESCONTARON, plata que cubrió MeLi).
+
+    Una orden cancelada no siempre le cuesta a McKenna: en una mediación MeLi
+    puede devolverle al comprador con su programa de protección
+    (`status_detail = bpp_covered`, reembolso con origen `bpp`) y la venta se
+    nos sigue pagando. Ahí la factura es correcta y NO se anula. Caso real:
+    FE797 / pack 2000015065607043 (30-sep-2026), anulada con NC147 aunque los
+    $77.243 nunca salieron de la cuenta (las comisiones tampoco se devolvieron).
+    `refunded` / `bpp_refunded` sí son plata que se nos quitó."""
+    descontado = cubierto = 0.0
+    for o in ordenes:
+        for p in o.get("payments") or []:
+            try:
+                monto = float(p.get("transaction_amount_refunded") or 0)
+            except (TypeError, ValueError):
+                continue
+            if monto <= 0:
+                continue
+            if str(p.get("status_detail") or "").lower() == "bpp_covered":
+                cubierto += monto
+            else:
+                descontado += monto
+    return round(descontado, 2), round(cubierto, 2)
+
+
 def _mensaje_whatsapp(emitidas: list[dict], duplicados: list[dict], errores: list[dict]) -> str:
     lineas = ["🎫 *Notas crédito automáticas (cron)*", ""]
     if emitidas:
@@ -188,7 +214,7 @@ def _mensaje_whatsapp(emitidas: list[dict], duplicados: list[dict], errores: lis
         for e in errores[:10]:
             lineas.append(f"• {e['factura']}: {e['error'][:150]}")
         lineas.append("")
-    lineas.append("Revisar en Siigo Nube → Ventas → Notas crédito.")
+    lineas.append("Revisar en Alegra → Ingresos → Notas crédito.")
     return "\n".join(lineas)
 
 
@@ -320,19 +346,38 @@ def main() -> int:
     duplicados: list[dict] = []
     errores: list[dict] = []
     siigo_pendientes: list[dict] = []  # facturas Siigo canceladas: solo lectura, decisión del contador
+    sin_anular: list[dict] = []  # canceladas cuya plata NO se nos descontó (o solo en parte): la factura se queda
+
+    ordenes_por_pack: dict[str, list[dict]] = {}
+    for o in canceladas:
+        ordenes_por_pack.setdefault(str(o.get("pack_id") or o.get("id") or "").strip(), []).append(o)
+    vistos_pack: set[str] = set()
 
     for orden in canceladas:
         pack_id = str(orden.get("pack_id") or orden.get("id") or "").strip()
-        if not pack_id:
+        if not pack_id or pack_id in vistos_pack:
             continue
+        vistos_pack.add(pack_id)
         if pack_id in procesadas and procesadas[pack_id].get("estado") in ("emitida", "ya_tenia_nc"):
             continue
         if not _mas_viejo_que_margen(orden, margen_horas):
             continue
 
-        factura = next((f for f in facturas if pack_id in _texto_factura(f)), None)
-        if not factura:
+        candidatas = [f for f in facturas if pack_id in _texto_factura(f)]
+        if not candidatas:
             continue  # cancelada sin factura emitida — no aplica nota crédito
+        # La factura VIGENTE del pack: antes se tomaba la primera que mencionara
+        # el pack, y si esa ya estaba anulada (doble emisión resuelta) la venta
+        # se daba por «ya tenía NC» aunque otra factura siguiera viva.
+        factura = candidatas[0]
+        for f in candidatas:
+            nc_f = (
+                buscar_nota_credito_existente_alegra(f.get("id")) if es_factura_alegra(f)
+                else buscar_nota_credito_existente_siigo(f.get("id"))
+            )
+            if not nc_f:
+                factura = f
+                break
 
         es_alegra = es_factura_alegra(factura)
         proveedor = "Alegra" if es_alegra else "Siigo"
@@ -367,6 +412,39 @@ def main() -> int:
             continue
 
         if es_alegra:
+            # Solo se anula si a McKenna le QUITARON la plata (pedido del usuario,
+            # 5-oct-2026): si MeLi cubrió la devolución, la venta se cobró y la
+            # factura es correcta; si devolvió solo una parte (o se canceló solo
+            # una orden del carrito), anular todo dejaría sin facturar lo cobrado.
+            ordenes_pack = ordenes_por_pack.get(pack_id, [orden])
+            descontado, cubierto = _reembolso_descontado(ordenes_pack)
+            total_factura = float(factura.get("total") or 0)
+            total_cancelado = sum(float(o.get("total_amount") or 0) for o in ordenes_pack)
+            motivo_no = None
+            estado_no = None
+            if descontado <= 0:
+                estado_no = "cubierto_por_meli" if cubierto > 0 else "sin_reembolso"
+                motivo_no = (
+                    f"MeLi cubrió la devolución (${cubierto:,.0f}); la plata no se nos descontó"
+                    if cubierto > 0 else "MeLi todavía no registra devolución al comprador"
+                )
+            elif total_factura and (descontado < total_factura * 0.98 or total_cancelado < total_factura * 0.98):
+                estado_no = "reembolso_parcial"
+                motivo_no = (
+                    f"se nos descontaron ${descontado:,.0f} de ${total_factura:,.0f} facturados "
+                    f"(órdenes canceladas por ${total_cancelado:,.0f}); requiere decisión de contabilidad"
+                )
+            if estado_no:
+                previo = (procesadas.get(pack_id) or {}).get("estado")
+                procesadas[pack_id] = {
+                    "estado": estado_no, "factura": factura_numero, "proveedor": proveedor,
+                    "descontado": descontado, "cubierto_meli": cubierto, "motivo": motivo_no,
+                    "actualizado_en": datetime.now().isoformat(timespec="seconds"),
+                }
+                if previo != estado_no:
+                    sin_anular.append({"pack": pack_id, "factura": factura_numero, "motivo": motivo_no})
+                print(f"   ⏸  {factura_numero} (pack {pack_id}) NO se anula: {motivo_no}.")
+                continue
             # crear_nota_credito_alegra resuelve cliente/ítems/bodega directo de la
             # factura por id — no hace falta reconstruirlos como con Siigo.
             resultado = crear_nota_credito_alegra(
@@ -427,7 +505,7 @@ def main() -> int:
     # corrida anterior) — no es una anomalía y no debe generar ruido. Solo
     # avisamos/ticketeamos cuando el cron REALMENTE hizo algo (emitió) o
     # encontró un problema real (error al emitir).
-    if not emitidas and not errores:
+    if not emitidas and not errores and not sin_anular:
         print("✅ Sin novedades que reportar (nada emitido, nada roto).")
         return 0
 
@@ -435,6 +513,10 @@ def main() -> int:
 
     if not _quiet():
         mensaje = _mensaje_whatsapp(emitidas, duplicados, errores)
+        if sin_anular:
+            mensaje += "\n\nℹ️ *Canceladas que NO se anulan* (la plata no se nos descontó o fue parcial):\n" + "\n".join(
+                f"• {x['factura']} — pack {x['pack']}: {x['motivo']}" for x in sin_anular[:15]
+            )
         enviar_whatsapp_reporte(mensaje, jid_grupo_facturacion_ventas_wa())
 
     return 0 if not errores else 1

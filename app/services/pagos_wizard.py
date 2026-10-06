@@ -2493,6 +2493,8 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
             if ruta.exists():
                 mime = "application/pdf" if ruta.suffix.lower() == ".pdf" else "application/octet-stream"
                 cc.guardar_comprobante(int(mov["id"]), ruta.read_bytes(), s.get("factura_nombre") or ruta.name, mime)
+                # También como adjunto con rol: así la captura del giro no la pisa (oct-2026).
+                cc.guardar_adjunto(int(mov["id"]), ruta.read_bytes(), s.get("factura_nombre") or ruta.name, mime, rol="factura")
         except Exception as e:
             print(f"⚠️ Solicitud {sid}: no se pudo adjuntar la factura al asiento: {e}", flush=True)
 
@@ -2674,7 +2676,11 @@ def confirmar_pago(
             archivo = _P(__file__).resolve().parents[2] / ruta
             if archivo.exists():
                 mime = "application/pdf" if archivo.suffix.lower() == ".pdf" else "application/octet-stream"
-                cc.guardar_comprobante(int(s["movimiento_id"]), archivo.read_bytes(), nombre, mime)
+                # Adjunto aparte: `guardar_comprobante` borraba la factura adjuntada al aprobar.
+                # Si el asiento no tiene comprobante (pago sin factura), la captura sí es el principal.
+                cc.guardar_adjunto(int(s["movimiento_id"]), archivo.read_bytes(), nombre, mime, rol="comprobante_pago")
+                if not cc.ruta_comprobante(int(s["movimiento_id"])):
+                    cc.guardar_comprobante(int(s["movimiento_id"]), archivo.read_bytes(), nombre, mime)
         except Exception as e:
             print(f"⚠️ Solicitud {sid}: no se pudo adjuntar el comprobante al asiento: {e}", flush=True)
 

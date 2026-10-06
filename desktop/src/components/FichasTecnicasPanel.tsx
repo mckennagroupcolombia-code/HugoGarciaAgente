@@ -1719,8 +1719,9 @@ function useDebounced<T>(valor: T, ms: number): T {
   return v;
 }
 
-/** «Referencia enlazada»: a qué SKU (materia prima de Alegra) está unido el documento, y
- *  corregirlo. De ese enlace dependen los lotes, Imprimir y el taller de combos. */
+/** «Referencia enlazada»: a qué SKU (materia prima de Alegra, o el combo cuando el producto está
+ *  formulado como combo) está unido el documento, y corregirlo. De ese enlace dependen los lotes,
+ *  Imprimir y el taller de combos. */
 function ReferenciaEnlazada({
   titulo,
   referencia,
@@ -1747,8 +1748,8 @@ function ReferenciaEnlazada({
   const busq = useQuery({
     queryKey: ["doc-referencia-buscar", qDeb],
     queryFn: () =>
-      api.get<{ items: { codigo: string; nombre: string }[] }>(
-        `/api/siigo/productos/buscar?q=${encodeURIComponent(qDeb)}&excluir_combos=1&limit=15`,
+      api.get<{ items: { codigo: string; nombre: string; type?: string }[] }>(
+        `/api/siigo/productos/buscar?q=${encodeURIComponent(qDeb)}&excluir_combos=0&limit=20`,
       ),
     enabled: editando && qDeb.length > 1,
     staleTime: 60_000,
@@ -1810,7 +1811,7 @@ function ReferenciaEnlazada({
 
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-muted">Referencia enlazada (SKU de la materia prima)</p>
+      <p className="text-xs text-muted">Referencia enlazada (SKU de la materia prima, o del combo si está formulado en combo)</p>
       <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-input px-2.5 py-1.5">
         {actual ? (
           <span className="text-sm text-ink">
@@ -1843,7 +1844,7 @@ function ReferenciaEnlazada({
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar la materia prima por nombre o SKU…"
+            placeholder="Buscar la materia prima o el combo por nombre o SKU…"
             className="w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
           />
           {busq.isLoading && <p className="text-[11px] text-muted">Buscando…</p>}
@@ -1858,6 +1859,9 @@ function ReferenciaEnlazada({
               >
                 <code className="shrink-0 font-bold">{it.codigo}</code>
                 <span className="min-w-0 flex-1 truncate">{it.nombre}</span>
+                {it.type === "Combo" && (
+                  <span className="shrink-0 rounded bg-amber-200 px-1 py-px text-[9px] font-bold uppercase text-amber-900 dark:bg-amber-800 dark:text-amber-100">Combo</span>
+                )}
                 {it.codigo === actual && <span className="text-[10px] font-bold text-emerald-700">actual</span>}
               </button>
             ))}

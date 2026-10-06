@@ -1483,6 +1483,8 @@ def obtener_facturas_alegra_paginadas(fecha_inicio: str, estricto: bool = False)
                     fin = True
                     break
                 if res.status_code != 200:
+                    if estricto:
+                        raise RuntimeError(f"Alegra /invoices HTTP {res.status_code} (desde {fecha_inicio})")
                     fin = True
                     break
                 resultados = res.json() or []

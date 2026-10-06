@@ -162,7 +162,14 @@ def clasificar(orden: dict, reintegro: dict, *, claim: dict | None = None) -> di
     # ¿Quién financia? MeLi lo indica cuando cubre el reembolso; si no lo dice,
     # se asume el vendedor (el caso mayoritario) y queda registrado para que
     # la conciliación de cobros lo corrija si hace falta.
-    financia = "meli" if str(claim.get("refund_at") or "").lower() == "meli" or \
+    # El pago también lo dice: `status_detail = bpp_covered` = devolución pagada
+    # por el programa de protección de MeLi, sin descontarle nada a McKenna
+    # (FE797, pack 2000015065607043, 30-sep-2026: se anuló con NC147 sin ser así).
+    cubierto_meli = any(
+        str(p.get("status_detail") or "").lower() == "bpp_covered"
+        for p in orden.get("payments") or []
+    )
+    financia = "meli" if cubierto_meli or str(claim.get("refund_at") or "").lower() == "meli" or \
         str(claim.get("player_responsible") or "").lower() in ("meli", "mercadolibre") else "vendedor"
 
     if parcial:

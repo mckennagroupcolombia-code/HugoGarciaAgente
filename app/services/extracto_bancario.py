@@ -396,6 +396,30 @@ def _extraer_periodo_hasta(matrix: list[list[Any]]) -> tuple[int, int] | None:
     return None
 
 
+_RE_NUM_EXTRACTO = re.compile(r"-?[\d,]*\.\d{2}")
+
+
+def _reparar_filas_corridas(matrix: list[list[Any]]) -> list[list[Any]]:
+    """El estado de cuenta en Excel de Bancolombia (FECHA · DESCRIPCIÓN · SUCURSAL ·
+    DCTO. · VALOR · SALDO) parte la descripción en dos celdas cuando trae una «ñ»:
+    «PAGO QR Daniela Pe» | «a» y corre VALOR y SALDO una columna a la derecha. El
+    parser genérico leía VALOR vacío y descartaba la fila en silencio (oct-2025:
+    $45.500 de «Daniela Peña» y el mes dejaba de cuadrar contra su propio saldo).
+    Se reconoce por la forma: fecha D/MM, VALOR vacío y dos números con decimales
+    en las dos columnas siguientes; se vuelve a pegar la descripción con la «ñ»."""
+    out: list[list[Any]] = []
+    for fila in matrix:
+        f = list(fila)
+        if (len(f) >= 7 and f[0] and re.fullmatch(r"\d{1,2}/\d{2}", str(f[0]).strip())
+                and f[4] in (None, "") and f[5] is not None and f[6] is not None
+                and _RE_NUM_EXTRACTO.fullmatch(str(f[5]).strip())
+                and _RE_NUM_EXTRACTO.fullmatch(str(f[6]).strip())):
+            desc = f"{f[1] or ''}ñ{f[2] or ''}"
+            f = [f[0], desc, None, f[3], f[5], f[6], *f[7:]]
+        out.append(f)
+    return out
+
+
 def _rows_from_matrix(matrix: list[list[Any]]) -> list[dict[str, Any]]:
     if not matrix:
         return []
@@ -1169,7 +1193,7 @@ def parse_extracto_bytes(contenido: bytes, nombre: str) -> list[dict[str, Any]]:
         ws = wb.active
         matrix = [list(row) for row in ws.iter_rows(values_only=True)]
         wb.close()
-        return _rows_from_matrix(matrix)
+        return _rows_from_matrix(_reparar_filas_corridas(matrix))
 
     # CSV / TSV / texto
     text = None

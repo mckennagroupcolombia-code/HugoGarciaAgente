@@ -495,3 +495,118 @@ token en el portal: el script toma el enlace del correo más reciente en mckenna
 imprime. La exportación es asíncrona: pide, espera en `/Document/TasksPartial` y descarga. Con rangos largos de 2025
 la DIAN devuelve Error; por eso va mes a mes. Es la misma fuente que usa el contador: 2025 cuadró al peso con el F110
 y 2026 con los F300.
+
+## Declaraciones — borradores del 350 y del RTICA (oct-2026)
+
+`/app` → Contabilidad → Libro Mayor → **Declaraciones**. `app/services/declaraciones_impuestos.py` arma desde el
+libro el **350** (renta por concepto PJ/PN desde 2365*, reteIVA 131 desde 2367; mensual) y el **RTICA Bogotá**
+(BR/RP/BH/HA desde 2368; bimestral) para revisarlos con el contador ANTES de que los presente. La base sale de la
+descripción del asiento, de los débitos de costo/gasto del mismo asiento o, en último caso, de retención ÷ tarifa
+(cada línea dice cuál). Los pagos al fisco no restan; los reversos sin banco sí (y caen en el concepto del tercero).
+Valores del formulario a múltiplo de mil (Art. 577). Estado y ajustes manuales (con nota obligatoria) en
+`cc_declaraciones_borrador` (contabilidad.db): borrador → revisado → enviado_contador → presentado. «Presentado»
+también se deduce de `declaraciones_contador.json` o de un `pago_impuestos` en el libro. Endpoints:
+`/api/contabilidad/declaraciones[/<350|rtica>/<AAAA-MM|AAAA-Bn>[/csv|/enviar]]` (GET lo lee el perfil contador).
+⚠️ El vencimiento del RTICA no está cargado: se muestra la fecha en que el contador lo presentó antes, nunca una
+fecha inventada. ⚠️ La reteIVA (renglón 131) que el contador declara no está causada en la 2367 — se pregunta y se
+ajusta a mano.
+
+**Contraste con el contador (5-oct-2026).** Misma vista, selector «Lo que declaró William»: `contraste_contador()`
+pone cada 350/RTICA/300/ICA/110 que él presentó en el año al lado del libro, renglón por renglón, con cobertura
+(el libro solo está completo desde jul-2026: mes con ≥200 asientos), veredicto (cuadra / difiere / libro_parcial /
+sin_libro), pago (recibos 490 y pagos SDH) y preguntas concretas para él. Para tenerlo al día: correr
+`scripts/descargar_soportes_contador.py` y `scripts/extraer_declaraciones_contador.py`. Los comunicados de la DIAN
+que contrastan una declaración van a mano en `docs/contabilidad/<año>/comunicados_dian.json` (gitignored).
+PDF: `/api/contabilidad/declaraciones/pdf?archivo=` (solo bajo `Soportes_Contador`).
+
+**Cruce DIAN y banco (5-oct-2026).** Tercera pestaña de Declaraciones: `cruce_tripartito()` cruza lo declarado por
+William ↔ el reporte mensual de facturación electrónica de la DIAN (`app/services/reportes_dian_fe.py`, leído del
+Gmail → `docs/contabilidad/<año>/reportes_dian_fe.json`, gitignored; el valor DIAN trae IVA, enero sale del acumulado
+de febrero) ↔ los extractos de la EMPRESA (`tercero_id IS NULL`). Ventas: 300 (renglón 43 + 67) vs DIAN, debe cuadrar
+±1 % (cuatrimestres 1 y 2 de 2026 cuadran al 0,0 % y −0,17 %). Compras: base del 350 / compras DIAN sin IVA, solo
+para preguntar. Pagos: recibo 490/SDH ↔ línea del banco (monto exacto ±5 días) ↔ asiento; un pago anterior al corte
+sin asiento NO se pide registrar (lo cubre el saldo inicial). «Traer lo último del correo» =
+`actualizar_fuentes()` (~40 s, sin LLM). El Excel «Informacion_Facturas_Electronicas_2025» de Descargas es de la
+cédula de Armando, no de McKenna.
+
+**Extractos 2025–2026 cargados (5-oct-2026).** Bancolombia 42800000974 de ene-2025 a sep-2026 completo (21 meses,
+cadena de saldos de $50.679.096 al 31-dic-2024 a $42.508.824 al 30-sep-2026, sin duplicados; copia previa en
+`backups_drive/contabilidad_antes_extractos_2026-10-05.db`). `_reparar_filas_corridas()` en `extracto_bancario.py`:
+el Excel del banco parte la descripción en una «ñ» y corría VALOR una columna (oct-2025 perdía $45.500 sin avisar).
+El cruce de pagos es en dos pasadas: exacto (±5 días) y luego tolerante (el banco hasta +$15.000 / +1,5 % y hasta 20
+días después = pago tarde con intereses de mora, «pagado_con_diferencia»); una declaración sin recibo se busca
+directo en el banco por su total.
+
+**Revisión del libro (5-oct-2026).** Primera vista del Libro Mayor (y la de inicio del perfil contador):
+`RevisionLibro.tsx` + `GET /api/contabilidad/revision` (`app/services/revision_libro.py`, solo lectura, sin LLM).
+Contesta «¿qué tenemos y qué falta?» con datos vivos: **tenemos / falta** (cuadre, banco conciliado desde el corte,
+extractos mes a mes, listados DIAN, declaraciones del contador, préstamos, certificados MP e insumos de los saldos
+iniciales), **para ajustar hoy** en orden (asientos con Bancos sin línea del banco hasta el último extracto,
+pre-corte sin explicar, retenciones MP sin causar, saldos iniciales; lo posterior al último extracto va al final
+como «esperan el próximo extracto», no es error) y **para hablar con el contador** (`temas_reunion_contador.json`).
+Insumos que el sistema no detecta (saldo MP, inventario, capital social, otras cuentas) en
+`app/data/revision_libro_insumos.json`: pasar `estado` a `ok` cuando se consigan. Visita guiada de 11 pasos
+(`VisitaGuiada.tsx`, elementos con `data-guia`) y control A−/A+ por persona (`--lm-esc`, localStorage).
+⚠️ `resumen_prestamos()` buscaba los préstamos en 2295 y miraba solo los últimos 2.000 asientos: el checklist decía
+«no hay préstamos» con cinco vivos. Ahora acepta 2195 (alias del PUC real) y filtra por tipo de origen.
+
+## Expediente contable (oct-2026) — el libro por mes y por cuenta, para el contador
+
+**Qué es.** `/app` → Contabilidad → Libro Mayor → **Expediente contable** (primera entrada del riel y landing
+del perfil `contador`). Una sola pantalla: tira de meses → tarjeta del estado del mes (cuadre, banco vs extracto,
+cruce DIAN, impuestos vs declarado, soportes) → cuentas del PUC como fichas con insignias (banco · DIAN · soporte ·
+Alegra · declaración · contador) → auxiliar del mes → asiento con su comprobante, documentos y verificaciones.
+Filtro por defecto «Por revisar» (solo cuentas con algo pendiente), como «Por hacer» en Solicitudes de pago.
+Meses anteriores al corte = «período del contador»: fuentes y lo declarado, sin pretender cuadrarlos.
+
+**Piezas.**
+- `app/services/expediente_contable.py`: `periodos()`, `expediente_mes(periodo)` (caché por firma + TTL 120 s),
+  `auxiliar_cuenta(periodo, codigo, …, agrupar="dia")`, `asiento(periodo, id)`, `conciliacion_mes(periodo)`.
+  **Solo SQLite y disco**: nada de Alegra/MeLi/`armar_libro()` en la vista. El saldo del extracto se lee de la
+  columna `saldo` cuando existe (estados de cuenta) o se **deriva** encadenando desde el último mes con saldo
+  (los CSV diarios no la traen); `saldo_metodo` lo dice.
+- `app/services/dian_cruce.py`: importa `docs/contabilidad/DIAN_listados/*.xlsx` a `dian_documentos` (PK cufe,
+  idempotente por mtime) y cruza el mes: emitidos (FE/FV/NC/DS) por CUFE → número de documento → valor y fecha;
+  recibidos por (NIT, número) contra `compra:NIT:NUM`; DS por `cc_doc_soporte.numero`. Mira el libro de los DOS
+  meses anteriores (se factura al entregar). Estados: cuadra / difiere / solo_dian / solo_libro.
+  CLI `python3 -m app.services.dian_cruce --importar [--todos] | --cruce AAAA-MM`.
+- `app/services/expediente_documentos.py`: pasarela única `GET /api/contabilidad/expediente/documento?ref=tipo:id`
+  (comprobante, adjunto, solicitud_factura/comprobante, factura_compra:NIT:NUM, fe/nc (local o se baja de Alegra),
+  ds (XML Alegra + PDF propio, caché en `comprobantes/doc_soporte/`), recibo, declaracion, certificado,
+  prestamo_contrato, extracto, dian_listado). **Valida que la ruta final esté dentro de RAICES.** Así el contador
+  llega a contratos y recibos sin abrirle `/api/prestamos` ni `/api/pagos/impuestos`.
+- `doc_soporte_pagos.archivo_pdf/xml(sid)`; `alegra_espejo.URL_JOURNAL` (patrón no confirmado: si no abre, la UI
+  muestra el id).
+- Rutas en `app/routes.py`: `expediente/periodos`, `expediente/<p>`, `expediente/<p>/cuenta/<codigo>`,
+  `expediente/<p>/asiento/<id>`, `expediente/<p>/banco`, `expediente/<p>/dian`, `expediente/documento`,
+  `POST expediente/dian/importar` (negado al contador por el guard).
+- Front: `desktop/src/components/ExpedienteContable.tsx` + `expediente/{tipos.ts,TarjetaMes,EspinaPUC,
+  VisorDocumento,expediente.css}`. Riel simplificado: Consultar = Expediente, Revisión, Plan de cuentas, Diario;
+  Documentos soporte / Retenciones / Declaraciones / Balance / Asientos / Cuentas T / Informes salieron del riel
+  (`SUBS_ABSORBIDAS`, siguen vivas por atajo). El contador ve Expediente, Revisión y Terceros.
+- Tests: `tests/test_dian_cruce.py`, `tests/test_expediente_contable.py`, `tests/test_expediente_documentos.py`.
+  ⚠️ `extracto_bancario` abre la base por `contabilidad_db._DB_PATH`: un fixture que solo parchea
+  `contabilidad_core._DB_PATH` escribe el extracto de prueba en producción (pasó el 5-oct; se limpió el #48).
+
+**Hallazgos reales que ya muestra (sep-2026):** 1110 del libro cierra $31,9M por encima del extracto (ventas MeLi
+de jul/ago en Bancos antes del corte → saldos iniciales); IVA de ventas sin reconocer en 2408; 131 notas crédito
+en la DIAN sin asiento; 46 facturas recibidas (Inter Rapidísimo, Siigo, Sodimac…) sin referencia en el libro.
+**Observaciones del contador (fase 2).** `app/services/observaciones_contador.py`, tabla `cc_observaciones_contador`
+(mes/cuenta/asiento/cruce/documento × revisado/nota/pregunta/ajuste). `CajaObservacion.tsx` en la tarjeta del mes,
+en cada ficha de cuenta y en cada asiento. Rutas `GET/POST expediente/observaciones` y `POST …/<id>/resolver`
+(solo equipo). El guard del contador tiene **dos excepciones POST** por regex: `observaciones` y
+`<p>/paquete/generar`; el autor sale de la sesión, nunca del body. Lo abierto aparece en Revisión del libro →
+«Observaciones del contador por atender». **Adjuntos sin pisar:** `contabilidad_core.guardar_adjunto(mov, …, rol)`
++ `cc_movimiento_adjuntos`; `pagos_wizard` deja la factura como comprobante principal y guarda factura y captura
+del giro como adjuntos (antes la captura borraba la factura).
+
+**Paquete mensual (fase 3).** `app/services/expediente_paquete.py`: `generar(periodo)` / `generar_async` →
+`comprobantes/expedientes/expediente_<p>.zip` + `.estado.json`; `firma(periodo)` (asientos, extractos, vínculos,
+listados DIAN, observaciones, declaraciones) decide `firma_vigente`. Layout: LEEME.md, manifest.json (sha256 por
+archivo, refs y asientos; faltantes con enlace), 01_balance, 02_auxiliares (CSV por cuenta), 03_diario, 04_banco
+(extracto original + conciliación), 05_dian (listado + cruces), 06_impuestos (350/RTICA, declaraciones, recibos,
+certificados), 07_soportes (dedup por sha256, INDICE_SOPORTES.csv), 08_observaciones. **Sin red**: solo lo que ya
+está en disco; FE de venta solo con enlace (XML/PDF no incluidos salvo `--pdf-ventas`). Sep-2026 real: 18 s, 43 MB,
+957 archivos, 44 MB ahorrados por dedup, 5 faltantes. CLI `python3 -m app.services.expediente_paquete AAAA-MM
+[--pdf-ventas] [--regenerar]`. Rutas `GET <p>/paquete`, `POST <p>/paquete/generar`, `GET <p>/paquete/descargar`.
+Tests: `tests/test_observaciones_contador.py`, `tests/test_expediente_paquete.py`.

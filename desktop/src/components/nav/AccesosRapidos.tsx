@@ -34,7 +34,8 @@ function normalizar(s: string): string {
  */
 const EN_MENU = new Set<string>(NAV_PANEL_ORDER);
 
-export default function AccesosRapidos() {
+/** `enMapa`: botón con la forma de los del cabezote del Mapa de McKenna (mv-nivel). */
+export default function AccesosRapidos({ enMapa = false }: { enMapa?: boolean } = {}) {
   const [abierto, setAbierto] = useState(false);
   const [q, setQ] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -141,15 +142,17 @@ export default function AccesosRapidos() {
         type="button"
         onClick={() => setAbierto((v) => !v)}
         data-sonido="vista"
-        className={`mck-press flex shrink-0 items-center gap-1 rounded-full border px-2 py-1.5 text-[12px] font-bold transition ${
-          abierto ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent/40 hover:text-ink"
-        }`}
+        className={enMapa
+          ? `mv-nivel flex shrink-0 items-center gap-1 ${abierto ? "mv-nivel-on" : ""}`
+          : `mck-press flex shrink-0 items-center gap-1 rounded-full border px-2 py-1.5 text-[12px] font-bold transition ${
+              abierto ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent/40 hover:text-ink"
+            }`}
         title="Accesos rápidos — lo que más usas (Ctrl+K)"
         aria-label="Accesos rápidos"
         aria-expanded={abierto}
       >
         <Icon name="lightning" size={16} weight="bold" />
-        <span className="hidden md:inline">Rápido</span>
+        <span className={enMapa ? "" : "hidden md:inline"}>Rápido</span>
       </button>
 
       {abierto && (

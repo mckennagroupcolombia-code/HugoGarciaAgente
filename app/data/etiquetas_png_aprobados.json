@@ -2248,6 +2248,45 @@
         "aprobado_at": "2026-10-04T22:00:40",
         "por": "@cynthia"
       }
+    },
+    "d2bc4f11f77f": {
+      "barcode": "7702270302633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/VITAMINA_C_30_30mL.png",
+        "aprobado_at": "2026-10-05T13:03:37",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/VITAMINA_C_30_30mL_digital.png",
+        "aprobado_at": "2026-10-05T13:03:38",
+        "por": "@cynthia"
+      }
+    },
+    "0e237bf389a6": {
+      "barcode": "7701791002633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/LACTATO_CALCIO_100g.png",
+        "aprobado_at": "2026-10-05T13:07:43",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/LACTATO_CALCIO_100g_digital.png",
+        "aprobado_at": "2026-10-05T13:07:44",
+        "por": "@cynthia"
+      }
+    },
+    "3437cad4d51d": {
+      "barcode": "7701500302634",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/EMBRION_PATO_30mL.png",
+        "aprobado_at": "2026-10-05T13:23:53",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/EMBRION_PATO_30mL_digital.png",
+        "aprobado_at": "2026-10-05T13:23:54",
+        "por": "@cynthia"
+      }
     }
   }
 }

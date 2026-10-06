@@ -33,6 +33,8 @@ alguien real.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import os
 
 # La línea del documento se carga contra una **cuenta contable**, no contra un
@@ -685,3 +687,49 @@ def registrar_pago_en_alegra(solicitud_id: int, *, referencia: str = "") -> dict
                 " WHERE solicitud_id=?", (str(r.get("id")), int(solicitud_id)),
             )
     return r
+
+
+# ── Archivos del documento soporte (para el expediente del contador) ──────────
+#
+# Alegra no devuelve PDF de un documento soporte: solo el XML firmado
+# (`GET /bills/{id}?fields=xml`). La representación gráfica la arma McKenna con
+# `cuenta_cobro_contador.representacion_pdf`. Los dos se cachean en
+# comprobantes/doc_soporte/ (gitignored por `comprobantes/`) para no volver a Alegra.
+
+_DOC_SOPORTE_DIR = Path(__file__).resolve().parents[2] / "comprobantes" / "doc_soporte"
+
+
+def _archivos_doc_soporte(solicitud_id: int) -> tuple[Path | None, Path | None, dict | None]:
+    """(pdf, xml, documento) cacheados; baja de Alegra la primera vez."""
+    doc = obtener_por_solicitud(int(solicitud_id))
+    if not doc or not doc.get("alegra_id") or doc.get("estado") != "success":
+        return None, None, doc
+    _DOC_SOPORTE_DIR.mkdir(parents=True, exist_ok=True)
+    base = _DOC_SOPORTE_DIR / f"{doc.get('numero') or 'DS'}_{doc['alegra_id']}"
+    pdf, xml = base.with_suffix(".pdf"), base.with_suffix(".xml")
+    if pdf.is_file() and xml.is_file():
+        return pdf, xml, doc
+    from app.services.cuenta_cobro_contador import _bill_alegra, representacion_pdf
+
+    bill, xml_bytes = _bill_alegra(str(doc["alegra_id"]))
+    if xml_bytes and not xml.is_file():
+        xml.write_bytes(xml_bytes)
+    if not pdf.is_file():
+        dian = None
+        if xml_bytes:
+            try:
+                from app.tools.expediente_pago import datos_dian
+
+                dian = datos_dian(xml_bytes, bill)
+            except Exception:  # noqa: BLE001 — el PDF sale igual, sin los datos del XML
+                dian = None
+        pdf.write_bytes(representacion_pdf(bill, dian))
+    return (pdf if pdf.is_file() else None), (xml if xml.is_file() else None), doc
+
+
+def archivo_pdf(solicitud_id: int) -> Path | None:
+    return _archivos_doc_soporte(solicitud_id)[0]
+
+
+def archivo_xml(solicitud_id: int) -> Path | None:
+    return _archivos_doc_soporte(solicitud_id)[1]

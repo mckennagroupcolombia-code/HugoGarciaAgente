@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { HorasEnFicha } from "./MiQuincena";
+import FlujosTrabajo from "./FlujosTrabajo";
 
 /**
  * «Mi mes en el panel»: la ficha de rendimiento de cada persona en la Agenda.
@@ -248,6 +249,8 @@ function FichaGrande({ token, inicial, onCerrar }: { token: string; inicial: Ren
         )}
 
         <HorasEnFicha token={token} usuarioId={d.usuario.id} fs={fs} />
+
+        <FlujosTrabajo token={token} usuarioId={d.usuario.id} funciones={d.funciones} fs={fs} />
 
         <h3 className="mt-10 font-bold" style={{ fontSize: fs * 1.15 }}>
           Su mes en el panel

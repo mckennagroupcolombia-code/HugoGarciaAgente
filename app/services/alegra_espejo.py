@@ -121,6 +121,16 @@ MAPA_RETENCIONES: dict[tuple[str, float], str] = {
 }
 
 
+# Enlace al comprobante contable en la web de Alegra. Para facturas el patrón es
+# app.alegra.com/invoice/view/id/<id>; para comprobantes (journals) se asume el
+# equivalente — si no abre, la UI muestra «Comprobante Alegra #id» para buscarlo a mano.
+URL_JOURNAL = "https://app.alegra.com/journal/view/id/{id}"
+
+
+def url_journal(journal_id) -> str:
+    return URL_JOURNAL.format(id=str(journal_id or "").strip())
+
+
 def _activo() -> bool:
     return (os.getenv("ALEGRA_ESPEJO_ACTIVO", "0") or "0").strip() == "1"
 

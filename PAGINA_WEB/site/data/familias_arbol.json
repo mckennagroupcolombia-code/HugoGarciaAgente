@@ -31,6 +31,18 @@
   "familia": "ACECOCmL",
   "nombre": "ACEITE DE PALMA DE COCO TRIGLICÉRIDOS DE CADENA MEDIA (MCT)"
  },
+ "C-ACECOCVIR250G": {
+  "familia": "ACECOCVIRg",
+  "nombre": "ACEITE DE COCO VIRGEN ORGANICO"
+ },
+ "C-ACECOCVIR500G": {
+  "familia": "ACECOCVIRg",
+  "nombre": "ACEITE DE COCO VIRGEN ORGANICO"
+ },
+ "C-ACECOCVIRKG": {
+  "familia": "ACECOCVIRg",
+  "nombre": "ACEITE DE COCO VIRGEN ORGANICO"
+ },
  "C-ACEESEALB5ML": {
   "familia": "ACEESEALBmL",
   "nombre": "ACEITE ESENCIAL ALBAHACA"
@@ -83,6 +95,10 @@
   "familia": "ACEESEMANZmL",
   "nombre": "ACEITE ESENCIAL MANZANILLA"
  },
+ "C-ACEESEMAND5ML": {
+  "familia": "ACEESEMANmL",
+  "nombre": "ACEITE ESENCIAL MANDARINA"
+ },
  "C-ACEESEMAR5ML": {
   "familia": "ACEESEMARmL",
   "nombre": "ACEITE ESENCIAL MARACUYA"
@@ -113,11 +129,7 @@
  },
  "C-ACEESEZAN5ML": {
   "familia": "ACEESEZANmL",
-  "nombre": "ACEITE ESENCIAL DE ZANAHORIA - PURO CERTIFICADO ORGÁNICO"
- },
- "C-ACEESNMAN5ML": {
-  "familia": "ACEESEMANmL",
-  "nombre": "ACEITE ESENCIAL MANDARINA"
+  "nombre": "ACEITE ESENCIAL DE ZANAHORIA"
  },
  "C-ACEESNMEN5ML": {
   "familia": "ACEESEMENTmL",
@@ -227,7 +239,7 @@
   "familia": "ACISALg",
   "nombre": "ÁCIDO SALICÍLICO"
  },
- "C-ACISAL50GBAD": {
+ "C-ACISAL50G": {
   "familia": "ACISALg",
   "nombre": "ÁCIDO SALICÍLICO"
  },
@@ -238,6 +250,10 @@
  "C-ACITRA10G": {
   "familia": "ACITRAg",
   "nombre": "ÁCIDO TRANEXÁMICO"
+ },
+ "C-ADAOBDII": {
+  "familia": "ADAOBDII",
+  "nombre": "CABLE ADAPTADOR OBD2 DE 14 A PINES 16 COMPATIBLE NISSAN"
  },
  "C-AGAAGA100G": {
   "familia": "AGAAGA",
@@ -331,6 +347,10 @@
   "familia": "ALMNATg",
   "nombre": "ALMENDRA NATURAL SIN CASCARA"
  },
+ "C-ALPL12X8X14": {
+  "familia": "ALPL12X8X14",
+  "nombre": "PLACA DE ALUMINIA 12 X 8X1.4P"
+ },
  "C-ALU250G": {
   "familia": "ALUALLg",
   "nombre": "ALULOSA"
@@ -374,6 +394,14 @@
  "C-ARADES500G": {
   "familia": "ARADESg",
   "nombre": "ARANDANOS DESHIDRATADOS"
+ },
+ "C-AVEHOJKG": {
+  "familia": "AVEHOJg",
+  "nombre": "HOJUELA DE AVENA ENTERA"
+ },
+ "C-AVEMOLKG": {
+  "familia": "AVEHARg",
+  "nombre": "HARINA DE AVENA"
  },
  "C-AZUMMET30ML": {
   "familia": "FOR-AZUMETmL",
@@ -583,6 +611,10 @@
   "familia": "COLHIDg",
   "nombre": "COLÁGENO HIDROLIZADO"
  },
+ "C-COLPERCUERAZMED": {
+  "familia": "COLPERRCUERAZMED",
+  "nombre": "COLLAR DE PERRO EN CUERO RAZA MEDIANA"
+ },
  "C-COLPERGRAND": {
   "familia": "COLPERPERSL",
   "nombre": "COLLAR CADENA PERRO ESTILO PERSA PLATEADO L"
@@ -623,6 +655,10 @@
   "familia": "DEXMONg",
   "nombre": "DEXTROSA"
  },
+ "C-DIH10G": {
+  "familia": "DIHg",
+  "nombre": "DIHIDROXIACETONA"
+ },
  "C-DIOTIT500G": {
   "familia": "DIOTITg",
   "nombre": "DIOXIDO DE TITANIO"
@@ -646,6 +682,10 @@
  "C-EMBPAT30ML": {
   "familia": "EMBPATmL",
   "nombre": "EMBRION DE PATO"
+ },
+ "C-EMPPLAAIRBASDAR500G25UN": {
+  "familia": "EMPPLAAIRBASDAR500g25Un",
+  "nombre": "EMPAQUE PLÁSTICO AIRBASKET DARNEL LIBRA X 25 UND"
  },
  "C-ERI500G": {
   "familia": "ERIg",
@@ -829,6 +869,10 @@
  },
  "C-MANKARAMA500G": {
   "familia": "MANKARAMAg",
+  "nombre": "MANTECA KARITÉ"
+ },
+ "C-MANKARAMAKG": {
+  "familia": "manteca-karite-amarilla",
   "nombre": "MANTECA KARITÉ"
  },
  "C-MANKARBLA125G": {
@@ -1044,6 +1088,10 @@
   "nombre": "SEMILLAS DE GIRASOL"
  },
  "C-SEMGIR500G": {
+  "familia": "SEMGIRg",
+  "nombre": "SEMILLAS DE GIRASOL"
+ },
+ "C-SEMGIRKG": {
   "familia": "SEMGIRg",
   "nombre": "SEMILLAS DE GIRASOL"
  },

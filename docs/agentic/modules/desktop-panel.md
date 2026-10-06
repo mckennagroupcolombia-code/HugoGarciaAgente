@@ -190,3 +190,12 @@ WhatsApp (mismos `/api/bot/bridge/status` y `/api/supervisor/bridge/status`), `G
 incrustados (`embebido`), o guía para llaves de API. `meli-oauth` y `gmail-oauth` salieron del menú (siguen como panel
 para enlaces viejos). **Se ve arriba de Ajustes y Sistema** (solo admin): Sistemas solo sale en modo avanzado y el
 equipo no lo encontraba ahí. Gmail avisa 2 días antes del vencimiento de 7 días mientras `GMAIL_OAUTH_MODO_PRUEBA` ≠ 0.
+
+**Escala de lectura del Libro Mayor (5-oct-2026).** Todo lo que cuelga de `.lm-root` (Libro Mayor, Tabla de
+contabilidad, Documentos soporte, Retenciones, Créditos) y los emergentes por portal marcados `.lm-escala` (Taller
+de conciliación) suben de tamaño desde `components/libroMayor.css`: 9-9,5 → 11,5 px, 10 → 12, 10,5-11,5 → 13,
+`text-xs`/12 px → 14, 12,5-13 → 14,5, `text-sm` → 15,5, `text-base` → 17, con interlineado mayor y cifras
+`tabular-nums` en tablas. Antes: 305 textos a 12 px y 75 entre 9 y 11,5 px. Para que un componente nuevo de la
+sección se lea igual basta con que viva dentro de `.lm-root`; si abre con `createPortal`, poner `lm-escala` en su
+raíz. El riel lateral pasó a 256 px y en móvil la columna usa `grid-cols-[minmax(0,1fr)]` (sin eso la tabla del
+PUC estiraba la vista a 1.667 px y cortaba los filtros).

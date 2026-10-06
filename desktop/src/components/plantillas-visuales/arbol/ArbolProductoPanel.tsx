@@ -22,6 +22,7 @@ import { Sprite } from "../../colaboradores/pixel";
 import "../../colaboradores/pixel.css";
 import type { Respuesta } from "../../combos/comun";
 import { CladogramaCategoria, CladogramaFamilia } from "./Cladograma";
+import { CambiarSku } from "./CambiarSku";
 import { CopiarSku } from "./CopiarSku";
 import { VarianteEtiqueta } from "./ParEtiquetas";
 import { FotosCanal, imagenesDe, useFotosProducto, type Canal } from "./FotosCanal";
@@ -219,6 +220,13 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
       </div>
     );
 
+  // Código corregido en Alegra (combo sin movimientos): seguir en el mismo combo con su código nuevo.
+  const skuCambiado = async (anterior: string, nuevo: string) => {
+    setSel((s) => (s.ref === anterior ? { ...s, ref: nuevo } : s));
+    setAviso(`Código cambiado: ${anterior} → ${nuevo}`);
+    await qc.invalidateQueries({ queryKey: ["arbol-producto"] });
+  };
+
   const centro = editor ? (
     <div className="min-h-0 min-w-0 overflow-auto lg:col-span-2">{editor}</div>
   ) : (
@@ -243,6 +251,7 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
             categoria={categoria?.nombre ?? ""}
             sel={pres?.ref ?? null}
             onElegir={(ref) => setSel((s) => ({ ...s, ref }))}
+            onSkuCambiado={skuCambiado}
             onPieza={(ref, clave) => {
               const p = familia.presentaciones.find((x) => x.ref === ref);
               if (p) tocarPieza(p, clave);
@@ -292,6 +301,7 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
           onCanales={() => verCanales(pres)}
           onEditarEtiqueta={onEditarEtiqueta}
           onFotosCambiaron={() => void qc.invalidateQueries({ queryKey: ["arbol-producto"] })}
+          onSkuCambiado={(nuevo) => skuCambiado(pres.ref, nuevo)}
         />
       ) : (
         <div className="ap-carta p-4 text-[12.5px]">
@@ -462,7 +472,7 @@ function Fila({ estado, titulo, valor, onClick, accion }: { estado: Estado; titu
   return onClick ? <button type="button" onClick={onClick} className={clase}>{cuerpo}</button> : <div className={clase}>{cuerpo}</div>;
 }
 
-function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAviso, onPieza, onCanales, onEditarEtiqueta, onFotosCambiaron }: {
+function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAviso, onPieza, onCanales, onEditarEtiqueta, onFotosCambiaron, onSkuCambiado }: {
   p: Presentacion;
   familia: Familia;
   categoria: string;
@@ -474,6 +484,8 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
   onCanales: () => void;
   onEditarEtiqueta: (fichaId: string) => void;
   onFotosCambiaron: () => void;
+  /** Se corrigió el SKU del combo en Alegra (solo sin movimientos). */
+  onSkuCambiado: (nuevo: string) => void | Promise<void>;
 }) {
   const e = p.piezas.etiquetas;
   const otraCarpeta = e.categoria_png && e.categoria_png !== categoria ? e.categoria_png : "";
@@ -507,6 +519,7 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
           <span className="min-w-0 flex-1 truncate" title={p.nombre}>{p.nombre}</span>
           <code className="shrink-0 normal-case">{p.ref}</code>
           <CopiarSku sku={p.ref} />
+          <CambiarSku sku={p.ref} onCambiado={onSkuCambiado} />
         </div>
         <div className="flex flex-col gap-2 p-2.5">
         <p className="ap-t">

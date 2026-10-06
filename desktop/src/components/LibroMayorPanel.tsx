@@ -1,7 +1,7 @@
 import { Ico } from "../icons/Ico";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api } from "../api/client";
+import { api, fetchAuthBlobUrl } from "../api/client";
 import ComprobanteWidget from "./ComprobanteWidget";
 import TerceroSelect from "./TerceroSelect";
 import { Icon } from "../icons";
@@ -21,6 +21,10 @@ const SociosPanel = lazy(() => import("./SociosPanel"));
 const MayorCuentasPanel = lazy(() => import("./MayorCuentasPanel"));
 const DocumentosSoporteTab = lazy(() => import("./DocumentosSoporte"));
 const RetencionesContadorTab = lazy(() => import("./RetencionesContador"));
+const RevisionLibro = lazy(() => import("./RevisionLibro"));
+const ExpedienteContable = lazy(() => import("./ExpedienteContable"));
+import VisitaGuiada, { PASOS_LIBRO_MAYOR } from "./VisitaGuiada";
+const DeclaracionesImpuestosTab = lazy(() => import("./DeclaracionesImpuestos"));
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 
@@ -182,6 +186,12 @@ const AMBITO_KEY = "mckenna-libro-mayor-ambito";
 // partida (el PUC con saldos).
 const GRUPO_KEY = "mckenna-libro-mayor-grupo-v2";
 const SUB_KEY = "mckenna-libro-mayor-sub-v2";
+// Tamaño de letra de la sección (multiplica --lm-esc en libroMayor.css) y si la
+// persona ya hizo la visita guiada. Son preferencias de cada navegador.
+const LETRA_KEY = "mckenna-libro-mayor-letra";
+const VISITA_KEY = "mckenna-libro-mayor-visita-hecha";
+const ESCALAS = [1, 1.1, 1.2, 1.35, 1.5];
+const ESCALA_INICIAL = 1.1;
 
 type Ambito = "empresa" | "socios";
 
@@ -275,9 +285,20 @@ export default function LibroMayorPanel() {
     return () => window.removeEventListener("keydown", tecla);
   }, [enfoque, setEnfoque]);
   const { ref: raiz, alto } = useAltoDisponible<HTMLDivElement>();
+  // Tamaño de letra de la sección, por persona (se queda en este navegador).
+  const [esc, setEsc] = useState<number>(() => {
+    const v = Number(leerLS(LETRA_KEY, (x): x is string => ESCALAS.includes(Number(x)), String(ESCALA_INICIAL)));
+    return ESCALAS.includes(v) ? v : ESCALA_INICIAL;
+  });
+  const cambiarEsc = (paso: number) => {
+    const nuevo = ESCALAS[Math.min(ESCALAS.length - 1, Math.max(0, ESCALAS.indexOf(esc) + paso))];
+    setEsc(nuevo);
+    guardarLS(LETRA_KEY, String(nuevo));
+  };
+  const [visita, setVisita] = useState(false);
 
   return (
-    <div ref={raiz} style={alto ? { height: alto } : undefined} className="lm-root mx-auto flex min-h-0 flex-col gap-2 px-0.5 pb-1 sm:px-0" data-skin={skin}>
+    <div ref={raiz} style={{ ...(alto ? { height: alto } : {}), ["--lm-esc" as string]: esc }} className="lm-root mx-auto flex min-h-0 flex-col gap-2 px-0.5 pb-1 sm:px-0" data-skin={skin}>
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="text-base font-bold tracking-tight text-ink">Libro Mayor</h2>
@@ -291,6 +312,18 @@ export default function LibroMayorPanel() {
             title={enfoque ? "Salir del modo enfoque (Esc)" : "Modo enfoque: sin cabezote ni pestañas, el libro a toda la ventana"}>
             <Icon name={enfoque ? "collapse" : "expand"} size={13} weight="bold" /> {enfoque ? "Salir del enfoque" : "Enfoque"}
           </button>
+          <div className="lm-letra ml-1 shrink-0" data-guia="lm-letra" role="group" aria-label="Tamaño de la letra">
+            <button type="button" onClick={() => cambiarEsc(-1)} disabled={esc === ESCALAS[0]} title="Letra más pequeña" style={{ fontSize: 13 }}>A−</button>
+            <span>{Math.round(esc * 100)}%</span>
+            <button type="button" onClick={() => cambiarEsc(1)} disabled={esc === ESCALAS[ESCALAS.length - 1]} title="Letra más grande" style={{ fontSize: 16 }}>A+</button>
+          </div>
+          {ambito === "empresa" && (
+            <button type="button" onClick={() => setVisita(true)}
+              className="mck-press ml-1 inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[11px] font-bold text-muted hover:border-accent/50 hover:text-ink"
+              title="Recorrido por la sección: qué hay y por dónde empezar">
+              <Icon name="compass" size={13} weight="bold" /> Visita guiada
+            </button>
+          )}
         </div>
         {!contador && (
         <div
@@ -324,6 +357,8 @@ export default function LibroMayorPanel() {
 
       {ambito === "empresa" ? (
         <VistaEmpresa
+          visita={visita}
+          onVisita={setVisita}
           bootSub={libroMayorBootTab && libroMayorBootTab !== "socios" && libroMayorBootTab !== "cuenta-socio" ? libroMayorBootTab : null}
           onBootConsumido={() => setLibroMayorBootTab(null)}
         />
@@ -1312,6 +1347,9 @@ type SubvistaAvanzada =
   | "libro-diario"
   | "documentos-soporte"
   | "retenciones"
+  | "revision"
+  | "expediente"
+  | "declaraciones"
   | "mayor"
   | "rapido"
   | "plan-cuentas"
@@ -1351,20 +1389,19 @@ const GRUPOS: Grupo[] = [
     desc: "PUC, saldos y terceros",
     icon: "book",
     subs: [
-      { id: "mayor", label: "Plan de cuentas y saldos", icon: "book", desc: "Árbol del PUC, terceros y extracto por cuenta" },
+      // El expediente es la entrada: el libro por mes y por cuenta, con cada cifra
+      // enlazada a su asiento, su documento y su verificación. Es lo que recorre el
+      // contador y donde viven, como detalle de la cuenta, los apartados que antes
+      // eran destinos aparte (declaraciones, retenciones, documentos soporte,
+      // balance, cuentas T, informes). Esos componentes siguen existiendo —se
+      // abren desde la cuenta o desde Revisión— pero ya no cargan el riel.
+      { id: "expediente", label: "Expediente contable", icon: "book", desc: "Por mes y por cuenta: cifras, soportes y verificaciones" },
+      // Qué tenemos, qué falta y qué ajustar hoy, antes de bajar a cualquier tabla.
+      { id: "revision", label: "Revisión del libro", icon: "listChecks", desc: "Qué tenemos, qué falta y qué ajustar hoy" },
+      { id: "mayor", label: "Plan de cuentas y saldos", icon: "book", desc: "Árbol completo del PUC con extracto por cuenta" },
       // El Mayor responde «cómo se movió esta cuenta»; el Diario, «qué pasó ese
       // día»: el asiento completo con el nombre de cada cuenta, débito y crédito.
       { id: "libro-diario", label: "Libro Diario", icon: "listChecks", desc: "Asientos del día con cuenta, débito y crédito" },
-      // Los documentos soporte de pagos a quien no factura: borradores por
-      // emitir y los ya transmitidos. Se emiten a mano, como en AstroKiller.
-      { id: "documentos-soporte", label: "Documentos soporte", icon: "receipt", desc: "Borradores por emitir y emitidos a la DIAN" },
-      // Certificados de lo que nos retuvieron (Mercado Pago) y los temas
-      // abiertos con el contador: lo que necesita para las declaraciones.
-      { id: "retenciones", label: "Retenciones y temas", icon: "receipt", desc: "Certificados de Mercado Pago y temas con el contador" },
-      { id: "balance", label: "Balance", icon: "chartBar", desc: "Comprobación débito = crédito" },
-      { id: "movimientos", label: "Asientos", icon: "listChecks", desc: "Todos los comprobantes" },
-      { id: "cuentas-t", label: "Cuentas T", icon: "receipt", desc: "Debe / haber a dos columnas" },
-      { id: "informes", label: "Informes", icon: "chartBar", desc: "Préstamos y pendientes" },
     ],
   },
   {
@@ -1410,14 +1447,20 @@ const GRUPOS: Grupo[] = [
  * terceros en solo lectura, donde deja sus indicaciones en el historial.
  * Registrar, conciliar y configurar no le aparecen (y el backend los niega).
  */
+// Vistas que salieron del riel pero siguen vivas: se abren desde el expediente, desde
+// Revisión del libro o por atajo. Validarlas evita que un enlace guardado caiga al inicio.
+const SUBS_ABSORBIDAS = new Set<string>(["documentos-soporte", "retenciones", "declaraciones", "balance", "movimientos", "cuentas-t", "informes"]);
+
 const GRUPOS_CONTADOR: Grupo[] = [{
   ...GRUPOS[0],
   subs: [
-    ...GRUPOS[0].subs,
+    ...GRUPOS[0].subs.filter((s) => s.id === "expediente" || s.id === "revision"),
     { id: "terceros", label: "Terceros", icon: "users", desc: "Fichas e historial, con tus indicaciones" },
   ],
 }];
-const SUBS_CONTADOR = new Set<string>(GRUPOS_CONTADOR[0].subs.map((s) => s.id));
+// El contador puede llegar a cualquier vista de consulta por atajo (p. ej. desde Revisión),
+// aunque el riel solo le muestre el expediente, la revisión y los terceros.
+const SUBS_CONTADOR = new Set<string>([...GRUPOS[0].subs.map((s) => s.id), ...SUBS_ABSORBIDAS, "terceros"]);
 
 function grupoDeSub(sub: SubvistaAvanzada | null | undefined): GrupoId {
   for (const g of GRUPOS) if (g.subs.some((x) => x.id === sub)) return g.id;
@@ -1425,7 +1468,7 @@ function grupoDeSub(sub: SubvistaAvanzada | null | undefined): GrupoId {
 }
 
 function subValida(v: string): v is SubvistaAvanzada {
-  return GRUPOS.some((g) => g.subs.some((x) => x.id === v));
+  return GRUPOS.some((g) => g.subs.some((x) => x.id === v)) || SUBS_ABSORBIDAS.has(v);
 }
 
 function grupoValido(v: string): v is GrupoId {
@@ -1435,20 +1478,30 @@ function grupoValido(v: string): v is GrupoId {
 function VistaEmpresa({
   bootSub,
   onBootConsumido,
+  visita,
+  onVisita,
 }: {
   bootSub?: SubvistaAvanzada | null;
   onBootConsumido?: () => void;
+  visita: boolean;
+  onVisita: (abierta: boolean) => void;
 }) {
+  const [visitaHecha, setVisitaHecha] = useState(() => leerLS(VISITA_KEY, (v): v is string => v === "1", "") === "1");
+  const cerrarVisita = () => {
+    onVisita(false);
+    setVisitaHecha(true);
+    guardarLS(VISITA_KEY, "1");
+  };
   const contador = esContador(useTicketsAuth((s) => s.user));
   const [subGuardada, setSub] = useState<SubvistaAvanzada>(() =>
-    bootSub && subValida(bootSub) ? bootSub : leerLS(SUB_KEY, subValida, "mayor"),
+    bootSub && subValida(bootSub) ? bootSub : leerLS(SUB_KEY, subValida, "expediente"),
   );
   const [grupoGuardado, setGrupo] = useState<GrupoId>(() =>
     bootSub && subValida(bootSub) ? grupoDeSub(bootSub) : leerLS(GRUPO_KEY, grupoValido, "consultar"),
   );
   // El contador solo tiene la etapa de consulta: cualquier otra subvista
   // recordada (o pedida por un atajo) cae en el plan de cuentas.
-  const sub: SubvistaAvanzada = contador && !SUBS_CONTADOR.has(subGuardada) ? "mayor" : subGuardada;
+  const sub: SubvistaAvanzada = contador && !SUBS_CONTADOR.has(subGuardada) ? "expediente" : subGuardada;
   const grupo: GrupoId = contador ? "consultar" : grupoGuardado;
   const grupos = contador ? GRUPOS_CONTADOR : GRUPOS;
   const [pendientesSignal, setPendientesSignal] = useState(0);
@@ -1490,7 +1543,7 @@ function VistaEmpresa({
   const grupoActual = grupos.find((g) => g.id === grupo)!;
 
   return (
-    <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[218px_minmax(0,1fr)]">
+    <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-2 lg:grid-cols-[256px_minmax(0,1fr)]">
       <Riel grupos={grupos} grupo={grupo} sub={sub} contador={contador} onIr={irA}
         onGuiar={(paso) => {
           // El taller ya carga, empareja y clasifica en el mismo sitio; el
@@ -1551,9 +1604,27 @@ function VistaEmpresa({
           <DocumentosSoporteTab />
         </Suspense>
       )}
+      {sub === "expediente" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando el expediente…</p>}>
+          <ExpedienteContable onIr={(s) => subValida(s) && irA(s)} />
+        </Suspense>
+      )}
+      {sub === "revision" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <RevisionLibro onIr={(s) => subValida(s) && irA(s)} onVisita={() => onVisita(true)} visitaHecha={visitaHecha} />
+        </Suspense>
+      )}
+      {visita && (
+        <VisitaGuiada pasos={PASOS_LIBRO_MAYOR} onIr={(s) => subValida(s) && irA(s)} onCerrar={cerrarVisita} />
+      )}
       {sub === "retenciones" && (
         <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
           <RetencionesContadorTab />
+        </Suspense>
+      )}
+      {sub === "declaraciones" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <DeclaracionesImpuestosTab />
         </Suspense>
       )}
       {sub === "cuentas-t" && <CuentasTTab />}
@@ -1609,19 +1680,19 @@ function Riel({ grupos, grupo, sub, contador, onIr, onGuiar }: {
   const [guiaAbierta, setGuiaAbierta] = useState(true);
 
   return (
-    <nav aria-label="Etapas del libro" className="lm-card flex min-h-0 flex-col p-2 lg:overflow-y-auto">
+    <nav aria-label="Etapas del libro" data-guia="riel" className="lm-card flex min-h-0 flex-col p-2 lg:overflow-y-auto">
       <div className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0">
         {grupos.map((g) => {
           const activo = g.id === grupo;
           const st = PASO_ESTILO[estadoGrupo[g.id]];
           return (
             <div key={g.id} className={`shrink-0 rounded-lg lg:shrink ${activo ? "bg-accent/5" : ""}`}>
-              <button type="button" onClick={() => onIr(grupoDeSub(sub) === g.id ? sub : g.subs[0].id)} aria-current={activo ? "true" : undefined}
+              <button type="button" data-guia={`grupo-${g.id}`} onClick={() => onIr(grupoDeSub(sub) === g.id ? sub : g.subs[0].id)} aria-current={activo ? "true" : undefined}
                 className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition ${activo ? "text-ink" : "text-ink-secondary hover:bg-surface-hover hover:text-ink"}`}>
                 <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${activo ? "bg-accent text-white" : "bg-surface-hover text-ink-secondary"}`}>{g.num}</span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 text-[12.5px] font-bold"><Icon name={g.icon} size={13} weight="bold" />{g.label}</span>
-                  <span className="hidden truncate text-[10px] text-muted lg:block">{g.desc}</span>
+                  <span className="hidden truncate text-[10px] text-muted lg:block lg:whitespace-normal lg:leading-snug">{g.desc}</span>
                 </span>
                 <span className={`h-2 w-2 shrink-0 rounded-full ${st.dot.split(" ")[0]}`} title={g.desc} />
               </button>
@@ -1631,10 +1702,10 @@ function Riel({ grupos, grupo, sub, contador, onIr, onGuiar }: {
                   const aqui = sub === t.id;
                   return (
                     <li key={t.id} className="shrink-0">
-                      <button type="button" onClick={() => onIr(t.id)} aria-current={aqui ? "page" : undefined} title={t.desc}
+                      <button type="button" data-guia={`sub-${t.id}`} onClick={() => onIr(t.id)} aria-current={aqui ? "page" : undefined} title={t.desc}
                         className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-[11.5px] transition ${aqui ? "bg-accent text-white font-bold" : "text-ink-secondary hover:bg-surface-hover hover:text-ink"}`}>
                         <Icon name={t.icon} size={12} weight={aqui ? "bold" : "regular"} />
-                        <span className="truncate">{t.label}</span>
+                        <span className="truncate lg:whitespace-normal lg:leading-snug">{t.label}</span>
                         {t.id === "taller-conciliacion" && <span className="ml-auto font-mono text-[9px] opacity-70">⤢</span>}
                       </button>
                     </li>
@@ -2376,10 +2447,17 @@ function LibroDiarioTab() {
         <label className="flex-1 text-xs font-bold text-muted">Buscar
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="concepto o referencia…"
                  className="mt-0.5 block w-full rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" /></label>
-        <a href={`/api/contabilidad/cc/diario?formato=csv&desde=${desde}&hasta=${hasta}&limit=1000`}
+        <button type="button"
+           onClick={async () => {
+             // Con Authorization: el <a href> directo no la lleva y devolvía 401.
+             const url = await fetchAuthBlobUrl(`/api/contabilidad/cc/diario?formato=csv&desde=${desde}&hasta=${hasta}&limit=1000`);
+             if (!url) { window.alert("No se pudo descargar el CSV."); return; }
+             const a = document.createElement("a"); a.href = url; a.download = `libro_diario_${desde}_${hasta}.csv`;
+             document.body.appendChild(a); a.click(); a.remove();
+           }}
            className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-ink hover:border-accent">
           Descargar CSV
-        </a>
+        </button>
       </div>
 
       {d && (

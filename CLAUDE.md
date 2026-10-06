@@ -204,6 +204,8 @@ queda para el contador. ⛔ Corte `CONTABILIDAD_FECHA_CORTE` = 2026-09-01 (lo an
 Mercado Pago = **130505** (retiro al banco es traslado, no ingreso); 2367 = IVA retenido; 2380 = acreedores varios;
 rendimientos = **236535**; un backfill necesita subir `CONTABILIDAD_LEDGER_BUDGET_S`; ante 503 de Alegra **releer antes
 de reintentar**; IVA de ventas nunca como total/1,19.
+Borradores del 350 (retefuente + reteIVA) y del RTICA para revisar con el contador: Libro Mayor → **Declaraciones**
+(`declaraciones_impuestos.py`).
 
 **K/L/T · Despachos** (`logistica-despachos.md`). Pagos de mensajería por lote → Solicitudes de pago (un lote con
 `solicitud_pago_id` no se postea otra vez). Rótulos térmicos 10×15 **sin contenido ni valor declarado**; MeLi usa su

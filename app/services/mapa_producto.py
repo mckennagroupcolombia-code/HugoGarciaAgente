@@ -330,9 +330,12 @@ def _construir() -> dict:
             else "La receta no incluye etiqueta: se imprime pero no se descuenta ni se costea.")
 
         # 3. Documento técnico (describe la materia prima; el combo lo hereda)
-        doc = None
+        # Producto formulado como combo: si un documento declara el SKU del combo, es el suyo.
+        doc = next((d for d in docs if _declara_sku(d, ref)), None)
+        if doc:
+            doc = A.mejor_documento(ref, nombre, [d for d in docs if _declara_sku(d, ref)])
         mp_doc = None  # la materia prima a la que pertenece el documento encontrado
-        for c in mp:
+        for c in ([] if doc else mp):
             doc = A.mejor_documento(c["codigo"], c["nombre"], docs)
             # Con varias «materias primas», un parecido de nombre que no tiene nada que ver con
             # el producto vendido no vale: la bolsa BOLTRA500gZIP se llama «SEMILLA GIRASOL g» en
@@ -354,7 +357,7 @@ def _construir() -> dict:
                                         no_requiere=exento)
         elif doc:
             declarados = {x.lower() for x in [doc.get("referencia") or "", *doc.get("equivalentes", [])] if x}
-            por_sku = any(c["codigo"].lower() in declarados for c in mp)
+            por_sku = ref.lower() in declarados or any(c["codigo"].lower() in declarados for c in mp)
             estado = "ok" if doc["estado"] in _DOC_OK else "aviso"
             detalle = doc["estado"] + (" · unido por SKU" if por_sku else " · unido por parecido de nombre (el documento no declara SKU)")
             if estado == "ok" and not por_sku:
@@ -834,7 +837,9 @@ def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False, corregi
     - un código que NO es un producto de inventario activo (viejo, mal tecleado o el de un
       combo) → lo reemplaza: era un enlace roto, no una decisión (`ALUg` cuando el producto
       es `ALUALLg`). Antes se rechazaba y el taller no dejaba unir esos documentos;
-    - OTRA materia prima activa → no la pisa. Solo con `compartir=True` agrega el SKU a
+    - el SKU de un COMBO activo vale cuando el producto está formulado como combo (una mezcla
+      de varias materias primas): el documento describe el combo, no una de sus partes;
+    - OTRA materia prima (o combo) activa → no la pisa. Solo con `compartir=True` agrega el SKU a
       `referencias_equivalentes`: el mismo documento sirve a las dos. Con `corregir=True`
       (lo pide una persona desde el editor del documento: el enlace estaba mal) la reemplaza.
     """
@@ -856,8 +861,8 @@ def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False, corregi
     from app.services import alegra_catalogo_db as ac
 
     item = ac.obtener_item(sku)
-    if not item or item.get("type") == "kit" or (item.get("status") or "active") != "active":
-        raise ValueError(f"`{sku}` no es un producto de inventario activo en Alegra (la referencia es la materia prima, no el combo)")
+    if not item or (item.get("status") or "active") != "active":
+        raise ValueError(f"`{sku}` no es un producto ni un combo activo en Alegra")
 
     texto = ruta.read_text(encoding="utf-8")
     antes = yaml.safe_load(texto) or {}
@@ -872,7 +877,7 @@ def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False, corregi
         otro = ac.obtener_item(actual)
         if corregir:
             modo = "corregir"
-        elif otro and otro.get("type") != "kit" and (otro.get("status") or "active") == "active":
+        elif otro and (otro.get("status") or "active") == "active":
             if not compartir:
                 raise ValueError(f"El documento ya pertenece a `{actual}`, que es otro producto activo. "
                                  "Si los dos son la misma sustancia, compártelo; si no, este producto necesita su propio documento")

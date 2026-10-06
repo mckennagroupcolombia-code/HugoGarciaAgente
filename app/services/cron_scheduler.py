@@ -83,7 +83,7 @@ JOBS: dict[str, dict[str, str]] = {
     },
     "notas_credito_auto": {
         "nombre": "Notas crédito automáticas (MeLi canceladas)",
-        "descripcion": "Emite en Siigo la nota crédito de ventas MeLi canceladas con factura ya emitida (margen 48h) y avisa por WhatsApp.",
+        "descripcion": "Emite en Alegra la nota crédito de ventas MeLi canceladas con factura vigente (margen 48h), SOLO si MeLi nos descontó la plata devuelta al comprador (si la cubrió MeLi, la factura se queda), y avisa por WhatsApp.",
         "script": "scripts/emitir_notas_credito_cron.py",
     },
     "anulaciones_ra": {
@@ -153,6 +153,11 @@ JOBS: dict[str, dict[str, str]] = {
         "nombre": "Soportes del Libro Mayor (facturas adjuntas)",
         "descripcion": "Baja de Alegra los PDF de facturas y notas crédito propias que falten, y adjunta a cada asiento sin soporte la factura PDF/XML de facturas_descargadas/ (compras por NIT + número leídos del XML de la DIAN; ventas por su FE), para que el contador la abra desde la columna «Soporte» de los CSV. Solo enlaza archivos, nunca pisa un soporte subido a mano ni toca lo anterior al corte; sin IA. ADJUNTAR_SOPORTES_CRON_ACTIVO=0 lo apaga.",
         "script": "scripts/adjuntar_soportes_cron.py",
+    },
+    "facturar_entregadas_48h": {
+        "nombre": "Factura electrónica MeLi a las 48 h de entregado",
+        "descripcion": "Factura (Alegra/DIAN) cada venta MeLi entregada hace más de 48 h que siga sin factura, con las mismas barreras de «Facturar ahora» (candado, verificación en Alegra, cancelaciones/reembolsos, SKU). Avisa por WhatsApp lo emitido y lo bloqueado. FACTURACION_ENTREGADAS_CRON_ACTIVO=0 lo apaga.",
+        "script": "scripts/facturar_entregadas_cron.py",
     },
     "revision_facturacion": {
         "nombre": "Revisión autónoma de facturación MeLi",

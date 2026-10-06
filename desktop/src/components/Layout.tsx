@@ -15,9 +15,7 @@ import UserMenuButton from "./nav/UserMenuButton";
 import AccesosRapidos from "./nav/AccesosRapidos";
 import CampanaNotificaciones from "./chat_equipo/CampanaNotificaciones";
 import TareaEnCurso from "./TareaEnCurso";
-import ThemeModeToggle from "./ThemeModeToggle";
 import PantallaControles from "./nav/PantallaControles";
-import { TemasHeaderButton } from "./TemasSidebarButton";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { usePanelSession } from "../hooks/usePanelSession";
@@ -265,12 +263,10 @@ export default function Layout({
               {!barraMovil && (
                 <>
                   <TareaEnCurso />
-                  <AccesosRapidos />
+                  {panel !== "mapa-vivo" && <AccesosRapidos />}
                   <CampanaNotificaciones />
                   <div className="mck-cabezote-vista">
                     <PantallaControles />
-                    <TemasHeaderButton />
-                    <ThemeModeToggle />
                   </div>
                   <UserMenuButton />
                 </>

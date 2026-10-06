@@ -123,7 +123,7 @@ def _cliente_desde_factura(f: dict) -> dict | None:
     return {"nombre": nombre or None, "identificacion": ident or None}
 
 
-def _notas_credito_alegra_por_factura(headers: dict, desde: str) -> dict[str, list[dict]]:
+def _notas_credito_alegra_por_factura(headers: dict, desde: str, *, estricto: bool = False) -> dict[str, list[dict]]:
     """Notas crédito de Alegra desde `desde`, indexadas por factura_id
     referenciada. OJO rendimiento: el bloque que copió esto de
     `listar_ventas_meli_con_trazabilidad` paginaba TODO el historial de notas
@@ -137,9 +137,19 @@ def _notas_credito_alegra_por_factura(headers: dict, desde: str) -> dict[str, li
                 f"{_ALEGRA_BASE}/credit-notes", headers=headers,
                 params={"limit": 30, "start": pagina * 30, "date_afterEqual": desde}, timeout=20,
             )
+            if r.status_code == 429:
+                _time.sleep(3)
+                r = requests.get(
+                    f"{_ALEGRA_BASE}/credit-notes", headers=headers,
+                    params={"limit": 30, "start": pagina * 30, "date_afterEqual": desde}, timeout=20,
+                )
         except requests.RequestException:
+            if estricto:
+                raise
             break
         if r.status_code != 200:
+            if estricto:
+                raise RuntimeError(f"Alegra /credit-notes HTTP {r.status_code} en la página {pagina}")
             break
         lote = r.json() or []
         if not lote:
@@ -195,8 +205,24 @@ def _facturas_alegra_cacheadas(headers: dict, desde: str, *, forzar: bool = Fals
         cacheado = _cache_alegra.get(desde)
         if cacheado and cacheado[0] >= inicio:
             return cacheado[1], cacheado[2]  # otra petición la bajó mientras esperábamos
-        facturas = obtener_facturas_alegra_paginadas(desde)
-        notas_por_factura = _notas_credito_alegra_por_factura(headers, desde)
+        # Estricto: una página que falla (timeout, 429 repetido) cortaba la
+        # descarga en silencio y la lista PARCIAL quedaba como base hasta 6 h.
+        # Toda factura después del corte se veía «sin facturar» (5-oct-2026:
+        # pack 2000015048323195 con FE451 vigente, 117 «sin facturar» en el
+        # histórico). Si falla, se conserva la base anterior completa.
+        try:
+            facturas = obtener_facturas_alegra_paginadas(desde, estricto=True)
+            notas_por_factura = _notas_credito_alegra_por_factura(headers, desde, estricto=True)
+        except Exception as e:  # noqa: BLE001
+            if cacheado:
+                print(f"⚠️ [FACTURACION] Descarga de Alegra incompleta ({e}); se usa la base anterior.")
+                return cacheado[1], cacheado[2]
+            raise RuntimeError(f"No se pudo descargar completa la base de facturas de Alegra: {e}") from e
+        anterior = cacheado[1] if cacheado else []
+        if anterior and len(facturas) < len(anterior):
+            # Las facturas no desaparecen de Alegra: menos que antes = descarga cortada.
+            print(f"⚠️ [FACTURACION] Alegra devolvió {len(facturas)} facturas (antes {len(anterior)}); se conserva la base anterior.")
+            return cacheado[1], cacheado[2]
         _cache_alegra[desde] = (_time.time(), facturas, notas_por_factura)
         return facturas, notas_por_factura
 
@@ -720,7 +746,12 @@ def listar_ventas_meli_unificado(
     desde_facturas = max(
         (datetime.now() - timedelta(days=dias)).strftime("%Y-%m-%d"), FECHA_CORTE_MIGRACION_ALEGRA,
     )
-    facturas, notas_por_factura = _facturas_alegra_cacheadas(headers, desde_facturas, forzar=forzar)
+    try:
+        facturas, notas_por_factura = _facturas_alegra_cacheadas(headers, desde_facturas, forzar=forzar)
+    except RuntimeError as e:
+        # Sin la base completa no se calcula nada: con una parcial, todo lo que
+        # quedó fuera se guardaría en el histórico como «sin facturar».
+        return {"ventas": [], "total": 0, "error": str(e)}
 
     por_orden: dict[str, list[dict]] = {}
     for f in facturas:
@@ -1257,11 +1288,10 @@ def consultar_venta_individual(identificador: str) -> dict | None:
         if not orden:
             return None
 
-    try:
-        headers = _alegra_headers()
-        facturas, notas_por_factura = _facturas_alegra_para_consulta_puntual(headers)
-    except RuntimeError:
-        facturas, notas_por_factura = [], {}
+    # Sin la base de Alegra NO se sigue: antes se seguía con una lista vacía y la
+    # venta quedaba guardada en el histórico como «sin facturar».
+    headers = _alegra_headers()
+    facturas, notas_por_factura = _facturas_alegra_para_consulta_puntual(headers)
 
     # Órdenes hermanas del pack: hacen falta para cruzar TODO lo comprado en el
     # carrito contra todo lo facturado (ver `construir_cruce_pack`). Con una sola

@@ -977,6 +977,20 @@ def _fmt_cop_aprox(n: float) -> str:
     return "$" + f"{round(float(n or 0)):,}".replace(",", ".")
 
 
+def test_resumen_de_prestamos_ve_los_prestamos_de_terceros(mods):
+    """El checklist del hub decía «No hay préstamos con saldo vigente» con cinco
+    vivos (oct-2026): el resumen buscaba la 2295 y el PUC real los lleva en 2195."""
+    cc, pr, tercero, medio = mods
+    _crear(pr, tercero, medio)
+
+    r = cc.resumen_prestamos()
+
+    assert r["recibidos"]["cantidad"] == 1
+    assert r["recibidos"]["total"] == CAPITAL
+    assert r["recibidos"]["terceros"][0]["tercero_id"] == tercero["id"]
+    assert r["otorgados"]["cantidad"] == 0
+
+
 def test_aprobar_la_solicitud_de_una_cuota_separa_interes_retencion_y_reteica(mods, monkeypatch):
     # 2026-10-05: `aprobar` rearmaba el asiento sin la referencia a la cuota y
     # la contabilizaba como gasto genérico (todo a 2195, retención a 236595).
