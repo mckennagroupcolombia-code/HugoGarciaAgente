@@ -22,11 +22,13 @@ function reloj(s: number): string {
  * Nota de voz del chat: 🎤 empieza a grabar; mientras graba muestra el tiempo, ✕ descarta y
  * «Enviar» la entrega como archivo (`onListo`), que viaja igual que una foto o un PDF.
  */
-export default function GrabadorVoz({ onListo, onGrabando, onError, deshabilitado }: {
+export default function GrabadorVoz({ onListo, onGrabando, onError, deshabilitado, className }: {
   onListo: (archivo: File) => void;
   onGrabando?: (grabando: boolean) => void;
   onError?: (mensaje: string) => void;
   deshabilitado?: boolean;
+  /** Clases del botón 🎤 para que combine con cada chat. */
+  className?: string;
 }) {
   const [grabando, setGrabando] = useState(false);
   const [segundos, setSegundos] = useState(0);
@@ -103,7 +105,7 @@ export default function GrabadorVoz({ onListo, onGrabando, onError, deshabilitad
 
   return (
     <button onClick={() => void empezar()} disabled={deshabilitado}
-      className="rounded-lg border border-border bg-surface-input px-2.5 py-2 text-[15px] disabled:opacity-50"
+      className={className ?? "rounded-lg border border-border bg-surface-input px-2.5 py-2 text-[15px] disabled:opacity-50"}
       title="Grabar una nota de voz" aria-label="Nota de voz">🎤</button>
   );
 }

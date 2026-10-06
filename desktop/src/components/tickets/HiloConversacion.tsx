@@ -22,12 +22,17 @@ import { sonarRevisado } from "../combos/sonidoMoneda";
 import VisorFotos, { type FotoVisor } from "./VisorFotos";
 import RevisionEmpaqueEnSolicitud from "../revisionEmpaque/RevisionEmpaque";
 import "./hiloPixel.css";
+import GrabadorVoz from "../chat_equipo/GrabadorVoz";
 
 /** La solicitud/acción que la persona está atendiendo (la bandeja la ofrece como «Seguir con…»). */
 export const CLAVE_HILO_ACTUAL = "mck_hilo_actual";
 
 function esImagen(nombre: string, mime?: string | null) {
   return Boolean(mime?.startsWith("image/")) || /\.(jpe?g|png|gif|webp|heic)$/i.test(nombre);
+}
+
+function esAudio(nombre: string, mime?: string | null) {
+  return Boolean(mime?.startsWith("audio/")) || /\.(webm|ogg|oga|opus|mp3|m4a|aac|wav)$/i.test(nombre);
 }
 
 /** Las cuatro casillas del wizard, como las piezas del taller de combos. */
@@ -118,6 +123,7 @@ export default function HiloConversacion({
 
   const [draft, setDraft] = useState("");
   const [archivos, setArchivos] = useState<File[]>([]);
+  const [grabando, setGrabando] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [msg, setMsg] = useState("");
@@ -260,6 +266,16 @@ export default function HiloConversacion({
       if (draftRef.current) draftRef.current.style.height = "";
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "No se pudo enviar el mensaje");
+      setTimeout(() => setMsg(""), 3500);
+    }
+  }
+
+  // La nota de voz sale sola al terminar de grabar; lo escrito se queda en la caja.
+  async function enviarVoz(voz: File) {
+    try {
+      await enviar.mutateAsync({ ticketId, texto: "", archivos: [voz] });
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "No se pudo enviar la nota de voz");
       setTimeout(() => setMsg(""), 3500);
     }
   }
@@ -786,7 +802,9 @@ export default function HiloConversacion({
                   <div className="max-w-[85%] space-y-1 lg:max-w-[65%]">
                     {!esMio && <p className="hp-autor px-0.5">{autorNombre}</p>}
                     {item.kind === "adjunto" ? (
-                      esImagen(item.adjunto.nombre_original, item.adjunto.mime) ? (
+                      esAudio(item.adjunto.nombre_original, item.adjunto.mime) ? (
+                        <audio src={ticketsUploadUrl(item.adjunto.nombre_archivo, token)} controls preload="metadata" className="h-10 w-64 max-w-full" />
+                      ) : esImagen(item.adjunto.nombre_original, item.adjunto.mime) ? (
                         <button type="button" onClick={() => abrirFoto(ticketsUploadUrl(item.adjunto.nombre_archivo, token))} aria-label="Ver foto">
                           <img
                             src={ticketsUploadUrl(item.adjunto.nombre_archivo, token)}
@@ -846,6 +864,7 @@ export default function HiloConversacion({
             </div>
           )}
           <div className="flex items-end gap-2">
+            {!grabando && <>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
@@ -862,6 +881,11 @@ export default function HiloConversacion({
                 e.target.value = "";
               }}
             />
+            </>}
+            <GrabadorVoz onListo={(f) => void enviarVoz(f)} onGrabando={setGrabando} deshabilitado={enviar.isPending}
+              onError={(m) => { setMsg(m); setTimeout(() => setMsg(""), 5000); }}
+              className="hp-boton-sm shrink-0 !px-2.5 text-[18px] disabled:opacity-40" />
+            {!grabando && <>
             <textarea
               ref={draftRef}
               value={draft}
@@ -894,6 +918,7 @@ export default function HiloConversacion({
             >
               Enviar
             </button>
+            </>}
           </div>
         </div>
       ) : (

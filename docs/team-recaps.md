@@ -5119,3 +5119,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Servidor: `_EXT_ADJUNTO` admite webm, ogg, oga, opus, mp3, m4a, aac, wav; el aviso push dice «🎤 Nota de voz».
 - **Verificado:** `npm run build`; import de Python; reinicio de `agente-pro`.
 - **Archivos Modificados:** `desktop/src/components/chat_equipo/GrabadorVoz.tsx`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `app/routes_canales.py`, `app/services/canales_internos.py`, `docs/team-recaps.md`
+
+## 2026-10-05 — Solicitudes: notas de voz en el chat de la solicitud
+- El 🎤 también va en el hilo de una solicitud (`HiloConversacion.tsx`, la vista que se abre en el celular desde Mensajes → Solicitudes), reusando `GrabadorVoz` (nuevo prop `className`). Los audios se reproducen en la burbuja.
+- `routes_tickets._ALLOWED` admite webm, ogg, oga, opus, mp3, m4a, aac, wav.
+- **Verificado:** `npm run build`; import de Python; reinicio de `agente-pro`.
+- **Archivos Modificados:** `desktop/src/components/tickets/HiloConversacion.tsx`, `desktop/src/components/chat_equipo/GrabadorVoz.tsx`, `app/routes_tickets.py`, `docs/team-recaps.md`

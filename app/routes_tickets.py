@@ -49,9 +49,11 @@ from app.services.tickets_db import (
     listar_conversaciones, marcar_ticket_visto, timeline_ticket,
 )
 
-_ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "xls", "xlsx", "txt"}
+_ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "xls", "xlsx", "txt",
+            # notas de voz del chat de la solicitud (WebM/Opus, M4A de iPhone, OGG)
+            "webm", "ogg", "oga", "opus", "mp3", "m4a", "aac", "wav"}
 _AVATAR_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
-_ALLOWED_LABEL = "PDF, JPG, PNG, GIF, WEBP, DOC, DOCX, XLS, XLSX, TXT"
+_ALLOWED_LABEL = "PDF, JPG, PNG, GIF, WEBP, DOC, DOCX, XLS, XLSX, TXT o audio"
 
 _NOTIF_CONFIG_PATH = Path(__file__).parent / "data" / "config_notif_wa.json"
 
