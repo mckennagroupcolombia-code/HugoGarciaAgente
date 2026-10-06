@@ -5242,3 +5242,11 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `GET /api/etiquetas/recursos-png/archivo/<nombre>?ancho=N` (80–800): copia reducida cacheada en el temporal (clave con mtime, re-aprobar la renueva). 650 KB → 31 KB por tarjeta. Las tarjetas la piden solo al entrar en pantalla.
 - **Verificado:** `npm run build` limpio; ruta probada en localhost:8080 tras reiniciar `agente-pro`.
 - **Archivos Modificados:** `app/routes.py`, `desktop/src/components/plantillas-visuales/StudioCategoriasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-06 — COA del grupo «COA y fichas técnicas» → documentos técnicos; borradores en la Biblioteca
+- Pedido del usuario: aplicar los 36 certificados que subió Jenniffer al grupo. 21 documentos actualizados (lote, fechas, proveedor, resultados; PDF regenerado y lote registrado para Imprimir), propagados a etiquetas (origen, y Tego Betaína reescrita y re-enlazada al documento completo).
+- Fusionados: goma xanthana/xanthan → goma xantana; glicerina → glicerina vegetal; L-arginina → L-arginina base; proteína de suero (2) → proteína concentrada de suero de leche. Retirados a `backups_manual/fichas_retiradas_2026-10-06/`.
+- 5 materias primas nuevas como borrador (SDS sugerida, falta visto bueno de Calidad): gluconato de calcio, ácido giberélico, goma de algarrobo, aceite de pescado omega 3, péptidos de colágeno de pescado.
+- La Biblioteca solo listaba PDF: ahora muestra arriba los borradores pendientes con «Revisar»; se quitó el tope de 8 en «Borradores guardados».
+- **Verificado:** `npm run build` limpio; vista previa de los borradores generada.
+- **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `fichas_word/datos/*` (datos), `docs/team-recaps.md`
