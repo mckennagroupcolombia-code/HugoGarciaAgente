@@ -14,7 +14,9 @@ import uuid
 from flask import jsonify, request, send_file, send_from_directory
 from werkzeug.utils import secure_filename
 
-_EXT_ADJUNTO = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "heic", "doc", "docx", "xls", "xlsx", "txt", "csv"}
+_EXT_ADJUNTO = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "heic", "doc", "docx", "xls", "xlsx", "txt", "csv",
+                # notas de voz: WebM/Opus (Chrome, Android), M4A (Safari, iPhone), OGG (WhatsApp)
+                "webm", "ogg", "oga", "opus", "mp3", "m4a", "aac", "wav"}
 _MAX_ADJUNTO = 15 * 1024 * 1024
 
 

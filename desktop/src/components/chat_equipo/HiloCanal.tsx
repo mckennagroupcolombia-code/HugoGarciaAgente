@@ -14,6 +14,7 @@ import {
 import { ChipVinculo, SelectorVinculo } from "./VinculoModulo";
 import SolicitudesDelGrupo from "./SolicitudesDelGrupo";
 import { canalesEnPantalla } from "../../hooks/useAvisosMensajes";
+import GrabadorVoz from "./GrabadorVoz";
 
 function hora(ts: number): string {
   const d = new Date(ts * 1000);
@@ -29,6 +30,13 @@ function esImagen(m: MensajeCanal): boolean {
   if (mime.startsWith("image/")) return true;
   const n = (m.adjunto_nombre || m.adjunto_archivo || m.wa_media_path || "").toLowerCase();
   return /\.(png|jpe?g|gif|webp|heic)$/.test(n);
+}
+
+/** Nota de voz grabada en el panel o audio que llegó por el grupo de WhatsApp enlazado. */
+function esAudio(m: MensajeCanal): boolean {
+  if ((m.adjunto_mime || "").startsWith("audio/")) return true;
+  const n = (m.adjunto_nombre || m.adjunto_archivo || m.wa_media_path || "").toLowerCase();
+  return /\.(webm|ogg|oga|opus|mp3|m4a|aac|wav)$/.test(n);
 }
 
 function urlAdjunto(m: MensajeCanal, token: string): string | null {
@@ -77,7 +85,10 @@ function Burbuja({ m, propio, token, modulos, onIncidente }: { m: MensajeCanal; 
             <img src={url} alt={m.adjunto_nombre || "foto"} loading="lazy" className="max-h-72 rounded-lg border border-border object-contain" />
           </a>
         )}
-        {url && !esImagen(m) && (
+        {url && esAudio(m) && (
+          <audio src={url} controls preload="metadata" className="mt-1 h-10 w-64 max-w-full" />
+        )}
+        {url && !esImagen(m) && !esAudio(m) && (
           <a href={url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-surface px-2 py-1 text-[11px] font-bold text-ink hover:border-accent/60">
             📎 {m.adjunto_nombre || "archivo"}
           </a>
@@ -109,6 +120,7 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   const leido = useMarcarCanalLeido();
   const [texto, setTexto] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
+  const [grabando, setGrabando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const finRef = useRef<HTMLDivElement>(null);
   const fotoRef = useRef<HTMLInputElement>(null);
@@ -139,6 +151,16 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
       setTexto("");
       setArchivo(null);
       setVinculo(null);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  // La nota de voz sale sola al terminar de grabar; lo escrito y el vínculo se quedan en la caja.
+  const mandarVoz = async (voz: File) => {
+    setError(null);
+    try {
+      await enviar.mutateAsync({ texto: "", archivo: voz, ref: null });
     } catch (e) {
       setError((e as Error).message);
     }
@@ -207,6 +229,7 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
           <input ref={archivoRef} type="file" className="hidden"
             accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.doc,.docx,.xls,.xlsx,.txt,.csv"
             onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+          {!grabando && <>
           <button onClick={() => fotoRef.current?.click()} className="rounded-lg border border-border bg-surface-input px-2.5 py-2 text-[15px]" title="Tomar o subir una foto" aria-label="Foto">📷</button>
           <button onClick={() => archivoRef.current?.click()} className="rounded-lg border border-border bg-surface-input px-2.5 py-2 text-[15px]" title="Adjuntar archivo" aria-label="Adjuntar">📎</button>
           {modulos.length > 0 && (
@@ -214,6 +237,9 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
               className={`rounded-lg border px-2.5 py-2 text-[15px] ${eligiendo || vinculo ? "border-accent bg-accent/10" : "border-border bg-surface-input"}`}
               title={`Vincular ${moduloCanal ? moduloCanal.item.toLowerCase() : "un elemento"} a este mensaje`} aria-label="Vincular">🔗</button>
           )}
+          </>}
+          <GrabadorVoz onListo={(f) => void mandarVoz(f)} onGrabando={setGrabando} onError={setError} deshabilitado={enviar.isPending} />
+          {!grabando && <>
           <textarea
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
@@ -234,6 +260,7 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
           >
             {enviar.isPending ? "…" : "Enviar"}
           </button>
+          </>}
         </div>
       </div>
     </div>

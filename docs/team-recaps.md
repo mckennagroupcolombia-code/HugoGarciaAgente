@@ -5112,3 +5112,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Al salir de la casilla, si el texto es exacto a un código o nombre de la lista (p. ej. `AGUDESmL`), queda enlazado sin hacer clic.
 - **Verificado:** arnés temporal (ya retirado), captura con «agua» → AGUA DESTILADA GL / mL / AGUA ROSAS visibles; `npm run build`.
 - **Archivos Modificados:** `desktop/src/components/formulas/FormulasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Grupos: notas de voz en el chat
+- Botón 🎤 en el hilo de un grupo (`GrabadorVoz.tsx`): graba con MediaRecorder (WebM/Opus en Chrome y Android, M4A en Safari/iPhone), muestra el tiempo, ✕ descarta y «Enviar 🎤» la manda sola; máximo 10 min. La app Android ya concedía el micrófono (`onPermissionRequest`).
+- Las burbujas reproducen el audio con `<audio controls>`, también los audios que llegan del grupo de WhatsApp enlazado.
+- Servidor: `_EXT_ADJUNTO` admite webm, ogg, oga, opus, mp3, m4a, aac, wav; el aviso push dice «🎤 Nota de voz».
+- **Verificado:** `npm run build`; import de Python; reinicio de `agente-pro`.
+- **Archivos Modificados:** `desktop/src/components/chat_equipo/GrabadorVoz.tsx`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `app/routes_canales.py`, `app/services/canales_internos.py`, `docs/team-recaps.md`

@@ -392,7 +392,8 @@ def enviar_mensaje(
             pass
     if texto_wa and jid:
         _reenviar_a_wa(jid, texto_wa)
-    _avisar(canal_id, (usuario or {}).get("id"), autor, texto, bool(adjunto))
+    es_voz = str((adjunto or {}).get("mime") or "").startswith("audio/")
+    _avisar(canal_id, (usuario or {}).get("id"), autor, texto or ("🎤 Nota de voz" if es_voz else ""), bool(adjunto))
     return _fila_mensaje(fila)
 
 
