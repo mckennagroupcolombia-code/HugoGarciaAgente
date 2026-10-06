@@ -5255,3 +5255,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Pedido del usuario: las etiquetas por aprobar van dentro de una carpeta plegable «📁 Borradores · N», después de las aprobadas, tanto en el detalle (tarjetas) como en el árbol lateral. Plegada por defecto; se abre sola al buscar, y en el árbol también si contiene la etiqueta abierta en el editor. Solo vista: no se crean archivos.
 - **Verificado:** `npm run build` (tsc + vite) limpio.
 - **Archivos Modificados:** `desktop/src/components/plantillas-visuales/StudioCategoriasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-06 — Eliminar borradores de documentos técnicos
+- Pedido del usuario: poder eliminar borradores. Botón «Eliminar» (confirmación en la fila) en la Biblioteca y en «Borradores guardados».
+- `DELETE /api/fichas/borradores/<slug>` → `eliminar_borrador_completo`: solo `borrador_ft_coa_sds_*`; no borra, mueve a `fichas_word/_borradores_eliminados/` con fecha; se niega si hay etiquetas enlazadas al borrador.
+- **Verificado:** `npm run build` limpio; `agente-pro` reiniciado; ruta responde 401 sin token; prueba con una copia (se movió y salió de la lista; un documento final no se puede borrar por esta vía).
+- **Archivos Modificados:** `app/routes.py`, `app/services/ficha_tecnica.py`, `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`

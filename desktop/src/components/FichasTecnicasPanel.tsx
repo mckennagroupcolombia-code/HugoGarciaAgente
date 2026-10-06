@@ -244,6 +244,62 @@ function DocDelCombo({ onAbrir, editando, onVolver }: {
   );
 }
 
+/** Botón «Eliminar» de un borrador, con confirmación en la misma fila. El servidor no lo
+ *  borra: lo guarda en fichas_word/_borradores_eliminados/. */
+function EliminarBorradorBoton({ slug, onEliminado }: { slug: string; onEliminado: () => void }) {
+  const [confirmar, setConfirmar] = useState(false);
+  const [enCurso, setEnCurso] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const eliminar = async () => {
+    setEnCurso(true);
+    setError(null);
+    try {
+      await api.delete(`/api/fichas/borradores/${encodeURIComponent(slug)}`);
+      setConfirmar(false);
+      onEliminado();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEnCurso(false);
+    }
+  };
+  if (error) {
+    return (
+      <span className="basis-full text-xs text-danger">
+        {error}{" "}
+        <button type="button" onClick={() => { setError(null); setConfirmar(false); }} className="underline">Cerrar</button>
+      </span>
+    );
+  }
+  if (!confirmar) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirmar(true)}
+        className="shrink-0 rounded border border-border px-2 py-0.5 text-xs font-medium text-muted hover:border-danger hover:text-danger"
+      >
+        Eliminar
+      </button>
+    );
+  }
+  return (
+    <span className="flex shrink-0 items-center gap-1 text-xs">
+      <span className="text-danger">¿Eliminar?</span>
+      <button
+        type="button"
+        disabled={enCurso}
+        onClick={() => void eliminar()}
+        className="rounded border border-danger bg-danger px-2 py-0.5 font-medium text-white disabled:opacity-40"
+      >
+        {enCurso ? "…" : "Sí"}
+      </button>
+      <button type="button" disabled={enCurso} onClick={() => setConfirmar(false)} className="rounded border border-border px-2 py-0.5 text-muted">
+        No
+      </button>
+    </span>
+  );
+}
+
 function BibliotecaTab({ onEditar, onNuevo }: { onEditar: (r: BibliotecaDatosResult) => void; onNuevo: () => void }) {
   const [busqueda, setBusqueda] = useState("");
   // Llegada desde el taller de combos: la biblioteca abre buscando el documento de ese producto.
@@ -489,6 +545,7 @@ function BibliotecaTab({ onEditar, onNuevo }: { onEditar: (r: BibliotecaDatosRes
                 >
                   {abriendoBorrador === b.id ? "Abriendo…" : "Revisar"}
                 </button>
+                <EliminarBorradorBoton slug={b.id} onEliminado={() => void refetchBorradores()} />
               </li>
             ))}
           </ul>
@@ -2534,6 +2591,9 @@ function DocumentoCompletoTabContent({
                 >
                   {cargandoBorrador === b.id ? "Cargando…" : "Continuar"}
                 </button>
+                {!desdeTaller && (
+                  <EliminarBorradorBoton slug={b.id} onEliminado={() => void qc.invalidateQueries({ queryKey: ["fichas-borradores"] })} />
+                )}
               </li>
             ))}
           </ul>

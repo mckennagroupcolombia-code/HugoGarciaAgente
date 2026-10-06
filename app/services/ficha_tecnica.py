@@ -499,6 +499,37 @@ def listar_borradores_completo() -> list[dict]:
     return items
 
 
+def eliminar_borrador_completo(slug: str) -> Path:
+    """Mueve un borrador (`borrador_ft_coa_sds_*`) a `_borradores_eliminados/`.
+    Si hay etiquetas enlazadas a él no se quita: quedarían sin documento."""
+    import shutil
+    from datetime import datetime
+
+    slug = re.sub(r"[^a-zA-Z0-9_-]", "", slug or "")
+    if not slug.startswith("borrador_ft_coa_sds_"):
+        raise FileNotFoundError(slug)
+    path = next((p for p in (DATOS_DIR / f"{slug}.yaml", DATOS_DIR / f"{slug}.yml") if p.is_file()), None)
+    if not path:
+        raise FileNotFoundError(slug)
+    from app.tools.etiquetas_fichas import _load_all
+
+    enlazadas = [
+        e.get("nombre") or e.get("id")
+        for e in _load_all()
+        if (e.get("data") or {}).get("fichaTecnicaId") == slug
+    ]
+    if enlazadas:
+        raise ValueError(
+            "Hay etiquetas enlazadas a este borrador: " + ", ".join(map(str, enlazadas[:5]))
+            + ". Genere el documento final o cambie el enlace antes de eliminarlo."
+        )
+    destino_dir = FICHAS_DIR / "_borradores_eliminados"
+    destino_dir.mkdir(parents=True, exist_ok=True)
+    destino = destino_dir / f"{path.stem}.{datetime.now():%Y%m%d-%H%M%S}{path.suffix}"
+    shutil.move(str(path), destino)
+    return destino
+
+
 def eliminar_borrador_completo_por_titulo(titulo: str) -> bool:
     """Borra el YAML de borrador asociado a un título (tras generar el PDF final)."""
     slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or "ft"

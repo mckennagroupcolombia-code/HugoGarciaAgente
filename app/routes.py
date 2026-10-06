@@ -5956,6 +5956,22 @@ def register_routes(app):
         from app.services.ficha_tecnica import listar_borradores_completo
         return jsonify({"borradores": listar_borradores_completo()})
 
+    @app.route("/app/api/fichas/borradores/<slug>", methods=["DELETE"])
+    @app.route("/api/fichas/borradores/<slug>", methods=["DELETE"])
+    def api_fichas_borrador_eliminar(slug: str):
+        """Quita un borrador de documento técnico. No se borra: pasa a
+        fichas_word/_borradores_eliminados/ para poder recuperarlo."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import eliminar_borrador_completo
+        try:
+            eliminar_borrador_completo(slug)
+        except FileNotFoundError:
+            return jsonify({"error": "Borrador no encontrado"}), 404
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 409
+        return jsonify({"ok": True})
+
     def _mime_bytes_scan(data: bytes) -> str:
         if data[:4] == b"%PDF":
             return "application/pdf"
