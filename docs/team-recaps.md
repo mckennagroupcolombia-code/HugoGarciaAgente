@@ -5250,3 +5250,8 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - La Biblioteca solo listaba PDF: ahora muestra arriba los borradores pendientes con «Revisar»; se quitó el tope de 8 en «Borradores guardados».
 - **Verificado:** `npm run build` limpio; vista previa de los borradores generada.
 - **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `fichas_word/datos/*` (datos), `docs/team-recaps.md`
+
+## 2026-10-06 — Plantillas por categoría: carpeta «Borradores»
+- Pedido del usuario: las etiquetas por aprobar van dentro de una carpeta plegable «📁 Borradores · N», después de las aprobadas, tanto en el detalle (tarjetas) como en el árbol lateral. Plegada por defecto; se abre sola al buscar, y en el árbol también si contiene la etiqueta abierta en el editor. Solo vista: no se crean archivos.
+- **Verificado:** `npm run build` (tsc + vite) limpio.
+- **Archivos Modificados:** `desktop/src/components/plantillas-visuales/StudioCategoriasPanel.tsx`, `docs/team-recaps.md`

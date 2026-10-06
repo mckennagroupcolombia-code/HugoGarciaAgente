@@ -334,11 +334,12 @@ function MarcaEstado({ estado, compacta = false }: { estado: EstadoEtiqueta; com
   );
 }
 
-/** Parte la lista (ya ordenada) en «por aprobar» y «aprobadas». */
+/** Parte la lista (ya ordenada) en «aprobadas» y la carpeta «Borradores» (las
+ *  por aprobar), que va después y plegada (pedido 2026-10-06). */
 function gruposPorEstado(lista: EtiquetaDeCategoria[]) {
   return [
-    { id: "por_aprobar", titulo: "Por aprobar", items: lista.filter((e) => e.estado === "por_aprobar") },
     { id: "aprobadas", titulo: "Aprobadas", items: lista.filter((e) => e.estado !== "por_aprobar") },
+    { id: "por_aprobar", titulo: "Borradores", items: lista.filter((e) => e.estado === "por_aprobar") },
   ].filter((g) => g.items.length > 0);
 }
 
@@ -715,6 +716,8 @@ export default function StudioCategoriasPanel({
       /* sin almacenamiento */
     }
   };
+  /** Carpeta «Borradores» (etiquetas por aprobar): plegada salvo que se abra. */
+  const [borradoresAbiertos, setBorradoresAbiertos] = useState(false);
   /** Categorías desplegadas en la lista lateral (muestran sus etiquetas debajo). */
   const [desplegadas, setDesplegadas] = useState<Set<string>>(() => new Set());
   const alternarDesplegada = (id: string) =>
@@ -898,6 +901,8 @@ export default function StudioCategoriasPanel({
   // Secos y mostraba sus 33 etiquetas, como si el buscador no filtrara. Entera
   // solo sale si ninguna etiqueta coincide pero sí su nombre, claves o plantillas.
   const q = normalizarBusqueda(buscar);
+  // Con una búsqueda escrita, la carpeta se abre sola: si no, lo encontrado no se vería.
+  const verBorradores = borradoresAbiertos || Boolean(q);
   const visibles = useMemo(() => {
     if (!q) return ordenadas;
     const conEtiquetas: ResumenCategoria[] = [];
@@ -1026,13 +1031,25 @@ export default function StudioCategoriasPanel({
                   <div className="mb-1 ml-3 mt-0.5 hidden border-l border-border pl-1.5 lg:block">
                     {gruposPorEstado(r.etiquetas).map((g) => (
                       <div key={g.id}>
-                        <p
-                          className={`mt-1 px-1.5 text-[9px] font-bold uppercase tracking-wider ${
-                            g.id === "por_aprobar" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
-                          }`}
-                        >
-                          {g.titulo} · {g.items.length}
-                        </p>
+                        {g.id === "por_aprobar" ? (
+                          <button
+                            type="button"
+                            onClick={() => setBorradoresAbiertos((v) => !v)}
+                            aria-expanded={verBorradores}
+                            className="mck-btn-no-fx mt-1 flex w-full items-center gap-1 rounded px-1.5 text-left text-[9px] font-bold uppercase tracking-wider text-amber-700 hover:bg-surface-hover dark:text-amber-400"
+                          >
+                            <span className={`inline-block text-[8px] transition-transform ${verBorradores ? "rotate-90" : ""}`}>▶</span>
+                            <span aria-hidden="true">📁</span>
+                            {g.titulo} · {g.items.length}
+                          </button>
+                        ) : (
+                          <p className="mt-1 px-1.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                            {g.titulo} · {g.items.length}
+                          </p>
+                        )}
+                        {(g.id !== "por_aprobar" ||
+                          verBorradores ||
+                          g.items.some((e) => Boolean(etiquetaAbiertaId && e.fichaId === etiquetaAbiertaId))) && (
                         <ul>
                           {g.items.map((e) => {
                             const esta = Boolean(etiquetaAbiertaId && e.fichaId === etiquetaAbiertaId);
@@ -1064,6 +1081,7 @@ export default function StudioCategoriasPanel({
                             );
                           })}
                         </ul>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1367,16 +1385,28 @@ export default function StudioCategoriasPanel({
                 ) : (
                   gruposPorEstado(sel.etiquetas).map((g) => (
                   <div key={g.id} className="mb-2">
-                  <p
-                    className={`mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${
-                      g.id === "por_aprobar" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
-                    }`}
-                  >
-                    <MarcaEstado estado={g.id === "por_aprobar" ? "por_aprobar" : "aprobada"} compacta />
-                    {g.titulo} · {g.items.length}
-                  </p>
+                  {g.id === "por_aprobar" ? (
+                    <button
+                      type="button"
+                      onClick={() => setBorradoresAbiertos((v) => !v)}
+                      aria-expanded={verBorradores}
+                      title={verBorradores ? "Plegar los borradores" : "Ver las etiquetas que aún no se aprueban"}
+                      className="mck-btn-no-fx mb-1 mt-3 flex w-full items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-left text-[11px] font-bold uppercase tracking-wider text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                    >
+                      <span className={`inline-block text-[9px] transition-transform ${verBorradores ? "rotate-90" : ""}`}>▶</span>
+                      <span aria-hidden="true">📁</span>
+                      <span className="flex-1">{g.titulo} · {g.items.length}</span>
+                      <span className="text-[10px] font-medium normal-case tracking-normal opacity-80">por aprobar</span>
+                    </button>
+                  ) : (
+                    <p className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                      <MarcaEstado estado="aprobada" compacta />
+                      {g.titulo} · {g.items.length}
+                    </p>
+                  )}
                   {/* Tarjetas con la miniatura del PNG aprobado (pedido 2026-10-06): la
                       lista de nombres en columnas no dejaba reconocerlas de un vistazo. */}
+                  {(g.id !== "por_aprobar" || verBorradores) && (
                   <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                     {g.items.map((e) => (
                       <li
@@ -1443,6 +1473,7 @@ export default function StudioCategoriasPanel({
                       </li>
                     ))}
                   </ul>
+                  )}
                   </div>
                   ))
                 )}
