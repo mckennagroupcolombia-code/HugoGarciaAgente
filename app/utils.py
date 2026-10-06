@@ -155,8 +155,34 @@ def _post_oauth_meli_con_reintentos(payload: dict) -> requests.Response:
     raise last_error or requests.RequestException("OAuth MeLi sin respuesta")
 
 
-def refrescar_token_meli():
+_REUSO_TOKEN_MELI_S = 20 * 60  # el access_token de MeLi dura 6 h
+
+
+def _token_meli_reciente() -> str | None:
+    """access_token renovado hace menos de `_REUSO_TOKEN_MELI_S`, o None.
+
+    Antes cada llamada hacía un POST a /oauth/token y rotaba el refresh_token:
+    la revalidación del panel lo pedía decenas de veces por minuto y, como todo
+    pasa por el mismo flock, otros procesos se quedaban esperando el candado
+    (6-oct-2026: la facturación de entregadas quedó 20+ min parada en FE969)."""
+    try:
+        with open(MELI_CREDS_PATH, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        ts = float(cfg.get("renovado_ts") or 0)
+        tok = cfg.get("access_token")
+        if tok and 0 <= time.time() - ts < _REUSO_TOKEN_MELI_S:
+            return tok
+    except Exception:  # noqa: BLE001 - sin dato válido se renueva como antes
+        pass
+    return None
+
+
+def refrescar_token_meli(forzar: bool = False):
     with _bloqueo_refresco_meli():
+        if not forzar and MELI_CREDS_PATH:
+            tok = _token_meli_reciente()
+            if tok:
+                return tok
         return _refrescar_token_meli_sin_bloqueo()
 
 
@@ -240,6 +266,7 @@ def _refrescar_token_meli_sin_bloqueo():
                 config['refresh_token'] = new_data['refresh_token']
 
             _persistir_seller_id_meli_en_config(config, config["access_token"])
+            config["renovado_ts"] = time.time()
 
             with open(MELI_CREDS_PATH, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=4)
