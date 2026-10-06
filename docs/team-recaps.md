@@ -5131,3 +5131,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - La usan el chat de Grupos (`HiloCanal.tsx`) y el chat de la solicitud (`HiloConversacion.tsx`, que gana 📷 para fotos del chat). La textarea lleva `mck-field-lg` para escapar del `#root textarea` global.
 - **Verificado:** `npm run build`; captura a 390 px con arnés temporal (ya retirado): caja vacía y con texto.
 - **Archivos Modificados:** `desktop/src/components/chat_equipo/BarraEscritura.tsx`, `desktop/src/components/chat_equipo/GrabadorVoz.tsx`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `desktop/src/components/tickets/HiloConversacion.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Burbuja del chat: siempre grande, botón minimizar y barra WhatsApp
+- `SolicitudesEnProcesoFab.tsx`: la burbuja abre siempre al tamaño máximo (todo el alto libre sobre la bolita, hasta 42×52 rem; en el celular sobre la barra de abajo). Se quitó agrandar/achicar (`mck_fab_chat_grande`).
+- Botón «—» minimiza y conserva la conversación abierta; ✕ cierra y vuelve a la lista.
+- El mini chat de la solicitud usa `BarraEscritura` (📎 📷 🎤/➤) y reproduce audios; «Abrir completo →» queda encima de la barra.
+- **Verificado:** `npx tsc --noEmit` sin errores en estos archivos; `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`

@@ -15,6 +15,7 @@ import { ticketsUploadUrl } from "../../lib/profilePhoto";
 import { Icon } from "../../icons";
 import { useCanalesEquipo, useResumenMensajes } from "../../hooks/useCanalesEquipo";
 import HiloCanal from "../chat_equipo/HiloCanal";
+import BarraEscritura, { BotonCaja, IconoCamara, IconoClip } from "../chat_equipo/BarraEscritura";
 import { guardarVistaMensajes } from "../chat_equipo/SelectorMensajes";
 import { useAvisosMensajes, type AvisoMensaje } from "../../hooks/useAvisosMensajes";
 
@@ -30,7 +31,6 @@ import { useAvisosMensajes, type AvisoMensaje } from "../../hooks/useAvisosMensa
  * está a la vista.
  */
 
-const CLAVE_GRANDE = "mck_fab_chat_grande";
 const CLAVE_VISTA = "mck_fab_chat_vista";
 
 /** Dos conversaciones en la misma burbuja: las de las solicitudes y los grupos de trabajo (pestaña «Equipo»). */
@@ -65,12 +65,8 @@ function esImagen(a: Adjunto) {
   return Boolean(a.mime?.startsWith("image/")) || /\.(jpe?g|png|gif|webp|heic)$/i.test(a.nombre_original);
 }
 
-function leerGrande(): boolean {
-  try {
-    return localStorage.getItem(CLAVE_GRANDE) === "1";
-  } catch {
-    return false;
-  }
+function esAudio(a: Adjunto) {
+  return Boolean(a.mime?.startsWith("audio/")) || /\.(webm|ogg|oga|opus|mp3|m4a|aac|wav)$/i.test(a.nombre_original);
 }
 
 export default function SolicitudesEnProcesoFab() {
@@ -80,7 +76,6 @@ export default function SolicitudesEnProcesoFab() {
   const [soloSinLeer, setSoloSinLeer] = useState(false);
   // La solicitud recién creada tarda un refresco en llegar a la lista: mientras, se usa esta.
   const [recien, setRecien] = useState<Conversacion | null>(null);
-  const [grande, setGrande] = useState(leerGrande);
   const [vista, setVistaState] = useState<VistaFab>(leerVista);
   const [canalId, setCanalId] = useState<number | null>(null);
 
@@ -142,15 +137,12 @@ export default function SolicitudesEnProcesoFab() {
     if (chatId != null && !chat) setChatId(null);
   }, [chatId, chat]);
 
-  function cambiarTamano() {
-    setGrande((v) => {
-      try {
-        localStorage.setItem(CLAVE_GRANDE, v ? "0" : "1");
-      } catch {
-        /* sin localStorage: solo esta vez */
-      }
-      return !v;
-    });
+  // ✕ cierra y deja la burbuja en la lista; «—» solo la minimiza y conserva la conversación abierta.
+  function cerrar() {
+    setAbierta(false);
+    setChatId(null);
+    setCanalId(null);
+    setNuevo(false);
   }
 
   // Siempre visible (sirve para empezar un chat), salvo sin sesión o dentro del Centro de Mando.
@@ -222,11 +214,8 @@ export default function SolicitudesEnProcesoFab() {
       {!(abierta && vista === "grupos" && canalId === aviso?.canal_id) && tarjetaAviso}
       {abierta && (
         <div
-          className={`pointer-events-auto flex flex-col overflow-hidden rounded-paper-lg border-2 border-accent/50 bg-surface-panel shadow-paper-lg ${
-            grande
-              ? "h-[min(82vh,46rem)] w-[min(calc(100vw-1.5rem),38rem)]"
-              : "h-[min(70vh,32rem)] w-[min(calc(100vw-1.5rem),22rem)]"
-          }`}
+          // Siempre al tamaño máximo: todo el alto libre sobre la bolita (en el celular, sobre la barra de abajo).
+          className="pointer-events-auto flex h-[min(calc(100dvh-7rem),52rem)] w-[min(calc(100vw-1.5rem),42rem)] flex-col overflow-hidden rounded-paper-lg border-2 border-accent/50 bg-surface-panel shadow-paper-lg max-md:h-[calc(100dvh-10.5rem)]"
           role="dialog"
           aria-label="Chat del equipo"
         >
@@ -316,17 +305,20 @@ export default function SolicitudesEnProcesoFab() {
             )}
             <button
               type="button"
-              onClick={cambiarTamano}
-              className="rounded-lg p-1 text-muted hover:bg-surface-hover hover:text-ink"
-              title={grande ? "Achicar" : "Agrandar"}
-              aria-label={grande ? "Achicar el chat" : "Agrandar el chat"}
+              onClick={() => setAbierta(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-hover hover:text-ink"
+              title="Minimizar (la conversación queda abierta)"
+              aria-label="Minimizar el chat"
             >
-              <Icon name={grande ? "collapse" : "expand"} size={15} weight="bold" />
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden>
+                <path d="M5 18h14" />
+              </svg>
             </button>
             <button
               type="button"
-              onClick={() => setAbierta(false)}
-              className="rounded-lg px-2 py-0.5 text-sm text-muted hover:bg-surface-hover hover:text-ink"
+              onClick={cerrar}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-muted hover:bg-surface-hover hover:text-ink"
+              title="Cerrar"
               aria-label="Cerrar"
             >
               ✕
@@ -538,6 +530,7 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
   const [error, setError] = useState("");
   const finRef = useRef<HTMLDivElement>(null);
   const archivoRef = useRef<HTMLInputElement>(null);
+  const fotoRef = useRef<HTMLInputElement>(null);
 
   const items = useMemo<ItemChat[]>(() => {
     const out: ItemChat[] = [];
@@ -571,6 +564,16 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
       setArchivos([]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo enviar");
+    }
+  }
+
+  // La nota de voz sale sola al terminar de grabar; lo escrito se queda en la caja.
+  async function mandarVoz(voz: File) {
+    setError("");
+    try {
+      await enviar.mutateAsync({ ticketId: conversacion.id, texto: "", archivos: [voz] });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo enviar la nota de voz");
     }
   }
 
@@ -617,7 +620,9 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
                 <div className="max-w-[82%] space-y-0.5">
                   {!mio && <p className="px-1 text-[10px] font-bold text-muted">{autor ?? "?"}</p>}
                   {it.kind === "adjunto" ? (
-                    esImagen(it.adjunto) ? (
+                    esAudio(it.adjunto) ? (
+                      <audio src={ticketsUploadUrl(it.adjunto.nombre_archivo, token)} controls preload="metadata" className="h-10 w-60 max-w-full" />
+                    ) : esImagen(it.adjunto) ? (
                       <a href={ticketsUploadUrl(it.adjunto.nombre_archivo, token)} target="_blank" rel="noreferrer"
                         className="block overflow-hidden rounded-2xl border border-border" title="Ver imagen completa">
                         <img src={ticketsUploadUrl(it.adjunto.nombre_archivo, token)} alt={it.adjunto.nombre_original}
@@ -644,7 +649,7 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
         <div ref={finRef} />
       </div>
 
-      <div className="shrink-0 space-y-1.5 border-t border-border/60 bg-surface px-2.5 py-2">
+      <div className="shrink-0 space-y-1.5 border-t border-border/60 bg-surface px-2 py-2">
         {archivos.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {archivos.map((f, i) => (
@@ -658,49 +663,28 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
           </div>
         )}
         {error && <p className="text-[11px] text-red-500">{error}</p>}
-        <span className="block">
-          <textarea
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void mandar();
-              }
-            }}
-            onPaste={(e) => {
-              const imgs = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
-              if (imgs.length) {
-                e.preventDefault();
-                agregarArchivos(imgs);
-              }
-            }}
-            rows={2}
-            maxLength={2000}
-            placeholder="Escribe un mensaje… (Enter envía · Ctrl+V pega una foto)"
-            className="w-full resize-none rounded-xl border-2 border-border bg-surface-panel px-2.5 py-1.5 text-[13px] text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-          />
-        </span>
-        <div className="flex items-center gap-1.5">
-          <button type="button" onClick={() => archivoRef.current?.click()}
-            className="shrink-0 rounded-lg border border-border px-2 py-1 text-muted hover:border-accent hover:text-accent"
-            title="Adjuntar foto o PDF" aria-label="Adjuntar foto o PDF">
-            <Icon name="camera" size={15} />
-          </button>
-          <input ref={archivoRef} type="file" accept="image/*,.pdf,application/pdf" multiple className="sr-only"
-            onChange={(e) => { agregarArchivos(e.target.files); e.target.value = ""; }} />
-          <button type="button" onClick={onAbrirCompleto}
-            className="min-w-0 truncate text-[11px] font-bold text-accent hover:underline"
-            title="Pasos, cronómetro y cerrar la solicitud">
-            Abrir completo →
-          </button>
-          <div className="flex-1" />
-          <button type="button" onClick={() => void mandar()}
-            disabled={enviar.isPending || (!texto.trim() && archivos.length === 0)}
-            className="quest-btn-primary shrink-0 px-4 py-1.5 text-xs font-bold disabled:opacity-40">
-            {enviar.isPending ? "…" : "Enviar"}
-          </button>
-        </div>
+        <button type="button" onClick={onAbrirCompleto}
+          className="mck-btn-no-fx block px-1 text-[11px] font-bold text-accent hover:underline"
+          title="Pasos, cronómetro y cerrar la solicitud">
+          Abrir completo →
+        </button>
+        <input ref={archivoRef} type="file" accept="image/*,.pdf,application/pdf" multiple className="sr-only"
+          onChange={(e) => { agregarArchivos(e.target.files); e.target.value = ""; }} />
+        <input ref={fotoRef} type="file" accept="image/*" capture="environment" className="sr-only"
+          onChange={(e) => { agregarArchivos(e.target.files); e.target.value = ""; }} />
+        <BarraEscritura
+          texto={texto} onTexto={(t) => setTexto(t.slice(0, 2000))} onEnviar={() => void mandar()} onVoz={(f) => void mandarVoz(f)}
+          hayAdjunto={archivos.length > 0} enviando={enviar.isPending} onError={setError}
+          onPaste={(e) => {
+            const imgs = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+            if (imgs.length) {
+              e.preventDefault();
+              agregarArchivos(imgs);
+            }
+          }}
+          iconos={<BotonCaja onClick={() => archivoRef.current?.click()} titulo="Adjuntar foto o PDF"><IconoClip /></BotonCaja>}
+          iconosSinTexto={<BotonCaja onClick={() => fotoRef.current?.click()} titulo="Tomar una foto"><IconoCamara /></BotonCaja>}
+        />
       </div>
     </>
   );
