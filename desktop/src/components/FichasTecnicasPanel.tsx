@@ -276,6 +276,29 @@ function BibliotecaTab({ onEditar, onNuevo }: { onEditar: (r: BibliotecaDatosRes
     queryFn: () => api.get<{ archivos: ArchivoGenerado[] }>("/api/fichas/biblioteca"),
   });
 
+  // Los borradores aún no tienen PDF: se listan aparte para que Calidad los encuentre y los revise.
+  const { data: borradoresData, refetch: refetchBorradores } = useQuery({
+    queryKey: ["fichas-borradores"],
+    queryFn: () => api.get<{ borradores: Array<{ id: string; titulo: string; guardado_at?: string; archivo: string }> }>("/api/fichas/borradores"),
+  });
+  const [abriendoBorrador, setAbriendoBorrador] = useState<string | null>(null);
+  const sinTildes = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const borradores = (borradoresData?.borradores ?? [])
+    .filter((b) => !busqueda.trim() || sinTildes(b.titulo).includes(sinTildes(busqueda.trim())))
+    .sort((x, y) => (y.guardado_at || "").localeCompare(x.guardado_at || ""));
+  const revisarBorrador = async (b: { id: string; titulo: string }) => {
+    setAbriendoBorrador(b.id);
+    setEditError(null);
+    try {
+      const r = await api.get<{ datos: Record<string, unknown> }>(`/api/fichas/datos/${encodeURIComponent(b.id)}`);
+      onEditar({ tipo: "completo", titulo: b.titulo, datos: r.datos || {}, yaml: "", tiene_datos: true });
+    } catch (e: unknown) {
+      setEditError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAbriendoBorrador(null);
+    }
+  };
+
   const getToken = async () => {
     const { useTicketsAuth } = await import("../stores/ticketsAuth");
     const { useAuthStore } = await import("../stores/auth");
@@ -401,7 +424,7 @@ function BibliotecaTab({ onEditar, onNuevo }: { onEditar: (r: BibliotecaDatosRes
         />
         <button
           type="button"
-          onClick={() => void refetch()}
+          onClick={() => { void refetch(); void refetchBorradores(); }}
           className="rounded-lg border border-border px-3 py-2 text-xs text-muted hover:text-ink"
         >
           ↻ Actualizar
@@ -440,6 +463,36 @@ function BibliotecaTab({ onEditar, onNuevo }: { onEditar: (r: BibliotecaDatosRes
         <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
           {(generarLotesMut.error as Error).message}
         </p>
+      )}
+
+      {borradores.length > 0 && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 px-4 py-3 space-y-2">
+          <p className="text-sm font-semibold text-ink">
+            Borradores pendientes de revisión ({borradores.length})
+            <span className="ml-2 text-xs font-normal text-muted">Aún sin PDF: se generan al dar el visto bueno.</span>
+          </p>
+          <ul className="max-h-64 space-y-1 overflow-auto">
+            {borradores.map((b) => (
+              <li key={b.id} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="shrink-0 rounded border border-amber-500/50 px-1.5 text-[10px] font-semibold uppercase text-amber-700 dark:text-amber-300">Borrador</span>
+                <span className="min-w-0 flex-1 truncate text-ink">{b.titulo}</span>
+                {b.guardado_at && (
+                  <span className="shrink-0 text-xs text-muted">
+                    {new Date(b.guardado_at).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  disabled={abriendoBorrador === b.id}
+                  onClick={() => void revisarBorrador(b)}
+                  className="shrink-0 rounded border border-border px-2 py-0.5 text-xs font-medium text-accent hover:border-accent disabled:opacity-40"
+                >
+                  {abriendoBorrador === b.id ? "Abriendo…" : "Revisar"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {isLoading && <p className="text-sm text-muted">Cargando biblioteca…</p>}
@@ -2464,8 +2517,8 @@ function DocumentoCompletoTabContent({
       {borradoresVisibles.length > 0 && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 space-y-2">
           <p className="text-xs font-medium text-ink">{desdeTaller ? "Hay un borrador guardado de este producto" : "Borradores guardados"}</p>
-          <ul className="space-y-1">
-            {borradoresVisibles.slice(0, 8).map((b) => (
+          <ul className="max-h-48 space-y-1 overflow-auto">
+            {borradoresVisibles.map((b) => (
               <li key={b.id} className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="min-w-0 flex-1 truncate text-ink">{b.titulo}</span>
                 {b.guardado_at && (
