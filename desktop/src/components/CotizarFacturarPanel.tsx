@@ -739,12 +739,12 @@ export default function CotizarFacturarPanel() {
 
       {verCrearAlegra && (
         <FloatingToolWindow
-          id="crear-siigo"
+          id="crear-siigo-2"
           title="Crear en Alegra"
           titleExtra={<Icon name="package" size={14} weight="bold" className="text-sky-600 dark:text-sky-300" />}
           headerClassName="border-border bg-sky-500/10 text-sky-700 dark:text-sky-300"
           borderClassName="border-sky-500/50"
-          defaultRect={defaultFloatRect("tr", 448, 560)}
+          defaultRect={defaultFloatRect("tr-alto", 576, 720)}
           minWidth={320}
           minHeight={280}
           zIndex={890}
