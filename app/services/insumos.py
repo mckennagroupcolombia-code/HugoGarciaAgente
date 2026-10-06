@@ -285,7 +285,7 @@ def _entradas(desde: str) -> dict[str, list[dict]]:
             "SELECT m.id, m.fecha, m.plantilla_datos_json, t.nombre AS tercero"
             " FROM cc_movimientos m LEFT JOIN cc_terceros t ON t.id = m.tercero_id"
             " WHERE m.estado != 'anulado' AND m.fecha >= ?"
-            " AND (m.tipo_origen IN ('solicitud_pago', 'compra_proveedor'))",
+            " AND (m.tipo_origen IN ('solicitud_pago', 'compra_proveedor', 'legalizacion_anticipo'))",
             (desde,),
         ).fetchall()
     for m in movs:
@@ -296,7 +296,8 @@ def _entradas(desde: str) -> dict[str, list[dict]]:
         items, ref = [], ""
         if pd.get("solicitud_id"):
             s = pw.obtener(int(pd["solicitud_id"]))
-            if s and s.get("estado") not in ("rechazada", "anulada"):
+            # Un anticipo es lo cotizado, no lo recibido: cuenta su legalización.
+            if s and s.get("estado") not in ("rechazada", "anulada") and not s.get("es_anticipo"):
                 items, ref = s.get("items") or [], f"solicitud #{s['id']}"
         elif isinstance(pd.get("items"), list):
             items, ref = pd["items"], f"asiento #{m['id']}"

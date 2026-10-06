@@ -429,6 +429,23 @@ def init_db() -> None:
             # perdía.
             ("cruce_anticipo", "REAL NOT NULL DEFAULT 0"),
             ("cruce_cxp", "REAL NOT NULL DEFAULT 0"),
+            # Pago anticipado contra cotización (6-oct-2026): el giro se asienta a
+            # 133005 y la compra (1435 + 240810) nace al legalizar con la factura
+            # electrónica, que es cuando se sabe qué se facturó de verdad.
+            ("es_anticipo", "INTEGER NOT NULL DEFAULT 0"),
+            ("legalizacion_movimiento_id", "INTEGER"),
+            ("legalizacion_json", "TEXT NOT NULL DEFAULT '{}'"),
+            ("legalizada_por", "INTEGER"),
+            ("legalizada_at", "TEXT NOT NULL DEFAULT ''"),
+            # Asiento por arreglar: una diferencia conocida que todavía no se
+            # corrige (caso #65: libro $525.455 vs extracto $425.455). Queda en la
+            # bandeja hasta que alguien la marque arreglada; si no, se olvida.
+            ("por_arreglar", "TEXT NOT NULL DEFAULT ''"),
+            ("por_arreglar_por", "INTEGER"),
+            ("por_arreglar_at", "TEXT NOT NULL DEFAULT ''"),
+            ("arreglado_por", "INTEGER"),
+            ("arreglado_at", "TEXT NOT NULL DEFAULT ''"),
+            ("arreglo_nota", "TEXT NOT NULL DEFAULT ''"),
         ):
             if col not in cols:
                 con.execute(f"ALTER TABLE cc_solicitudes_pago ADD COLUMN {col} {ddl}")
@@ -763,6 +780,65 @@ def _asegurar_cuenta_anticipos() -> int:
         padre = int(cc.crear_cuenta({"codigo": "1330", "nombre": "Anticipos y avances", "tipo": "activo", "naturaleza": "debito", "es_movimiento": 0})["id"])
     return int(cc.crear_cuenta({"codigo": "133005", "nombre": "Anticipos y avances a proveedores", "tipo": "activo", "naturaleza": "debito",
                                 "cuenta_padre_id": padre})["id"])
+
+
+# ── Pago anticipado contra cotización (6-oct-2026) ────────────────────────────
+#
+# Factores y Comercializadora cobran por adelantado: se les gira la cotización y
+# la factura llega días después, y no siempre por lo mismo. Contabilizar el giro
+# como compra (1435 + 240810) daba por recibido lo cotizado: el asiento #7965
+# cargó 100 kg de WPC que Factores no ha facturado, y la #65 de Comercializadora
+# quedó con un inventario que el extracto ($425.455 contra $525.455) no respalda.
+# Ninguno de los dos se podía conciliar después contra la factura.
+#
+# Regla: si se paga con una COTIZACIÓN (no con factura electrónica) a un
+# proveedor OBLIGADO a facturar, el giro es un anticipo —Débito 133005 / Crédito
+# Bancos—. La retención se practica igual al girar (pago o abono en cuenta, lo
+# que ocurra primero) y la compra se causa al legalizar con la factura.
+# A quien no está obligado a facturar no aplica: su soporte es el documento
+# soporte que McKenna emite al aprobar, no una factura que vaya a llegar.
+
+def tipo_documento_de(verificacion: dict | None) -> str:
+    """'factura' | 'cotizacion' | '' (no se adjuntó documento)."""
+    v = verificacion if isinstance(verificacion, dict) else {}
+    if not v:
+        return ""
+    tipo = str(v.get("tipo_documento") or "").strip()
+    if tipo:
+        return tipo
+    # Cotejos anteriores al 6-oct-2026 no traían el tipo: solo el XML DIAN es factura segura.
+    return "factura" if v.get("origen") == "xml" else "cotizacion"
+
+
+def es_pago_anticipado(payload: dict, tercero: dict | None, items: list) -> tuple[bool, str]:
+    """¿Este pago de productos es un anticipo? Devuelve (sí/no, por qué).
+
+    Una solicitud ya guardada trae `es_anticipo` y eso manda: se decidió con el
+    documento que se cotejó al crearla y no se vuelve a adivinar al aprobar.
+    """
+    if not items:
+        return False, ""
+    if "es_anticipo" in payload and payload.get("es_anticipo") is not None:
+        return bool(int(payload.get("es_anticipo") or 0)), ""
+    # El cotejo del archivo manda; sin archivo (wizard simple), lo que declara quien solicita.
+    tipo = tipo_documento_de(payload.get("verificacion")) or str(payload.get("documento_tipo") or "").strip()
+    if tipo != "cotizacion":
+        return False, ""
+    if not tercero:
+        return False, ""
+    try:
+        from app.services import doc_soporte_pagos as _ds
+
+        con_ds, _ = _ds.requiere(tercero)
+    except Exception:
+        con_ds = False
+    if con_ds:
+        return False, ""
+    return True, (
+        f"Se paga con cotización y {tercero.get('nombre')} está obligado a facturar: el giro queda "
+        "como anticipo en 133005 y la compra (inventario + IVA) se registra cuando llegue la "
+        "factura electrónica, con lo que de verdad facture."
+    )
 
 
 # Categorías que solo giran una deuda ya causada: el gasto, la retención y el ICA
@@ -1172,6 +1248,9 @@ def previsualizar(payload: dict) -> dict:
         raise ValueError(f"La cuenta {CUENTA_IMPUESTOS_ASUMIDOS} (Impuestos asumidos) no existe en el plan")
 
     nombre_tercero = (tercero or {}).get("nombre") or ""
+    anticipo_compra, motivo_anticipo = (
+        es_pago_anticipado(payload, tercero, items) if cat.get("con_productos") else (False, "")
+    )
     # Lo asumido por McKenna no se le descuenta: vuelve al giro.
     girado = round(monto - retencion - retencion_ica + impuesto_asumido, 2)
 
@@ -1285,7 +1364,21 @@ def previsualizar(payload: dict) -> dict:
         # el formulario 300 imposible de armar leyendo el libro. Ojo con darlo por
         # sentado: 254 de los 316 productos del catálogo están EXCLUIDOS (Art. 424
         # E.T.), así que el IVA sale de cada línea, no de aplicarle 19% al total.
-        if items:
+        if items and anticipo_compra:
+            # Anticipo: todavía no hay factura, así que no hay inventario ni IVA
+            # descontable (Art. 771-2 E.T.: sin factura no se descuenta). Lo girado
+            # más la retención practicada es plata a favor con el proveedor.
+            lineas = [{
+                "cuenta_codigo": CUENTA_ANTICIPO,
+                "cuenta_id": _asegurar_cuenta_anticipos(),
+                "debito": monto, "credito": 0,
+                "tercero_id": tercero_id,
+                "descripcion": (f"Anticipo a {nombre_tercero} contra cotización"
+                                + (f" ({len(items)} producto{'s' if len(items) != 1 else ''})" if items else "")
+                                + " — se legaliza con la factura"),
+                "es_anticipo_compra": True,
+            }]
+        elif items:
             lineas = [{
                 "cuenta_codigo": cuenta_debito,
                 "cuenta_id": id_debito,
@@ -1423,6 +1516,11 @@ def previsualizar(payload: dict) -> dict:
         "cuenta_saldo": cuenta_saldo,
         "anticipo": anticipo,
         "cuenta_anticipo": CUENTA_ANTICIPO if anticipo > 0 else "",
+        "es_anticipo": bool(anticipo_compra),
+        "motivo_anticipo": motivo_anticipo,
+        # La cuenta del gasto/inventario de la solicitud: en un anticipo la primera
+        # línea es 133005, y guardar esa como `cuenta_debito` perdería la 1435.
+        "cuenta_debito": cuenta_debito,
         "cruce_anticipo": cruce_anticipo,
         "cruce_cxp": cruce_cxp,
         "permite_parcial": bool(cat.get("permite_parcial")),
@@ -1657,7 +1755,7 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
 
     categoria = prev["categoria"]
     cat = CATEGORIAS[categoria]
-    cuenta_debito = prev["lineas"][0]["cuenta_codigo"]
+    cuenta_debito = prev.get("cuenta_debito") or prev["lineas"][0]["cuenta_codigo"]
 
     # Proveedor con productos: sin líneas y sin factura cotejada no hay solicitud. Es la regla
     # que evita que un pago a proveedor entre como texto libre por el Centro de Mando.
@@ -1699,8 +1797,9 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                   estado, notas, creada_por, items_json, factura_numero, verificacion_json,
                   es_plantilla, frecuencia, plantilla_id, periodo, origen_sistema,
                   retencion_modo, retencion_ica, ica_por_mil, gmf, pagado_ahora,
-                  total_documento, renta_asumida, ica_asumida, cruce_anticipo, cruce_cxp)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                  total_documento, renta_asumida, ica_asumida, cruce_anticipo, cruce_cxp,
+                  es_anticipo)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 categoria, prev["concepto"], prev["monto"], prev["fecha"],
                 (prev["tercero"] or {}).get("id"), cuenta_debito,
@@ -1741,6 +1840,7 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                 1 if prev.get("asume_ica") else 0,
                 prev["cruce_anticipo"],
                 prev["cruce_cxp"],
+                1 if prev.get("es_anticipo") else 0,
             ),
         )
         sid = int(cur.lastrowid)
@@ -1826,6 +1926,7 @@ def previsualizacion_de(sid: int) -> dict:
             "cruce_anticipo": sol.get("cruce_anticipo") or 0,
             "cruce_cxp": sol.get("cruce_cxp") or 0,
             "_cruce_contabilizado": bool(sol.get("movimiento_id")),
+            "es_anticipo": int(sol.get("es_anticipo") or 0),
         }
     )
     # Lo que cambió desde que se guardó: es la señal de que el borrador quedó
@@ -1870,6 +1971,9 @@ def actualizar_borrador(sid: int, payload: dict, por: int | None = None) -> dict
         raise ValueError("Solicitud no encontrada")
     if sol["estado"] != "borrador" or sol.get("es_plantilla"):
         raise ValueError(f"Solo se corrige un borrador; esta solicitud está «{sol['estado']}»")
+    # Sin documento nuevo, sigue siendo lo que el documento ya cotejado dijo.
+    if not payload.get("verificacion") and not payload.get("documento_tipo") and "es_anticipo" not in payload:
+        payload = {**payload, "es_anticipo": int(sol.get("es_anticipo") or 0)}
     prev = previsualizar(payload)
     _recordar_perfil_tributario(payload, prev)
     with _conn() as con:
@@ -1878,11 +1982,12 @@ def actualizar_borrador(sid: int, payload: dict, por: int | None = None) -> dict
                  categoria=?, concepto=?, monto=?, fecha=?, tercero_id=?, cuenta_debito=?,
                  medio_pago_id=?, referencia=?, retencion=?, retencion_concepto=?, items_json=?,
                  retencion_modo=?, retencion_ica=?, ica_por_mil=?, gmf=?, pagado_ahora=?,
-                 total_documento=?, renta_asumida=?, ica_asumida=?, cruce_anticipo=?, cruce_cxp=?
+                 total_documento=?, renta_asumida=?, ica_asumida=?, cruce_anticipo=?, cruce_cxp=?,
+                 es_anticipo=?
                WHERE id=?""",
             (
                 prev["categoria"], prev["concepto"], prev["monto"], prev["fecha"],
-                (prev["tercero"] or {}).get("id"), prev["lineas"][0]["cuenta_codigo"],
+                (prev["tercero"] or {}).get("id"), prev.get("cuenta_debito") or prev["lineas"][0]["cuenta_codigo"],
                 int(payload.get("medio_pago_id") or 0) or None,
                 str(payload.get("referencia") or sol.get("referencia") or ""),
                 prev["retencion"],
@@ -1899,6 +2004,7 @@ def actualizar_borrador(sid: int, payload: dict, por: int | None = None) -> dict
                 1 if prev.get("asume_renta") else 0,
                 1 if prev.get("asume_ica") else 0,
                 prev["cruce_anticipo"], prev["cruce_cxp"],
+                1 if prev.get("es_anticipo") else 0,
                 int(sid),
             ),
         )
@@ -1953,6 +2059,17 @@ def enviar_a_aprobacion(sid: int, payload: dict | None = None, por: int | None =
         if clave in datos:
             campos.append(f"{col}=?")
             valores.append(datos[clave])
+    # El documento que se coteja al enviar decide si es anticipo (cotización a un
+    # proveedor obligado a facturar) o compra causada (factura electrónica).
+    if cat.get("con_productos") and isinstance(datos.get("verificacion"), dict) and datos["verificacion"]:
+        import app.services.contabilidad_core as cc
+
+        t = cc.obtener_tercero(sol["tercero_id"]) if sol.get("tercero_id") else None
+        es_ant, _ = es_pago_anticipado({"verificacion": datos["verificacion"]}, t, items)
+        campos.append("es_anticipo=?")
+        valores.append(1 if es_ant else 0)
+        campos.append("verificacion_json=?")
+        valores.append(json.dumps(datos["verificacion"], ensure_ascii=False))
     campos.append("estado='pendiente'")
     with _conn() as con:
         con.execute(
@@ -2272,6 +2389,16 @@ def obtener(sid: int) -> dict | None:
         d["verificacion"] = json.loads(d.pop("verificacion_json", None) or "{}")
     except Exception:
         d["verificacion"] = {}
+    try:
+        d["legalizacion"] = json.loads(d.pop("legalizacion_json", None) or "{}")
+    except Exception:
+        d["legalizacion"] = {}
+    # Un anticipo girado y sin factura es plata a favor que nadie ha soportado:
+    # el panel lo muestra como pendiente hasta que se legalice.
+    d["falta_legalizar"] = bool(
+        d.get("es_anticipo") and d.get("movimiento_id") and not d.get("legalizacion_movimiento_id")
+        and d.get("estado") not in ("rechazada", "anulada")
+    )
     # Quién firmó cada paso: el panel tiene que poder decir «espera a que
     # Cynthia lo prepare» en vez de mostrarle a todos el mismo botón.
     d["firmas"] = {k: _nombre_usuario(d.get(k)) for k in ("creada_por", "aprobada_por", "montado_por", "pagado_por")}
@@ -2361,12 +2488,14 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         **({"pagado_ahora": s["pagado_ahora"]} if s.get("pagado_ahora") is not None else {}),
         "cruce_anticipo": s.get("cruce_anticipo") or 0,
         "cruce_cxp": s.get("cruce_cxp") or 0,
+        "es_anticipo": int(s.get("es_anticipo") or 0),
     })
     # Se conserva `cuenta_codigo` en la proyección: la reconstrucción de abajo
     # necesita distinguir las líneas del gasto de las que ella misma rearma con
     # los impuestos aprobados, y sin el código no puede. `crear_movimiento`
     # ignora las claves que no conoce.
-    _CAMPOS_LINEA = ("cuenta_id", "cuenta_codigo", "debito", "credito", "tercero_id", "descripcion")
+    _CAMPOS_LINEA = ("cuenta_id", "cuenta_codigo", "debito", "credito", "tercero_id", "descripcion",
+                     "es_anticipo_compra")
     lineas = [{k: v for k, v in l.items() if k in _CAMPOS_LINEA} for l in prev["lineas"]]
     # Reinyectar los impuestos tal como se aprobaron: lo que se contabiliza es
     # lo que alguien firmó, no lo que las tarifas de hoy dirían.
@@ -2403,9 +2532,12 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
             # El abono a capital de un préstamo de socio es un débito a 2355:
             # en una cuota no es saldo por pagar, es la baja del pasivo.
             _rearmadas = tuple(c for c in _rearmadas if c != "2355")
+        # El anticipo de una compra pagada con cotización es la línea del gasto
+        # (la 133005 que se rearma abajo es solo la del cruce y la del sobrante).
         medias = [
             l for l in lineas
-            if l.get("debito") and not str(l.get("cuenta_codigo") or "").startswith(_rearmadas)
+            if l.get("debito") and (l.get("es_anticipo_compra")
+                                    or not str(l.get("cuenta_codigo") or "").startswith(_rearmadas))
         ]
         if ret:
             medias.append({"cuenta_id": id_ret, "debito": 0, "credito": ret,
@@ -3158,3 +3290,354 @@ def registrar_pago_directo(
             (nota, s["id"]),
         )
     return {**aprobar(s["id"], aprobada_por=uid, espejar=espejar), "autoaprobada": True}
+
+
+# ─── Legalizar un anticipo con la factura (6-oct-2026) ──────────────────────
+#
+# El giro de un anticipo quedó en 133005. Cuando llega la factura electrónica se
+# causa la compra con LO FACTURADO —no con lo cotizado—: inventario renglón por
+# renglón a 1435, IVA a 240810, y el anticipo se cruza. Lo que no cuadra se
+# resuelve solo y queda a la vista:
+#
+#   facturó MENOS que el anticipo → el sobrante sigue en 133005 a favor (se cruza
+#                                   en el próximo pago o se pide devolución)
+#   facturó MÁS                   → la diferencia queda por pagar en 2205
+#   cambió la base                → la retención se ajusta contra su subcuenta
+#
+# Es exactamente lo que no se pudo hacer con #62 (Factores) y #65
+# (Comercializadora): el giro ya se había contabilizado como compra y la factura
+# no tenía contra qué cruzarse.
+
+def anticipos_por_legalizar() -> list[dict]:
+    """Anticipos girados que todavía no tienen factura."""
+    _ensure()
+    with _conn() as con:
+        ids = [r["id"] for r in con.execute(
+            "SELECT id FROM cc_solicitudes_pago WHERE es_anticipo=1 AND movimiento_id IS NOT NULL"
+            " AND legalizacion_movimiento_id IS NULL AND estado NOT IN ('rechazada','anulada')"
+            " ORDER BY fecha, id")]
+    return [obtener(i) for i in ids]
+
+
+def _armar_legalizacion(s: dict, payload: dict) -> dict:
+    import app.services.contabilidad_core as cc
+    from app.services import puc_colombia as _puc
+    from app.services.pagos_proveedor import normalizar_items, validar_compra
+
+    if not s.get("es_anticipo"):
+        raise ValueError(f"La solicitud #{s['id']} no es un anticipo: su compra ya se causó al aprobarla")
+    if not s.get("movimiento_id"):
+        raise ValueError("El anticipo todavía no está aprobado: no hay nada girado que legalizar")
+    if s.get("legalizacion_movimiento_id"):
+        raise ValueError(f"Ya se legalizó en el asiento #{s['legalizacion_movimiento_id']}")
+    if s["estado"] in ("rechazada", "anulada"):
+        raise ValueError(f"La solicitud está {s['estado']}")
+
+    items = normalizar_items(payload.get("items"))
+    total_documento = round(float(payload.get("total_documento") or 0), 2)
+    # Mismas exigencias que la compra: renglones con SKU activo de Alegra y el
+    # total de la FACTURA cuadrado al peso.
+    validar_compra(items, total_documento)
+    base = round(sum(i["subtotal"] for i in items), 2)
+    iva = round(sum(i["iva"] for i in items), 2)
+    total = round(sum(i["total"] for i in items), 2)
+    ajuste = round(total_documento - total, 2)       # ≤ $1 (validar_compra), va al IVA
+    if ajuste and iva > 0:
+        iva = round(iva + ajuste, 2)
+    elif ajuste:
+        items[-1] = {**items[-1], "subtotal": round(items[-1]["subtotal"] + ajuste, 2)}
+        base = round(base + ajuste, 2)
+    total = total_documento
+
+    tercero = cc.obtener_tercero(s["tercero_id"]) if s.get("tercero_id") else None
+    nombre = (tercero or {}).get("nombre") or ""
+    fecha = str(payload.get("fecha") or (payload.get("verificacion") or {}).get("fecha_documento")
+                or date.today().isoformat())[:10]
+    if fecha < str(s["fecha"])[:10]:
+        fecha = str(s["fecha"])[:10]
+
+    # ── La retención se practicó al girar sobre la base cotizada; se ajusta a la facturada.
+    concepto = str(s.get("retencion_concepto") or "")
+    ret0 = round(float(s.get("retencion") or 0), 2)
+    exento = bool(int((tercero or {}).get("retefuente_exento") or 0))
+    simple = bool(int((tercero or {}).get("regimen_simple") or 0))
+    ret1 = 0.0
+    if concepto and s.get("retencion_modo") != "ninguna" and not exento and not simple:
+        from app.services.retenciones import calcular
+
+        r = calcular(concepto, base, anio=int(fecha[:4]),
+                     declarante=bool((tercero or {}).get("declarante", 1)))
+        ret1 = _pesos((r or {}).get("retencion") or 0)
+    ica_por_mil = float(s.get("ica_por_mil") or 0)
+    ica0 = round(float(s.get("retencion_ica") or 0), 2)
+    ica1 = _pesos(base * ica_por_mil / 1000) if (ica_por_mil > 0 and not simple) else 0.0
+    d_ret, d_ica = round(ret1 - ret0, 2), round(ica1 - ica0, 2)
+    renta_asumida, ica_asumida = bool(s.get("renta_asumida")), bool(s.get("ica_asumida"))
+
+    # Lo que el proveedor tiene que haber recibido por esta factura, en términos
+    # del anticipo: total facturado menos el ajuste de retención que le toca a él.
+    contra_proveedor = round(total - (0 if renta_asumida else d_ret) - (0 if ica_asumida else d_ica), 2)
+    saldo_133005 = 0.0
+    if s.get("tercero_id"):
+        saldos = {c["codigo"]: float(c["saldo"]) for c in cc.saldo_tercero(int(s["tercero_id"])).get("cuentas", [])}
+        saldo_133005 = max(round(saldos.get("133005", 0), 2), 0.0)
+    disponible = round(min(float(s["monto"] or 0), saldo_133005), 2)
+    aplicado = round(min(contra_proveedor, disponible), 2)
+    por_pagar = round(contra_proveedor - aplicado, 2)
+    a_favor = round(disponible - aplicado, 2)
+
+    cuenta_inv = str(s.get("cuenta_debito") or "1435")
+    if cuenta_inv == "133005":
+        cuenta_inv = "1435"
+    cod_ret = _puc.cuenta_retencion(concepto) if concepto else "236595"
+    with cc._conn() as con:
+        ids = {c: cc._cuenta_id_por_codigo(con, c)
+               for c in (cuenta_inv, "240810", cod_ret, "2368", "2205", CUENTA_IMPUESTOS_ASUMIDOS)}
+    if not ids[cuenta_inv]:
+        raise ValueError(f"La cuenta {cuenta_inv} no existe en el plan")
+    id_ant = _asegurar_cuenta_anticipos()
+    tid = s.get("tercero_id")
+
+    lineas: list[dict] = [{
+        "cuenta_codigo": cuenta_inv, "cuenta_id": ids[cuenta_inv], "debito": i["subtotal"], "credito": 0,
+        "tercero_id": tid,
+        "descripcion": (f"{i['sku']} {i['nombre']}".strip() + f" · {i['cantidad']:g}"
+                        + (f" {i['unidad']}" if i["unidad"] else "") + f" × {_fmt_precio(i['precio'])}"),
+    } for i in items]
+    if iva > 0:
+        if not ids["240810"]:
+            raise ValueError("La cuenta 240810 (IVA descontable) no existe en el plan")
+        lineas.append({"cuenta_codigo": "240810", "cuenta_id": ids["240810"], "debito": iva, "credito": 0,
+                       "tercero_id": tid, "descripcion": f"IVA descontable de la factura — {nombre}"})
+
+    def _ajuste(codigo: str, cid, delta: float, asumido: bool, que: str) -> None:
+        if abs(delta) < 0.01:
+            return
+        lineas.append({"cuenta_codigo": codigo, "cuenta_id": cid,
+                       "debito": -delta if delta < 0 else 0, "credito": delta if delta > 0 else 0,
+                       "tercero_id": tid,
+                       "descripcion": (f"Ajuste {que}: la factura {'sube' if delta > 0 else 'baja'} la base "
+                                       f"— {nombre}")})
+        if asumido:
+            lineas.append({"cuenta_codigo": CUENTA_IMPUESTOS_ASUMIDOS, "cuenta_id": ids[CUENTA_IMPUESTOS_ASUMIDOS],
+                           "debito": delta if delta > 0 else 0, "credito": -delta if delta < 0 else 0,
+                           "tercero_id": tid, "descripcion": f"Ajuste {que} asumido por McKenna — {nombre}"})
+
+    _ajuste(cod_ret, ids[cod_ret], d_ret, renta_asumida, "retención en la fuente")
+    _ajuste("2368", ids["2368"], d_ica, ica_asumida, "ReteICA")
+    if aplicado > 0:
+        lineas.append({"cuenta_codigo": "133005", "cuenta_id": id_ant, "debito": 0, "credito": aplicado,
+                       "tercero_id": tid,
+                       "descripcion": f"Se cruza el anticipo de la solicitud #{s['id']} — {nombre}"})
+    if por_pagar > 0.01:
+        if not ids["2205"]:
+            raise ValueError("La cuenta 2205 no existe en el plan")
+        lineas.append({"cuenta_codigo": "2205", "cuenta_id": ids["2205"], "debito": 0, "credito": por_pagar,
+                       "tercero_id": tid,
+                       "descripcion": f"Facturó más que el anticipo: queda por pagar a {nombre}"})
+
+    nombres = {c["codigo"]: c["nombre"] for c in cc.listar_plan_cuentas(solo_activas=False)}
+    for l in lineas:
+        l["cuenta_nombre"] = nombres.get(l["cuenta_codigo"], "")
+
+    # Qué cambió entre lo cotizado y lo facturado, por referencia.
+    cot = {str(i.get("sku") or ""): i for i in (s.get("items") or [])}
+    fac = {i["sku"]: i for i in items}
+    diferencias = []
+    for sku in list(dict.fromkeys([*cot, *fac])):
+        a, b = cot.get(sku), fac.get(sku)
+        if a and b and abs(float(a.get("cantidad") or 0) - b["cantidad"]) < 1e-6 \
+                and abs(float(a.get("precio") or 0) - b["precio"]) < 0.01:
+            continue
+        diferencias.append({
+            "sku": sku, "nombre": (b or a or {}).get("nombre", ""),
+            "cotizado": {"cantidad": float(a.get("cantidad") or 0), "precio": float(a.get("precio") or 0),
+                         "total": float(a.get("total") or 0)} if a else None,
+            "facturado": {"cantidad": b["cantidad"], "precio": b["precio"], "total": b["total"]} if b else None,
+        })
+
+    return {
+        "solicitud_id": s["id"], "fecha": fecha, "tercero": nombre,
+        "items": items, "lineas": lineas, "cuentas_t": _cuentas_t(lineas),
+        "cuadra": abs(sum(l["debito"] for l in lineas) - sum(l["credito"] for l in lineas)) < 0.01,
+        "cotizado": {"total": float(s["monto"] or 0), "base": round(sum(float(i.get("subtotal") or 0) for i in (s.get("items") or [])), 2),
+                     "retencion": ret0, "retencion_ica": ica0, "girado": float(s.get("girado") or 0)},
+        "facturado": {"total": total, "base": base, "iva": iva, "retencion": ret1, "retencion_ica": ica1},
+        "ajuste_retencion": d_ret, "ajuste_ica": d_ica,
+        "anticipo_disponible": disponible, "anticipo_aplicado": aplicado,
+        "queda_a_favor": a_favor, "queda_por_pagar": por_pagar if por_pagar > 0.01 else 0.0,
+        "diferencias": diferencias,
+    }
+
+
+def previsualizar_legalizacion(sid: int, payload: dict) -> dict:
+    """El asiento de legalización, sin guardarlo."""
+    _ensure()
+    s = obtener(sid)
+    if not s:
+        raise ValueError("Solicitud no encontrada")
+    return _armar_legalizacion(s, payload or {})
+
+
+def legalizar_anticipo(sid: int, payload: dict, por: int | None = None, *, espejar: bool = True) -> dict:
+    """Causa la compra con la factura electrónica y cruza el anticipo. Un solo asiento.
+
+    Exige la FACTURA (XML DIAN, o PDF con CUFE) cotejada: legalizar con otra
+    cotización dejaría el inventario y el IVA igual de mal soportados que antes.
+    """
+    _ensure()
+    import app.services.contabilidad_core as cc
+
+    s = obtener(sid)
+    if not s:
+        raise ValueError("Solicitud no encontrada")
+    payload = payload or {}
+    ver = payload.get("verificacion") if isinstance(payload.get("verificacion"), dict) else {}
+    if not ver:
+        raise ValueError("Adjunta la factura electrónica del proveedor y cotéjala")
+    if tipo_documento_de(ver) != "factura":
+        raise ValueError(
+            "Ese documento no es una factura electrónica (no trae el XML de la DIAN ni el CUFE). "
+            "Un anticipo se legaliza con la factura, no con otra cotización"
+        )
+    if ver.get("nit_ok") is False:
+        raise ValueError("El NIT del proveedor no aparece en la factura: ¿es de otro proveedor?")
+    if not ver.get("fiel") and not str(payload.get("verificacion_motivo") or "").strip():
+        raise ValueError("La factura no coincide con los renglones capturados: corrígelos o explica la diferencia")
+    numero = str(ver.get("numero_documento") or payload.get("factura_numero") or "").strip()
+    if not numero:
+        raise ValueError("No se leyó el número de la factura: escríbelo")
+    with _conn() as con:
+        otra = con.execute(
+            "SELECT id FROM cc_solicitudes_pago WHERE tercero_id=? AND id<>? AND"
+            " (UPPER(factura_numero)=UPPER(?) OR legalizacion_json LIKE ?)",
+            (s.get("tercero_id"), int(sid), numero, f'%"factura_numero": "{numero}"%'),
+        ).fetchone()
+    if otra:
+        raise ValueError(f"La factura {numero} ya está registrada en la solicitud #{otra['id']}")
+
+    leg = _armar_legalizacion(s, payload)
+    if not leg["cuadra"]:
+        raise ValueError("El asiento de legalización no cuadra")
+    # Reservar: dos clics no pueden crear dos asientos.
+    with _conn() as con:
+        cur = con.execute(
+            "UPDATE cc_solicitudes_pago SET legalizada_at='en_curso' WHERE id=?"
+            " AND legalizacion_movimiento_id IS NULL AND legalizada_at=''", (int(sid),))
+        if cur.rowcount != 1:
+            raise ValueError("Esta solicitud ya se está legalizando")
+    try:
+        mov = cc.crear_movimiento(
+            fecha=leg["fecha"],
+            concepto=f"Compra {numero} — {leg['tercero']} — legaliza el anticipo de la solicitud #{sid}",
+            lineas=[{k: v for k, v in l.items() if k in ("cuenta_id", "debito", "credito", "tercero_id", "descripcion")}
+                    for l in leg["lineas"]],
+            tercero_id=s.get("tercero_id"),
+            referencia=numero,
+            tipo_origen="legalizacion_anticipo",
+            # `items` es lo que leen insumos y recepciones como entrada real.
+            plantilla_datos={"legaliza_solicitud_id": int(sid), "factura_numero": numero, "items": leg["items"]},
+            created_by=por,
+        )
+    except Exception:
+        with _conn() as con:
+            con.execute("UPDATE cc_solicitudes_pago SET legalizada_at='' WHERE id=?", (int(sid),))
+        raise
+
+    resumen_leg = {k: leg[k] for k in ("fecha", "cotizado", "facturado", "ajuste_retencion", "ajuste_ica",
+                                       "anticipo_aplicado", "queda_a_favor", "queda_por_pagar", "diferencias", "items")}
+    resumen_leg.update({"factura_numero": numero, "motivo_diferencia": str(payload.get("verificacion_motivo") or "").strip()})
+    archivo_tmp = str(payload.get("archivo_tmp") or "").strip()
+    if archivo_tmp:
+        from app.services.pagos_proveedor import consolidar_archivo
+
+        res = consolidar_archivo(archivo_tmp, sid, f"factura_{payload.get('archivo_nombre') or numero}")
+        if res:
+            resumen_leg["factura_archivo"], resumen_leg["factura_nombre"] = res
+            try:
+                from pathlib import Path as _P
+
+                ruta = _P(__file__).resolve().parents[2] / res[0]
+                mime = "application/pdf" if ruta.suffix.lower() == ".pdf" else "application/octet-stream"
+                cc.guardar_comprobante(int(mov["id"]), ruta.read_bytes(), res[1], mime)
+                cc.guardar_adjunto(int(mov["id"]), ruta.read_bytes(), res[1], mime, rol="factura")
+            except Exception as e:
+                print(f"⚠️ Solicitud {sid}: no se pudo adjuntar la factura a la legalización: {e}", flush=True)
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_solicitudes_pago SET legalizacion_movimiento_id=?, legalizacion_json=?,"
+            " legalizada_por=?, legalizada_at=datetime('now') WHERE id=?",
+            (mov["id"], json.dumps(resumen_leg, ensure_ascii=False), por, int(sid)),
+        )
+
+    # La factura cuadró al peso: sus tarifas de IVA quedan probadas por SKU.
+    try:
+        from app.services.pagos_proveedor import aprender_iva_compra
+
+        aprender_iva_compra(leg["items"], proveedor=leg["tercero"], fecha=leg["fecha"])
+    except Exception as e:
+        print(f"⚠️ No se pudo aprender el IVA de la factura: {e}", flush=True)
+
+    espejo = {"status": "omitido"}
+    if espejar:
+        try:
+            from app.services.alegra_espejo import espejar_movimiento
+
+            espejo = espejar_movimiento(mov["id"], forzar=True)
+        except Exception as e:
+            espejo = {"status": "error", "message": str(e)}
+
+    partes = [f"🧾 Anticipo #{sid} legalizado con la factura {numero}: asiento #{mov['id']}"]
+    if leg["queda_a_favor"] > 0.01:
+        partes.append(f"quedan {_fmt(leg['queda_a_favor'])} a favor en 133005 (cruzar en el próximo pago o pedir devolución)")
+    if leg["queda_por_pagar"] > 0.01:
+        partes.append(f"quedan {_fmt(leg['queda_por_pagar'])} por pagar en 2205")
+    if abs(leg["ajuste_retencion"]) >= 0.01:
+        partes.append(f"retención ajustada en {_fmt(leg['ajuste_retencion'])}")
+    _comentar_ticket(s.get("ticket_id"), por, " · ".join(partes) + ".")
+    return {**obtener(sid), "legalizacion_asiento": mov, "alegra": espejo, "previsualizacion": leg}
+
+
+# ─── Asientos por arreglar (6-oct-2026) ──────────────────────────────────────
+#
+# Una diferencia que ya se conoce pero que todavía no se puede corregir (falta un
+# dato, una conversación con el proveedor) queda marcada en la solicitud y
+# visible en la bandeja. Lo que se deja como paso manual posterior, no se hace,
+# salvo que algo lo siga mostrando.
+
+def marcar_por_arreglar(sid: int, nota: str, por: int | None = None) -> dict:
+    _ensure()
+    nota = str(nota or "").strip()
+    if len(nota) < 10:
+        raise ValueError("Explica qué hay que arreglar (mínimo 10 caracteres)")
+    if not obtener(sid):
+        raise ValueError("Solicitud no encontrada")
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_solicitudes_pago SET por_arreglar=?, por_arreglar_por=?, por_arreglar_at=datetime('now'),"
+            " arreglado_por=NULL, arreglado_at='', arreglo_nota='' WHERE id=?", (nota, por, int(sid)))
+    return obtener(sid)
+
+
+def marcar_arreglado(sid: int, nota: str = "", por: int | None = None) -> dict:
+    _ensure()
+    s = obtener(sid)
+    if not s:
+        raise ValueError("Solicitud no encontrada")
+    if not s.get("por_arreglar") or s.get("arreglado_at"):
+        raise ValueError("Esta solicitud no tiene nada pendiente por arreglar")
+    nota = str(nota or "").strip()
+    if len(nota) < 5:
+        raise ValueError("Escribe cómo se arregló (p. ej. el asiento de ajuste)")
+    with _conn() as con:
+        con.execute("UPDATE cc_solicitudes_pago SET arreglado_por=?, arreglado_at=datetime('now'), arreglo_nota=?"
+                    " WHERE id=?", (por, nota, int(sid)))
+    return obtener(sid)
+
+
+def por_arreglar() -> list[dict]:
+    _ensure()
+    with _conn() as con:
+        ids = [r["id"] for r in con.execute(
+            "SELECT id FROM cc_solicitudes_pago WHERE por_arreglar<>'' AND arreglado_at='' ORDER BY por_arreglar_at")]
+    return [obtener(i) for i in ids]

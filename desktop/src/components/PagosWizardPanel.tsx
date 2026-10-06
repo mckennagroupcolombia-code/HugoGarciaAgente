@@ -7,6 +7,7 @@ import { useAppStore } from "../stores/app";
 import TerceroSelect from "./TerceroSelect";
 import FotoInsumo from "./insumos/FotoInsumo";
 import { DocumentoSoporteDetalle, type DocSoporte } from "./DocumentosSoporte";
+import GuiaAnimadaPagos from "./GuiaAnimadaPagos";
 
 /**
  * Solicitudes de pago con asiento contable automático.
@@ -63,6 +64,8 @@ type Previsualizacion = {
   perfil_cuenta?: { nota?: string; advertencia?: string; cuenta_nombre?: string };
   pagado_ahora?: number; saldo_pendiente?: number; cuenta_saldo?: string; permite_parcial?: boolean;
   anticipo?: number; cuenta_anticipo?: string;
+  /** Pago con cotización a un proveedor obligado a facturar: el giro va a 133005. */
+  es_anticipo?: boolean; motivo_anticipo?: string;
   /** Saldos cruzados con el proveedor en este pago: anticipo 133005 y deuda 2205. */
   cruce_anticipo?: number; cruce_cxp?: number;
   // Solo en el recálculo de una solicitud guardada: avisa si el origen cambió.
@@ -92,6 +95,12 @@ type Solicitud = {
   firmas?: { creada_por?: string; aprobada_por?: string; montado_por?: string; pagado_por?: string };
   /** El documento contable que nació de este pago, si el beneficiario no factura. */
   doc_soporte?: DocSoporte | null;
+  /** Anticipo contra cotización y su legalización con la factura (6-oct-2026). */
+  es_anticipo?: number; falta_legalizar?: boolean; legalizacion_movimiento_id?: number | null;
+  legalizacion?: { factura_numero?: string; queda_a_favor?: number; queda_por_pagar?: number;
+                   ajuste_retencion?: number; fecha?: string };
+  /** Diferencia conocida pendiente de corregir en el asiento (6-oct-2026). */
+  por_arreglar?: string; por_arreglar_at?: string; arreglado_at?: string; arreglo_nota?: string;
 };
 
 type Yo = { puede: boolean; usuario: string; usuario_id?: number | null; nivel?: number };
@@ -149,6 +158,18 @@ export default function PagosWizardPanel() {
   const [avanzado, setAvanzado] = useState(false);
   // El borrador del servidor que se está corrigiendo en el formulario.
   const [editando, setEditando] = useState<Solicitud | null>(null);
+  const [verGuia, setVerGuia] = useState(false);
+  // Anticipos girados sin factura: plata a favor sin soporte hasta legalizarlos.
+  const anticiposQ = useQuery<{ anticipos: Solicitud[] }>({
+    queryKey: ["pagos-solicitudes", "anticipos"],
+    queryFn: () => api.get("/api/pagos/anticipos"),
+  });
+  const anticipos = anticiposQ.data?.anticipos ?? [];
+  const arreglarQ = useQuery<{ solicitudes: Solicitud[] }>({
+    queryKey: ["pagos-solicitudes", "por-arreglar"],
+    queryFn: () => api.get("/api/pagos/por-arreglar"),
+  });
+  const porArreglar = arreglarQ.data?.solicitudes ?? [];
 
   // Borrador local de la solicitud a medio llenar, por usuario. Si al entrar
   // hay uno, el formulario se abre solo con lo que se llevaba.
@@ -170,7 +191,7 @@ export default function PagosWizardPanel() {
   const listaQ = useQuery<{ solicitudes: Solicitud[]; resumen: { pendientes: Cuenta; aprobadas: Cuenta; por_estado?: Record<string, Cuenta> } }>({
     queryKey: ["pagos-solicitudes", filtro],
     queryFn: () => api.get(
-      `/api/pagos/solicitudes${filtro && filtro !== "por_hacer" ? `?estado=${filtro}` : ""}`,
+      `/api/pagos/solicitudes${filtro && filtro !== "por_hacer" && filtro !== "anticipos" && filtro !== "por_arreglar" ? `?estado=${filtro}` : ""}`,
     ),
   });
 
@@ -183,7 +204,7 @@ export default function PagosWizardPanel() {
   // Las cuotas de préstamo las monta el cron el día que toca y se piden desde
   // Préstamos; en esta bandeja solo eran ruido. Si alguna ya salió a aprobación
   // sí se muestra: ahí ya es un pago esperando firma.
-  const solicitudes = (listaQ.data?.solicitudes ?? [])
+  const solicitudes = filtro === "anticipos" ? anticipos : filtro === "por_arreglar" ? porArreglar : (listaQ.data?.solicitudes ?? [])
     .filter((s) => !(s.estado === "borrador" && (s.origen_sistema === "prestamos" || s.categoria === "cuota_prestamo")))
     .filter((s) => filtro !== "por_hacer" || PENDIENTE_DE_ALGO.has(s.estado));
   const r = listaQ.data?.resumen;
@@ -199,6 +220,11 @@ export default function PagosWizardPanel() {
             solicitarlo.
           </p>
         </div>
+        <div className="flex gap-2">
+        <button type="button" onClick={() => setVerGuia(true)}
+                className="rounded-lg border border-border px-3 py-2 text-sm font-bold text-ink hover:border-accent hover:text-accent">
+          ▶ Guía animada
+        </button>
         <button
           type="button"
           onClick={() => {
@@ -209,7 +235,27 @@ export default function PagosWizardPanel() {
         >
           {abierto ? "Cerrar" : hayBorrador ? "Continuar solicitud en borrador" : "+ Solicitar un pago"}
         </button>
+        </div>
       </header>
+      {verGuia && <GuiaAnimadaPagos onCerrar={() => setVerGuia(false)} />}
+
+      {porArreglar.length > 0 && (
+        <button type="button" onClick={() => setFiltro("por_arreglar")}
+                className="flex w-full flex-wrap items-center gap-2 rounded-lg border-2 border-red-500/40 bg-red-500/5 px-3 py-2 text-left text-sm text-red-700 dark:text-red-300">
+          <b>🔧 {porArreglar.length} asiento(s) por arreglar</b>
+          <span>· {porArreglar.map((x) => `#${x.id} ${x.tercero?.nombre ?? ""}`).join(" · ")}</span>
+          <span className="ml-auto font-bold">Ver →</span>
+        </button>
+      )}
+
+      {anticipos.length > 0 && (
+        <button type="button" onClick={() => setFiltro("anticipos")}
+                className="flex w-full flex-wrap items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/5 px-3 py-2 text-left text-sm text-sky-700 dark:text-sky-300">
+          <b>{anticipos.length} anticipo(s) sin factura</b>
+          <span>· {cop(anticipos.reduce((a, x) => a + (x.monto || 0), 0))} girados contra cotización, esperando la factura para legalizar.</span>
+          <span className="ml-auto font-bold">Ver →</span>
+        </button>
+      )}
 
       {msg && (
         <p className={`rounded-lg px-3 py-2 text-sm font-bold ${
@@ -270,7 +316,7 @@ export default function PagosWizardPanel() {
       })()}
 
       <div className="flex gap-1 text-sm">
-        {[["por_hacer", "Por hacer"], ["pendiente", "Pendientes"], ["aprobada", "Por girar"], ["en_banco", "En el banco"], ["pagada", "Giradas"], ["borrador", "Borradores"], ["rechazada", "Rechazadas"], ["plantilla", "Recurrentes"], ["", "Todas"]].map(([v, l]) => (
+        {[["por_hacer", "Por hacer"], ["pendiente", "Pendientes"], ["aprobada", "Por girar"], ["en_banco", "En el banco"], ["pagada", "Giradas"], ["borrador", "Borradores"], ["anticipos", "Anticipos sin factura"], ["por_arreglar", "Por arreglar"], ["rechazada", "Rechazadas"], ["plantilla", "Recurrentes"], ["", "Todas"]].map(([v, l]) => (
           <button
             key={v} type="button" onClick={() => setFiltro(v)}
             className={`rounded-lg px-2.5 py-1 font-bold ${filtro === v ? "bg-accent text-white" : "bg-surface text-muted"}`}
@@ -328,6 +374,9 @@ type BorradorSimple = {
    *  cada uno por separado y por el valor que se escriba (2-oct-2026). */
   cruzar?: boolean;
   cruceAnticipo?: string; cruceCxp?: string;
+  /** Qué documento del proveedor se tiene en la mano (6-oct-2026): con cotización a
+   *  un proveedor obligado a facturar, el giro queda como anticipo en 133005. */
+  documentoTipo?: "cotizacion" | "factura";
 };
 
 function claveBorrador(usuario: string | undefined): string {
@@ -421,6 +470,7 @@ function WizardSimple({
   // las materias primas NO es confiable (la misma sustancia está marcada 19%
   // como combo y 0% como insumo).
   const [totalDocumento, setTotalDocumento] = useState(ini?.totalDocumento ?? "");
+  const [documentoTipo, setDocumentoTipo] = useState<"cotizacion" | "factura">(ini?.documentoTipo ?? "cotizacion");
   const [contrato, setContrato] = useState(ini?.contrato ?? "");
   const [monto, setMonto] = useState(ini?.monto ?? "");
   const [detalle, setDetalle] = useState(ini?.detalle ?? "");
@@ -447,7 +497,7 @@ function WizardSimple({
         v: 1, guardado: new Date().toISOString(), proveedor, fecha, medioPagoId, concepto,
         retencionModo, cuentaDebito, icaActivo, icaPorMil, gmf, ajustarImpuestos, asumeRenta,
         asumeIca, items, totalDocumento, contrato, monto, detalle, pagaTodo, pagoAhora,
-        cruceAnticipo, cruceCxp,
+        cruceAnticipo, cruceCxp, documentoTipo,
       };
       try {
         localStorage.setItem(clave, JSON.stringify(b));
@@ -457,7 +507,7 @@ function WizardSimple({
     return () => window.clearTimeout(t);
   }, [clave, proveedor, fecha, medioPagoId, concepto, retencionModo, cuentaDebito, icaActivo,
       icaPorMil, gmf, ajustarImpuestos, asumeRenta, asumeIca, items, totalDocumento, contrato,
-      monto, detalle, pagaTodo, pagoAhora, cruceAnticipo, cruceCxp, editarId]);
+      monto, detalle, pagaTodo, pagoAhora, cruceAnticipo, cruceCxp, documentoTipo, editarId]);
 
   const catsQ = useQuery<{ categorias: Categoria[] }>({
     queryKey: ["pagos-categorias"],
@@ -600,6 +650,7 @@ function WizardSimple({
     // puerta a que el total y el detalle dijeran cosas distintas.
     monto: hayItems ? Math.round(totProd.total) : valor,
     ...(hayItems && num(totalDocumento) > 0 ? { total_documento: num(totalDocumento) } : {}),
+    ...(hayItems ? { documento_tipo: documentoTipo } : {}),
     ...(hayItems ? { items: items.map((it) => ({
       sku: it.sku, nombre: it.nombre, unidad: it.unidad,
       cantidad: num(it.cantidad), precio: num(it.precio), iva_pct: num(it.iva_pct),
@@ -621,7 +672,7 @@ function WizardSimple({
   }), [concepto, valor, conceptoTexto, fecha, proveedor, medioPagoId, esPublico, contrato,
        llevaRetencion, retencionModo, icaActivo, icaPorMil, cuentaDebito, gmf, permiteParcial,
        pagaTodo, pagoAhora, hayItems, items, totProd.total, totalDocumento, asumeRenta, asumeIca,
-       cruceAnticipo, cruceCxp]);
+       cruceAnticipo, cruceCxp, documentoTipo]);
 
   const faltaProveedor = Boolean(cat?.requiere_tercero) && !proveedor?.id;
   // La solicitud de una compra es copia fiel de la cotización o proforma (24-sep-2026):
@@ -793,14 +844,29 @@ function WizardSimple({
           <p className="text-xs text-muted">
             Agrégalas por su <b>referencia</b> del catálogo de Alegra (CITCALg, GLIVEGg…) con la
             cantidad y el precio que trae la cotización del proveedor: <b>todos</b> los renglones del
-            documento, uno por producto. El asiento reproduce cada renglón contra inventario y
-            separa el IVA descontable, así que la compra queda contabilizada desde ya y no hay que
-            volver a registrarla cuando llegue la factura. Si un producto no está en el catálogo,
-            primero se crea en «Crear en Alegra».
+            documento, uno por producto. Con <b>factura electrónica</b> el asiento reproduce cada renglón
+            contra inventario y separa el IVA descontable. Con <b>cotización</b> (pago anticipado) el giro
+            queda como anticipo en 133005 y la compra se registra al legalizar con la factura, con lo
+            que de verdad facture. Si un producto no está en el catálogo, primero se crea en «Crear en Alegra».
           </p>
           <TablaProductos items={items} setItems={setItems} tot={totProd} />
           {items.length > 0 && (
             <div className="rounded-lg border border-border bg-surface px-3 py-2">
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-bold text-ink">¿Qué documento tienes?</span>
+                {([["cotizacion", "Cotización o proforma — se paga por anticipado"],
+                   ["factura", "Factura electrónica — la mercancía ya está facturada"]] as const).map(([v, l]) => (
+                  <button key={v} type="button" onClick={() => setDocumentoTipo(v)}
+                          className={`rounded-lg px-2.5 py-1 text-xs font-bold ${documentoTipo === v ? "bg-accent text-white" : "bg-surface-input text-muted"}`}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+              {prevQ.data?.es_anticipo && (
+                <p className="mb-2 rounded bg-sky-500/10 px-2 py-1 text-sm text-sky-800 dark:text-sky-300">
+                  <b>Anticipo.</b> {prevQ.data.motivo_anticipo}
+                </p>
+              )}
               <label className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="font-bold text-ink">Total que dice el documento</span>
                 <input type="number" min="0" step="0.01" value={totalDocumento}
@@ -1178,6 +1244,7 @@ function EditarBorrador({
     pagaTodo: s.pagado_ahora == null, pagoAhora: s.pagado_ahora == null ? "" : String(s.pagado_ahora),
     cruceAnticipo: (s.cruce_anticipo ?? 0) > 0 ? String(s.cruce_anticipo) : "",
     cruceCxp: (s.cruce_cxp ?? 0) > 0 ? String(s.cruce_cxp) : "",
+    documentoTipo: s.es_anticipo ? "cotizacion" : (s.items?.length ? "factura" : "cotizacion"),
   };
   return (
     <WizardSimple
@@ -2651,6 +2718,17 @@ function FichaSolicitud({
         )}
         {s.ticket_id && <span><Ico e="🎫" /> ticket #{s.ticket_id}</span>}
         {s.items && s.items.length > 0 && <span><Ico e="📦" /> {s.items.length} producto(s)</span>}
+        {Boolean(s.es_anticipo) && (s.legalizacion_movimiento_id ? (
+          <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-bold text-emerald-600"
+                title="La compra se causó con la factura y el anticipo se cruzó">
+            anticipo legalizado · factura {s.legalizacion?.factura_numero} · asiento #{s.legalizacion_movimiento_id}
+          </span>
+        ) : (
+          <span className="rounded bg-sky-500/10 px-1.5 py-0.5 font-bold text-sky-600"
+                title="Se pagó con cotización: el giro está en 133005 hasta que llegue la factura">
+            anticipo · falta la factura
+          </span>
+        ))}
         {s.factura_archivo && (
           <button type="button" className="text-accent hover:underline"
             onClick={() => { void fetchAuthBlobUrl(`/api/pagos/solicitudes/${s.id}/factura`).then((u) => { if (u) window.open(u, "_blank"); }); }}>
@@ -2755,9 +2833,228 @@ function FichaSolicitud({
         </p>
       )}
 
+      {s.por_arreglar && !s.arreglado_at && <PorArreglar s={s} puedeFirmar={puedeFirmar} onMensaje={onMensaje} />}
+      {s.falta_legalizar && <LegalizarAnticipo s={s} puedeFirmar={puedeFirmar} onMensaje={onMensaje} />}
+      {s.legalizacion_movimiento_id && s.legalizacion && (
+        (s.legalizacion.queda_a_favor ?? 0) > 0 || (s.legalizacion.queda_por_pagar ?? 0) > 0) && (
+        <p className="mt-2 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-muted">
+          Con la factura {s.legalizacion.factura_numero}:{" "}
+          {(s.legalizacion.queda_a_favor ?? 0) > 0 && <b className="text-sky-600">quedan {cop(s.legalizacion.queda_a_favor)} a favor de McKenna (133005)</b>}
+          {(s.legalizacion.queda_por_pagar ?? 0) > 0 && <b className="text-amber-600">quedan {cop(s.legalizacion.queda_por_pagar)} por pagarle (2205)</b>}
+          {" "}— se ofrece cruzarlo en el próximo pago a este proveedor.
+        </p>
+      )}
+
       {verAsiento && <AsientoEnVivo sid={s.id} />}
       {s.doc_soporte && <DocumentoSoporteDetalle doc={s.doc_soporte} />}
     </article>
+  );
+}
+
+/** Diferencia conocida en el asiento que falta corregir: visible hasta que alguien la cierre. */
+function PorArreglar({
+  s, puedeFirmar, onMensaje,
+}: { s: Solicitud; puedeFirmar: boolean; onMensaje: (m: { tipo: "ok" | "error"; texto: string }) => void }) {
+  const qc = useQueryClient();
+  const cerrar = useMutation({
+    mutationFn: (nota: string) => api.post<Solicitud & { error?: string }>(`/api/pagos/solicitudes/${s.id}/por-arreglar`, { arreglado: true, nota }),
+    onSuccess: (r) => {
+      if (r.error) return onMensaje({ tipo: "error", texto: r.error });
+      onMensaje({ tipo: "ok", texto: `Solicitud #${s.id}: asiento marcado como arreglado.` });
+      void qc.invalidateQueries({ queryKey: ["pagos-solicitudes"] });
+    },
+    onError: (e) => onMensaje({ tipo: "error", texto: (e as Error).message }),
+  });
+  return (
+    <div className="mt-2 flex flex-wrap items-start gap-2 rounded-lg border-2 border-red-500/40 bg-red-500/5 px-2 py-1.5 text-sm">
+      <span className="text-red-700 dark:text-red-300">
+        <b>🔧 Asiento por arreglar{s.movimiento_id ? ` (#${s.movimiento_id})` : ""}.</b> {s.por_arreglar}
+        {s.por_arreglar_at ? <span className="text-xs text-muted"> · desde {s.por_arreglar_at.slice(0, 10)}</span> : null}
+      </span>
+      {puedeFirmar && (
+        <button type="button" disabled={cerrar.isPending}
+                onClick={() => {
+                  const nota = window.prompt("¿Cómo se arregló? (p. ej. «ajuste en el asiento #…»)");
+                  if (nota) cerrar.mutate(nota);
+                }}
+                className="ml-auto rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-emerald-500 hover:text-emerald-600 disabled:opacity-40">
+          Ya se arregló
+        </button>
+      )}
+    </div>
+  );
+}
+
+type Legalizacion = {
+  fecha: string; lineas: LineaAsiento[]; cuentas_t?: CuentaT[]; cuadra: boolean;
+  cotizado: { total: number; base: number; retencion: number; girado: number };
+  facturado: { total: number; base: number; iva: number; retencion: number };
+  ajuste_retencion: number; ajuste_ica: number; anticipo_disponible: number; anticipo_aplicado: number;
+  queda_a_favor: number; queda_por_pagar: number;
+  diferencias: Array<{ sku: string; nombre: string;
+    cotizado: { cantidad: number; precio: number; total: number } | null;
+    facturado: { cantidad: number; precio: number; total: number } | null }>;
+  error?: string;
+};
+
+/**
+ * Anticipo pagado con cotización → llega la factura → se causa la compra con lo
+ * FACTURADO y se cruza el anticipo (6-oct-2026). Los renglones arrancan con lo
+ * cotizado y se corrigen a lo que diga la factura; la diferencia queda a favor
+ * (133005) o por pagar (2205), a la vista antes de firmar.
+ */
+function LegalizarAnticipo({
+  s, puedeFirmar, onMensaje,
+}: { s: Solicitud; puedeFirmar: boolean; onMensaje: (m: { tipo: "ok" | "error"; texto: string }) => void }) {
+  const qc = useQueryClient();
+  const [abierto, setAbierto] = useState(false);
+  const [items, setItems] = useState<ItemLinea[]>(() => (s.items ?? []).map((it) => ({
+    sku: it.sku, nombre: it.nombre, cantidad: String(it.cantidad), precio: String(it.precio),
+    iva_pct: String(it.iva_pct ?? 0), unidad: it.unidad,
+  })));
+  const [totalFactura, setTotalFactura] = useState("");
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [verif, setVerif] = useState<Verificacion | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [err, setErr] = useState("");
+  const tot = totalesItems(items);
+  const cuerpoItems = items.map((it) => ({ sku: it.sku, nombre: it.nombre, unidad: it.unidad,
+    cantidad: num(it.cantidad), precio: num(it.precio), iva_pct: num(it.iva_pct) }));
+  const cuerpo = { items: cuerpoItems, total_documento: num(totalFactura) };
+
+  const prevQ = useQuery<Legalizacion>({
+    queryKey: ["pagos-legalizacion", s.id, cuerpo],
+    queryFn: () => api.post(`/api/pagos/solicitudes/${s.id}/legalizacion/previsualizar`, cuerpo),
+    enabled: abierto && items.length > 0 && num(totalFactura) > 0,
+    retry: false,
+  });
+  const cotejar = useMutation({
+    mutationFn: async () => {
+      if (!archivo) throw new Error("Adjunta la factura electrónica (XML, ZIP o PDF con CUFE)");
+      const fd = new FormData();
+      fd.append("archivo", archivo);
+      fd.append("items", JSON.stringify(cuerpoItems));
+      fd.append("monto", String(num(totalFactura) || tot.total));
+      if (s.tercero?.id) fd.append("tercero_id", String(s.tercero.id));
+      return api.upload<Verificacion & { error?: string; tipo_documento?: string }>("/api/pagos/verificar-factura", fd, { timeoutMs: 90_000 });
+    },
+    onSuccess: (r) => {
+      if (r.error) { setErr(r.error); setVerif(null); return; }
+      setErr(""); setVerif(r);
+      if (!num(totalFactura) && r.total_detectado) setTotalFactura(String(r.total_detectado));
+    },
+    onError: (e) => setErr((e as Error).message),
+  });
+  const legalizar = useMutation({
+    mutationFn: () => api.post<Solicitud & { error?: string }>(`/api/pagos/solicitudes/${s.id}/legalizar`, {
+      ...cuerpo, fecha: verif?.fecha_documento || undefined,
+      verificacion: verif ? { ...verif, archivo_tmp: undefined } : undefined,
+      verificacion_motivo: motivo, archivo_tmp: verif?.archivo_tmp, archivo_nombre: verif?.archivo_nombre,
+    }),
+    onSuccess: (r) => {
+      if (r.error) { setErr(r.error); return; }
+      onMensaje({ tipo: "ok", texto: `Anticipo #${s.id} legalizado: asiento #${r.legalizacion_movimiento_id}.` });
+      void qc.invalidateQueries({ queryKey: ["pagos-solicitudes"] });
+    },
+    onError: (e) => setErr((e as Error).message),
+  });
+
+  const esFactura = (verif as (Verificacion & { tipo_documento?: string }) | null)?.tipo_documento === "factura";
+  const p = prevQ.data && !prevQ.data.error ? prevQ.data : null;
+  const puede = puedeFirmar && esFactura && !!p?.cuadra && (verif?.fiel || motivo.trim().length > 3);
+
+  if (!abierto) {
+    return (
+      <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/5 px-2 py-1.5 text-sm">
+        <span className="text-sky-700 dark:text-sky-300">
+          <b>Anticipo sin factura.</b> Se giraron {cop(s.girado)} contra la cotización; la compra se registra cuando llegue la factura.
+        </span>
+        <button type="button" onClick={() => setAbierto(true)}
+                className="ml-auto rounded-lg bg-accent px-2.5 py-1 text-xs font-bold text-white">
+          Llegó la factura — legalizar
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3 space-y-3 rounded-xl border-2 border-sky-500/30 bg-surface p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-bold text-accent">Legalizar el anticipo #{s.id} con la factura</p>
+        <button type="button" onClick={() => setAbierto(false)} className="text-xs font-bold text-muted hover:text-ink">Cerrar</button>
+      </div>
+      <p className="text-sm text-muted">
+        Deja los renglones como dice la <b>factura</b>, no la cotización: cambia cantidades o precios, quita lo que no
+        facturaron y agrega lo nuevo. El asiento carga el inventario y el IVA facturados y cruza el anticipo.
+      </p>
+      <TablaProductos items={items} setItems={setItems} tot={tot} />
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="font-bold text-ink">Total de la factura</span>
+        <input type="number" min="0" step="0.01" value={totalFactura} inputMode="decimal"
+               onChange={(e) => setTotalFactura(e.target.value)}
+               className="w-40 rounded border-2 border-border bg-surface-input px-2 py-1 text-right tabular-nums text-ink" />
+        <input type="file" accept=".pdf,.xml,.zip" onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); setVerif(null); }}
+               className="text-sm text-ink" />
+        <button type="button" onClick={() => cotejar.mutate()} disabled={!archivo || cotejar.isPending}
+                className="rounded-lg border border-border px-2.5 py-1 text-xs font-bold text-ink disabled:opacity-40">
+          {cotejar.isPending ? "Cotejando…" : "Cotejar factura"}
+        </button>
+      </div>
+      {verif && (
+        <p className={`rounded px-2 py-1 text-sm ${esFactura && verif.fiel ? "bg-emerald-500/10 text-emerald-700" : "bg-amber-500/10 text-amber-700"}`}>
+          {esFactura ? `Factura ${verif.numero_documento || ""}` : "⚠️ Esto no es una factura electrónica (no trae XML ni CUFE): un anticipo se legaliza con la factura."}
+          {esFactura && (verif.fiel ? " · coincide con los renglones." : ` · ${verif.advertencias.join(" · ")}`)}
+        </p>
+      )}
+      {verif && esFactura && !verif.fiel && (
+        <input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Explica la diferencia para quien revise"
+               className="w-full rounded border-2 border-border bg-surface-input px-2 py-1 text-sm text-ink" />
+      )}
+      {prevQ.data?.error && <p className="text-sm font-bold text-red-500">{prevQ.data.error}</p>}
+      {p && (
+        <>
+          <div className="grid gap-2 sm:grid-cols-4">
+            <Mini label="Cotizado (anticipo)" valor={cop(p.cotizado.total)} />
+            <Mini label="Facturado" valor={cop(p.facturado.total)} />
+            <Mini label="Queda a favor (133005)" valor={cop(p.queda_a_favor)} acento={p.queda_a_favor > 0} />
+            <Mini label="Queda por pagar (2205)" valor={cop(p.queda_por_pagar)} acento={p.queda_por_pagar > 0} />
+          </div>
+          {Math.abs(p.ajuste_retencion) > 0 && (
+            <p className="text-xs text-muted">
+              Retención: se practicaron {cop(p.cotizado.retencion)} al girar sobre la base cotizada; sobre la base
+              facturada son {cop(p.facturado.retencion)} → ajuste de {cop(p.ajuste_retencion)}.
+            </p>
+          )}
+          {p.diferencias.length > 0 && (
+            <ul className="text-xs text-muted">
+              {p.diferencias.map((d) => (
+                <li key={d.sku}>
+                  <b className="text-ink">{d.sku}</b> {d.nombre}:{" "}
+                  {d.cotizado ? `cotizado ${d.cotizado.cantidad} × ${cop(d.cotizado.precio)}` : "no estaba cotizado"} →{" "}
+                  {d.facturado ? `facturado ${d.facturado.cantidad} × ${cop(d.facturado.precio)}` : "no lo facturaron"}
+                </li>
+              ))}
+            </ul>
+          )}
+          <AsientoPreview p={{
+            categoria_label: "Legalización de anticipo", concepto: `Solicitud #${s.id}`, fecha: p.fecha,
+            monto: p.facturado.total, retencion: p.facturado.retencion, retencion_motivo: "", girado: 0,
+            tercero: s.tercero ? { id: s.tercero.id, nombre: s.tercero.nombre } : null, medio_pago: "",
+            lineas: p.lineas, cuadra: p.cuadra, cuentas_t: p.cuentas_t,
+          }} />
+        </>
+      )}
+      {err && <p className="rounded bg-red-500/10 px-2 py-1 text-sm font-bold text-red-500">{err}</p>}
+      <div className="flex justify-end">
+        {puedeFirmar ? (
+          <button type="button" onClick={() => legalizar.mutate()} disabled={!puede || legalizar.isPending}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white disabled:opacity-40">
+            {legalizar.isPending ? "…" : "Legalizar y contabilizar"}
+          </button>
+        ) : (
+          <span className="text-xs italic text-muted">Legalizar lo firma Administración</span>
+        )}
+      </div>
+    </div>
   );
 }
 

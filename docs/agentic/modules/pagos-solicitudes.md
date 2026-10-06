@@ -656,3 +656,36 @@ son de la empresa: asiento directo en el Libro Mayor (Débito 519595 + 240810 co
 como **«Saldo pendiente»** (`saldo_por_pagar`): sin retención, sin ICA y **sin documento soporte**
 (`doc_soporte_pagos` ya excluye esa categoría; antes armaba un DS a nombre de ella y además dejaba el
 giro sin espejo). Por prestación de servicios, registrarlo como «elementos de protección», no «dotación».
+
+### Anticipo contra cotización + legalización con la factura (6-oct-2026)
+
+**Caso.** Factores (#62, asiento #7965) y Comercializadora (#65, asiento #7964) cobran por adelantado
+contra cotización. El giro se contabilizó como compra (1435 + 240810) y la factura vino por otra cosa:
+no había contra qué cruzarla. Además #7964 dice $525.455 a Bancos y el extracto $425.455 (cód 8162).
+
+**Regla** (`pagos_wizard.es_pago_anticipado`): compra con productos + documento **cotización** (cotejo del
+archivo: `pagos_proveedor.tipo_documento` → factura si hay XML DIAN o CUFE en el PDF; en el wizard simple,
+`documento_tipo` que declara quien solicita, default cotización) + tercero **obligado a facturar**
+(`doc_soporte_pagos.requiere` = False). Se guarda en `cc_solicitudes_pago.es_anticipo`; al rearmar manda lo
+guardado.
+
+- **Giro:** Débito 133005 (monto de la cotización) / Crédito retención / Crédito Bancos. La retención se
+  practica al girar (pago o abono en cuenta, lo primero). La línea lleva `es_anticipo_compra` para que
+  `aprobar()` no la descarte (133005 está en `_rearmadas`). `cuenta_debito` sigue siendo 1435 (`prev["cuenta_debito"]`).
+- **Legalizar** (`legalizar_anticipo`, `POST /api/pagos/solicitudes/<id>/legalizar`, solo Administración):
+  exige factura electrónica cotejada; renglones = lo FACTURADO (`validar_compra`). Asiento
+  `tipo_origen=legalizacion_anticipo`: Débito 1435 por renglón + 240810 / Crédito 133005; ajuste de retención
+  e ICA a la base facturada (débito si baja, crédito si sube; si era asumida, contra 531520); si facturó más,
+  Crédito 2205; si menos, el sobrante queda en 133005 y se ofrece en el cruce del próximo pago.
+  Guarda `legalizacion_movimiento_id` / `legalizacion_json`; reserva con `legalizada_at='en_curso'` contra doble clic;
+  rechaza factura repetida para el mismo tercero. Espeja a Alegra.
+- **Inventario** (`insumos._entradas`): el anticipo no cuenta como entrada; cuenta la legalización
+  (`plantilla_datos.items`).
+- **Panel:** selector «¿Qué documento tienes?», insignia «anticipo · falta la factura», filtro y aviso
+  «Anticipos sin factura» (`GET /api/pagos/anticipos`), formulario «Llegó la factura — legalizar» con vista
+  previa (cotizado vs facturado, a favor / por pagar, cuentas T) y **Guía animada** (`GuiaAnimadaPagos.tsx`:
+  anticipo, legalización, compra con factura, plata que entra al banco, cartera a favor/en contra, con
+  asientos reales).
+- **Asientos viejos:** `scripts/reclasificar_compra_a_anticipo.py <asiento> [--banco-real N] [--aplicar]`
+  (por defecto solo muestra): Débito 133005 / Crédito 1435 + 240810, y corrige Bancos contra 133005 si el
+  extracto difiere. Tests: `tests/test_pagos_anticipo.py`.

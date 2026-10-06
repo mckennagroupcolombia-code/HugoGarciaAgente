@@ -3897,6 +3897,8 @@ def register_routes(app):
         "/api/contabilidad/",
         "/api/pagos/documentos-soporte",
         "/api/pagos/solicitudes",
+        "/api/pagos/anticipos",
+        "/api/pagos/por-arreglar",
         "/api/pagos/puedo-registrar",
         "/api/pagos/categorias",
         "/api/pagos/cuentas-gasto",
@@ -13270,6 +13272,86 @@ def register_routes(app):
                 return jsonify({"error": "Solo Administración puede aprobar y contabilizar un pago"}), 403
             d = request.get_json(silent=True) or {}
             return jsonify(aprobar(sid, aprobada_por=_cc_uid(), espejar=bool(d.get("espejar", True))))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ─── Anticipos pagados con cotización: se legalizan con la factura ──────
+    @app.route("/api/pagos/anticipos", methods=["GET"])
+    @app.route("/app/api/pagos/anticipos", methods=["GET"])
+    def api_pagos_anticipos():
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import anticipos_por_legalizar
+
+            return jsonify({"anticipos": anticipos_por_legalizar()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/legalizacion/previsualizar", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/legalizacion/previsualizar", methods=["POST"])
+    def api_pagos_legalizacion_previsualizar(sid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import previsualizar_legalizacion
+
+            return jsonify(previsualizar_legalizacion(sid, request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/legalizar", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/legalizar", methods=["POST"])
+    def api_pagos_legalizar(sid: int):
+        """Causa la compra con la factura y cruza el anticipo. Es contabilizar: Administración."""
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import legalizar_anticipo, puede_registrar_directo
+
+            u = _panel_tickets_usuario()
+            if u and not puede_registrar_directo(u):
+                return jsonify({"error": "Solo Administración puede legalizar un anticipo"}), 403
+            return jsonify(legalizar_anticipo(sid, request.get_json(silent=True) or {}, por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/por-arreglar", methods=["GET"])
+    @app.route("/app/api/pagos/por-arreglar", methods=["GET"])
+    def api_pagos_por_arreglar():
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import por_arreglar
+
+            return jsonify({"solicitudes": por_arreglar()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/por-arreglar", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/por-arreglar", methods=["POST"])
+    def api_pagos_marcar_por_arreglar(sid: int):
+        """{nota} marca el asiento como pendiente de corregir; {arreglado: true, nota} lo cierra."""
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import marcar_arreglado, marcar_por_arreglar
+
+            d = request.get_json(silent=True) or {}
+            if d.get("arreglado"):
+                return jsonify(marcar_arreglado(sid, d.get("nota") or "", por=_cc_uid()))
+            return jsonify(marcar_por_arreglar(sid, d.get("nota") or "", por=_cc_uid()))
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         except Exception as e:

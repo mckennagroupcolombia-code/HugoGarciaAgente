@@ -1,3 +1,14 @@
+### 2026-10-06 - Solicitudes de pago: anticipo contra cotización, legalización con la factura y guía animada
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección contable (Contabilidad → Solicitudes de pago). Sin LLM.
+- **Qué se implementó:**
+  - Una compra pagada con **cotización** a un proveedor **obligado a facturar** se registra como **anticipo**: Débito 133005 / Crédito retención / Crédito Bancos. Ya no carga inventario ni IVA sin factura. El wizard simple pregunta «¿Qué documento tienes?»; el cotejo detecta factura por XML DIAN o CUFE.
+  - **Legalizar con la factura** (botón en la solicitud, solo Administración): causa 1435 + 240810 con lo FACTURADO, cruza el anticipo, ajusta la retención a la base facturada y deja el sobrante a favor (133005) o el faltante por pagar (2205). Filtro y aviso «Anticipos sin factura»; el inventario cuenta la factura, no la cotización.
+  - **Guía animada** en Solicitudes de pago: anticipo, legalización, compra con factura, plata que entra al banco (venta vs. traslado de Mercado Pago) y cartera a favor/en contra, con asientos reales y cuentas T que se llenan paso a paso.
+  - **Asientos por arreglar**: una diferencia conocida queda marcada en la solicitud y en un aviso rojo hasta que alguien la cierre con «Ya se arregló».
+  - Datos: asiento #7965 (Factores, #62) reclasificado a anticipo con el ajuste #9108 (Alegra 180); #62 queda por legalizar. #65 (Comercializadora, asiento #7964) marcado por arreglar: libro $525.455 vs. extracto $425.455 y BOLTRA16X24ZIP cargado otra vez en #8999.
+- **Archivos Modificados:** `app/services/pagos_wizard.py`, `app/services/pagos_proveedor.py`, `app/services/insumos.py`, `app/routes.py`, `desktop/src/components/PagosWizardPanel.tsx`, `desktop/src/components/GuiaAnimadaPagos.tsx` (nuevo), `scripts/reclasificar_compra_a_anticipo.py` (nuevo), `tests/test_pagos_anticipo.py` (nuevo), `docs/agentic/modules/pagos-solicitudes.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-06 - Grupos: responder a un mensaje (cita al estilo WhatsApp)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Mensajes → Grupos). Sin LLM.
