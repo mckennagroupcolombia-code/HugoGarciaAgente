@@ -8,6 +8,8 @@ const CrearProductosSiigoPanel = lazy(() => import("./CrearProductosSiigoPanel")
  * Botón flotante «Crear en Alegra», mismo patrón que la calculadora mágica
  * (portal + z-index alto), debajo del FAB de calculadora.
  * Minimizar colapsa a una barra sin desmontar el formulario.
+ * El alto de la ventana descuenta el espacio de arriba (botón y cabezote): con 82vh el
+ * final del formulario quedaba por fuera de la pantalla (5-oct-2026).
  */
 export default function CrearSiigoFab() {
   const [abierta, setAbierta] = useState(false);
@@ -75,7 +77,7 @@ export default function CrearSiigoFab() {
       {abierta && (
         <>
           <div
-            className={`pointer-events-auto flex max-h-[min(82vh,44rem)] w-[min(calc(100vw-1.5rem),36rem)] flex-col overflow-hidden rounded-paper-lg border-2 border-sky-500/50 bg-surface-panel shadow-paper-lg ${
+            className={`pointer-events-auto flex max-h-[min(44rem,calc(100dvh-12.5rem))] max-md:max-h-[calc(100dvh-17rem)] w-[min(calc(100vw-1.5rem),36rem)] flex-col overflow-hidden rounded-paper-lg border-2 border-sky-500/50 bg-surface-panel shadow-paper-lg ${
               minimizada ? "hidden" : ""
             }`}
             role="dialog"
