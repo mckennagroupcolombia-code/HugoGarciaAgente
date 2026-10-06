@@ -610,3 +610,12 @@ está en disco; FE de venta solo con enlace (XML/PDF no incluidos salvo `--pdf-v
 957 archivos, 44 MB ahorrados por dedup, 5 faltantes. CLI `python3 -m app.services.expediente_paquete AAAA-MM
 [--pdf-ventas] [--regenerar]`. Rutas `GET <p>/paquete`, `POST <p>/paquete/generar`, `GET <p>/paquete/descargar`.
 Tests: `tests/test_observaciones_contador.py`, `tests/test_expediente_paquete.py`.
+
+**Mercado Pago en el cruce (6-oct-2026).** `app/services/mercadopago_liquidaciones.py` lee los «settlement report»
+de Mercado Pago (Excel, tramos de 62 días, en ~/Descargas) y los resume por mes en
+`docs/contabilidad/<año>/mercadopago_liquidaciones.json` (gitignored). ⚠️ NO se cargan como extracto: no traen
+retiros ni saldo, y en Conciliación la misma plata quedaría dos veces (venta en MP + giro en Bancolombia). 2025:
+neto liquidado $460,6M vs $463,7M que llegaron al banco desde MP. Con eso `cruce_tripartito()` arma el «puente de
+la renta»: ingresos declarados + IVA de los 300 + envíos cobrados + devoluciones/disputas + cashback = $953,9M
+contra $963,2M de terceros (comunicado DIAN) → $9,3M sin explicar. Es hipótesis: se confirma con «Información
+reportada por terceros» de MUISCA.

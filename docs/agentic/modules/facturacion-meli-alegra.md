@@ -384,6 +384,12 @@ ventas MeLi pagadas (ventanas de 3 días), sin factura vigente en la base comple
 Tope 20/corrida, `--simular`, `FACTURACION_ENTREGADAS_CRON_ACTIVO=0` lo apaga. El webhook
 (`MELI_AUTOFACTURA_ENTREGA_ACTIVO`) sigue apagado.
 
+**Motivo visible (6-oct).** La bandeja abría siempre en «Doble factura» (0 casos): el usuario veía un recuadro
+vacío («──») con «150 sin facturar» arriba. Ahora abre en la primera pestaña con casos y cada venta sin factura
+muestra `motivo` (`motivo_sin_facturar`, al servir en `anotar_filas`): fecha de entrega, días transcurridos y
+qué pasará (próxima corrida del cron o el bloqueo que registró en `app/data/facturar_entregadas_cron.json`).
+La fila guarda `fecha_entrega` del envío.
+
 ---
 
 ## Traído de CLAUDE.md (27-sep-2026)

@@ -13,8 +13,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, fetchAuthBlobUrl } from "../api/client";
 
+type MP = { ventas: number; envios: number; devoluciones: number; cashback: number; comisiones: number; neto: number };
 type Mes = {
   mes: string;
+  mercado_pago: MP | null;
   dian: { ventas_netas: number; compras_netas: number; doc_soporte: number; fuente: string } | null;
   william_350: { base_sujeta: number; compras_base: number; total: number; numero?: string } | null;
   banco: { abonos: number; cargos: number; abonos_mercado_pago: number; abonos_clientes: number; abonos_otros: number; pagos_fisco: number } | null;
@@ -23,7 +25,7 @@ type Mes = {
 type Iva = {
   cuatrimestre: number; meses: string[]; numero?: string; dian_completa: boolean;
   william_ingresos: number; william_iva_generado: number; william_total_facturado: number;
-  dian_ventas: number; diferencia_ventas: number; pct_ventas: number | null;
+  dian_ventas: number; diferencia_ventas: number; pct_ventas: number | null; mp_ventas_netas?: number | null;
   william_iva_descontable: number; william_compras_gravadas_con_iva: number; dian_compras: number;
 };
 type Pago = {
@@ -34,9 +36,12 @@ type Pago = {
 };
 type Cruce = {
   anio: number;
-  fuentes: { dian_meses: string[]; dian_meses_deducidos: string[]; extractos_meses: string[]; declaraciones: number; recibos: number };
+  fuentes: { dian_meses: string[]; dian_meses_deducidos: string[]; extractos_meses: string[]; declaraciones: number; recibos: number; mercado_pago_meses?: string[] };
   meses: Mes[]; iva: Iva[]; pagos: Pago[];
   hallazgos: { nivel: string; tema: string; texto: string }[];
+  mercado_pago: (MP & { banco_desde_mp: number; diferencia_banco: number; meses: string[] }) | null;
+  renta: { pasos: { concepto: string; valor: number }[]; explicado: number; terceros: number | null;
+           sin_explicar: number | null; plazo?: string; radicado?: string; nota: string } | null;
 };
 
 const MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -117,6 +122,7 @@ export default function CruceFuentesFiscales({ soloLectura }: { soloLectura: boo
           <Fuente titulo="William" texto={`${f.declaraciones} declaraciones · ${f.recibos} recibos de pago`} />
           <Fuente titulo="DIAN" texto={!f.dian_meses.length ? "sin reportes mensuales ese año (empiezan en feb-2026)" : `${rango(f.dian_meses)}${f.dian_meses_deducidos.length ? ` (${f.dian_meses_deducidos.map(nm).join(", ")} deducido del acumulado)` : ""}`} />
           <Fuente titulo="Banco" texto={`extractos ${rango(f.extractos_meses)}`} />
+          <Fuente titulo="Mercado Pago" texto={f.mercado_pago_meses?.length ? `liquidaciones ${rango(f.mercado_pago_meses)}` : "sin reportes"} />
           {!soloLectura && (
             <button type="button" disabled={actualizar.isPending} onClick={() => { setMsg(null); actualizar.mutate(); }}
                     className="ml-auto rounded-lg border border-accent px-3 py-1 font-bold text-accent hover:bg-accent/10 disabled:opacity-50">
@@ -137,6 +143,53 @@ export default function CruceFuentesFiscales({ soloLectura }: { soloLectura: boo
         ))}
       </section>
 
+      {d.renta && (
+        <section className="lm-card space-y-2 p-3">
+          <h4 className="text-sm font-bold text-ink">Renta {d.anio}: de lo declarado a lo que reportaron terceros</h4>
+          <table className="w-full text-sm">
+            <tbody>
+              {d.renta.pasos.map((p) => (
+                <tr key={p.concepto} className="border-b border-border/40">
+                  <td className="py-1 pr-2 text-ink">{p.concepto}</td>
+                  <td className="py-1 text-right font-mono">{cop(p.valor)}</td>
+                </tr>
+              ))}
+              <tr className="border-b border-border font-bold">
+                <td className="py-1 pr-2 text-ink">= Explicado</td>
+                <td className="py-1 text-right font-mono">{cop(d.renta.explicado)}</td>
+              </tr>
+              {d.renta.terceros != null && (
+                <>
+                  <tr>
+                    <td className="py-1 pr-2 text-ink">Lo que la DIAN dice que reportaron terceros{d.renta.radicado ? ` (comunicado ${d.renta.radicado})` : ""}</td>
+                    <td className="py-1 text-right font-mono">{cop(d.renta.terceros)}</td>
+                  </tr>
+                  <tr className="font-bold">
+                    <td className="py-1 pr-2 text-ink">Sin explicar</td>
+                    <td className={`py-1 text-right font-mono ${Math.abs(d.renta.sin_explicar ?? 0) / (d.renta.terceros || 1) <= 0.02 ? "text-emerald-600" : "text-red-600"}`}>
+                      {cop(d.renta.sin_explicar)} ({(((d.renta.sin_explicar ?? 0) / (d.renta.terceros || 1)) * 100).toFixed(1)}%)
+                    </td>
+                  </tr>
+                </>
+              )}
+            </tbody>
+          </table>
+          <p className="text-[11px] text-muted">{d.renta.nota}{d.renta.plazo ? ` Plazo para responder: ${d.renta.plazo}.` : ""}</p>
+        </section>
+      )}
+
+      {d.mercado_pago && (
+        <section className="lm-card space-y-1 p-3">
+          <h4 className="text-sm font-bold text-ink">Mercado Pago ↔ banco · {d.anio}</h4>
+          <p className="text-xs text-ink">
+            Ventas brutas {cop(d.mercado_pago.ventas)} + envíos {cop(d.mercado_pago.envios)} + cashback {cop(d.mercado_pago.cashback)}
+            {" "}− devoluciones y disputas {cop(-d.mercado_pago.devoluciones)} − comisiones y cargos {cop(-d.mercado_pago.comisiones)}
+            {" "}= <b>neto liquidado {cop(d.mercado_pago.neto)}</b>. Al banco llegaron <b>{cop(d.mercado_pago.banco_desde_mp)}</b> desde
+            Mercado Pago (diferencia {cop(d.mercado_pago.diferencia_banco)}, por los cortes de fin de año).
+          </p>
+        </section>
+      )}
+
       <section className="lm-card space-y-2 p-3">
         <h4 className="text-sm font-bold text-ink">Ventas · IVA (300) contra lo que la DIAN ve facturado</h4>
         <div className="overflow-x-auto">
@@ -148,6 +201,7 @@ export default function CruceFuentesFiscales({ soloLectura }: { soloLectura: boo
                 <th className="py-1 pr-2 text-right">+ IVA generado (67)</th>
                 <th className="py-1 pr-2 text-right">= Total facturado</th>
                 <th className="py-1 pr-2 text-right">DIAN: ventas netas</th>
+                <th className="py-1 pr-2 text-right" title="Ventas por Mercado Pago menos devoluciones y disputas, con IVA">de ellas por Mercado Pago</th>
                 <th className="py-1 text-right">Diferencia</th>
               </tr>
             </thead>
@@ -160,7 +214,8 @@ export default function CruceFuentesFiscales({ soloLectura }: { soloLectura: boo
                     <td className="py-1 pr-2 text-right font-mono">{cop(r.william_ingresos)}</td>
                     <td className="py-1 pr-2 text-right font-mono">{cop(r.william_iva_generado)}</td>
                     <td className="py-1 pr-2 text-right font-mono font-bold">{cop(r.william_total_facturado)}</td>
-                    <td className="py-1 pr-2 text-right font-mono font-bold">{cop(r.dian_ventas)}</td>
+                    <td className="py-1 pr-2 text-right font-mono font-bold">{r.dian_completa || r.dian_ventas ? cop(r.dian_ventas) : "—"}</td>
+                    <td className="py-1 pr-2 text-right font-mono text-muted">{cop(r.mp_ventas_netas)}</td>
                     <td className={`py-1 text-right font-mono ${ok ? "text-emerald-600" : "font-bold text-red-600"}`}>
                       {cop(r.diferencia_ventas)} <span className="text-[10px]">({r.pct_ventas ?? "—"}%){ok ? " ✓" : ""}</span>
                     </td>
@@ -180,11 +235,12 @@ export default function CruceFuentesFiscales({ soloLectura }: { soloLectura: boo
       <section className="lm-card space-y-2 p-3">
         <h4 className="text-sm font-bold text-ink">Mes a mes</h4>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-xs">
+          <table className="w-full min-w-[1000px] text-xs">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-wider text-muted">
                 <th />
                 <th colSpan={3} className="border-b border-border px-1 pb-0.5 text-center">DIAN · facturación electrónica</th>
+                <th colSpan={2} className="border-b border-border px-1 pb-0.5 text-center">Mercado Pago</th>
                 <th colSpan={2} className="border-b border-border px-1 pb-0.5 text-center">William · 350</th>
                 <th colSpan={4} className="border-b border-border px-1 pb-0.5 text-center">Banco · cuenta de la empresa</th>
               </tr>
@@ -193,6 +249,8 @@ export default function CruceFuentesFiscales({ soloLectura }: { soloLectura: boo
                 <th className="py-1 pr-2 text-right">Ventas</th>
                 <th className="py-1 pr-2 text-right">Compras</th>
                 <th className="py-1 pr-2 text-right">Doc. soporte</th>
+                <th className="py-1 pr-2 text-right" title="Ventas brutas con IVA">Ventas</th>
+                <th className="py-1 pr-2 text-right" title="Lo que quedó liquidado después de comisiones">Neto</th>
                 <th className="py-1 pr-2 text-right">Base compras</th>
                 <th className="py-1 pr-2 text-right" title="Base de compras del 350 ÷ compras DIAN sin IVA (aprox.)">% con retención</th>
                 <th className="py-1 pr-2 text-right" title="Mercado Pago · clientes (QR, llave, Nequi) · otros">Abonos</th>
@@ -208,6 +266,8 @@ export default function CruceFuentesFiscales({ soloLectura }: { soloLectura: boo
                   <td className="py-1 pr-2 text-right font-mono">{mill(m.dian?.ventas_netas)}</td>
                   <td className="py-1 pr-2 text-right font-mono">{mill(m.dian?.compras_netas)}</td>
                   <td className="py-1 pr-2 text-right font-mono">{mill(m.dian?.doc_soporte)}</td>
+                  <td className="py-1 pr-2 text-right font-mono">{mill(m.mercado_pago?.ventas)}</td>
+                  <td className="py-1 pr-2 text-right font-mono">{mill(m.mercado_pago?.neto)}</td>
                   <td className="py-1 pr-2 text-right font-mono">{mill(m.william_350?.compras_base)}</td>
                   <td className={`py-1 pr-2 text-right font-mono ${(m.pct_compras_con_retencion ?? 100) < 40 ? "font-bold text-amber-600" : ""}`}>
                     {m.pct_compras_con_retencion != null ? `${m.pct_compras_con_retencion}%` : "—"}

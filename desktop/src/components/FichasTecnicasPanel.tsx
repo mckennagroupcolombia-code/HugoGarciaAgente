@@ -16,6 +16,7 @@ import DocumentoGeneradorTab, {
   textoDesdeFilasTres,
 } from "./documentos/DocumentoGeneradorTab";
 import { TablaComposicion } from "./documentos/TablaComposicion";
+import { ComposicionDesdeFormula } from "./documentos/ComposicionDesdeFormula";
 import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
 import CargarDocumentosWebButton, { type CargarDocumentosWebResult } from "./documentos/CargarDocumentosWebButton";
@@ -2740,6 +2741,12 @@ function DocumentoCompletoTabContent({
           value={coaComposicion}
           onChange={setCoaComposicion}
           actions={<IaBtn {...ia("composicion")} />}
+        />
+        <ComposicionDesdeFormula
+          titulo={nombre}
+          referencia={referencia}
+          value={coaComposicion}
+          onChange={setCoaComposicion}
         />
       </div>
 

@@ -19,6 +19,7 @@ import contextlib
 import fcntl
 import json
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import Any
@@ -198,3 +199,53 @@ def eliminar(formula_id: str) -> bool:
             return False
         _save(quedan)
     return True
+
+
+def _porcentaje_texto(v: float) -> str:
+    n = round(float(v or 0), 2)
+    txt = str(int(n)) if n == int(n) else f"{n:.2f}".rstrip("0").replace(".", ",")
+    return f"{txt} %"
+
+
+def _nombre_componente(texto: str) -> str:
+    """«AGUA DESTILADA» → «Agua destilada»; al nombre de Alegra se le quita la unidad final."""
+    t = re.sub(r"\s+(G|GR|GRS|KG|ML|L|LT|UN|UND)$", "", (texto or "").strip(), flags=re.I).strip()
+    return t[:1].upper() + t[1:].lower() if t.isupper() else t
+
+
+def composicion_por_sku(sku: str) -> dict | None:
+    """La fórmula cuyo `sku_alegra` es `sku`, con sus ingredientes como filas de la
+    Composición del documento técnico: [componente, porcentaje, CAS]. El nombre y el
+    CAS salen del documento técnico del ingrediente (por su código), si lo tiene."""
+    ref = (sku or "").strip().upper()
+    if not ref:
+        return None
+    formula = next((x for x in _load() if (x.get("sku_alegra") or "").strip().upper() == ref), None)
+    if not formula:
+        return None
+    try:
+        from app.services.ficha_tecnica import DATOS_DIR, cargar_datos_desde_archivo
+        from app.services.mapa_producto import _auditoria
+
+        A = _auditoria()
+        docs = A.documentos_por_titulo()
+    except Exception:
+        A, docs = None, []
+    filas = []
+    for ing in formula.get("ingredientes") or []:
+        codigo = (ing.get("codigo") or "").strip()
+        nombre, cas = _nombre_componente(ing.get("nombre") or codigo), ""
+        propios = [d for d in docs if codigo and codigo.lower() in
+                   {x.lower() for x in [d.get("referencia") or "", *d.get("equivalentes", [])] if x}]
+        if A and propios:
+            try:
+                doc = A.documento_vigente(A.mejor_documento(codigo, "", propios)["archivo"]) or {}
+                nombre = _nombre_componente(doc.get("titulo") or "") or nombre
+                datos = cargar_datos_desde_archivo(DATOS_DIR / doc["archivo"])
+                cas = str(datos.get("cas") or (datos.get("identificacion") or {}).get("cas") or "").strip()
+                if cas.lower().startswith("no aplica"):
+                    cas = ""
+            except Exception:
+                pass
+        filas.append([nombre, _porcentaje_texto(_numero(ing.get("porcentaje"))), cas])
+    return {"id": formula.get("id"), "nombre": formula.get("nombre") or "", "sku": formula.get("sku_alegra") or ref, "filas": filas}

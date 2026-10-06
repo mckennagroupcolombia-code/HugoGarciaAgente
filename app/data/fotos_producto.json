@@ -461,6 +461,62 @@
      "bytes": 2242163
     }
    ]
+  },
+  "C-AVEHOJKG": {
+   "meli": [
+    {
+     "archivo": "C-AVEHOJKG_20261005-234319_e799.png",
+     "subido_at": "2026-10-05T23:43:19",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2653195
+    }
+   ],
+   "web": [
+    {
+     "archivo": "C-AVEHOJKG_20261005-233911_7bcb.png",
+     "subido_at": "2026-10-05T23:39:11",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2481372
+    }
+   ]
+  },
+  "C-ALBSEC250G": {
+   "meli": [
+    {
+     "archivo": "C-ALBSEC250G_20261006-005040_0a6f.png",
+     "subido_at": "2026-10-06T00:50:40",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2459461
+    }
+   ],
+   "web": [
+    {
+     "archivo": "C-ALBSEC250G_20261006-004840_895d.png",
+     "subido_at": "2026-10-06T00:48:40",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2247410
+    }
+   ]
+  },
+  "C-ALBSEC500G": {
+   "web": [
+    {
+     "archivo": "C-ALBSEC500G_20261006-011943_b5d3.png",
+     "subido_at": "2026-10-06T01:19:43",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2408017
+    }
+   ]
   }
  }
 }

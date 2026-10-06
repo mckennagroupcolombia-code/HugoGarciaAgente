@@ -199,3 +199,13 @@ de conciliación) suben de tamaño desde `components/libroMayor.css`: 9-9,5 → 
 sección se lea igual basta con que viva dentro de `.lm-root`; si abre con `createPortal`, poner `lm-escala` en su
 raíz. El riel lateral pasó a 256 px y en móvil la columna usa `grid-cols-[minmax(0,1fr)]` (sin eso la tabla del
 PUC estiraba la vista a 1.667 px y cortaba los filtros).
+
+### Celebración = el perro de Duck Hunt (6-oct-2026)
+
+Toda acción, flujo o formulario completado (aprobar ficha/etiqueta, visto bueno SDS, revisado,
+combo completo, línea conciliada, tarea resuelta y toda moneda que paga el servidor vía
+`X-Mck-Monedas`) lo celebra `perroSeRie()` en `desktop/src/lib/celebracionAprobado.ts`: el perro
+asoma abajo al centro y se ríe. Reemplazó el confeti/estrellas y la fanfarria/moneda de 8 bits.
+La tarjeta/aviso con las monedas se mantiene. La risa se calla con el interruptor 🔊 del taller
+(`sonidoActivo`); el perro igual se ve. Para celebrar algo nuevo: `celebrarAprobacion({...})` (si
+paga misión) o `perroSeRie()` directo. Los sonidos de navegación (`sonidosJuego.ts`) no cambian.

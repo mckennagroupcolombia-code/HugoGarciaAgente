@@ -1275,6 +1275,10 @@ def cruce_tripartito(anio: int | None = None) -> dict:
         banco = [l for l in _lineas_banco_empresa(con) if l["fecha"].startswith(f"{anio:04d}-")]
     meses_banco = sorted({l["fecha"][:7] for l in banco})
 
+    from app.services import mercadopago_liquidaciones
+
+    mp = mercadopago_liquidaciones.por_mes(anio)
+
     # ── por mes ──
     hasta_mes = date.today().month if anio == date.today().year else 12
     meses: list[dict] = []
@@ -1290,8 +1294,13 @@ def cruce_tripartito(anio: int | None = None) -> dict:
             cat[_categoria_abono(l["descripcion"])] += float(l["monto"])
         fisco = [l for l in lb if l["tipo"] == "debito" and any(p in (l["descripcion"] or "").upper() for p in _PALABRAS_FISCO)]
         dm = dian.get(k)
+        mpm = mp.get(k)
         meses.append({
             "mes": k,
+            "mercado_pago": ({"ventas": mpm.get("ventas", 0), "envios": mpm.get("envios", 0),
+                              "devoluciones": round(mpm.get("devoluciones", 0) + mpm.get("disputas", 0), 2),
+                              "cashback": mpm.get("cashback", 0), "comisiones": mpm.get("comisiones", 0),
+                              "neto": mpm.get("neto", 0)} if mpm else None),
             "dian": ({"ventas_netas": dm["ventas_netas"], "compras_netas": dm["compras_netas"],
                       "doc_soporte": dm["doc_soporte"], "fuente": dm["fuente"]} if dm else None),
             "william_350": ({"base_sujeta": sum(r.get(b, 0) for b in bases),
@@ -1328,6 +1337,8 @@ def cruce_tripartito(anio: int | None = None) -> dict:
             "william_iva_descontable": iva_desc,
             "william_compras_gravadas_con_iva": round(iva_desc / 0.19 * 1.19, 2),
             "dian_compras": round(dian_compras, 2),
+            "mp_ventas_netas": round(sum((mp.get(k) or {}).get("ventas", 0) + (mp.get(k) or {}).get("devoluciones", 0)
+                                         + (mp.get(k) or {}).get("disputas", 0) for k in ks), 2) if mp else None,
         }
         ivas.append(fila)
         if not faltan and w_fact and abs(dif) / w_fact > 0.01:
@@ -1470,6 +1481,49 @@ def cruce_tripartito(anio: int | None = None) -> dict:
                                    f"el {l['fecha']} por ${_p(l['monto'])} («{l['descripcion']}») que no corresponde a ninguna "
                                    "declaración ni recibo que tengamos. Pedirle a William qué pagó."})
 
+    # ── 4. Mercado Pago ↔ banco y puente de la renta ──
+    mp_anual = {c: round(sum((m.get("mercado_pago") or {}).get(c, 0) for m in meses), 2)
+                for c in ("ventas", "envios", "devoluciones", "cashback", "comisiones", "neto")}
+    banco_mp = round(sum((m.get("banco") or {}).get("abonos_mercado_pago", 0) for m in meses), 2)
+    mercado_pago = None
+    if any(m.get("mercado_pago") for m in meses):
+        dif_mp = banco_mp - mp_anual["neto"]
+        mercado_pago = {**mp_anual, "banco_desde_mp": banco_mp, "diferencia_banco": round(dif_mp, 2),
+                        "meses": sorted(m["mes"] for m in meses if m.get("mercado_pago"))}
+        if banco_mp and mp_anual["neto"] and abs(dif_mp) / mp_anual["neto"] > 0.03:
+            hallazgos.append({"nivel": "media", "tema": "mercado_pago",
+                              "texto": f"Mercado Pago liquidó ${_p(mp_anual['neto'])} netos en {anio} y al banco llegaron "
+                                       f"${_p(banco_mp)} desde Mercado Pago (diferencia ${_p(dif_mp)}). Puede ser saldo que "
+                                       "quedó en Mercado Pago o pagos hechos desde allá; revisar."})
+
+    renta = None
+    d110 = next((d for d in _declaraciones_contador() if d.get("tipo") == "110" and int(d.get("anio") or 0) == anio), None)
+    if d110:
+        reng = {str(a): float(b or 0) for a, b in (d110.get("renglones") or {}).items()}
+        ingresos = float(d110.get("total_ingresos_brutos_58") or reng.get("58") or 0)
+        iva = sum(float(d.get("impuesto_generado_67") or 0) for d in decls if d.get("tipo") == "300")
+        com = next((c for c in _comunicados_dian() if int(c.get("anio") or 0) == anio), None)
+        pasos = [
+            {"concepto": "Ingresos declarados en la renta (renglón 58)", "valor": ingresos},
+            {"concepto": "+ IVA cobrado en las ventas (renglón 67 de los 300 del año)", "valor": iva},
+        ]
+        if mercado_pago:
+            pasos += [
+                {"concepto": "+ Envíos que pagaron los compradores por Mercado Pago (no son ingreso de McKenna)",
+                 "valor": mp_anual["envios"]},
+                {"concepto": "+ Devoluciones y disputas (los terceros reportan la venta antes de devolverla)",
+                 "valor": -mp_anual["devoluciones"]},
+                {"concepto": "+ Cashback / bonificaciones de Mercado Libre", "valor": mp_anual["cashback"]},
+            ]
+        explicado = round(sum(x["valor"] for x in pasos), 2)
+        renta = {"pasos": pasos, "explicado": explicado,
+                 "terceros": com.get("ingresos_terceros") if com else None,
+                 "sin_explicar": round(com["ingresos_terceros"] - explicado, 2) if com else None,
+                 "plazo": com.get("plazo") if com else None, "radicado": com.get("radicado") if com else None,
+                 "nota": ("Hipótesis, no conclusión: muestra que la cifra de terceros puede incluir IVA, envíos y ventas "
+                          "luego devueltas, que no son ingreso gravable. Para confirmarla hay que bajar de MUISCA "
+                          "«Información reportada por terceros» del año y cruzarla tercero por tercero.")}
+
     # Renta del año anterior contra lo que la DIAN dice que reportaron terceros.
     for com in _comunicados_dian():
         hallazgos.append({"nivel": "alta", "tema": "dian",
@@ -1485,8 +1539,10 @@ def cruce_tripartito(anio: int | None = None) -> dict:
         "fuentes": {
             "dian_meses": sorted(dian), "dian_meses_deducidos": sorted(k for k, v in dian.items() if v["fuente"] != "reporte"),
             "extractos_meses": meses_banco, "declaraciones": len(decls), "recibos": len(recibos),
+            "mercado_pago_meses": sorted(mp),
         },
         "meses": meses, "iva": ivas, "pagos": pagos, "hallazgos": hallazgos,
+        "mercado_pago": mercado_pago, "renta": renta,
     }
 
 
@@ -1499,10 +1555,16 @@ def actualizar_fuentes() -> dict:
     nuevos_contador = _descargar_y_extraer()
     dian = reportes_dian_fe.actualizar_desde_gmail()
     try:
+        from app.services import mercadopago_liquidaciones
+
+        mp = mercadopago_liquidaciones.importar()
+    except Exception as e:
+        mp = {"error": str(e)}
+    try:
         from app.services.pagos_impuestos import invalidar_cache_recibos
 
         invalidar_cache_recibos()
     except Exception:
         pass
     return {"soportes_contador_nuevos": nuevos_contador, "reportes_dian_nuevos": dian["nuevos"],
-            "meses_dian": dian["meses"]}
+            "meses_dian": dian["meses"], "mercado_pago": mp}

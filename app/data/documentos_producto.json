@@ -1682,10 +1682,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-22T20:32:19+00:00"
+          "registrado_en": "2026-10-06T04:34:01+00:00"
         }
       ],
-      "updated_at": "2026-09-22T20:32:19+00:00"
+      "updated_at": "2026-10-06T04:34:01+00:00"
     },
     "C-CERABEREFBLAKG": {
       "ref": "C-CERABEREFBLAKG",
@@ -4255,7 +4255,7 @@
         },
         {
           "lote_numero": "MCC260205",
-          "estado": "nuevo",
+          "estado": "sin_cambios",
           "fabricante": "Andina",
           "pais_origen": "China",
           "fecha_fabricacion": "febrero 10, 2026",
@@ -4265,10 +4265,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-22T18:54:26+00:00"
+          "registrado_en": "2026-10-06T04:07:09+00:00"
         }
       ],
-      "updated_at": "2026-09-22T18:54:26+00:00"
+      "updated_at": "2026-10-06T04:07:09+00:00"
     },
     "L-AMIPRO100G": {
       "ref": "L-AMIPRO100G",

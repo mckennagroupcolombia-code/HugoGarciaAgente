@@ -5670,6 +5670,22 @@ def register_routes(app):
             return jsonify({"error": "No encontrado"}), 404
         return jsonify({"id": doc["archivo"].rsplit(".", 1)[0], "titulo": doc["titulo"]})
 
+    @app.route("/app/api/fichas/composicion-formula/<sku>", methods=["GET"])
+    @app.route("/api/fichas/composicion-formula/<sku>", methods=["GET"])
+    def api_fichas_composicion_formula(sku: str):
+        """Componentes de la fórmula (pestaña Fórmulas) cuyo SKU de Alegra es la referencia
+        del documento: el formulario los integra en su Composición."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.formulas_db import composicion_por_sku
+
+        # «C-FOR-X,FOR-X»: la referencia del documento y sus equivalentes; gana la primera con fórmula.
+        for ref in sku.split(","):
+            formula = composicion_por_sku(ref)
+            if formula:
+                return jsonify({"formula": formula})
+        return jsonify({"formula": None})
+
     @app.route("/app/api/fichas/datos/<slug>", methods=["GET"])
     @app.route("/api/fichas/datos/<slug>", methods=["GET"])
     def api_fichas_datos_get(slug: str):

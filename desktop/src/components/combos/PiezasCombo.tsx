@@ -9,7 +9,7 @@ import AsignarEan from "./AsignarEan";
 import InspectorEtiquetaReceta from "./InspectorEtiquetaReceta";
 import InspectorReceta from "./InspectorReceta";
 import EnlazarDocumento from "./EnlazarDocumento";
-import { ponerSonido, sonarMoneda, sonidoActivo } from "./sonidoMoneda";
+import { ponerSonido, sonidoActivo } from "./sonidoMoneda";
 import EtiquetaEmergente from "./EtiquetaEmergente";
 import type { EntradaFormularioEtiqueta } from "../etiqueta-ficha/ProductLabelForm";
 import KitEmergente from "./KitEmergente";
@@ -790,8 +790,7 @@ export function ResolverPieza({ datos, refCombo, pieza, onCerrar }: {
     if (!ganadas.length) return;
     setRecien("Listo: " + ganadas.map((k) => c.eslabones[k]?.titulo ?? k).join(" y "));
     if (completo(c)) {
-      sonarMoneda();
-      celebrarAprobacion({ tipo: "moneda", titulo: "¡Combo completo!", detalle: c.ref, mision: "combo_completo", sonido: false });
+      celebrarAprobacion({ tipo: "moneda", titulo: "¡Combo completo!", detalle: c.ref, mision: "combo_completo" });
       setPiezaAbierta(false);
       onCerrar();
       return;

@@ -47,6 +47,7 @@ from dotenv import load_dotenv
 load_dotenv(REPO / ".env")
 
 JOB_ID = "facturar_entregadas_48h"
+_LOCK_FH = None
 ESTADO_PATH = REPO / "app" / "data" / "facturar_entregadas_cron.json"
 
 
@@ -94,6 +95,19 @@ def _ordenes_pagadas_por_ventanas(dias: int) -> list[dict]:
 
 def main() -> int:
     simular = "--simular" in sys.argv
+    if not simular:
+        # Un solo proceso a la vez: el candado de «Facturar ahora» (`_EN_CURSO`)
+        # vive en memoria, no protege contra DOS procesos facturando el mismo pack
+        # (una corrida larga que se cruza con la del crontab).
+        import fcntl
+
+        global _LOCK_FH
+        _LOCK_FH = open(REPO / ".facturar_entregadas.lock", "w")
+        try:
+            fcntl.flock(_LOCK_FH, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            print("⏭  Ya hay otra corrida de facturar entregadas en curso; esta no hace nada.")
+            return 0
     from app.services.cron_scheduler import debe_ejecutar, registrar_ejecucion
 
     if not simular:
@@ -183,7 +197,12 @@ def main() -> int:
     errores: list[dict] = []
     facturables: list[dict] = []
 
+    fallos_seguidos = 0
     for pid, oids in candidatos:
+        if fallos_seguidos >= 5:
+            print("   🔴 5 ventas seguidas fallaron: se detiene la corrida (¿Alegra o MeLi caídos?).")
+            errores.append({"pack": "-", "error": "5 fallos seguidos, corrida detenida"})
+            break
         if len(emitidas) >= tope:
             print(f"   Tope de {tope} facturas por corrida alcanzado; el resto queda para la siguiente.")
             break
@@ -201,6 +220,7 @@ def main() -> int:
         res = facturar_pack_meli_manual(str(venta.get("order_id") or oids[0]))
         if res.get("ok"):
             numero = res.get("factura_numero") or res.get("numero") or res.get("name") or ""
+            fallos_seguidos = 0
             emitidas.append({"pack": pid, "numero": numero, "total": venta.get("total")})
             estado["avisadas"].pop(pid, None)
             print(f"   ✅ pack {pid} facturado {numero}")
@@ -211,6 +231,7 @@ def main() -> int:
         elif res.get("ya_facturada") or res.get("en_curso"):
             print(f"   ⏭  pack {pid}: {res.get('error')}")
         else:
+            fallos_seguidos += 1
             motivo = str(res.get("error") or "error desconocido")
             print(f"   ⛔ pack {pid}: {motivo}")
             if estado["avisadas"].get(pid) != motivo[:200]:

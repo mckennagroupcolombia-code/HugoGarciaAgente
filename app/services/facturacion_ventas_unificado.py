@@ -35,6 +35,7 @@ web queda fuera de este cambio, tal como ya estaba fuera de "Ventas y NC".
 """
 from __future__ import annotations
 
+import os
 import threading
 import time as _time
 from concurrent.futures import ThreadPoolExecutor
@@ -440,6 +441,64 @@ def problema_de_venta(v: dict) -> tuple[str | None, str | None]:
     return None, None
 
 
+_HORAS_CRON_FACTURAR = ((9, 5), (13, 5), (17, 5))  # crontab de scripts/facturar_entregadas_cron.py
+
+
+def _proxima_corrida_facturar(ahora: datetime | None = None) -> datetime:
+    ahora = ahora or datetime.now()
+    for h, m in _HORAS_CRON_FACTURAR:
+        t = ahora.replace(hour=h, minute=m, second=0, microsecond=0)
+        if t > ahora:
+            return t
+    h, m = _HORAS_CRON_FACTURAR[0]
+    return (ahora + timedelta(days=1)).replace(hour=h, minute=m, second=0, microsecond=0)
+
+
+def _bloqueos_cron_facturar() -> dict:
+    try:
+        import json as _json
+        from pathlib import Path as _Path
+
+        ruta = _Path(__file__).resolve().parents[2] / "app" / "data" / "facturar_entregadas_cron.json"
+        return (_json.loads(ruta.read_text(encoding="utf-8")) or {}).get("avisadas") or {}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def motivo_sin_facturar(f: dict, bloqueos: dict | None = None) -> str | None:
+    """Frase concreta de por qué una venta entregada sigue sin factura y qué
+    va a pasar con ella. El estado solo decía «Sin facturar» y el operador no
+    sabía si alguien la estaba atendiendo (5-oct-2026: 150 así, la mayoría de
+    fines de septiembre, entregadas el 1-oct)."""
+    if f.get("estado_facturacion") not in ("sin_facturar", "sin_facturar_cierre_mes"):
+        return None
+    partes = []
+    fe_txt = f.get("fecha_entrega")
+    if fe_txt:
+        try:
+            fe = datetime.fromisoformat(str(fe_txt).replace("Z", "+00:00"))
+            dias = (datetime.now(fe.tzinfo) - fe).days
+            partes.append(f"Entregada el {fe:%d-%m-%Y} (hace {dias} día{'s' if dias != 1 else ''}) y sin factura en Alegra.")
+        except ValueError:
+            partes.append("Entregada y sin factura en Alegra.")
+    else:
+        partes.append("Entregada y sin factura en Alegra.")
+    bloqueos = _bloqueos_cron_facturar() if bloqueos is None else bloqueos
+    bloqueo = next((bloqueos[k] for k in (str(f.get("pack_id") or ""), str(f.get("order_id") or "")) if k in bloqueos), None)
+    if bloqueo:
+        partes.append(f"La facturación automática la intentó y se detuvo: {bloqueo}")
+    elif (os.getenv("FACTURACION_ENTREGADAS_CRON_ACTIVO", "1") or "1").strip() != "1":
+        partes.append("La facturación automática está apagada: hay que facturarla con el botón.")
+    else:
+        prox = _proxima_corrida_facturar()
+        cuando = f"hoy {prox:%H:%M}" if prox.date() == datetime.now().date() else f"mañana {prox:%H:%M}"
+        partes.append(
+            "Nadie la facturó (la factura automática al entregar está apagada desde el 9-sep); "
+            f"la factura sola el cron de 48 h en su próxima corrida ({cuando}) o puedes facturarla ya con el botón."
+        )
+    return " ".join(partes)
+
+
 def anotar_filas(filas: list[dict]) -> list[dict]:
     """Datos que cambian SIN que cambie la venta: si alguien la marcó revisada
     y si hay una intervención pedida. Se leen al servir, no se guardan en la
@@ -454,7 +513,9 @@ def anotar_filas(filas: list[dict]) -> list[dict]:
         contextos = contextos_map()
     except Exception:
         return filas
+    bloqueos_cron = _bloqueos_cron_facturar()
     for f in filas:
+        f["motivo"] = motivo_sin_facturar(f, bloqueos_cron)
         claves = [str(f.get("order_id") or ""), str(f.get("pack_id") or ""), *[str(o) for o in f.get("ordenes_ids") or []]]
         revis = next((revisados[k] for k in claves if k in revisados), None)
         f["revisado"] = False
@@ -1102,6 +1163,7 @@ def listar_ventas_meli_unificado(
         envio = consultar_envio_meli(str(shipping_id), token=token_meli) if shipping_id else None
         estado_envio = (envio or {}).get("status")
         fila["shipping_status"] = estado_envio
+        fila["fecha_entrega"] = _fecha_entrega_envio(envio) if estado_envio == "delivered" else None
         fila["estado_facturacion"] = _estado_por_envio_y_cierre_mes(fila, envio, estado_envio, margen_horas)
 
     if filas_meli:
@@ -1479,6 +1541,7 @@ def consultar_venta_individual(identificador: str) -> dict | None:
     envio = consultar_envio_meli(str(shipping_id), token=token_meli) if shipping_id else None
     estado_envio = (envio or {}).get("status")
     fila["shipping_status"] = estado_envio
+    fila["fecha_entrega"] = _fecha_entrega_envio(envio) if estado_envio == "delivered" else None
     fila["estado_facturacion"] = _estado_por_envio_y_cierre_mes(fila, envio, estado_envio, _margen_horas_default())
     # Antes no se guardaba en el caso "en_transito": la fila vieja del
     # histórico (p. ej. un "sin facturar" calculado con otra orden del pack)

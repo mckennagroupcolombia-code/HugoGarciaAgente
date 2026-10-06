@@ -3,9 +3,12 @@
  * juega como una misión — sonido de 8 bits, animación y monedas que quedan en el perfil.
  *
  *  - `grande`: aprobación final (etiqueta guardada, ficha FT+COA+SDS generada). Tarjeta al
- *    centro con la moneda que gira, confeti (estrellas en el tema Barbie) y la fanfarria.
+ *    centro con la moneda que gira.
  *  - `moneda`: un paso de revisión (marcar revisado, visto bueno de la SDS, combo del taller).
  *    Aviso pequeño abajo a la derecha con la moneda.
+ *
+ * Desde el 6-oct-2026 toda acción, flujo o formulario completado lo celebra el perro que se ríe
+ * de Duck Hunt (`perroSeRie`), en lugar del confeti y la fanfarria/moneda de 8 bits.
  *
  * Cuánto paga cada misión lo decide el servidor (`app/services/logros_usuario.py`): aquí solo
  * se dice cuál se cumplió y sobre qué referencia. La misma referencia paga una vez al día.
@@ -15,7 +18,7 @@
  * Se monta sola sobre `document.body` (no depende del panel abierto: la ficha puede volver al
  * taller justo al aprobar). El silencio es el mismo interruptor 🔊 del taller.
  */
-import { sonarAprobado, sonarRevisado, sonidoActivo } from "../components/combos/sonidoMoneda";
+import { sonidoActivo } from "../components/combos/sonidoMoneda";
 import spritePerro from "../assets/duckhunt/laughing_dog.png";
 import risaPerro from "../assets/duckhunt/laughingDog.mp3";
 
@@ -47,9 +50,6 @@ export interface PagoMision {
   logros_nuevos: LogroNuevo[];
 }
 
-const COLORES = ["#0891b2", "#059669", "#d97706", "#7c3aed", "#e11d48", "#facc15"];
-const COLORES_BARBIE = ["#f6c945", "#ffd76a", "#ff4fa3", "#ffe9a8", "#e0a820"];
-
 const CSS = `
 .mck-apr-capa { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; overflow: hidden; }
 .mck-apr-tarjeta { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); pointer-events: auto; cursor: pointer;
@@ -73,18 +73,14 @@ const CSS = `
   animation: mck-apr-toast 420ms cubic-bezier(.2,1.6,.4,1) both; }
 .mck-apr-toast .mck-apr-moneda { font-size: 26px; }
 .mck-apr-toast .mck-apr-puntos, .mck-apr-toast .mck-apr-detalle { margin-top: 2px; }
-.mck-apr-confeti { position: absolute; top: -14px; width: 8px; height: 13px; border-radius: 2px; animation: mck-apr-cae 2.6s ease-in forwards; }
-.mck-apr-estrella { position: absolute; top: -20px; line-height: 1; text-shadow: 0 0 6px currentColor; animation: mck-apr-cae 2.8s ease-in forwards; }
 @keyframes mck-apr-entra { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 @keyframes mck-apr-toast { 0% { opacity: 0; transform: translateY(40px) scale(.6); } 100% { opacity: 1; transform: none; } }
 @keyframes mck-apr-sale { to { opacity: 0; } }
 @keyframes mck-apr-gira { 0% { transform: rotateY(0); } 100% { transform: rotateY(360deg); } }
 @keyframes mck-apr-salta { 0% { translate: 0 0; } 35% { translate: 0 -14px; } 100% { translate: 0 0; } }
-@keyframes mck-apr-cae { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(105vh) rotate(600deg); opacity: .2; } }
 @media (prefers-reduced-motion: reduce) {
   .mck-apr-tarjeta, .mck-apr-toast, .mck-apr-logro { animation: none; }
   .mck-apr-moneda, .mck-apr-paga { animation: none; }
-  .mck-apr-confeti, .mck-apr-estrella { display: none; }
 }`;
 
 function el(tag: string, clase: string, texto?: string) {
@@ -115,17 +111,14 @@ export function celebrarAprobacion(opc: {
   mision?: MisionAprobacion;
   /** Referencia de lo aprobado (nombre de la etiqueta, ref del producto…). */
   ref?: string;
-  /** false si quien llama ya tiene su propio sonido (el taller de combos). */
+  /** false si el perro ya salió por esta misma acción (no se ríe dos veces). */
   sonido?: boolean;
   /** Pago ya hecho por el servidor: solo se muestra, no se cobra otra vez. */
   pago?: PagoMision;
 }) {
   if (typeof document === "undefined") return;
   const tipo = opc.tipo ?? "grande";
-  if (opc.sonido !== false) {
-    if (tipo === "grande") sonarAprobado();
-    else sonarRevisado();
-  }
+  if (opc.sonido !== false) perroSeRie();
 
   if (!document.getElementById("mck-apr-estilo")) {
     const s = document.createElement("style");
@@ -156,20 +149,6 @@ export function celebrarAprobacion(opc: {
   let caja: HTMLElement;
   if (tipo === "grande") {
     const barbie = document.documentElement.dataset.mckSkin === "barbie";
-    for (let i = 0; i < 40; i++) {
-      // Al azar (no `i` fijo): la misma aprobación no cae siempre en las mismas 40 posiciones.
-      const izq = `${Math.round(Math.random() * 100)}%`;
-      const retardo = `${Math.round(Math.random() * 800)}ms`;
-      if (barbie) {
-        const p = el("span", "mck-apr-estrella", i % 3 ? "✦" : "★");
-        Object.assign(p.style, { left: izq, animationDelay: retardo, fontSize: `${12 + (i % 4) * 6}px`, color: COLORES_BARBIE[i % 5] });
-        capa.appendChild(p);
-      } else {
-        const p = el("span", "mck-apr-confeti");
-        Object.assign(p.style, { left: izq, animationDelay: retardo, background: COLORES[i % COLORES.length] });
-        capa.appendChild(p);
-      }
-    }
     caja = el("div", "mck-apr-tarjeta");
     caja.appendChild(el("div", "mck-apr-moneda", barbie ? "💖" : "🪙"));
     caja.appendChild(el("div", "mck-apr-titulo", opc.titulo));
@@ -213,10 +192,7 @@ export function celebrarAprobacion(opc: {
       d.title = l.descripcion;
       (tipo === "grande" ? caja : caja.lastElementChild ?? caja).appendChild(d);
     }
-    if (pago.logros_nuevos.length) {
-      sonarAprobado();
-      programarCierre(4500);
-    }
+    if (pago.logros_nuevos.length) programarCierre(4500);
     window.dispatchEvent(new CustomEvent("mck-logros-cambio"));
   };
   if (opc.pago) mostrarPago(opc.pago);
@@ -317,13 +293,20 @@ const CSS_TAREA = `
   ${(((SUBE_MS + QUIETO_MS) / TOTAL_MS) * 100).toFixed(2)}% { transform: translateY(0); } 100% { transform: translateY(100%); } }
 @media (prefers-reduced-motion: reduce) { .mck-perro { animation: none; transform: none; } }`;
 
-/**
- * El efecto de cumplir una tarea: el perro de Duck Hunt asoma abajo al centro y se ríe con su
- * risa del juego (callada con el mismo interruptor 🔊 del taller). Una sola vez por tarea y por
- * día. Devuelve si celebró.
- */
+/** Una tarea cumplida: el perro, una sola vez por tarea y por día. Devuelve si celebró. */
 export function celebrarTareaCumplida(id: number): boolean {
   if (typeof document === "undefined" || yaCelebradaHoy(id)) return false;
+  perroSeRie();
+  return true;
+}
+
+/**
+ * El efecto de completar algo: el perro de Duck Hunt asoma abajo al centro y se ríe con su risa
+ * del juego (callada con el mismo interruptor 🔊 del taller; el perro igual se ve). Si ya está
+ * afuera, vuelve a empezar en vez de apilarse.
+ */
+export function perroSeRie() {
+  if (typeof document === "undefined") return;
   if (!document.getElementById("mck-tarea-estilo")) {
     const s = document.createElement("style");
     s.id = "mck-tarea-estilo";
@@ -345,5 +328,4 @@ export function celebrarTareaCumplida(id: number): boolean {
       /* el navegador no dejó sonar (sin un toque previo en la página): el perro igual se ve */
     });
   }
-  return true;
 }
