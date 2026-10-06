@@ -185,8 +185,18 @@ def _tabla(datos: list, anchos: list, st: dict, *, encabezado: bool = True) -> T
     return t
 
 
+def _retenciones(c: dict) -> float:
+    return float(c["retencion"]) + float(c.get("reteica") or 0)
+
+
+def _ica_por_mil(prestamo: dict) -> str:
+    return f"{float(prestamo.get('reteica_pct') or 0) * 1000:g}".replace(".", ",")
+
+
 def _tabla_cronograma(cuotas: list, st: dict, *, con_estado: bool = False) -> Table:
-    cab = ["#", "Vence", "Saldo", "Interés\nbruto", "Retención", "Interés\nneto", "Capital", "A girar"]
+    # «Retenciones» = retefuente 7% + reteICA: una sola columna para que la
+    # tabla siga cabiendo en la página; el desglose va en el resumen.
+    cab = ["#", "Vence", "Saldo", "Interés\nbruto", "Retenciones", "Interés\nneto", "Capital", "A girar"]
     if con_estado:
         cab.append("Estado")
     datos = [cab]
@@ -196,7 +206,7 @@ def _tabla_cronograma(cuotas: list, st: dict, *, con_estado: bool = False) -> Ta
             _fecha_corta(c.get("fecha_vencimiento") or c.get("fecha")),
             _cop(c["saldo_inicial"]),
             _cop(c["interes_bruto"]),
-            _cop(c["retencion"]),
+            _cop(_retenciones(c)),
             _cop(c["interes_girado"]),
             _cop(c["abono_capital"]),
             _cop(c["cuota_girada"]),
@@ -205,7 +215,7 @@ def _tabla_cronograma(cuotas: list, st: dict, *, con_estado: bool = False) -> Ta
             fila.append({"pagada": "Pagada", "solicitada": "En trámite"}.get(c.get("estado"), "Pendiente"))
         datos.append(fila)
     total_int = sum(float(c["interes_bruto"]) for c in cuotas)
-    total_ret = sum(float(c["retencion"]) for c in cuotas)
+    total_ret = sum(_retenciones(c) for c in cuotas)
     total_neto = sum(float(c["interes_girado"]) for c in cuotas)
     total_cap = sum(float(c["abono_capital"]) for c in cuotas)
     total_gir = sum(float(c["cuota_girada"]) for c in cuotas)
@@ -244,7 +254,12 @@ def _pie_retencion(prestamo: dict, st: dict) -> Paragraph:
         f"<b>No es un cobro de McKenna ni dinero perdido</b>: es un anticipo de su impuesto de renta. "
         "Cada año McKenna le entrega un certificado con el total retenido para que lo descuente de "
         "lo que le corresponda pagar. Por eso lo que le llega a la cuenta cada mes es el interés ya "
-        f"menos ese {pct}.",
+        f"menos ese {pct}."
+        + (
+            f" Además, sobre los mismos intereses se retiene el ICA de Bogotá ({_ica_por_mil(prestamo)} por "
+            "mil), que McKenna consigna a la Secretaría de Hacienda."
+            if float(prestamo.get("reteica_pct") or 0) > 0 else ""
+        ),
         st["p"],
     )
 
@@ -340,13 +355,15 @@ def generar_pdf_contrato(prestamo: dict, destino: str | None = None) -> str:
          Paragraph(f"{_cop(r['interes_total'])}  <font size=7 color='#64748b'>({_pct(r['rendimiento_bruto_pct'])} del capital)</font>", st["der"])],
         [Paragraph(f"Menos retención de ley ({_pct(prestamo['retencion_pct'] * 100, 0)})", st["celda"]),
          Paragraph(f"− {_cop(r['retencion_total'])}", st["der"])],
+        *([[Paragraph(f"Menos reteICA Bogotá ({_ica_por_mil(prestamo)} por mil)", st["celda"]),
+            Paragraph(f"− {_cop(r['reteica_total'])}", st["der"])]] if r.get("reteica_total") else []),
         [Paragraph("<b>Usted recibe en total</b>", st["celda"]),
-         Paragraph(f"<b>{_cop(prestamo['capital'] + r['interes_total'] - r['retencion_total'])}</b>", st["der"])],
+         Paragraph(f"<b>{_cop(prestamo['capital'] + r.get('interes_girado_total', r['interes_total'] - r['retencion_total']))}</b>", st["der"])],
     ], colWidths=[10 * cm, 6.8 * cm], hAlign="LEFT")
     resumen.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.4, _LINEA),
         ("BACKGROUND", (0, 0), (-1, 0), _FONDO),
-        ("BACKGROUND", (0, 3), (-1, 3), colors.HexColor("#ecfdf5")),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#ecfdf5")),
         ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -393,7 +410,9 @@ def generar_pdf_contrato(prestamo: dict, destino: str | None = None) -> str:
         "los intereses va bajando.", st["p"]))
 
     # ── La retención, explicada ───────────────────────────────────────────
-    story.append(Paragraph(f"Por qué le descontamos el {_pct(prestamo['retencion_pct'] * 100, 0)}", st["h"]))
+    story.append(Paragraph(
+        f"Por qué le descontamos el {_pct(prestamo['retencion_pct'] * 100, 0)}"
+        + (" y el reteICA" if float(prestamo.get("reteica_pct") or 0) > 0 else ""), st["h"]))
     story.append(_pie_retencion(prestamo, st))
 
     story.append(Paragraph("Si McKenna quiere pagar antes", st["h"]))
@@ -419,7 +438,8 @@ def generar_pdf_contrato(prestamo: dict, destino: str | None = None) -> str:
     story.append(PageBreak())
     story.append(Paragraph("Cronograma de pagos", st["h"]))
     story.append(Paragraph(
-        "«A girar» es lo que le llega a su cuenta cada mes, ya con la retención descontada. "
+        "«A girar» es lo que le llega a su cuenta cada mes, ya con las retenciones descontadas "
+        "(«Retenciones» suma la retención en la fuente y el reteICA). "
         "El saldo es lo que McKenna le debe justo antes de esa cuota.", st["nota"]))
     story.append(Spacer(1, 5))
     story.append(_tabla_cronograma(cuotas, st))
@@ -458,7 +478,10 @@ def generar_pdf_certificado(prestamo: dict, corte: str | None = None, destino: s
         ["Capital pendiente", _cop(r["capital_pendiente"])],
         ["Intereses causados y pagados (brutos)", _cop(r["interes_pagado"])],
         [f"Retención practicada ({_pct(prestamo['retencion_pct'] * 100, 0)})", _cop(r["retencion_practicada"])],
-        ["Intereses netos girados", _cop(r["interes_pagado"] - r["retencion_practicada"])],
+        *([[f"ReteICA practicado ({_ica_por_mil(prestamo)} por mil)", _cop(r["reteica_practicada"])]]
+          if r.get("reteica_practicada") else []),
+        ["Intereses netos girados",
+         _cop(r["interes_pagado"] - r["retencion_practicada"] - r.get("reteica_practicada", 0))],
     ]
     t = Table([[Paragraph(a, st["celda"]), Paragraph(b, st["der"])] for a, b in filas],
               colWidths=[9.2 * cm, 8.3 * cm], hAlign="LEFT")

@@ -32,11 +32,17 @@ def test_cronograma_pactado_reproduce_las_cifras_del_contrato():
     t = r["totales"]
     assert t["interes_bruto"] == pytest.approx(2_796_620, abs=1)
     assert t["retencion"] == pytest.approx(195_763, abs=1)
-    assert t["interes_girado"] == pytest.approx(2_600_857, abs=1)
+    # ReteICA Bogotá 11,04 por mil sobre los intereses (contador, 2026-10-05)
+    assert t["reteica"] == pytest.approx(30_875, abs=2)
+    assert t["interes_girado"] == pytest.approx(2_569_982, abs=2)
     assert t["total_causado"] == pytest.approx(12_796_620, abs=1)
     # Las tres cifras que van al documento, y que no deben confundirse
     assert t["rendimiento_bruto_pct"] == pytest.approx(27.97, abs=0.01)
-    assert t["rendimiento_neto_pct"] == pytest.approx(26.01, abs=0.01)
+    assert t["rendimiento_neto_pct"] == pytest.approx(25.70, abs=0.01)
+    # Sin reteICA vuelven las cifras de los contratos de sep-2026
+    sin_ica = calcular_cronograma(CAPITAL, reteica_pct=0)["totales"]
+    assert sin_ica["interes_girado"] == pytest.approx(2_600_857, abs=1)
+    assert sin_ica["rendimiento_neto_pct"] == pytest.approx(26.01, abs=0.01)
     assert t["costo_real_ea_pct"] == pytest.approx(25.0, abs=0.01)
 
 
@@ -46,10 +52,11 @@ def test_primera_cuota_separa_capital_interes_y_retencion():
     assert c["abono_capital"] == pytest.approx(250_000, abs=1)
     assert c["interes_bruto"] == pytest.approx(187_693, abs=1)
     assert c["retencion"] == pytest.approx(13_138, abs=1)
+    assert c["reteica"] == pytest.approx(2_072, abs=1)
     # Lo que sale del banco es el neto; el gasto de McKenna es el bruto
-    assert c["cuota_girada"] == pytest.approx(424_554, abs=1)
+    assert c["cuota_girada"] == pytest.approx(422_482, abs=1)
     assert c["cuota_causada"] == pytest.approx(437_693, abs=1)
-    assert c["cuota_causada"] - c["cuota_girada"] == pytest.approx(c["retencion"], abs=1)
+    assert c["cuota_causada"] - c["cuota_girada"] == pytest.approx(c["retencion"] + c["reteica"], abs=1)
 
 
 def test_el_saldo_cierra_exacto_en_cero():
@@ -91,7 +98,9 @@ def test_gross_up_encarece_el_prestamo_para_mckenna():
     base = calcular_cronograma(CAPITAL)
     gu = calcular_cronograma(CAPITAL, gross_up=True)
     assert base["totales"]["costo_real_ea_pct"] == pytest.approx(25.0, abs=0.01)
-    assert gu["totales"]["costo_real_ea_pct"] == pytest.approx(26.95, abs=0.05)
+    assert gu["totales"]["costo_real_ea_pct"] == pytest.approx(27.26, abs=0.05)
+    gu_sin_ica = calcular_cronograma(CAPITAL, gross_up=True, reteica_pct=0)
+    assert gu_sin_ica["totales"]["costo_real_ea_pct"] == pytest.approx(26.95, abs=0.05)
     assert gu["totales"]["rendimiento_neto_pct"] == gu["totales"]["rendimiento_bruto_pct"]
     assert gu["totales"]["total_girado"] > base["totales"]["total_girado"]
 
@@ -209,7 +218,8 @@ def test_pago_de_cuota_separa_capital_interes_y_retencion(mods):
     assert por_cuenta["2295"]["debito"] == pytest.approx(250_000, abs=1)
     assert por_cuenta["530520"]["debito"] == pytest.approx(187_693, abs=1)  # 5305/530520 Intereses
     assert por_cuenta["236535"]["credito"] == pytest.approx(13_138, abs=1)  # 2365/236535 Rendimientos financieros
-    assert por_cuenta["1110"]["credito"] == pytest.approx(424_554, abs=1)  # lo que sale al banco
+    assert por_cuenta["2368"]["credito"] == pytest.approx(2_072, abs=1)  # reteICA 11,04 por mil
+    assert por_cuenta["1110"]["credito"] == pytest.approx(422_482, abs=1)  # lo que sale al banco
     assert cc.balance_comprobacion()["cuadra"]
 
 
@@ -221,9 +231,30 @@ def test_gross_up_lleva_la_retencion_al_gasto_financiero(mods):
     pr.registrar_pago_cuota(p["id"], 1, {"referencia": "GU-1"})
     mov = next(m for m in cc.listar_movimientos(limit=50) if m["referencia"] == "GU-1")
     por_cuenta = {l["cuenta_codigo"]: l for l in mov["lineas"]}
-    assert por_cuenta["530520"]["debito"] == pytest.approx(187_693 + 13_138, abs=2)
+    assert por_cuenta["530520"]["debito"] == pytest.approx(187_693 + 13_138 + 2_072, abs=2)
     assert por_cuenta["1110"]["credito"] == pytest.approx(437_693, abs=2)
     assert por_cuenta["236535"]["credito"] == pytest.approx(13_138, abs=1)
+    assert por_cuenta["2368"]["credito"] == pytest.approx(2_072, abs=1)
+    assert cc.balance_comprobacion()["cuadra"]
+
+
+def test_aplicar_reteica_a_prestamo_creado_sin_ella(mods):
+    # Los préstamos de familiares de sep-2026 nacieron solo con el 7%: el
+    # reteICA se les aplica después, sin perder el estado de cada cuota.
+    cc, pr, tercero, medio = mods
+    p = _crear(pr, tercero, medio, reteica_pct=0)
+    assert p["cuotas"][0]["reteica"] == 0
+    assert p["cuotas"][0]["cuota_girada"] == pytest.approx(424_554, abs=1)
+
+    p = pr.aplicar_reteica(p["id"])
+    assert p["reteica_pct"] == pytest.approx(0.01104)
+    assert p["cuotas"][0]["reteica"] == pytest.approx(2_072, abs=1)
+    assert p["cuotas"][0]["cuota_girada"] == pytest.approx(422_482, abs=1)
+    assert p["resumen"]["reteica_total"] == pytest.approx(30_875, abs=2)
+
+    pr.registrar_pago_cuota(p["id"], 1, {"referencia": "ICA-1"})
+    with pytest.raises(ValueError, match="pagada"):
+        pr.aplicar_reteica(p["id"], 0)
     assert cc.balance_comprobacion()["cuadra"]
 
 
@@ -944,3 +975,32 @@ def test_el_ticket_de_retenciones_no_lleva_cifras_en_el_texto(mods, monkeypatch)
 
 def _fmt_cop_aprox(n: float) -> str:
     return "$" + f"{round(float(n or 0)):,}".replace(",", ".")
+
+
+def test_aprobar_la_solicitud_de_una_cuota_separa_interes_retencion_y_reteica(mods, monkeypatch):
+    # 2026-10-05: `aprobar` rearmaba el asiento sin la referencia a la cuota y
+    # la contabilizaba como gasto genérico (todo a 2195, retención a 236595).
+    cc, pr, tercero, medio = mods
+    from app.services import pagos_wizard as pw
+
+    monkeypatch.setattr(pw, "_DB_PATH", cc._DB_PATH)
+    monkeypatch.setattr(pw, "_initialized", False, raising=False)
+    p = _crear(pr, tercero, medio)
+    c = p["cuotas"][0]
+    sol = pw.crear_borrador_idempotente({
+        "categoria": "cuota_prestamo", "concepto": "Cuota 1/24", "monto": c["cuota_girada"],
+        "fecha": c["fecha_vencimiento"], "tercero_id": tercero["id"], "medio_pago_id": medio["id"],
+        "origen_ref": f"prestamo:{p['id']}:cuota:1", "origen_sistema": "prestamos",
+    })
+    with pw._conn() as con:
+        con.execute("UPDATE cc_solicitudes_pago SET estado='pendiente' WHERE id=?", (sol["id"],))
+    r = pw.aprobar(sol["id"], espejar=False)
+    mov = cc.obtener_movimiento(r["movimiento_id"])
+    por_cuenta = {l["cuenta_codigo"]: l for l in mov["lineas"]}
+    pasivo = por_cuenta.get("2195") or por_cuenta.get("2295")  # el wizard usa el PUC real (2195)
+    assert pasivo and pasivo["debito"] == pytest.approx(250_000, abs=1)
+    assert por_cuenta["530520"]["debito"] == pytest.approx(187_693, abs=1)
+    assert por_cuenta["236535"]["credito"] == pytest.approx(13_138, abs=1)
+    assert por_cuenta["2368"]["credito"] == pytest.approx(2_072, abs=1)
+    assert por_cuenta["1110"]["credito"] == pytest.approx(422_482, abs=1)
+    assert cc.balance_comprobacion()["cuadra"]

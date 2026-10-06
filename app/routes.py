@@ -13471,6 +13471,7 @@ def register_routes(app):
     def api_servicios_save():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
+                reteica_pct=float(d.get("reteica_pct", 0.01104)),
         data = request.get_json(silent=True) or {}
         if not (data.get("empresa") or "").strip():
             return jsonify({"error": "Se requiere empresa"}), 400
@@ -13599,6 +13600,7 @@ def register_routes(app):
         import os
         from datetime import datetime as _dt
         try:
+                motivo_reenvio=(d.get("motivo_reenvio") or None),
             import openpyxl as _opxl
         except ImportError:
             return jsonify({"error": "openpyxl no instalado"}), 500

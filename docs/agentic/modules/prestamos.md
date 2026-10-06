@@ -29,6 +29,7 @@ cronograma.
 | Plazo | 24 cuotas mensuales |
 | Amortización | **30% del capital el primer año, 70% el segundo** |
 | Retención en la fuente | 7% sobre intereses, **a cargo del prestamista** |
+| ReteICA (Bogotá, actividad financiera) | **11,04 por mil** sobre intereses → **2368**, a cargo del prestamista |
 | Día de pago | 5 de cada mes |
 
 Sobre $10.000.000: intereses **$2.796.620 (27,97% bruto)**, retención $195.763,
@@ -107,13 +108,34 @@ su rendimiento real baja a 26,01%).
 Con `gross_up=True` McKenna asume la retención: gira el bruto y el 7% sale de
 más, subiendo el costo real a **26,95% E.A.**
 
+## ReteICA sobre los intereses (desde 2026-10-05)
+
+El contador pidió retener **ICA al 11,04 por mil** sobre el interés bruto de cada cuota
+(tarifa de Bogotá para actividades financieras). Va a **2368** y lo recoge el borrador
+del RTICA (Libro Mayor → Declaraciones). Se descuenta del giro igual que el 7%; con
+`gross_up` lo asume McKenna. Parámetro `reteica_pct` por préstamo (fracción: 0,01104);
+default `RETEICA_INTERESES_PCT`.
+
+Los 5 préstamos vivos nacieron sin él y se les aplicó con `aplicar_reteica(id)` el
+2026-10-05 (ninguna cuota pagada): la 1ª cuota de Antonio bajó de $679.287 a $675.971.
+Lo asume el **prestamista** (decisión del usuario, 2026-10-05). Ese mismo día se reenviaron los contratos MUT-2026-0001…0005 como «versión actualizada», con un párrafo que explica la recomendación del contador (`enviar_documento(..., motivo_reenvio=...)`; `dry_run=True` para revisarlo antes).
+`aplicar_reteica` actualiza las cifras en su sitio (no borra cuotas) y se niega si hay
+alguna pagada. Las solicitudes de pago en borrador guardan su propio `retencion_ica`:
+si se cambia el reteICA de un préstamo con borradores ya montados, hay que actualizarlos
+(se hizo para las solicitudes #4, #5 y #6).
+
+⚠️ Hasta el 2026-10-05 `pagos_wizard.aprobar()` rearmaba una cuota **sin** `origen_ref`
+y la contabilizaba como gasto genérico (todo a 2195, retención a 236595). Corregido;
+lo cubre `test_aprobar_la_solicitud_de_una_cuota_separa_interes_retencion_y_reteica`.
+
 ## Asiento de cada cuota
 
 ```
 Débito   2295/2380  Préstamos por pagar        250.000   ← baja el pasivo
 Débito   5305       Gastos financieros         187.693   ← gasto = interés BRUTO
-    Crédito  2365   Retención en la fuente      13.138   ← pasivo con la DIAN
-    Crédito  1110   Bancos                     424.554   ← lo que recibe el tercero
+    Crédito  236535 Retención en la fuente      13.138   ← pasivo con la DIAN
+    Crédito  2368   ReteICA 11,04‰               2.072   ← pasivo con Hacienda Bogotá
+    Crédito  1110   Bancos                     422.482   ← lo que recibe el tercero
 ```
 
 La cuenta **2365** se sembró en `contabilidad_core._migrar_cuentas_v2()` con este

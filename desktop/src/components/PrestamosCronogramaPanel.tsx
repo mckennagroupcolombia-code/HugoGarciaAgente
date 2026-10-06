@@ -38,6 +38,7 @@ type Cuota = {
   saldo_inicial: number;
   interes_bruto: number;
   retencion: number;
+  reteica?: number;
   interes_girado: number;
   abono_capital: number;
   cuota_causada: number;
@@ -61,6 +62,9 @@ type Resumen = {
   interes_total: number;
   retencion_practicada: number;
   retencion_total: number;
+  reteica_practicada?: number;
+  reteica_total?: number;
+  interes_girado_total?: number;
   rendimiento_bruto_pct: number;
   rendimiento_neto_pct: number;
   tasa_mensual_pct: number;
@@ -75,6 +79,7 @@ type Prestamo = {
   meses_tramo1: number;
   pct_capital_tramo1: number;
   retencion_pct: number;
+  reteica_pct?: number;
   gross_up: boolean;
   fecha_desembolso: string;
   dia_pago: number | null;
@@ -95,6 +100,7 @@ type Simulacion = {
     capital: number;
     interes_bruto: number;
     retencion: number;
+    reteica?: number;
     interes_girado: number;
     total_causado: number;
     total_girado: number;
@@ -160,6 +166,8 @@ const emptyForm = {
   meses_tramo1: "12",
   pct_capital_tramo1: "30",
   retencion_pct: "7",
+  // ReteICA Bogotá sobre los intereses, por mil (contador, 2026-10-05).
+  reteica_por_mil: "11.04",
   gross_up: false,
   dia_pago: "5",
   referencia: "",
@@ -201,6 +209,7 @@ export default function PrestamosCronogramaPanel() {
       meses_tramo1: Math.round(num(form.meses_tramo1)),
       pct_capital_tramo1: num(form.pct_capital_tramo1) / 100,
       retencion_pct: num(form.retencion_pct) / 100,
+      reteica_pct: num(form.reteica_por_mil) / 1000,
       gross_up: form.gross_up,
       fecha_desembolso: form.fecha_desembolso,
       dia_pago: Math.round(num(form.dia_pago)) || null,
@@ -306,6 +315,7 @@ export default function PrestamosCronogramaPanel() {
               meses_tramo1: Math.round(num(form.meses_tramo1)),
               pct_capital_tramo1: num(form.pct_capital_tramo1) / 100,
               retencion_pct: num(form.retencion_pct) / 100,
+              reteica_pct: num(form.reteica_por_mil) / 1000,
               gross_up: form.gross_up,
               dia_pago: Math.round(num(form.dia_pago)) || undefined,
               referencia: form.referencia.trim(),
@@ -458,6 +468,12 @@ function FormularioPrestamo({
             value={form.retencion_pct} onChange={(e) => set("retencion_pct", e.target.value)}
           />
         </Field>
+        <Field label="ReteICA intereses ‰">
+          <input
+            type="number" min="0" max="99" step="0.01" className={inputCls}
+            value={form.reteica_por_mil} onChange={(e) => set("reteica_por_mil", e.target.value)}
+          />
+        </Field>
         <Field label="Referencia (opcional)">
           <input
             className={inputCls} value={form.referencia}
@@ -471,7 +487,7 @@ function FormularioPrestamo({
             className="h-4 w-4 rounded border-border"
           />
           <span className="font-bold text-muted">
-            McKenna asume la retención (gross-up)
+            McKenna asume las retenciones (gross-up)
           </span>
         </label>
       </div>
@@ -490,13 +506,14 @@ function FormularioPrestamo({
                   sub={`${pct(sim!.parametros.tasa_mensual_pct, 4)} mensual`} />
             <Mini label="Gana el prestamista (bruto)" value={cop(t.interes_bruto)}
                   sub={`${pct(t.rendimiento_bruto_pct)} del capital`} accent />
-            <Mini label="Recibe neto (tras retención)" value={cop(t.interes_girado)}
+            <Mini label="Recibe neto (tras retenciones)" value={cop(t.interes_girado)}
                   sub={`${pct(t.rendimiento_neto_pct)} del capital`} />
             <Mini label="Costo real McKenna" value={pct(t.costo_real_ea_pct)}
                   sub={`capital promedio ${cop(t.saldo_promedio)}`} />
           </div>
           <div className="grid gap-2 text-[11px] sm:grid-cols-3">
             <Dato label="Retención a la DIAN" value={cop(t.retencion)} />
+            {!!t.reteica && <Dato label="ReteICA a Hacienda (2368)" value={cop(t.reteica)} />}
             <Dato label="Total que desembolsa McKenna" value={cop(t.total_causado)} />
             <Dato label="Total que recibe el prestamista" value={cop(t.total_girado)} />
           </div>
@@ -635,10 +652,12 @@ function TarjetaPrestamo({
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <Mini label="Rendimiento bruto del plazo" value={cop(r.interes_total)}
                   sub={`${pct(r.rendimiento_bruto_pct)} del capital`} accent />
-            <Mini label="Neto al prestamista" value={cop(r.interes_total - r.retencion_total)}
+            <Mini label="Neto al prestamista"
+                  value={cop(r.interes_girado_total ?? r.interes_total - r.retencion_total)}
                   sub={`${pct(r.rendimiento_neto_pct)} del capital`} />
             <Mini label="Retención total (a la DIAN)" value={cop(r.retencion_total)}
-                  sub={`practicada ${cop(r.retencion_practicada)}`} />
+                  sub={`practicada ${cop(r.retencion_practicada)}`
+                    + (r.reteica_total ? ` · reteICA ${cop(r.reteica_total)} (${((prestamo.reteica_pct ?? 0) * 1000).toLocaleString("es-CO")}‰)` : "")} />
             <Mini label="Tasa pactada" value={pct(prestamo.tasa_ea * 100)}
                   sub={`${pct(r.tasa_mensual_pct, 4)} mensual vencido`} />
           </div>
@@ -813,7 +832,7 @@ function TablaCuotas({
             <th className="py-1 pr-2 font-bold">Vence</th>
             <th className="py-1 pr-2 text-right font-bold">Saldo</th>
             <th className="py-1 pr-2 text-right font-bold">Interés bruto</th>
-            <th className="py-1 pr-2 text-right font-bold">Retención</th>
+            <th className="py-1 pr-2 text-right font-bold">Retenciones</th>
             <th className="py-1 pr-2 text-right font-bold">Capital</th>
             <th className="py-1 pr-2 text-right font-bold">A girar</th>
             {!compacta && <th className="py-1 pr-2 font-bold">Estado</th>}
@@ -852,8 +871,11 @@ function TablaCuotas({
                   </td>
                   <td className="py-1 pr-2 text-right tabular-nums">{cop(c.saldo_inicial)}</td>
                   <td className="py-1 pr-2 text-right tabular-nums">{cop(c.interes_bruto)}</td>
-                  <td className="py-1 pr-2 text-right tabular-nums text-amber-600">
-                    −{cop(c.retencion)}
+                  <td
+                    className="py-1 pr-2 text-right tabular-nums text-amber-600"
+                    title={c.reteica ? `retefuente ${cop(c.retencion)} + reteICA ${cop(c.reteica)}` : undefined}
+                  >
+                    −{cop(c.retencion + (c.reteica ?? 0))}
                   </td>
                   <td className="py-1 pr-2 text-right tabular-nums">{cop(c.abono_capital)}</td>
                   <td className="py-1 pr-2 text-right font-bold tabular-nums text-ink">

@@ -209,7 +209,7 @@ de reintentar**; IVA de ventas nunca como total/1,19.
 `solicitud_pago_id` no se postea otra vez). Rótulos térmicos 10×15 **sin contenido ni valor declarado**; MeLi usa su
 etiqueta. Entregas Flex: ⚠️ no usar `meli.listar_ordenes_meli_por_estado` (corta la paginación en silencio).
 
-**M · Préstamos de terceros** (`prestamos.md`). 25 % E.A., 24 cuotas, retención 7 % contra 236535; documento soporte
+**M · Préstamos de terceros** (`prestamos.md`). 25 % E.A., 24 cuotas, retención 7 % contra 236535 + reteICA 11,04‰ contra 2368; documento soporte
 solo por intereses. Dígito del calendario DIAN = **6**.
 
 **N/Q · Socios y terceros** (`relaciones-socios-terceros.md`). Socios compran con tarjeta personal → **2380**; el asiento

@@ -1,3 +1,13 @@
+### 2026-10-05 - Préstamos: reteICA 11,04‰ sobre los intereses y contratos reenviados
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección tributaria + corrección (Contabilidad → Préstamos y Solicitudes de pago). Sin LLM.
+- **Qué se implementó:**
+  - Por recomendación del contador, cada cuota retiene **reteICA de Bogotá al 11,04 por mil** sobre el interés bruto → cuenta **2368** (entra al borrador del RTICA). Lo asume el prestamista, igual que el 7%; con gross-up lo asume McKenna. Parámetro `reteica_pct` por préstamo, editable en el formulario del panel.
+  - Aplicado a los 5 préstamos vivos con `aplicar_reteica()` (ninguna cuota pagada) y a los borradores de pago #4, #5 y #6. Ej.: 1ª cuota de Antonio $679.287 → $675.971.
+  - Contrato, certificado, correo mensual y documento soporte muestran el reteICA. Contratos MUT-2026-0001…0005 reenviados como «versión actualizada» con un párrafo que explica el cambio (`motivo_reenvio`).
+  - **Corrección:** al aprobar la solicitud de una cuota, el asiento salía todo a 2195 y la retención a 236595, porque `aprobar()` no pasaba `origen_ref`. Ahora separa capital, 530520, 236535 y 2368. Test de regresión incluido.
+- **Archivos Modificados:** `app/services/prestamos.py`, `app/services/pagos_wizard.py`, `app/tools/prestamos_pdf.py`, `app/routes.py`, `desktop/src/components/PrestamosCronogramaPanel.tsx`, `tests/test_prestamos.py`, `docs/agentic/modules/prestamos.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-05 - Despliegue de ventas: sin etiqueta aprobada no se vende (MeLi + web)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Regla de negocio (despliegue gradual de ventas). Sin LLM.

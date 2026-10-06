@@ -13,8 +13,9 @@ ofrece a prestamistas particulares desde sep-2026:
     `docs/agentic/modules/prestamos.md` para la sustentación del diseño.
   - Interés sobre saldo insoluto, con **retención en la fuente por rendimientos
     financieros (7%, Art. 395 ET)** que McKenna practica como agente retenedor
-    y consigna a la DIAN. La retención la asume el prestamista salvo que se
-    pacte `gross_up=True`.
+    y consigna a la DIAN, más **reteICA de Bogotá al 11,04 por mil** sobre el
+    mismo interés (actividad financiera; cuenta 2368, va al RTICA bimestral).
+    Las dos las asume el prestamista salvo que se pacte `gross_up=True`.
 
 Tres cifras distintas que NO deben confundirse (van las tres en el contrato):
   - `tasa_ea`            tasa pactada (25% E.A. = 1,8769% mensual vencido)
@@ -42,6 +43,10 @@ PLAZO_MESES_DEFAULT = 24
 MESES_TRAMO1_DEFAULT = 12
 PCT_CAPITAL_TRAMO1_DEFAULT = 0.30
 RETENCION_RENDIMIENTOS_PCT = 0.07
+# ReteICA sobre los intereses: 11,04 por mil, tarifa de Bogotá para actividades
+# financieras. Pedida por el contador el 2026-10-05 — faltaba en las cuotas a
+# los familiares. Se acredita a 2368 y la recoge el borrador del RTICA.
+RETEICA_INTERESES_PCT = 0.01104
 
 
 def tasa_mensual_desde_ea(tasa_ea: float) -> float:
@@ -90,6 +95,7 @@ def calcular_cronograma(
     meses_tramo1: int = MESES_TRAMO1_DEFAULT,
     pct_capital_tramo1: float = PCT_CAPITAL_TRAMO1_DEFAULT,
     retencion_pct: float = RETENCION_RENDIMIENTOS_PCT,
+    reteica_pct: float = RETEICA_INTERESES_PCT,
     gross_up: bool = False,
     fecha_desembolso: str | date | None = None,
     dia_pago: int | None = None,
@@ -108,9 +114,11 @@ def calcular_cronograma(
     meses restantes. 0,5 con tramo1=12 y plazo=24 equivale a amortización recta.
     0,0 es período de gracia de capital (solo intereses el primer tramo).
 
-    `gross_up=True` significa que McKenna asume la retención: se le gira al
-    prestamista el interés bruto completo y el 7% sale de más, encareciendo la
-    operación. Por defecto la retención la asume el prestamista (estándar).
+    `gross_up=True` significa que McKenna asume las retenciones: se le gira al
+    prestamista el interés bruto completo y el 7% + el reteICA salen de más,
+    encareciendo la operación. Por defecto las asume el prestamista (estándar).
+
+    `reteica_pct` es fracción (0,01104 = 11,04 por mil), igual que `retencion_pct`.
 
     Devuelve {"cuotas": [...], "totales": {...}, "parametros": {...}}.
     """
@@ -138,6 +146,9 @@ def calcular_cronograma(
 
     i = tasa_mensual_desde_ea(float(tasa_ea))
     ret_pct = float(retencion_pct or 0)
+    ica_pct = float(reteica_pct or 0)
+    if not 0.0 <= ica_pct < 0.1:
+        raise ValueError("reteica_pct va como fracción (0.01104 = 11,04 por mil)")
 
     meses_tramo2 = plazo_meses - meses_tramo1
     capital_tramo1 = capital * float(pct_capital_tramo1)
@@ -157,9 +168,12 @@ def calcular_cronograma(
     for n in range(1, plazo_meses + 1):
         interes_bruto = round(saldo * i, 2)
         retencion = round(interes_bruto * ret_pct, 2)
-        # Con gross-up McKenna gira el bruto y asume el 7%; sin gross-up el
-        # prestamista recibe el neto y recupera la retención en su renta.
-        interes_girado = interes_bruto if gross_up else round(interes_bruto - retencion, 2)
+        reteica = round(interes_bruto * ica_pct, 2)
+        # Con gross-up McKenna gira el bruto y asume las retenciones; sin
+        # gross-up el prestamista recibe el neto y recupera la retención en su renta.
+        interes_girado = (
+            interes_bruto if gross_up else round(interes_bruto - retencion - reteica, 2)
+        )
 
         abono = abono1 if n <= meses_tramo1 else abono2
         abono = round(abono, 2)
@@ -179,10 +193,13 @@ def calcular_cronograma(
                 "saldo_inicial": round(saldo, 2),
                 "interes_bruto": interes_bruto,
                 "retencion": retencion,
+                "reteica": reteica,
                 "interes_girado": interes_girado,
                 "abono_capital": abono,
                 # Lo que le cuesta a McKenna (gasto financiero + capital)
-                "cuota_causada": round(abono + interes_bruto + (retencion if gross_up else 0), 2),
+                "cuota_causada": round(
+                    abono + interes_bruto + ((retencion + reteica) if gross_up else 0), 2
+                ),
                 # Lo que efectivamente sale del banco hacia el prestamista
                 "cuota_girada": round(abono + interes_girado, 2),
                 "saldo_final": saldo_final,
@@ -192,6 +209,7 @@ def calcular_cronograma(
 
     tot_interes = round(sum(c["interes_bruto"] for c in cuotas), 2)
     tot_retencion = round(sum(c["retencion"] for c in cuotas), 2)
+    tot_reteica = round(sum(c["reteica"] for c in cuotas), 2)
     tot_girado_interes = round(sum(c["interes_girado"] for c in cuotas), 2)
     tot_causado = round(sum(c["cuota_causada"] for c in cuotas), 2)
     tot_girado = round(sum(c["cuota_girada"] for c in cuotas), 2)
@@ -210,6 +228,7 @@ def calcular_cronograma(
             "capital": capital,
             "interes_bruto": tot_interes,
             "retencion": tot_retencion,
+            "reteica": tot_reteica,
             "interes_girado": tot_girado_interes,
             "total_causado": tot_causado,
             "total_girado": tot_girado,
@@ -227,6 +246,7 @@ def calcular_cronograma(
             "meses_tramo1": meses_tramo1,
             "pct_capital_tramo1": round(float(pct_capital_tramo1) * 100, 2),
             "retencion_pct": round(ret_pct * 100, 2),
+            "reteica_por_mil": round(ica_pct * 1000, 4),
             "gross_up": bool(gross_up),
             "fecha_desembolso": desembolso.isoformat() if desembolso else None,
             "dia_pago": int(dia_pago) if dia_pago else None,
@@ -271,6 +291,7 @@ def _tir_mensual(capital: float, cuotas: list[dict], meses_gracia: int = 0) -> f
 # `contabilidad_core`; acá solo se guarda el vínculo (movimiento_id) para poder
 # navegar del cronograma al asiento y viceversa.
 
+import html as _html
 import json
 import os
 import re
@@ -359,6 +380,7 @@ def init_db() -> None:
         """)
         _migrar_doc_soporte(con)
         _migrar_contrapartida(con)
+        _migrar_reteica(con)
     _initialized = True
 
 
@@ -373,6 +395,57 @@ def _migrar_contrapartida(con: sqlite3.Connection) -> None:
     ):
         if col not in cols:
             con.execute(f"ALTER TABLE cc_prestamos ADD COLUMN {col} {defn}")
+
+
+def _migrar_reteica(con: sqlite3.Connection) -> None:
+    """ReteICA sobre intereses (oct-2026). Los préstamos anteriores quedan en 0:
+    ponérselo cambia lo que se le gira al prestamista, así que se aplica con
+    `aplicar_reteica()`, a la vista, no en una migración silenciosa. Idempotente."""
+    cols = {r["name"] for r in con.execute("PRAGMA table_info(cc_prestamos)")}
+    if "reteica_pct" not in cols:
+        con.execute("ALTER TABLE cc_prestamos ADD COLUMN reteica_pct REAL NOT NULL DEFAULT 0")
+    cols = {r["name"] for r in con.execute("PRAGMA table_info(cc_prestamo_cuotas)")}
+    if "reteica" not in cols:
+        con.execute("ALTER TABLE cc_prestamo_cuotas ADD COLUMN reteica REAL NOT NULL DEFAULT 0")
+
+
+def _insertar_cuotas(con: sqlite3.Connection, prestamo_id: int, cuotas: list[dict]) -> None:
+    con.executemany(
+        """INSERT INTO cc_prestamo_cuotas
+             (prestamo_id, numero, fecha_vencimiento, saldo_inicial,
+              interes_bruto, retencion, reteica, interes_girado, abono_capital,
+              cuota_causada, cuota_girada, saldo_final)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+        [
+            (
+                prestamo_id, c["numero"], c["fecha"], c["saldo_inicial"],
+                c["interes_bruto"], c["retencion"], c["reteica"], c["interes_girado"],
+                c["abono_capital"], c["cuota_causada"], c["cuota_girada"],
+                c["saldo_final"],
+            )
+            for c in cuotas
+        ],
+    )
+
+
+def _cronograma_de(p: dict, **cambios) -> dict:
+    """Recalcula el cronograma de un préstamo guardado con sus mismas
+    condiciones, salvo las que se pasen en `cambios`."""
+    params = dict(
+        tasa_ea=p["tasa_ea"],
+        plazo_meses=p["plazo_meses"],
+        meses_tramo1=p["meses_tramo1"],
+        pct_capital_tramo1=p["pct_capital_tramo1"],
+        retencion_pct=p["retencion_pct"],
+        reteica_pct=float(p.get("reteica_pct") or 0),
+        gross_up=bool(p["gross_up"]),
+        fecha_desembolso=p["fecha_desembolso"],
+        dia_pago=p["dia_pago"],
+        meses_gracia=int(p.get("meses_gracia") or 0),
+    )
+    capital = cambios.pop("capital", p["capital"])
+    params.update(cambios)
+    return calcular_cronograma(capital, **params)
 
 
 def _migrar_doc_soporte(con: sqlite3.Connection) -> None:
@@ -451,6 +524,7 @@ def crear_prestamo(payload: dict, created_by: int | None = None) -> dict:
     meses_gracia = int(payload.get("meses_gracia") or 0)
     pct_tramo1 = float(payload.get("pct_capital_tramo1", PCT_CAPITAL_TRAMO1_DEFAULT))
     ret_pct = float(payload.get("retencion_pct", RETENCION_RENDIMIENTOS_PCT))
+    ica_pct = float(payload.get("reteica_pct", RETEICA_INTERESES_PCT))
     gross_up = bool(payload.get("gross_up"))
     dia_pago = int(payload.get("dia_pago") or 0) or None
     referencia = str(payload.get("referencia") or "").strip()
@@ -465,6 +539,7 @@ def crear_prestamo(payload: dict, created_by: int | None = None) -> dict:
         meses_gracia=meses_gracia,
         pct_capital_tramo1=pct_tramo1,
         retencion_pct=ret_pct,
+        reteica_pct=ica_pct,
         gross_up=gross_up,
         fecha_desembolso=fecha,
         dia_pago=dia_pago,
@@ -493,33 +568,19 @@ def crear_prestamo(payload: dict, created_by: int | None = None) -> dict:
                   pct_capital_tramo1, retencion_pct, gross_up, fecha_desembolso,
                   dia_pago, medio_pago_id, estado, movimiento_desembolso_id,
                   referencia, notas, created_by,
-                  cuenta_contrapartida_id, tercero_contrapartida_id, meses_gracia)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,'vigente',?,?,?,?,?,?,?)""",
+                  cuenta_contrapartida_id, tercero_contrapartida_id, meses_gracia,
+                  reteica_pct)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,'vigente',?,?,?,?,?,?,?,?)""",
             (
                 tercero_id, capital, tasa_ea, plazo, meses_tramo1, pct_tramo1,
                 ret_pct, 1 if gross_up else 0, fecha, dia_pago, medio_pago_id or None,
                 mov.get("id"), referencia, notas, created_by,
                 cuenta_contrapartida_id or None, tercero_contrapartida_id or None,
-                meses_gracia,
+                meses_gracia, ica_pct,
             ),
         )
         prestamo_id = int(cur.lastrowid)
-        con.executemany(
-            """INSERT INTO cc_prestamo_cuotas
-                 (prestamo_id, numero, fecha_vencimiento, saldo_inicial,
-                  interes_bruto, retencion, interes_girado, abono_capital,
-                  cuota_causada, cuota_girada, saldo_final)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-            [
-                (
-                    prestamo_id, c["numero"], c["fecha"], c["saldo_inicial"],
-                    c["interes_bruto"], c["retencion"], c["interes_girado"],
-                    c["abono_capital"], c["cuota_causada"], c["cuota_girada"],
-                    c["saldo_final"],
-                )
-                for c in crono["cuotas"]
-            ],
-        )
+        _insertar_cuotas(con, prestamo_id, crono["cuotas"])
     return obtener_prestamo(prestamo_id)
 
 
@@ -539,8 +600,11 @@ def _fila_prestamo(con: sqlite3.Connection, row: sqlite3.Row) -> dict:
              SUM(CASE WHEN estado='pagada' THEN abono_capital ELSE 0 END) AS capital_pagado,
              SUM(CASE WHEN estado='pagada' THEN interes_bruto ELSE 0 END) AS interes_pagado,
              SUM(CASE WHEN estado='pagada' THEN retencion ELSE 0 END) AS retencion_practicada,
+             SUM(CASE WHEN estado='pagada' THEN reteica ELSE 0 END) AS reteica_practicada,
              SUM(interes_bruto) AS interes_total,
-             SUM(retencion) AS retencion_total
+             SUM(retencion) AS retencion_total,
+             SUM(reteica) AS reteica_total,
+             SUM(interes_girado) AS interes_girado_total
            FROM cc_prestamo_cuotas WHERE prestamo_id=?""",
         (p["id"],),
     ).fetchone()
@@ -561,10 +625,13 @@ def _fila_prestamo(con: sqlite3.Connection, row: sqlite3.Row) -> dict:
         "interes_total": interes_total,
         "retencion_practicada": round(float(agg["retencion_practicada"] or 0), 2),
         "retencion_total": round(float(agg["retencion_total"] or 0), 2),
+        "reteica_practicada": round(float(agg["reteica_practicada"] or 0), 2),
+        "reteica_total": round(float(agg["reteica_total"] or 0), 2),
+        "interes_girado_total": round(float(agg["interes_girado_total"] or 0), 2),
         # Las tres cifras del contrato, recalculadas sobre lo efectivamente guardado
         "rendimiento_bruto_pct": round(interes_total / p["capital"] * 100, 4) if p["capital"] else 0,
         "rendimiento_neto_pct": round(
-            (interes_total - float(agg["retencion_total"] or 0)) / p["capital"] * 100, 4
+            float(agg["interes_girado_total"] or 0) / p["capital"] * 100, 4
         ) if p["capital"] else 0,
         "tasa_mensual_pct": round(tasa_mensual_desde_ea(p["tasa_ea"]) * 100, 4),
     }
@@ -632,39 +699,13 @@ def ampliar_capital(prestamo_id: int, payload: dict, created_by: int | None = No
     )
 
     capital_nuevo = round(float(p["capital"]) + monto, 2)
-    crono = calcular_cronograma(
-        capital_nuevo,
-        tasa_ea=p["tasa_ea"],
-        plazo_meses=p["plazo_meses"],
-        meses_tramo1=p["meses_tramo1"],
-        pct_capital_tramo1=p["pct_capital_tramo1"],
-        retencion_pct=p["retencion_pct"],
-        gross_up=bool(p["gross_up"]),
-        fecha_desembolso=p["fecha_desembolso"],
-        dia_pago=p["dia_pago"],
-        meses_gracia=int(p.get("meses_gracia") or 0),
-    )
+    crono = _cronograma_de(p, capital=capital_nuevo)
     with _conn() as con:
         con.execute(
             "UPDATE cc_prestamos SET capital=? WHERE id=?", (capital_nuevo, prestamo_id)
         )
         con.execute("DELETE FROM cc_prestamo_cuotas WHERE prestamo_id=?", (prestamo_id,))
-        con.executemany(
-            """INSERT INTO cc_prestamo_cuotas
-                 (prestamo_id, numero, fecha_vencimiento, saldo_inicial,
-                  interes_bruto, retencion, interes_girado, abono_capital,
-                  cuota_causada, cuota_girada, saldo_final)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-            [
-                (
-                    prestamo_id, c["numero"], c["fecha"], c["saldo_inicial"],
-                    c["interes_bruto"], c["retencion"], c["interes_girado"],
-                    c["abono_capital"], c["cuota_causada"], c["cuota_girada"],
-                    c["saldo_final"],
-                )
-                for c in crono["cuotas"]
-            ],
-        )
+        _insertar_cuotas(con, prestamo_id, crono["cuotas"])
     out = obtener_prestamo(prestamo_id)
     out["movimiento_ampliacion_id"] = mov.get("id")
     return out
@@ -691,24 +732,47 @@ def aplicar_meses_gracia(prestamo_id: int, meses: int) -> dict:
             "no se puede recalcular el cronograma"
         )
     meses = int(meses or 0)
-    crono = calcular_cronograma(
-        p["capital"],
-        tasa_ea=p["tasa_ea"],
-        plazo_meses=p["plazo_meses"],
-        meses_tramo1=p["meses_tramo1"],
-        pct_capital_tramo1=p["pct_capital_tramo1"],
-        retencion_pct=p["retencion_pct"],
-        gross_up=bool(p["gross_up"]),
-        fecha_desembolso=p["fecha_desembolso"],
-        dia_pago=p["dia_pago"],
-        meses_gracia=meses,
-    )
+    crono = _cronograma_de(p, meses_gracia=meses)
     with _conn() as con:
         con.execute("UPDATE cc_prestamos SET meses_gracia=? WHERE id=?", (meses, prestamo_id))
         for c in crono["cuotas"]:
             con.execute(
                 "UPDATE cc_prestamo_cuotas SET fecha_vencimiento=? WHERE prestamo_id=? AND numero=?",
                 (c["fecha"], prestamo_id, c["numero"]),
+            )
+    return obtener_prestamo(prestamo_id)
+
+
+def aplicar_reteica(prestamo_id: int, reteica_pct: float = RETEICA_INTERESES_PCT) -> dict:
+    """Pone (o cambia) el reteICA de un préstamo ya creado y recalcula lo que
+    se gira en cada cuota. Nació el 2026-10-05: los préstamos de familiares se
+    crearon solo con el 7% de retefuente y el contador pidió el ICA 11,04 por mil.
+
+    Solo con cuotas sin pagar, por la misma razón que la gracia: un asiento ya
+    hecho no se reescribe. Actualiza las cifras en su sitio (no borra cuotas)
+    para no perder el estado del documento soporte ni el ticket de cada una.
+    """
+    _ensure()
+    p = obtener_prestamo(prestamo_id)
+    if not p:
+        raise ValueError("Préstamo no encontrado")
+    pagadas = [c for c in p["cuotas"] if c["estado"] == "pagada"]
+    if pagadas:
+        raise ValueError(
+            f"El préstamo ya tiene {len(pagadas)} cuota(s) pagada(s): "
+            "no se puede recalcular el cronograma"
+        )
+    ica_pct = float(reteica_pct or 0)
+    crono = _cronograma_de(p, reteica_pct=ica_pct)
+    with _conn() as con:
+        con.execute("UPDATE cc_prestamos SET reteica_pct=? WHERE id=?", (ica_pct, prestamo_id))
+        for c in crono["cuotas"]:
+            con.execute(
+                """UPDATE cc_prestamo_cuotas
+                      SET retencion=?, reteica=?, interes_girado=?, cuota_causada=?, cuota_girada=?
+                    WHERE prestamo_id=? AND numero=?""",
+                (c["retencion"], c["reteica"], c["interes_girado"], c["cuota_causada"],
+                 c["cuota_girada"], prestamo_id, c["numero"]),
             )
     return obtener_prestamo(prestamo_id)
 
@@ -741,6 +805,7 @@ def registrar_pago_cuota(
         Débito  2295/2380  abono a capital          (baja el pasivo)
         Débito  5305       interés bruto            (gasto de McKenna)
         Crédito 2365       retención practicada     (pasivo con la DIAN)
+        Crédito 2368       reteICA 11,04 por mil    (pasivo con Hacienda Bogotá)
         Crédito banco      cuota girada             (lo que recibe el prestamista)
 
     Con `gross_up` el interés bruto se le gira completo y McKenna asume además
@@ -801,17 +866,23 @@ def registrar_pago_cuota(
         cuenta_ret_id = cc._cuenta_id_por_codigo(
             con, _puc.cuenta_retencion("rendimientos_financieros")
         )
+        cuenta_ica_id = cc._cuenta_id_por_codigo(con, "2368")
     if not cuenta_pasivo_id or not cuenta_gasto_id:
         raise ValueError("Faltan cuentas en el plan (pasivo del préstamo o 530520 intereses)")
 
     capital = round(float(cuota["abono_capital"]), 2)
     interes_bruto = round(float(cuota["interes_bruto"]), 2)
     retencion = round(float(cuota["retencion"]), 2)
+    reteica = round(float(cuota.get("reteica") or 0), 2)
     girado = round(float(cuota["cuota_girada"]), 2)
-    gasto_financiero = round(interes_bruto + (retencion if prestamo["gross_up"] else 0), 2)
+    gasto_financiero = round(
+        interes_bruto + ((retencion + reteica) if prestamo["gross_up"] else 0), 2
+    )
 
     if retencion > 0 and not cuenta_ret_id:
         raise ValueError("Falta la cuenta 236535 (Retención — rendimientos financieros) en el plan")
+    if reteica > 0 and not cuenta_ica_id:
+        raise ValueError("Falta la cuenta 2368 (ICA retenido) en el plan")
 
     nombre = tercero.get("nombre") or "prestamista"
     lineas = [
@@ -844,6 +915,16 @@ def registrar_pago_cuota(
                 "descripcion": f"Retención rendimientos financieros {prestamo['retencion_pct'] * 100:.0f}%",
             }
         )
+    if reteica > 0:
+        lineas.append(
+            {
+                "cuenta_id": cuenta_ica_id,
+                "debito": 0,
+                "credito": reteica,
+                "tercero_id": prestamo["tercero_id"],
+                "descripcion": f"ReteICA intereses {float(prestamo.get('reteica_pct') or 0) * 1000:g} x mil",
+            }
+        )
     lineas.append(
         {
             "cuenta_id": medio["cuenta_id"],
@@ -866,6 +947,7 @@ def registrar_pago_cuota(
             "capital": capital,
             "interes_bruto": interes_bruto,
             "retencion": retencion,
+            "reteica": reteica,
             "girado": girado,
         },
         created_by=created_by,
@@ -1017,7 +1099,7 @@ def _borradores_de_cuotas(cuotas: list[dict], creador_id: int | None) -> list[di
                     "periodo": str(c["fecha_vencimiento"])[:7],
                     "notas": (
                         f"Cuenta del prestamista: {c.get('cuenta_bancaria') or 'sin registrar'}. "
-                        "El valor a girar ya trae descontada la retención del 7%."
+                        "El valor a girar ya trae descontadas la retención del 7% y el reteICA."
                     ),
                 },
                 created_by=creador_id,
@@ -1329,6 +1411,8 @@ def trazabilidad(prestamo_id: int) -> dict:
                  "debito": c["interes_bruto"], "credito": 0.0},
                 {"cuenta_codigo": "2365", "concepto": "Retención practicada",
                  "debito": 0.0, "credito": c["retencion"]},
+                *([{"cuenta_codigo": "2368", "concepto": "ReteICA practicado",
+                    "debito": 0.0, "credito": c["reteica"]}] if c.get("reteica") else []),
                 {"cuenta_codigo": "1110", "concepto": "Girado al prestamista",
                  "debito": 0.0, "credito": c["cuota_girada"]},
             ],
@@ -1380,9 +1464,15 @@ def generar_documento(prestamo_id: int, tipo: str = "contrato", corte: str | Non
 
 
 def enviar_documento(
-    prestamo_id: int, tipo: str = "contrato", corte: str | None = None, destinatario: str | None = None
+    prestamo_id: int, tipo: str = "contrato", corte: str | None = None, destinatario: str | None = None,
+    motivo_reenvio: str | None = None, dry_run: bool = False,
 ) -> dict:
     """Envía el PDF al correo del prestamista.
+
+    `motivo_reenvio`: párrafo que explica por qué llega otra versión del mismo
+    documento (p. ej. el reteICA agregado el 2026-10-05). Un contrato que cambia
+    sin explicación genera más desconfianza que el cambio mismo. `dry_run`
+    arma el correo y el PDF sin enviarlo, para revisarlo antes.
 
     Se dispara SIEMPRE desde una acción explícita del panel, nunca como efecto
     secundario de registrar un préstamo o un pago: es correspondencia
@@ -1411,7 +1501,8 @@ def enviar_documento(
     r = prestamo["resumen"]
     nombre = tercero.get("nombre") or ""
     if tipo == "contrato":
-        asunto = f"Contrato de préstamo {doc['numero']} — McKenna Group S.A.S."
+        asunto = (f"Contrato de préstamo {doc['numero']} (versión actualizada) — McKenna Group S.A.S."
+                  if motivo_reenvio else f"Contrato de préstamo {doc['numero']} — McKenna Group S.A.S.")
         intro = (
             f"Adjuntamos el contrato de mutuo por {_fmt_cop(prestamo['capital'])}, "
             f"pactado a {prestamo['plazo_meses']} cuotas mensuales a la tasa de "
@@ -1422,7 +1513,9 @@ def enviar_documento(
             ("Tasa pactada", f"{prestamo['tasa_ea'] * 100:.2f}% E.A."),
             ("Rendimiento bruto del plazo", f"{_fmt_cop(r['interes_total'])} ({r['rendimiento_bruto_pct']:.2f}%)"),
             ("Retención en la fuente (7%)", f"− {_fmt_cop(r['retencion_total'])}"),
-            ("Rendimiento neto a girar", f"{_fmt_cop(r['interes_total'] - r['retencion_total'])}"),
+            *([(f"ReteICA Bogotá ({float(prestamo.get('reteica_pct') or 0) * 1000:g} por mil)",
+                f"− {_fmt_cop(r['reteica_total'])}")] if r.get("reteica_total") else []),
+            ("Rendimiento neto a girar", f"{_fmt_cop(r['interes_girado_total'])}"),
         ]
     else:
         asunto = f"Estado de su préstamo {doc['numero']} — McKenna Group S.A.S."
@@ -1435,6 +1528,8 @@ def enviar_documento(
             ("Capital pendiente", _fmt_cop(r["capital_pendiente"])),
             ("Intereses pagados (brutos)", _fmt_cop(r["interes_pagado"])),
             ("Retención practicada", _fmt_cop(r["retencion_practicada"])),
+            *([("ReteICA practicado", _fmt_cop(r["reteica_practicada"]))]
+              if r.get("reteica_practicada") else []),
         ]
 
     nota_ret = (
@@ -1442,9 +1537,17 @@ def enviar_documento(
         "Group S.A.S. como agente retenedor y se consigna a la DIAN a su nombre; no es un cobro "
         "nuestro sino un anticipo de su impuesto de renta, y cada año le expedimos el certificado "
         "para que lo descuente."
+        + (
+            " El reteICA (industria y comercio de Bogotá) se practica sobre los mismos intereses "
+            "y se consigna a la Secretaría de Hacienda; también va en el certificado anual."
+            if r.get("reteica_total") else ""
+        )
     )
+    motivo = (motivo_reenvio or "").strip()
     texto = (
-        f"Cordial saludo, {nombre}.\n\n{intro}\n\n"
+        f"Cordial saludo, {nombre}.\n\n"
+        + (f"{motivo}\n\n" if motivo else "")
+        + f"{intro}\n\n"
         + "\n".join(f"- {k}: {v}" for k, v in detalle)
         + f"\n\n{nota_ret}\n\nCualquier inquietud, quedamos atentos.\n\n"
         + _marca.firma_texto()
@@ -1456,7 +1559,8 @@ def enviar_documento(
     )
     inner = (
         f"<p style=\"margin:0 0 14px 0;\">Cordial saludo, <strong>{nombre}</strong>.</p>"
-        f"<p style=\"margin:0 0 4px 0;\">{intro}</p>"
+        + (f"<p style=\"margin:0 0 14px 0;\">{_html.escape(motivo)}</p>" if motivo else "")
+        + f"<p style=\"margin:0 0 4px 0;\">{intro}</p>"
         f'<table role="presentation" style="border-collapse:collapse;margin:14px 0 18px 0;width:100%;'
         f'border-top:1px solid rgba(12,96,105,0.18);border-bottom:1px solid rgba(12,96,105,0.18);">'
         f"{filas_html}</table>"
@@ -1466,6 +1570,9 @@ def enviar_documento(
     )
     html = _marca.marco(preheader=asunto, inner_html=inner)
 
+    if dry_run:
+        return {"ok": True, "dry_run": True, "destinatario": correo, "asunto": asunto,
+                "texto": texto, "documento": doc["nombre"], "ruta": doc["ruta"], "numero": doc["numero"]}
     enviado = _send_smtp_with_attachments(
         correo, asunto, texto, html, [(doc["nombre"], "application/pdf", contenido)]
     )
@@ -1621,6 +1728,8 @@ def emitir_documento_soporte_cuota(prestamo_id: int, numero: int, forzar: bool =
             if retencion_cuota > 0
             else None
         ),
+        retencion_ica=round(float(cuota.get("reteica") or 0), 2),
+        ica_por_mil=round(float(prestamo.get("reteica_pct") or 0) * 1000, 4),
         observaciones=(
             f"Documento soporte por intereses del préstamo #{prestamo_id} "
             f"({tercero.get('nombre', '')}, CC {tercero.get('identificacion', '')}). "
@@ -2199,6 +2308,7 @@ def enviar_reporte_mensual(prestamo_id: int, anio: int, mes: int, destinatario: 
     capital = sum(float(c["abono_capital"]) for c in del_mes)
     interes = sum(float(c["interes_bruto"]) for c in del_mes)
     retencion = sum(float(c["retencion"]) for c in del_mes)
+    reteica = sum(float(c.get("reteica") or 0) for c in del_mes)
     nums = ", ".join(f"{c['numero']}/{prestamo['plazo_meses']}" for c in del_mes)
     periodo = f"{int(mes):02d}/{int(anio)}"
 
@@ -2207,6 +2317,8 @@ def enviar_reporte_mensual(prestamo_id: int, anio: int, mes: int, destinatario: 
         ("Abono a capital", _fmt_cop(capital)),
         ("Intereses del período (brutos)", _fmt_cop(interes)),
         (f"(−) Retención en la fuente {prestamo['retencion_pct'] * 100:.0f}%", f"− {_fmt_cop(retencion)}"),
+        *([(f"(−) ReteICA Bogotá {float(prestamo.get('reteica_pct') or 0) * 1000:g} por mil",
+            f"− {_fmt_cop(reteica)}")] if reteica else []),
         ("Total consignado", _fmt_cop(girado)),
         ("Saldo de capital pendiente", _fmt_cop(r["capital_pendiente"])),
         ("Cuotas pagadas", f"{r['cuotas_pagadas']} de {r['cuotas']}"),
@@ -2216,6 +2328,11 @@ def enviar_reporte_mensual(prestamo_id: int, anio: int, mes: int, destinatario: 
         f"La retención en la fuente sobre rendimientos financieros la practica {_pdf.MCKENNA_RAZON} "
         "como agente retenedor y se consigna a la DIAN a su nombre; cada año le expedimos el "
         "certificado para que la impute en su declaración de renta."
+        + (
+            " El reteICA se practica sobre los mismos intereses y se consigna a la "
+            "Secretaría de Hacienda de Bogotá."
+            if reteica else ""
+        )
     )
     texto = (
         f"Cordial saludo, {nombre}.\n\n"

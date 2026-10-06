@@ -1264,7 +1264,12 @@ def previsualizar(payload: dict) -> dict:
         retencion = round(sum(l["credito"] for l in lineas if l["cuenta_codigo"].startswith("2365")), 2)
         girado = round(sum(l["credito"] for l in lineas if l["cuenta_codigo"] == "1110"), 2)
         monto = round(sum(l["debito"] for l in lineas), 2)
-        retencion_ica, gmf = 0.0, 0.0
+        # El ICA de la cuota tiene que viajar en `retencion_ica`: al aprobar, el
+        # asiento se rearma con los impuestos guardados en la solicitud y una
+        # línea 2368 que no esté ahí se pierde.
+        retencion_ica = round(sum(l["credito"] for l in lineas if l["cuenta_codigo"] == "2368"), 2)
+        ica_por_mil = next((l["ica_por_mil"] for l in lineas if l["cuenta_codigo"] == "2368"), 0.0)
+        gmf = 0.0
         ret_info = ret_info or {"motivo": "Retención de rendimientos financieros del cronograma"}
     else:
         # ── Una línea por producto, y el IVA a su cuenta ───────────────────
@@ -1525,7 +1530,8 @@ def _lineas_cuota_prestamo(payload: dict, cc, medio: dict, tercero_id, nombre_te
         return None
 
     codigo_pasivo = "2355" if (prestamo.get("tercero") or {}).get("tipo") == "socio" else "2195"
-    gasto = cuota["interes_bruto"] + (cuota["retencion"] if prestamo.get("gross_up") else 0)
+    reteica = round(float(cuota.get("reteica") or 0), 2)
+    gasto = cuota["interes_bruto"] + ((cuota["retencion"] + reteica) if prestamo.get("gross_up") else 0)
     with cc._conn() as con:
         id_pasivo = cc._cuenta_id_por_codigo(con, codigo_pasivo)
         # Mismas cuentas PUC que usa prestamos.registrar_pago_cuota: si la
@@ -1550,6 +1556,16 @@ def _lineas_cuota_prestamo(payload: dict, cc, medio: dict, tercero_id, nombre_te
             "cuenta_codigo": cod_ret, "cuenta_id": id_ret,
             "debito": 0, "credito": cuota["retencion"], "tercero_id": tercero_id,
             "descripcion": f"Retención 7% rendimientos — {nombre_tercero}",
+        })
+    if reteica > 0:
+        # ReteICA 11,04 por mil sobre los intereses (contador, 2026-10-05).
+        with cc._conn() as con:
+            id_ica = cc._cuenta_id_por_codigo(con, "2368")
+        lineas.append({
+            "cuenta_codigo": "2368", "cuenta_id": id_ica,
+            "debito": 0, "credito": reteica, "tercero_id": tercero_id,
+            "ica_por_mil": round(float(prestamo.get("reteica_pct") or 0) * 1000, 4),
+            "descripcion": f"ReteICA {float(prestamo.get('reteica_pct') or 0) * 1000:g} x mil intereses — {nombre_tercero}",
         })
     lineas.append({
         "cuenta_codigo": "1110", "cuenta_id": medio["cuenta_id"],
@@ -2333,6 +2349,10 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         "medio_pago_id": s["medio_pago_id"], "cuenta_debito": s["cuenta_debito"],
         "retencion_modo": "ninguna",   # los impuestos ya están fijados en la solicitud
         "monto_es_bruto": True,
+        # Sin la referencia a la cuota, una cuota de préstamo se aprobaba como
+        # gasto genérico: todo a 2195, sin separar los intereses a 530520 y la
+        # retención a 236595 (otros) en vez de 236535 (hallado el 2026-10-05).
+        "origen_ref": s.get("origen_ref") or "",
         # Los productos que se aprobaron: sin ellos, la reconstrucción armaba una
         # sola línea global y el asiento perdía el detalle por referencia —y con
         # él la réplica de la cotización, que es el punto de registrarlos.
@@ -2363,7 +2383,9 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         # justo cuando el sistema ya sabía el concepto.
         from app.services import puc_colombia as _puc_ap
 
-        cod_ret = _puc_ap.cuenta_retencion(s.get("retencion_concepto") or "")
+        es_cuota = s["categoria"] == "cuota_prestamo"
+        concepto_ap = s.get("retencion_concepto") or ("rendimientos_financieros" if es_cuota else "")
+        cod_ret = _puc_ap.cuenta_retencion(concepto_ap)
         with cc._conn() as con:
             id_ret = cc._cuenta_id_por_codigo(con, cod_ret) or cc._cuenta_id_por_codigo(con, "2365")
             id_ica = cc._cuenta_id_por_codigo(con, "2368")
@@ -2377,6 +2399,10 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         # impuestos tal como se aprobaron —retención, ICA, GMF— y la salida de
         # banco. Incluir el GMF acá lo contaba dos veces.
         _rearmadas = ("2365", "2368", "530595", CUENTA_IMPUESTOS_ASUMIDOS, "1110", "2355", "2335", "133005")
+        if es_cuota:
+            # El abono a capital de un préstamo de socio es un débito a 2355:
+            # en una cuota no es saldo por pagar, es la baja del pasivo.
+            _rearmadas = tuple(c for c in _rearmadas if c != "2355")
         medias = [
             l for l in lineas
             if l.get("debito") and not str(l.get("cuenta_codigo") or "").startswith(_rearmadas)
@@ -2384,7 +2410,7 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         if ret:
             medias.append({"cuenta_id": id_ret, "debito": 0, "credito": ret,
                            "tercero_id": s["tercero_id"],
-                           "descripcion": f"Retención {s['retencion_concepto']} — {nombre_t}"})
+                           "descripcion": f"Retención {concepto_ap.replace('_', ' ')} — {nombre_t}"})
         if ica:
             medias.append({"cuenta_id": id_ica, "debito": 0, "credito": ica,
                            "tercero_id": s["tercero_id"],
