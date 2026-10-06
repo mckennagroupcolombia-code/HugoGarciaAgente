@@ -381,8 +381,9 @@ function EditorFormula({
           })}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[320px] border-collapse text-xs">
+        {/* Sin overflow aquí: recortaba la lista de materias primas de la última fila. */}
+        <div>
+          <table className="w-full border-collapse text-xs">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wide text-muted">
                 <th className="w-4" />
@@ -806,6 +807,12 @@ function BuscadorIngrediente({
           setAbierto(true);
         }}
         onFocus={() => setAbierto(true)}
+        onBlur={() => {
+          // Código o nombre escrito completo (p. ej. «AGUDESmL») queda enlazado sin tener que hacer clic.
+          const t = valor.nombre.trim().toLowerCase();
+          const igual = !valor.codigo && t ? items.find((it) => it.codigo.toLowerCase() === t || it.nombre.trim().toLowerCase() === t) : undefined;
+          if (igual) onElegir(igual.codigo, igual.nombre);
+        }}
         autoFocus={autoFocus}
         placeholder="Buscar materia prima o escribir…"
         className={CAMPO_TABLA}

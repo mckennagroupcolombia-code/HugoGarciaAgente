@@ -5106,3 +5106,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Si en un ingrediente se escribía el código (p. ej. `AGUDESmL`) sin elegirlo de la lista, se guardaba como texto libre sin código. `formulas_db._enlazar_alegra` lo enlaza al guardar cuando coincide exacto con la referencia o el nombre en la copia local de Alegra (sin combos).
 - Se corrigieron las fórmulas guardadas: ÁCIDO LÁCTICO 85 % y VIOLETA DE GENCIANA ya apuntan a AGUA DESTILADA mL (`AGUDESmL`).
 - **Archivos Modificados:** `app/services/formulas_db.py`, `docs/team-recaps.md`
+
+## 2026-10-05 — Fórmulas: la lista de materias primas ya no se recorta
+- La tabla de ingredientes estaba dentro de `overflow-x-auto`, que recortaba la lista de sugerencias de la última fila (al crear una fórmula no aparecía AGUA DESTILADA). Se quitó el overflow.
+- Al salir de la casilla, si el texto es exacto a un código o nombre de la lista (p. ej. `AGUDESmL`), queda enlazado sin hacer clic.
+- **Verificado:** arnés temporal (ya retirado), captura con «agua» → AGUA DESTILADA GL / mL / AGUA ROSAS visibles; `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/formulas/FormulasPanel.tsx`, `docs/team-recaps.md`
