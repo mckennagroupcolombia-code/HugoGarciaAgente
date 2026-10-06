@@ -368,6 +368,18 @@ pantallas aparte. **No calcula nada propio**: junta `mapa_producto.anatomia_comb
   fondos de estado se mezclan con `--ed-crema` (en un tema oscuro como Matrix `--ed-durazno` es oscuro). Los emergentes
   son portales: fuera de la isla, siguen la piel normal. Estado: `PUNTO`/`CAJA` de `arbol/tipos.ts` son clases `ap-*`.
 - ⚠️ Lo que en este archivo (Flujo U y otros) dice «taller de combos» es historia: hoy es el Árbol del producto.
+- **Costo vs. precio** (5-oct-2026, `arbol/CostoPrecio.tsx` + `app/services/costo_receta.py`): cada presentación
+  muestra su receta costeada pieza por pieza y el margen de cada precio publicado (web y MeLi de `cache.json`, lista
+  de Alegra; todos con IVA → margen sin IVA, MeLi menos 16,5 % de comisión de referencia, sin envío) y, sin precio,
+  el precio que deja 40/50/60 %. Costo unitario = última compra: **Libro Mayor** (débito 1435, línea
+  «CÓDIGO … · N und × $P») o **facturas de compra** (`precio_neto`), la más reciente → **equivalencia**
+  (`app/data/costos_referencia.json`: código nunca comprado con su SKU ← otro × factor; ACECOCVIRg ← ACECOCmL ×
+  1,087 por densidad 0,92) → costo **a mano** de Rentabilidad (`componente_costos`, por nombre) → `unit_cost` de
+  Alegra (casi siempre 0). ⚠️ Con una pieza sin costo el margen sale como techo («≤»): 5-oct solo 52 de 330
+  presentaciones estaban completas. No usa `rentabilidad.combo_costos_desglose` (pide los combos a Alegra en vivo y
+  no ve los recién creados). `python3 -m app.services.costo_receta C-XXX` imprime el desglose. El margen se mide con la **tarifa real** del
+  combo (`alegra_items.iva_pct`, columna nueva del 6-oct que llena la sincronización del catálogo; `iva` sigue 0/1):
+  la avena va al 5 % y dividir siempre por 1,19 daba un margen menor al real.
 
 ### La tienda web se lee como el árbol (28-sep-2026)
 

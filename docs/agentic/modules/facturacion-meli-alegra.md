@@ -491,3 +491,13 @@ entregar" a ventas por WhatsApp — hoy `crear_factura_completa_siigo` lo dispar
 tool-use en cuanto se confirma el pago (`ok <3dígitos>`), no al entregar. Cambiarlo requiere
 tocar el prompt/herramientas de `app/core.py`, que afecta el comportamiento del agente en *toda*
 conversación de WhatsApp — se trata aparte, con su propia revisión.
+
+### IVA de venta = el de la factura de compra (6-oct-2026)
+
+Decisión de Armando: lo que se reempaca sin transformar se vende con la tarifa que trae la factura de compra (la ley la
+fija por producto, no por el empaque). En el XML DIAN: `Percent` 5 → «IVA 5 %» (id 3 en Alegra); línea sin `TaxTotal` →
+«IVA Excluido» (id 2, no «Exento»). Se aplica a la materia prima y a cada combo cuya única materia prima es esa.
+Corregidos: avena, amaranto, quinua roja (5 %); sales, dátiles, uvas pasas (excluido). El precio de lista no cambia (es
+el final); `_precio_base_con_impuesto` divide por la tarifa del ítem. ⚠️ Tras cambiar el IVA de un ítem: reiniciar
+agente-pro y webhook-meli (caché de productos) y sincronizar el catálogo (`alegra_items.iva_pct`).
+Pendiente: vitaminas y ácido giberélico de Factores y Mercadeo (sin IVA en la factura, 19 % en Alegra).

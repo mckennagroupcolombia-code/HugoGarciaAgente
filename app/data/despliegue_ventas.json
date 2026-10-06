@@ -1,8 +1,8 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-05T16:15:07",
- "actualizado_por": "claude",
+ "actualizado": "2026-10-06T00:55:06",
+ "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
   "GTRVDR10ML12UN": {
@@ -1771,6 +1771,51 @@
    "meli_ids": [
     "MCO866417408"
    ]
+  },
+  "C-ACECOCVIR250G": {
+   "nombre": "ACEITE COCO VIRGEN 250g",
+   "titulo_meli": "Aceite De Coco Virgen Orgánico 250g  Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4508059070"
+   ]
+  },
+  "C-ACECOCVIR500G": {
+   "nombre": "ACEITE COCO VIRGEN 500g",
+   "titulo_meli": "Aceite De Coco Virgen Orgánico 500g  Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4508059134"
+   ]
+  },
+  "C-ACECOCVIRKG": {
+   "nombre": "ACEITE COCO VIRGEN KG",
+   "titulo_meli": "Aceite De Coco Virgen Orgánico 1kg  Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4508145372"
+   ]
+  },
+  "C-AVEHOJKG": {
+   "nombre": "AVENA HOJUELAS KG",
+   "titulo_meli": "Avena En Hojuelas Entera 1kg  Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4508050280"
+   ]
+  },
+  "C-ALBSEC250G": {
+   "nombre": "ALBARICOQUE SECO 250g",
+   "titulo_meli": "Albaricoque Deshidratado 250g  Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4508151626"
+   ]
   }
  },
  "excluidas": [
@@ -2166,5 +2211,37 @@
    "motivo": "etiqueta sin aprobar",
    "por_etiqueta": true
   }
- ]
+ ],
+ "publicadas_despues": {
+  "MCO4508059070": {
+   "sku": "C-ACECOCVIR250G",
+   "titulo": "Aceite De Coco Virgen Orgánico",
+   "desde": "2026-10-05T23:18:59",
+   "por": "armando"
+  },
+  "MCO4508059134": {
+   "sku": "C-ACECOCVIR500G",
+   "titulo": "Aceite De Coco Virgen Orgánico",
+   "desde": "2026-10-05T23:19:00",
+   "por": "armando"
+  },
+  "MCO4508145372": {
+   "sku": "C-ACECOCVIRKG",
+   "titulo": "Aceite De Coco Virgen Orgánico",
+   "desde": "2026-10-05T23:19:01",
+   "por": "armando"
+  },
+  "MCO4508050280": {
+   "sku": "C-AVEHOJKG",
+   "titulo": "Avena En Hojuelas Entera 1kg  Materia Prima",
+   "desde": "2026-10-06T00:23:05",
+   "por": "armando"
+  },
+  "MCO4508151626": {
+   "sku": "C-ALBSEC250G",
+   "titulo": "Albaricoque Deshidratado 250g  Materia Prima",
+   "desde": "2026-10-06T00:55:06",
+   "por": "armando"
+  }
+ }
 }

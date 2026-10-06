@@ -24,6 +24,7 @@ import type { Respuesta } from "../../combos/comun";
 import { CladogramaCategoria, CladogramaFamilia } from "./Cladograma";
 import { CambiarSku } from "./CambiarSku";
 import { CopiarSku } from "./CopiarSku";
+import { CostoPrecio } from "./CostoPrecio";
 import { VarianteEtiqueta } from "./ParEtiquetas";
 import { FotosCanal, imagenesDe, useFotosProducto, type Canal } from "./FotosCanal";
 import {
@@ -596,6 +597,8 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
         <button type="button" className="ap-btn ap-btn-sec mt-1" onClick={onCanales}>Ver en Canales del producto</button>
         </div>
       </div>
+
+      <CostoPrecio p={p} onReceta={() => onPieza(p.piezas.receta.pieza_taller || "receta")} />
     </>
   );
 }

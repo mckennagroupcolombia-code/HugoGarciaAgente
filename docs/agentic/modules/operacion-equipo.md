@@ -28,6 +28,12 @@ catálogo como vista (`_catalogo_desplegado` / `_vista_despliegue` en website.py
 rechaza SKUs fuera de la lista **y las líneas genéricas VENTA-VARIO-*** (los envíos `WEB-ENVIO-*` siempre pasan: son servicio, no combo) (`ventas_directas.fuera_de_despliegue`; la venta
 MeLi con RUT no se frena); el Árbol del producto marca «A la venta · MeLi + web». Al enlazar más SKUs: `--ampliar`.
 `tests/conftest.py` aísla el archivo real (autouse).
+**Publicaciones nuevas tras el cese (5-oct-2026):** la lista se arma con lo que pausó el cese, así que una publicación
+creada después quedaba fuera (oculta en la web, sin reactivación de stock). `despliegue_ventas.registrar_publicacion_nueva(
+meli_id, sku)` evalúa SOLO ese SKU con las mismas reglas (factura + etiqueta aprobada), lo suma a `skus` y lo anota en
+`publicadas_despues`, que `calcular()` vuelve a considerar. ⚠️ **Nunca** recalcular la lista fuera de `sincronizar()`:
+con la relación de códigos a medias (timeout de MeLi, 263 de ~480) un `calcular()+guardar()` sacó 34 SKUs buenos
+(193 → 159) el 5-oct; se restauró desde git. Primer uso: aceite de coco virgen (MCO4508059070/-134/MCO4508145372).
 
 ### AA. Chat del equipo, campana y recepción de mercancía (24-sep-2026)
 

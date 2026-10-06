@@ -59,3 +59,27 @@ def test_meli_no_reactiva_fuera_de_despliegue(despliegue, monkeypatch):
     assert meli.meli_item_reactivable("mco1")
     assert not meli.meli_item_reactivable("MCO2")
 
+
+
+def test_publicacion_nueva_entra_sin_recalcular_la_lista(despliegue, monkeypatch):
+    """Una publicación creada tras el cese se suma sola; las demás no se tocan aunque la
+    relación de códigos esté a medias (5-oct-2026: un recálculo bajó la lista de 193 a 159)."""
+    from app.services import canales_producto as cp
+
+    monkeypatch.setattr(cp, "_fuente_alegra", lambda: {"C-NUEVO250G": {"nombre": "Nuevo", "tipo": "kit"}})
+    monkeypatch.setattr(cp, "_fuente_alias", lambda: {})
+    monkeypatch.setattr(cp, "_facturable", lambda s, a, al: {"estado": "si" if s in a else "no", "alias_destino": ""})
+    monkeypatch.setattr(D, "etiquetas_sin_aprobar", lambda: {})
+    monkeypatch.setattr(D, "calcular", lambda: pytest.fail("no debe recalcular la lista"))
+
+    r = D.registrar_publicacion_nueva("MCO9", "C-Nuevo250g", titulo="Nuevo 250g")
+    assert r == {"ok": True, "desplegado": True, "motivo": ""}
+    D.registrar_publicacion_nueva("MCO9", "C-NUEVO250G")  # idempotente
+    data = json.loads(D.ARCHIVO.read_text(encoding="utf-8"))
+    assert set(data["skus"]) == {"C-LECSOY500G", "C-NUEVO250G"}
+    assert data["skus"]["C-NUEVO250G"]["meli_ids"] == ["MCO9"]
+    assert "MCO9" in data["publicadas_despues"]
+
+    r = D.registrar_publicacion_nueva("MCO10", "C-NOEXISTE")
+    assert not r["desplegado"] and "no existe" in r["motivo"]
+    assert "C-NOEXISTE" not in json.loads(D.ARCHIVO.read_text(encoding="utf-8"))["skus"]

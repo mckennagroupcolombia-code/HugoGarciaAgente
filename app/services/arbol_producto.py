@@ -250,6 +250,17 @@ def arbol(refrescar: bool = False) -> dict:
         fotos_sku = {}
         sin_senal.append({"fuente": "Fotos de producto", "error": str(exc)[:160]})
 
+    # Costo de la receta contra el precio publicado (última compra de cada componente).
+    try:
+        from app.services import costo_receta
+
+        precios_pub = costo_receta.precios_publicados()
+        iva_ref = costo_receta.iva_por_ref()
+    except Exception as exc:
+        costo_receta = None
+        precios_pub, iva_ref = {}, {}
+        sin_senal.append({"fuente": "Costo de la receta", "error": str(exc)[:160]})
+
     categorias: dict[str, dict[str, dict]] = {}
     for c in datos.get("combos") or []:
         esl = c.get("eslabones") or {}
@@ -266,12 +277,24 @@ def arbol(refrescar: bool = False) -> dict:
             "web": _web(fila),
         }
         doc = esl.get("documento") or {}
+        ref_u = _u(c.get("ref"))
+        pub = precios_pub.get(ref_u) or {}
+        precios = {"web": pub.get("web"), "meli": pub.get("meli"),
+                   "lista": c.get("precio_lista")}
+        costo = None
+        if costo_receta:
+            try:
+                costo = costo_receta.para_presentacion(c.get("componentes") or [], precios, iva_ref.get(ref_u, costo_receta.IVA))
+            except Exception as exc:  # una receta rara no tumba el árbol
+                costo = {"error": str(exc)[:160]}
         pres = {
             "ref": c.get("ref"),
             "nombre": c.get("nombre"),
             "corto": _etiqueta_corta(c),
             "presentacion": c.get("presentacion") or "",
             "precio_lista": c.get("precio_lista"),
+            "precios": precios,
+            "costo": costo,
             "foto": c.get("foto"),
             "foto_estado": c.get("foto_estado") or "",
             "foto_motivo": c.get("foto_motivo") or "",

@@ -243,6 +243,8 @@ es el **Árbol del producto** (Studio); `combos` es solo alias. `fijar_sku_docum
 `guardar_ficha` reemplaza la ficha entera (toda edición parcial pasa por `actualizar_campos_ficha`).
 La **tienda web se agrupa y nombra como el árbol** (`data/familias_arbol.json`, solo une y renombra, nunca separa);
 rutas de origen del mapa: `scripts/sincronizar_origen_materias.py` (vista previa; `--aplicar`).
+**Costo vs. precio** en cada presentación del árbol (`costo_receta.py`): receta costeada con la última compra
+(Libro Mayor 1435 / facturas → `costos_referencia.json` → costo a mano) contra el precio web, MeLi y lista.
 
 **Operación del equipo** (`operacion-equipo.md`: cese Y, chat del equipo AA, insumos AB, buscador de chats AC,
 bultos AE, solicitudes como misión AF). Cese global: `python3 scripts/cese_actividades.py --activar|--desactivar|--estado`.

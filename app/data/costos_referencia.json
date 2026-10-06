@@ -1,0 +1,12 @@
+{
+  "_doc": "Código de inventario que nunca se compró con su propio SKU y toma el costo de la última compra de otro × factor (unidad del combo por unidad de la compra). Lo lee app/services/costo_receta.py para el costo de la receta en el Árbol del producto. Cuando llegue una compra con el código propio, esa manda y esta entrada sobra.",
+  "referencias": {
+    "ACECOCVIRg": {
+      "compra_de": "ACECOCmL",
+      "factor": 1.087,
+      "motivo": "densidad 0,92 g/mL",
+      "nota": "La caja de 16 L de Global Trading (FEA18545, 25-ago-2026) se registró como ACECOCmL; es el aceite de coco virgen (confirmado por Armando el 5-oct-2026). 1 g = 1/0,92 mL.",
+      "desde": "2026-10-05"
+    }
+  }
+}

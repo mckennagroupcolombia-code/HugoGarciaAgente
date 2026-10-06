@@ -102,6 +102,8 @@ def init_db() -> None:
         "ALTER TABLE empleados ADD COLUMN dia_pago INTEGER DEFAULT NULL",
         "ALTER TABLE empleados ADD COLUMN telefono_wa TEXT DEFAULT ''",
         "ALTER TABLE componente_costos ADD COLUMN iva_incluido INTEGER DEFAULT 0",
+        # Tarifa real del IVA de venta (5, 19, 0…); `iva` sigue siendo 0/1. NULL = aún sin sincronizar.
+        "ALTER TABLE alegra_items ADD COLUMN iva_pct REAL DEFAULT NULL",
         "ALTER TABLE compras_exterior ADD COLUMN fecha_compra TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE compras_exterior ADD COLUMN trm_fuente TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE compras_exterior ADD COLUMN cuenta_cobro_path TEXT NOT NULL DEFAULT ''",

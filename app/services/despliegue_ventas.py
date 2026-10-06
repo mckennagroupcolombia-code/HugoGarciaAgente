@@ -139,10 +139,16 @@ def calcular() -> dict:
     pausa = _leer(_PAUSA_GLOBAL_JSON)
     candidatas = [k for k, v in (pausa.get("resultado_pausa") or {}).items() if v == "ok"]
     candidatas += (pausa.get("recuperadas_del_primer_cese") or {}).get("ids") or []
+    # Publicaciones creadas después del cese (`registrar_publicacion_nueva`): pasan por las
+    # mismas reglas; su SKU va anotado porque la relación de códigos aún no las conoce.
+    nuevas = {_u(k): v for k, v in (estado().get("publicadas_despues") or {}).items()}
+    candidatas += list(nuevas)
     candidatas = list(dict.fromkeys(_u(x) for x in candidatas if x))
 
     rel = _leer(_RELACION_JSON)
     por_id = {_u(it.get("meli_id")): it for it in rel.get("items") or []}
+    for mid, v in nuevas.items():
+        por_id.setdefault(mid, {"meli_id": mid, "sku_meli": v.get("sku"), "titulo": v.get("titulo") or ""})
     alegra = cp._fuente_alegra()
     alias = cp._fuente_alias()
     sin_aprobar = etiquetas_sin_aprobar()
@@ -186,12 +192,55 @@ def guardar(calculo: dict, *, usuario: str = "") -> dict:
         "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
         "skus": calculo["skus"],
         "excluidas": calculo["excluidas"],
+        "publicadas_despues": previo.get("publicadas_despues") or {},
     }
     tmp = str(ARCHIVO) + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
     os.replace(tmp, ARCHIVO)
     return data
+
+
+def registrar_publicacion_nueva(meli_id: str, sku: str, *, titulo: str = "", usuario: str = "") -> dict:
+    """Una publicación creada después del cese entra al despliegue (web + reactivación de
+    stock) si cumple las mismas reglas que las demás: SKU que se factura y etiqueta aprobada.
+    Queda anotada en `publicadas_despues` para que los recálculos (`calcular`) la conserven.
+
+    Evalúa SOLO este SKU y no recalcula la lista: con la relación de códigos a medias
+    (timeout de MeLi) un recálculo sacaba decenas de SKUs buenos (5-oct-2026: 193 → 159)."""
+    if not activo():
+        return {"ok": True, "desplegado": True, "motivo": "sin despliegue activo: no hay restricción"}
+    from app.services import canales_producto as cp
+
+    mid, ref = _u(meli_id), _u(sku)
+    alegra = cp._fuente_alegra()
+    fact = cp._facturable(ref, alegra, cp._fuente_alias())
+    motivo = ""
+    if fact["estado"] not in ("si", "alias"):
+        motivo = "código inactivo en Alegra" if fact["estado"] == "inactivo" else "el SKU no existe en Alegra ni tiene alias"
+    elif ref in etiquetas_sin_aprobar():
+        motivo = "etiqueta sin aprobar"
+
+    data = dict(estado())
+    nuevas = dict(data.get("publicadas_despues") or {})
+    nuevas[mid] = {"sku": ref, "titulo": titulo, "desde": datetime.now().isoformat(timespec="seconds"), "por": usuario}
+    data["publicadas_despues"] = nuevas
+    skus = dict(data.get("skus") or {})
+    if not motivo:
+        destino = alegra.get(ref) or alegra.get(_u(fact["alias_destino"])) or {}
+        info = dict(skus.get(ref) or {"nombre": destino.get("nombre") or titulo or ref, "titulo_meli": titulo,
+                                      "tipo": destino.get("tipo") or "", "alias_destino": fact["alias_destino"],
+                                      "meli_ids": []})
+        info["meli_ids"] = list(dict.fromkeys([*(info.get("meli_ids") or []), mid]))
+        skus[ref] = info
+        data["skus"] = skus
+    data["actualizado"] = datetime.now().isoformat(timespec="seconds")
+    data["actualizado_por"] = usuario
+    tmp = str(ARCHIVO) + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, ARCHIVO)
+    return {"ok": True, "desplegado": not motivo, "motivo": motivo}
 
 
 def _pausa_mod():

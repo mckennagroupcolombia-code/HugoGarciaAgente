@@ -1,3 +1,14 @@
+### 2026-10-06 - Costo vs. precio en el árbol, IVA según la factura de compra y publicaciones nuevas en el despliegue
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección tributaria (Diseño de producto, Alegra, despliegue de ventas). Sin LLM en el cálculo.
+- **Qué se implementó:**
+  - **«Costo vs. precio»** en cada presentación del Árbol del producto: receta costeada pieza por pieza con la última compra (Libro Mayor 1435 / facturas de compra → equivalencias en `costos_referencia.json` → costo a mano → Alegra), contra el precio web, MeLi (−16,5 % de comisión de referencia) y lista de Alegra, con el margen y el precio que deja 40/50/60 %. Si falta el costo de una pieza, el margen sale como techo («≤»).
+  - El margen usa la **tarifa real de IVA** del combo: nueva columna `alegra_items.iva_pct`, que llena la sincronización del catálogo.
+  - **IVA de venta = el de la factura de compra** (XML DIAN): avena, amaranto y quinua roja pasan a 5 %; sales (marina ahumada, rosada con ajo y chili, Himalaya fina y gruesa), dátiles y uvas pasas a «Excluido». 25 ítems en Alegra (materia prima + combos), verificados uno por uno. El precio al cliente no cambia.
+  - **Publicaciones creadas después del cese** entran al despliegue (`registrar_publicacion_nueva`): evalúa solo ese SKU, sin recalcular la lista. La primera versión recalculaba y, con la relación de códigos a medias, sacó 34 SKUs; se restauró desde git.
+  - Publicados en MeLi y en la web: aceite de coco virgen 250 g / 500 g / 1 kg (precio de la competencia, por rotación), avena en hojuelas 1 kg ($6.500) y albaricoque seco 250 g ($26.000).
+- **Archivos Modificados:** `app/services/costo_receta.py` (nuevo), `app/data/costos_referencia.json` (nuevo), `app/services/{arbol_producto,despliegue_ventas,alegra_catalogo_db,contabilidad_db}.py`, `app/data/despliegue_ventas.json`, `desktop/src/components/plantillas-visuales/arbol/{CostoPrecio.tsx (nuevo),tipos.ts,ArbolProductoPanel.tsx,arbol.css}`, `tests/test_costo_receta.py` (nuevo), `tests/test_despliegue_ventas.py`, `docs/agentic/modules/{producto-cadena,operacion-equipo,facturacion-meli-alegra}.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-05 - Préstamos: reteICA 11,04‰ sobre los intereses y contratos reenviados
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección tributaria + corrección (Contabilidad → Préstamos y Solicitudes de pago). Sin LLM.
