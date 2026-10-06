@@ -84,6 +84,34 @@ def _ingrediente(raw: Any) -> dict | None:
     }
 
 
+def _enlazar_alegra(ingredientes: list[dict]) -> list[dict]:
+    """Texto libre que coincide exacto con un código o nombre de Alegra queda enlazado
+    (p. ej. escribir «AGUDESmL» o «agua destilada ml» sin elegirlo de la lista)."""
+    sueltos = [i for i in ingredientes if not i["codigo"] and i["nombre"]]
+    if not sueltos:
+        return ingredientes
+    try:
+        from app.services import contabilidad_db as cdb
+
+        cdb._ensure()
+        with cdb._conn() as con:
+            for i in sueltos:
+                fila = con.execute(
+                    """SELECT reference, name FROM alegra_items
+                       WHERE status = 'active' AND type != 'kit'
+                         AND (reference = ? COLLATE NOCASE OR TRIM(name) = ? COLLATE NOCASE)
+                       ORDER BY CASE WHEN reference = ? COLLATE NOCASE THEN 0 ELSE 1 END
+                       LIMIT 1""",
+                    (i["nombre"], i["nombre"], i["nombre"]),
+                ).fetchone()
+                if fila:
+                    i["codigo"] = str(fila["reference"])
+                    i["nombre"] = str(fila["name"] or fila["reference"]).strip()
+    except Exception:
+        pass  # sin catálogo local se guarda como texto, igual que antes
+    return ingredientes
+
+
 def listar() -> list[dict]:
     return sorted(_load(), key=lambda f: (f.get("nombre") or "").lower())
 
@@ -92,7 +120,7 @@ def guardar(body: dict, autor: str = "") -> dict:
     nombre = _texto(body.get("nombre"), 160)
     if not nombre:
         raise ValueError("La fórmula necesita un nombre")
-    ingredientes = [i for i in map(_ingrediente, body.get("ingredientes") or []) if i]
+    ingredientes = _enlazar_alegra([i for i in map(_ingrediente, body.get("ingredientes") or []) if i])
     lote = _numero(body.get("lote_g"))
     formula_id = _texto(body.get("id"), 40)
     with _candado():

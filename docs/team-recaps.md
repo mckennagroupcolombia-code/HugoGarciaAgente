@@ -5101,3 +5101,8 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `GET/POST /api/canales/<id>/solicitudes`; Compras en el exterior muestra también las de categoría importaciones.
 - `SolicitudesDelGrupo.tsx` arriba del hilo: abiertas con tipo/responsable/estado/vence y «Ver →»; «Solicitar a…» (cabecera y bloque) y «→ tarea» piden persona, tipo (Pago, Compra, Publicación, Etiqueta, Documento técnico, Fórmula, Envío, Otra; propuesto por el grupo, `canales_vinculos.TIPOS_SOLICITUD` → categoría de tickets) y enlace al detalle (ref); crean con POST /api/tickets/ y la dejan en el grupo con aviso de sistema. Reemplaza «Reportar incidente».
 - Avisos de mensajes (`canales_avisos.py`): Web Push tipo «chat-mensaje» a los demás del grupo (1 cada 2 min por grupo, silencio 22-07; nunca WhatsApp); `GET /api/canales/novedades`, `POST /api/canales/push`; `sw-alarm.js` lo muestra si la app no está a la vista; `useAvisosMensajes` (tarjeta + sonido) y «🔔 Activar avisos» en Grupos.
+
+## 2026-10-05 — Fórmulas: código de Alegra escrito a mano queda enlazado
+- Si en un ingrediente se escribía el código (p. ej. `AGUDESmL`) sin elegirlo de la lista, se guardaba como texto libre sin código. `formulas_db._enlazar_alegra` lo enlaza al guardar cuando coincide exacto con la referencia o el nombre en la copia local de Alegra (sin combos).
+- Se corrigieron las fórmulas guardadas: ÁCIDO LÁCTICO 85 % y VIOLETA DE GENCIANA ya apuntan a AGUA DESTILADA mL (`AGUDESmL`).
+- **Archivos Modificados:** `app/services/formulas_db.py`, `docs/team-recaps.md`
