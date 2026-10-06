@@ -5148,3 +5148,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - El mini chat de la solicitud usa `BarraEscritura` (📎 📷 🎤/➤) y reproduce audios; «Abrir completo →» queda encima de la barra.
 - **Verificado:** `npx tsc --noEmit` sin errores en estos archivos; `npm run build`.
 - **Archivos Modificados:** `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Avisos personales al abrir la app (comunicado a Stella y Victor)
+- `app/services/avisos_personales.py` + `app/routes_avisos_personales.py`: comunicado para una persona que sale una sola vez al entrar. `GET /api/avisos-personales/pendientes` y `POST /api/avisos-personales/<id>/visto` (sesión de tickets, cada quien solo los suyos). Datos en `app/data/avisos_personales.json` (sin cifras de salario). Se crean con `avisos_personales.crear(usuario_id, titulo, mensaje, firma)`.
+- `AvisoPersonal.tsx` (en `nav/`): ventana con «Entendido, ¡gracias!»; montada en `App.tsx` para escritorio y MobileHub.
+- Primer uso: agradecimiento y ajuste de salario a Stella (id 9) y Victor (id 7).
+- **Verificado:** `npm run build`; reinicio de agente-pro; la ruta responde 401 sin sesión; los dos avisos creados.
+- **Archivos Modificados:** `app/services/avisos_personales.py`, `app/routes_avisos_personales.py`, `agente_pro.py`, `desktop/src/components/nav/AvisoPersonal.tsx`, `desktop/src/App.tsx`, `app/data/avisos_personales.json`, `docs/team-recaps.md`

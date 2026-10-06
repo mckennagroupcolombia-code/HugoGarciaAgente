@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
+import AvisoPersonal from "./components/nav/AvisoPersonal";
 import { useAppStore, type Panel, waitForAppHydration } from "./stores/app";
 import { useTicketsAuth, type TicketsUser, ensureTicketsAuthHydrated } from "./stores/ticketsAuth";
 import MobileHub, { BarraMovil, useMobileLayout } from "./components/MobileHub";
@@ -669,6 +670,7 @@ export default function App() {
         <MatrixRain />
         <BarbieSparkles />
         <ThemesDialog />
+        <AvisoPersonal />
         <MobileHub
           onSwitchDesktop={() => {
             localStorage.setItem("mck-force-desktop", "1");
@@ -687,6 +689,7 @@ export default function App() {
       <MatrixRain />
       <BarbieSparkles />
       <ThemesDialog />
+      <AvisoPersonal />
       <Layout
         barraMovil={
           isMobile && !forceDesktop ? (

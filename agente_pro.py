@@ -171,6 +171,12 @@ def create_app():
         print(f"⚠️ Ubicación de bultos: {e}")
 
     try:
+        from app.routes_avisos_personales import register_avisos_personales_routes
+        register_avisos_personales_routes(app)
+    except Exception as e:
+        print(f"⚠️ Avisos personales: {e}")
+
+    try:
         from app.routes_canales_producto import register_canales_producto_routes
         register_canales_producto_routes(app)
     except Exception as e:
