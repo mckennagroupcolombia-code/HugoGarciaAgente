@@ -68,17 +68,17 @@ def test_cotizacion_a_obligado_a_facturar_es_anticipo(mods):
     cods = {l["cuenta_codigo"] for l in prev["lineas"]}
     assert "1435" not in cods and "240810" not in cods       # sin factura no hay inventario ni IVA
     assert prev["lineas"][0]["cuenta_codigo"] == "133005"
-    assert prev["retencion"] == 105_000                       # se practica al girar
+    # La retención se calcula (la cotización ya la descuenta) pero NO se asienta:
+    # nace con la factura, que es con lo que se cancela.
+    assert prev["retencion"] == 105_000 and prev["girado"] == 4_893_000
+    assert {l["cuenta_codigo"] for l in prev["lineas"]} == {"133005", "1110"}
     assert prev["cuadra"]
 
     s = w.crear_solicitud(_compra(t, m))
     assert s["es_anticipo"] == 1 and s["cuenta_debito"] == "1435"
     mov = cc.obtener_movimiento(w.aprobar(s["id"], espejar=False)["movimiento_id"])
     por = _por_cuenta(mov)
-    assert por["133005"] == (4_998_000, 0)
-    assert por["236540"] == (0, 105_000)
-    assert por["1110"] == (0, 4_893_000)
-    assert "1435" not in por
+    assert por == {"133005": (4_893_000, 0), "1110": (0, 4_893_000)}
     assert w.obtener(s["id"])["falta_legalizar"] is True
     assert [a["id"] for a in w.anticipos_por_legalizar()] == [s["id"]]
 
@@ -120,8 +120,9 @@ def test_legalizar_con_factura_igual_deja_el_anticipo_en_cero(mods):
     por = _por_cuenta(cc.obtener_movimiento(r["legalizacion_movimiento_id"]))
     assert por["1435"] == (4_200_000, 0)
     assert por["240810"] == (798_000, 0)
-    assert por["133005"] == (0, 4_998_000)
-    assert "236540" not in por and "2205" not in por
+    assert por["236540"] == (0, 105_000)                  # la retención nace con la factura
+    assert por["133005"] == (0, 4_893_000)
+    assert "2205" not in por
     assert w.saldos_cruce(t["id"]) == {"anticipo": 0, "por_pagar": 0}
     assert cc.balance_comprobacion()["cuadra"]
     assert r["falta_legalizar"] is False
@@ -135,11 +136,10 @@ def test_facturo_menos_queda_a_favor_y_se_devuelve_retencion(mods):
     sid = _anticipo_aprobado(cc, w, t, m)
     prev = w.previsualizar_legalizacion(sid, _factura(80))
     assert prev["facturado"]["retencion"] == 84_000
-    assert prev["ajuste_retencion"] == -21_000
     r = w.legalizar_anticipo(sid, _factura(80))
     por = _por_cuenta(cc.obtener_movimiento(r["legalizacion_movimiento_id"]))
     assert por["1435"] == (3_360_000, 0)
-    assert por["236540"] == (21_000, 0)                   # se reversa la retención de más
+    assert por["236540"] == (0, 84_000)                   # sobre la base facturada
     # Plata girada de más: 4.893.000 − (3.998.400 − 84.000) = 978.600
     assert w.saldos_cruce(t["id"])["anticipo"] == 978_600
     assert r["legalizacion"]["queda_a_favor"] == 978_600
@@ -150,7 +150,7 @@ def test_facturo_mas_queda_por_pagar(mods):
     sid = _anticipo_aprobado(cc, w, t, m)
     r = w.legalizar_anticipo(sid, _factura(110))
     por = _por_cuenta(cc.obtener_movimiento(r["legalizacion_movimiento_id"]))
-    assert por["236540"] == (0, 10_500)
+    assert por["236540"] == (0, 115_500)
     # Se le debe: (5.497.800 − 115.500) − 4.893.000 = 489.300
     assert por["2205"] == (0, 489_300)
     assert w.saldos_cruce(t["id"]) == {"anticipo": 0, "por_pagar": 489_300}

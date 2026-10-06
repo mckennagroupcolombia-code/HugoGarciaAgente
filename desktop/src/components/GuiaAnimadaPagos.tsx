@@ -1,165 +1,129 @@
 import { useEffect, useMemo, useState } from "react";
 
 /**
- * Guía animada de Solicitudes de pago (6-oct-2026).
+ * Guía animada de Solicitudes de pago — wizard del flujo del dinero (6-oct-2026).
  *
- * Una sección por naturaleza de operación, cada una con un caso REAL del Libro
- * Mayor (número de asiento y solicitud). Los asientos entran uno a uno y las
- * cuentas T se van llenando: así se ve dónde cae cada débito, cuál es su
- * contrapartida y cómo queda el saldo —a favor o en contra— al final.
+ * Primera versión: asientos sueltos que se reproducían solos. No se entendía: un
+ * asiento aislado no muestra que la plata se MUEVE —sale del banco, se vuelve un
+ * derecho con el proveedor, se transforma en mercancía, vuelve como venta—.
  *
- * Los números son los del libro al 6-oct-2026. El paso «facturó 80 de 100» de la
- * legalización es ilustrativo (la factura de ese pedido aún no llega).
+ * Ahora es una sola historia sobre un mapa: cada paso es una moneda que viaja de
+ * un lugar a otro, a mano (Siguiente / Atrás), y debajo cómo se escribe en el
+ * libro. La regla que se aprende: débito = a donde LLEGA el valor, crédito = de
+ * donde SALE. Las cifras son de casos reales del Libro Mayor (#62 Factores,
+ * CIV2336 de Comercializadora, ventas #9098 y #9029); lo «ilustrativo» se marca.
  */
 
-type Nat = "D" | "C";
-type Linea = { cuenta: string; d?: number; c?: number; nota?: string };
-type Paso = { titulo: string; ref: string; explica: string; lineas: Linea[] };
-type Seccion = {
-  id: string; icono: string; titulo: string; soluciona: string; cuentasT: string;
-  pasos: Paso[]; cierre: string;
+type Zona = "fuente" | "tenemos" | "gasto";
+type Balde = { cod: string; nombre: string; ayuda: string; zona: Zona; x: number; y: number };
+type Mov = { de: string; a: string; v: number };
+type Paso = {
+  cap: number; titulo: string; texto: string; porque?: string; ref?: string; movs: Mov[]; foco?: string[];
 };
 
-const CUENTAS: Record<string, { nombre: string; nat: Nat; lectura: [string, string] }> = {
-  "1110": { nombre: "Bancos (ahorros 42800000974)", nat: "D", lectura: ["plata en el banco", "sobregiro"] },
-  "133005": { nombre: "Anticipos a proveedores", nat: "D", lectura: ["el proveedor NOS DEBE (a favor)", "le debemos"] },
-  "130505": { nombre: "Clientes / Mercado Pago por cobrar", nat: "D", lectura: ["NOS DEBEN", "les debemos"] },
-  "1435": { nombre: "Inventario de mercancía", nat: "D", lectura: ["mercancía en bodega", "—"] },
-  "240810": { nombre: "IVA descontable", nat: "D", lectura: ["crédito contra la DIAN", "—"] },
-  "529505": { nombre: "Comisiones (gasto)", nat: "D", lectura: ["gasto del período", "—"] },
-  "236540": { nombre: "Retención en la fuente compras", nat: "C", lectura: ["le debemos a la DIAN", "a favor ante la DIAN"] },
-  "2205": { nombre: "Proveedores nacionales", nat: "C", lectura: ["LE DEBEMOS al proveedor", "nos debe"] },
-  "4135": { nombre: "Ingresos por ventas", nat: "C", lectura: ["ingreso del período", "—"] },
-};
+const BALDES: Balde[] = [
+  { cod: "4135", nombre: "Ventas", ayuda: "lo que hemos ganado vendiendo", zona: "fuente", x: 12, y: 17 },
+  { cod: "236540", nombre: "Le debemos a la DIAN", ayuda: "retenciones que guardamos para pagarle", zona: "fuente", x: 12, y: 50 },
+  { cod: "2205", nombre: "Le debemos al proveedor", ayuda: "facturas sin terminar de pagar", zona: "fuente", x: 12, y: 83 },
+  { cod: "1110", nombre: "Banco", ayuda: "plata en la cuenta de ahorros", zona: "tenemos", x: 38, y: 28 },
+  { cod: "130505", nombre: "Mercado Pago nos debe", ayuda: "ventas MeLi aún no retiradas", zona: "tenemos", x: 38, y: 74 },
+  { cod: "133005", nombre: "El proveedor nos debe", ayuda: "anticipo: pagamos y falta la factura", zona: "tenemos", x: 63, y: 15 },
+  { cod: "1435", nombre: "Mercancía en bodega", ayuda: "inventario facturado", zona: "tenemos", x: 63, y: 48 },
+  { cod: "240810", nombre: "IVA a favor", ayuda: "la DIAN nos lo descuenta", zona: "tenemos", x: 63, y: 82 },
+  { cod: "529505", nombre: "Gastos", ayuda: "comisiones: valor que se consume", zona: "gasto", x: 88, y: 48 },
+];
+const B = Object.fromEntries(BALDES.map((b) => [b.cod, b]));
+const INICIAL: Record<string, number> = { "1110": 10_000_000 };
 
-const SECCIONES: Seccion[] = [
+const CAPITULOS = [
+  "Cómo leer el mapa", "Anticipo al proveedor", "Llega la factura", "Compra con factura",
+  "Ventas: entra la plata", "Cartera: nos deben / les debemos", "Resumen",
+];
+
+const PASOS: Paso[] = [
   {
-    id: "anticipo", icono: "💸", titulo: "1 · Anticipo: pagar antes de la factura",
-    soluciona:
-      "Factores y Comercializadora cobran por adelantado contra una cotización, y después facturan otra cosa. " +
-      "Si el giro se registra como compra (1435 + IVA), el libro da por recibida mercancía que nadie ha facturado " +
-      "y la factura después no tiene contra qué cruzarse. Como anticipo, el giro queda como plata a favor hasta que llegue la factura.",
-    cuentasT:
-      "133005 sube al débito: el proveedor nos debe la mercancía. La contrapartida es Bancos (sale la plata) y la " +
-      "retención (se practica al girar, en el pago o abono en cuenta, lo que ocurra primero). Ni 1435 ni 240810 se tocan.",
-    pasos: [{
-      titulo: "Giro a Factores contra la cotización", ref: "Solicitud #62 · 1-oct · extracto −$4.437.081 cód 8162",
-      explica: "Cotización $4.998.000 (WPC 80, base $4.200.000 + IVA). Se retiene 2,5 % y se cruza un anticipo viejo de $455.919: sale del banco exactamente lo del extracto.",
-      lineas: [
-        { cuenta: "133005", d: 4_998_000, nota: "anticipo por la cotización" },
-        { cuenta: "236540", c: 105_000, nota: "retención 2,5 % al girar" },
-        { cuenta: "133005", c: 455_919, nota: "se cruza el anticipo viejo a favor" },
-        { cuenta: "1110", c: 4_437_081, nota: "lo que muestra el extracto" },
-      ],
-    }],
-    cierre: "Queda en 133005 un saldo a favor de $4.542.081 con Factores: plata entregada sin factura. Aparece en «anticipo · falta la factura».",
+    cap: 0, titulo: "El dinero no desaparece: cambia de lugar", movs: [],
+    texto: "Cada caja es una cuenta del Libro Mayor: un lugar donde puede estar el valor de la empresa. En el centro está lo que TENEMOS (banco, mercancía, " +
+      "derechos de cobro). A la izquierda, de dónde SALE el valor que tenemos: lo que ganamos vendiendo y lo que todavía debemos. " +
+      "A la derecha, en qué se CONSUME (gastos). Empezamos con $10.000.000 de ejemplo en el banco.",
+    porque: "La regla del libro es una sola: el DÉBITO es la caja a donde llega el valor y el CRÉDITO la caja de donde sale. " +
+      "Por eso todo asiento cuadra: lo que sale de un lado llega a otro.",
   },
   {
-    id: "legaliza", icono: "🧾", titulo: "2 · Llega la factura: legalizar el anticipo",
-    soluciona:
-      "Causa la compra con lo FACTURADO, no con lo cotizado. Si facturan menos, la diferencia queda a favor en 133005 y se cruza en el " +
-      "próximo pago (o se pide la devolución). Si facturan más, queda por pagar en 2205. La retención se ajusta a la base facturada.",
-    cuentasT:
-      "Entran al débito el inventario (1435) y el IVA (240810) de la factura. La contrapartida es 133005, que baja: el anticipo se " +
-      "consume. Si la base bajó, la retención de más se reversa al débito de 236540.",
-    pasos: [
-      {
-        titulo: "El anticipo de #62", ref: "Asiento del giro (paso 1)",
-        explica: "Punto de partida: $4.998.000 a favor en 133005 por esta solicitud.",
-        lineas: [{ cuenta: "133005", d: 4_998_000, nota: "anticipo" }, { cuenta: "236540", c: 105_000 }, { cuenta: "1110", c: 4_893_000, nota: "giro (sin el cruce viejo)" }],
-      },
-      {
-        titulo: "Facturan 80 kg de los 100 pagados (ilustrativo)", ref: "Legalizar → factura FEE…",
-        explica: "Base facturada $3.360.000 + IVA $638.400. La retención correcta es $84.000: se reversan $21.000. Se consumen $4.019.400 del anticipo.",
-        lineas: [
-          { cuenta: "1435", d: 3_360_000, nota: "80 kg facturados" },
-          { cuenta: "240810", d: 638_400, nota: "IVA de la factura" },
-          { cuenta: "236540", d: 21_000, nota: "retención de más, se reversa" },
-          { cuenta: "133005", c: 4_019_400, nota: "se consume el anticipo" },
-        ],
-      },
-    ],
-    cierre: "Quedan $978.600 a favor en 133005: exactamente lo girado de más (4.893.000 − 3.998.400 + 84.000). El próximo pago a Factores lo ofrece para cruzar.",
+    cap: 1, titulo: "Le giramos a Factores contra la cotización", ref: "Solicitud #62 · 1-oct",
+    movs: [{ de: "1110", a: "133005", v: 4_893_000 }], foco: ["1110", "133005"],
+    texto: "La cotización es de $4.998.000 y Factores ya descontó la retención, así que pide $4.893.000. Sale esa plata del banco, pero todavía " +
+      "no hay mercancía ni factura. Lo que tenemos ahora es un DERECHO: Factores nos debe el pedido. Solo se registra lo que salió del banco.",
+    porque: "Aún no hay retención: nace con la factura, que es con lo que se cancela. Y si la plata fuera directo a «Mercancía», el libro " +
+      "diría que ya tenemos 100 kg de proteína que nadie ha facturado (el problema del asiento #7965).",
   },
   {
-    id: "compra", icono: "📦", titulo: "3 · Mercancía entregada con factura",
-    soluciona:
-      "Cuando la mercancía llega con su factura electrónica antes de pagar, no hay anticipo: el pago y la compra son el mismo acto. " +
-      "El asiento reproduce la factura renglón por renglón y separa el IVA descontable.",
-    cuentasT:
-      "1435 y 240810 al débito. Contrapartidas: retención (a la DIAN), Bancos (lo girado) y, si se giró menos de lo facturado, 2205 " +
-      "(lo que se le sigue debiendo al proveedor).",
-    pasos: [{
-      titulo: "Factura CIV2336 de Comercializadora Internacional", ref: "Solicitud #41 · asiento #5860 · 2-sep",
-      explica: "Bolsas 10×17 y 13×21: base $1.120.000 + IVA $212.800. Se giraron $1.300.000 redondos: faltaron $4.800.",
-      lineas: [
-        { cuenta: "1435", d: 20_000, nota: "BOLTRA10X17ZIP" },
-        { cuenta: "1435", d: 1_100_000, nota: "BOLTRA13X21ZIP" },
-        { cuenta: "240810", d: 212_800, nota: "IVA descontable" },
-        { cuenta: "236540", c: 28_000, nota: "retención 2,5 %" },
-        { cuenta: "2205", c: 4_800, nota: "queda por pagar" },
-        { cuenta: "1110", c: 1_300_000, nota: "extracto −$1.300.000" },
-      ],
-    }],
-    cierre: "El inventario sube con lo facturado y quedan $4.800 por pagar en 2205 con Comercializadora.",
+    cap: 2, titulo: "Llega la factura: el derecho se convierte en mercancía e IVA", ref: "Ilustrativo: facturan 80 kg de los 100 pagados",
+    movs: [{ de: "133005", a: "1435", v: 3_360_000 }, { de: "133005", a: "240810", v: 638_400 }], foco: ["133005", "1435", "240810"],
+    texto: "Con la factura en la mano, el derecho se TRANSFORMA: $3.360.000 en mercancía (80 kg × $42.000) y $638.400 de IVA que la DIAN nos " +
+      "descuenta. En total la factura vale $3.998.400 y se descuenta del anticipo.",
+    porque: "Se legaliza con lo que dice la factura, no con la cotización. El IVA no es costo: sin factura no se podía descontar, por eso no estaba en el anticipo.",
   },
   {
-    id: "ingreso", icono: "🏦", titulo: "4 · Plata que entra a la cuenta de ahorros",
-    soluciona:
-      "No toda plata que entra es ingreso. Una venta directa sí; un retiro de Mercado Pago al banco es un TRASLADO: la venta ya se " +
-      "reconoció cuando MeLi la cobró. Contarla otra vez al llegar al banco duplicaría los ingresos.",
-    cuentasT:
-      "Bancos al débito siempre. La contrapartida decide qué es: 4135 si es venta, 130505 si es plata que Mercado Pago ya nos debía.",
-    pasos: [
-      {
-        titulo: "Venta directa facturada en Alegra", ref: "Asiento #9029 · 5-oct",
-        explica: "El cliente consigna: la plata entra y nace el ingreso.",
-        lineas: [{ cuenta: "1110", d: 219_700, nota: "consignación" }, { cuenta: "4135", c: 219_700, nota: "venta" }],
-      },
-      {
-        titulo: "Venta en MeLi: el ingreso nace en Mercado Pago", ref: "Asiento #9098 · 6-oct",
-        explica: "La venta se reconoce cuando MeLi la cobra; la plata queda en Mercado Pago (130505), no en el banco.",
-        lineas: [{ cuenta: "130505", d: 52_020, nota: "por cobrar a Mercado Pago" }, { cuenta: "4135", c: 52_020, nota: "venta MeLi" }],
-      },
-      {
-        titulo: "MeLi descuenta su comisión", ref: "Asiento #9101 · 6-oct",
-        explica: "Es gasto y baja lo que Mercado Pago nos debe.",
-        lineas: [{ cuenta: "529505", d: 9_622, nota: "comisión" }, { cuenta: "130505", c: 9_622 }],
-      },
-      {
-        titulo: "Retiro de Mercado Pago al banco", ref: "Asiento #6131 · 29-sep · extracto PAGO INTERBANC MERCADOPAGO",
-        explica: "Traslado entre cuentas propias: Bancos sube y 130505 baja. No hay ingreso nuevo.",
-        lineas: [{ cuenta: "1110", d: 11_792_301, nota: "entra al banco" }, { cuenta: "130505", c: 11_792_301, nota: "baja lo que MP nos debía" }],
-      },
-    ],
-    cierre: "4135 solo se movió por las ventas; el retiro de $11,8M no infló los ingresos.",
+    cap: 2, titulo: "La retención nace con la factura", ref: "2,5 % sobre la base facturada de $3.360.000",
+    movs: [{ de: "236540", a: "133005", v: 84_000 }], foco: ["236540", "133005"],
+    texto: "De esa factura, $84.000 no son para Factores sino para la DIAN: es la retención, y ahora se la debemos a la DIAN. " +
+      "Esa parte de la factura no se cancela con el anticipo, así que esos $84.000 vuelven a la caja de lo que Factores nos debe.",
+    porque: "Cuando sale valor de una caja de la izquierda, esa deuda CRECE: aparece la deuda con la DIAN justo cuando hay factura que la sustente.",
   },
   {
-    id: "cartera", icono: "⚖️", titulo: "5 · Cartera: ¿nos deben o les debemos?",
-    soluciona:
-      "Con cada proveedor pueden convivir dos saldos: 133005 (le pagamos de más o por adelantado → NOS DEBE) y 2205 (le pagamos de menos " +
-      "→ LE DEBEMOS). El wizard los muestra al elegir el proveedor y deja cruzarlos en el siguiente giro para que ninguno se olvide.",
-    cuentasT:
-      "Saldo deudor de 133005 = a favor de McKenna. Saldo acreedor de 2205 = en contra. Cruzar es acreditar 133005 y debitar 2205 en el " +
-      "mismo asiento del pago: el giro baja o sube por la diferencia. Hoy, con Factores, 2205 tiene $17.526.868 por pagar.",
-    pasos: [
-      {
-        titulo: "Quedan $4.800 por pagar", ref: "Asiento #5860 · 2-sep (Comercializadora)",
-        explica: "Se giró menos de lo facturado.",
-        lineas: [{ cuenta: "1435", d: 1_332_800, nota: "compra + IVA (resumido)" }, { cuenta: "236540", c: 28_000 }, { cuenta: "2205", c: 4_800, nota: "LE DEBEMOS" }, { cuenta: "1110", c: 1_300_000 }],
-      },
-      {
-        titulo: "Quedan $18.415 a favor", ref: "Asiento #5861 · 24-sep",
-        explica: "Se giró la cotización completa ($876.554) sin descontar la retención: pagamos de más.",
-        lineas: [{ cuenta: "1435", d: 876_554, nota: "compra + IVA (resumido)" }, { cuenta: "236540", c: 18_415 }, { cuenta: "133005", d: 18_415, nota: "NOS DEBE" }, { cuenta: "1110", c: 876_554 }],
-      },
-      {
-        titulo: "Se cruzan los dos en el siguiente giro", ref: "Asiento #7964 · solicitud #65 · 2-oct",
-        explica: "El giro baja por el anticipo y sube por la deuda: los dos saldos quedan en cero.",
-        lineas: [{ cuenta: "1435", d: 539_070, nota: "compra + IVA (resumido)" }, { cuenta: "2205", d: 4_800, nota: "se paga la deuda" }, { cuenta: "133005", c: 18_415, nota: "se usa el anticipo" }, { cuenta: "1110", c: 525_455 }],
-      },
-    ],
-    cierre: "133005 y 2205 de Comercializadora en $0. Ojo: el extracto del 1-oct dice $425.455, no $525.455 — esa diferencia es la que se ve en Conciliación.",
+    cap: 2, titulo: "Resultado: Factores nos sigue debiendo $978.600", movs: [], foco: ["133005"],
+    texto: "Mira la caja del anticipo: pagamos más de lo que facturaron. Ese saldo no se pierde. Se descuenta en el próximo pedido " +
+      "o se le pide la devolución, y el wizard lo ofrece cada vez que se le va a pagar a Factores.",
+  },
+  {
+    cap: 3, titulo: "Llega mercancía con factura antes de pagarla", ref: "Factura CIV2336 · Comercializadora · asiento #5860",
+    movs: [{ de: "2205", a: "1435", v: 1_120_000 }, { de: "2205", a: "240810", v: 212_800 }], foco: ["2205", "1435", "240810"],
+    texto: "Esta vez la mercancía llegó primero, con su factura. Entra a bodega y su IVA queda a favor, y nace una deuda con el proveedor por $1.332.800.",
+    porque: "No hay anticipo: cuando hay factura, la compra se registra directo en la bodega.",
+  },
+  {
+    cap: 3, titulo: "Le pagamos: baja la deuda", ref: "Extracto −$1.300.000",
+    movs: [{ de: "1110", a: "2205", v: 1_300_000 }, { de: "236540", a: "2205", v: 28_000 }], foco: ["1110", "2205", "236540"],
+    texto: "Del banco salen $1.300.000 y $28.000 de retención pasan a deberse a la DIAN. La deuda con el proveedor baja, pero no a cero: " +
+      "se giró un número redondo y quedan $4.800 por pagar.",
+  },
+  {
+    cap: 4, titulo: "Vendemos en MeLi: el ingreso nace en Mercado Pago", ref: "Venta MeLi · asiento #9098",
+    movs: [{ de: "4135", a: "130505", v: 52_020 }], foco: ["4135", "130505"],
+    texto: "Al vender ganamos $52.020, pero la plata no llega al banco: queda en Mercado Pago. Lo que tenemos es un derecho de cobro.",
+    porque: "La venta se reconoce aquí, una sola vez.",
+  },
+  {
+    cap: 4, titulo: "MeLi cobra su comisión", ref: "Asiento #9101",
+    movs: [{ de: "130505", a: "529505", v: 9_622 }], foco: ["130505", "529505"],
+    texto: "Una parte de lo que Mercado Pago nos debía se consume en comisión: es un gasto.",
+  },
+  {
+    cap: 4, titulo: "Retiramos de Mercado Pago al banco", ref: "Ilustrativo con esta venta (el retiro real del 29-sep fue de $11.792.301)",
+    movs: [{ de: "130505", a: "1110", v: 42_398 }], foco: ["130505", "1110"],
+    texto: "Entra plata al banco, pero NO es un ingreso nuevo: es la misma venta que ya estaba en Mercado Pago y ahora cambia de lugar. Fíjate en que «Ventas» no se movió.",
+    porque: "Si se contara como ingreso al llegar al banco, la venta quedaría registrada dos veces.",
+  },
+  {
+    cap: 4, titulo: "Venta directa: el cliente consigna", ref: "Venta Alegra · asiento #9029",
+    movs: [{ de: "4135", a: "1110", v: 219_700 }], foco: ["4135", "1110"],
+    texto: "Aquí sí entra plata al banco como ingreso, porque la venta y el pago ocurren juntos.",
+  },
+  {
+    cap: 5, titulo: "¿Quién le debe a quién?", movs: [], foco: ["133005", "2205"],
+    texto: "Arriba, «El proveedor nos debe» tiene saldo: plata a NUESTRO favor. Abajo a la izquierda, «Le debemos al proveedor» tiene " +
+      "$4.800: saldo EN CONTRA. Las dos cajas viven por separado, y el wizard las muestra al elegir el proveedor para que ninguna se olvide.",
+  },
+  {
+    cap: 5, titulo: "Se cruzan sin mover el banco", ref: "Así quedó en el asiento #7964 con Comercializadora",
+    movs: [{ de: "133005", a: "2205", v: 4_800 }], foco: ["133005", "2205"],
+    texto: "Si el mismo proveedor nos debe y le debemos, en el siguiente pago lo uno paga lo otro. La deuda queda en cero y el giro del banco baja.",
+  },
+  {
+    cap: 6, titulo: "Todo cuadra", movs: [],
+    texto: "Lo que TENEMOS (centro) = lo que había al empezar + lo que ganamos + lo que debemos − lo que gastamos. Cada moneda salió de una caja y " +
+      "llegó a otra; eso es la partida doble. En Solicitudes de pago: con cotización = anticipo; cuando llega la factura = «Legalizar»; y una diferencia que no cuadra se marca «por arreglar».",
   },
 ];
 
@@ -167,33 +131,60 @@ function cop(n: number): string {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
 }
 
-export default function GuiaAnimadaPagos({ onCerrar }: { onCerrar: () => void }) {
-  const [sec, setSec] = useState(0);
-  const [visibles, setVisibles] = useState(0);
-  const [auto, setAuto] = useState(true);
-  const s = SECCIONES[sec];
-  // Todas las líneas de la sección en orden, con el paso al que pertenecen.
-  const plano = useMemo(
-    () => s.pasos.flatMap((p, pi) => p.lineas.map((l, li) => ({ ...l, pi, li }))),
-    [s],
-  );
+/** Cómo cambia cada caja con un movimiento: las del centro y gastos crecen al recibir; las fuentes crecen al entregar. */
+function aplicar(saldos: Record<string, number>, movs: Mov[]): Record<string, number> {
+  const s = { ...saldos };
+  for (const m of movs) {
+    const signo = (cod: string, llega: boolean) => (B[cod].zona === "fuente" ? (llega ? -1 : 1) : (llega ? 1 : -1));
+    s[m.de] = (s[m.de] ?? 0) + signo(m.de, false) * m.v;
+    s[m.a] = (s[m.a] ?? 0) + signo(m.a, true) * m.v;
+  }
+  return s;
+}
 
-  useEffect(() => { setVisibles(0); setAuto(true); }, [sec]);
+const COLOR: Record<Zona, string> = {
+  fuente: "border-amber-500/60 bg-amber-500/10",
+  tenemos: "border-sky-500/60 bg-sky-500/10",
+  gasto: "border-rose-500/60 bg-rose-500/10",
+};
+
+export default function GuiaAnimadaPagos({ onCerrar }: { onCerrar: () => void }) {
+  const [i, setI] = useState(0);
+  const [fase, setFase] = useState<"quieto" | "viajando" | "llego">("llego");
+  const paso = PASOS[i];
+
+  // Saldos ANTES de este paso y DESPUÉS; mientras la moneda viaja se muestran los de antes.
+  const antes = useMemo(() => PASOS.slice(0, i).reduce((s, p) => aplicar(s, p.movs), { ...INICIAL }), [i]);
+  const despues = useMemo(() => aplicar(antes, paso.movs), [antes, paso]);
+  const saldos = fase === "llego" ? despues : antes;
+
+  function ir(n: number) {
+    if (n < 0 || n >= PASOS.length) return;
+    if (n < i) { setI(n); setFase("llego"); return; }   // hacia atrás: sin animación
+    setI(n);
+    setFase(PASOS[n].movs.length ? "quieto" : "llego");
+  }
   useEffect(() => {
-    if (!auto || visibles >= plano.length) return;
-    const t = window.setTimeout(() => setVisibles((v) => v + 1), visibles === 0 ? 500 : 1100);
-    return () => window.clearTimeout(t);
-  }, [auto, visibles, plano.length]);
+    if (fase !== "quieto") return;
+    const a = window.setTimeout(() => setFase("viajando"), 350);
+    return () => window.clearTimeout(a);
+  }, [fase, i]);
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onCerrar(); };
+    if (fase !== "viajando") return;
+    const a = window.setTimeout(() => setFase("llego"), 2200);
+    return () => window.clearTimeout(a);
+  }, [fase, i]);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCerrar();
+      if (e.key === "ArrowRight") ir(i + 1);
+      if (e.key === "ArrowLeft") ir(i - 1);
+    };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
-  }, [onCerrar]);
+  });
 
-  const mostradas = plano.slice(0, visibles);
-  const pasoActual = mostradas.length ? mostradas[mostradas.length - 1].pi : 0;
-  const ultima = mostradas[mostradas.length - 1];
-  const cuentas = Array.from(new Set(plano.map((l) => l.cuenta)));
+  const foco = new Set(paso.foco ?? []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-2 sm:p-6" onClick={onCerrar}>
@@ -201,105 +192,108 @@ export default function GuiaAnimadaPagos({ onCerrar }: { onCerrar: () => void })
            onClick={(e) => e.stopPropagation()} style={{ animation: "mck-slide-up .35s ease-out both" }}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-lg font-bold text-ink">Guía animada · cómo se registra cada operación</h3>
-            <p className="text-sm text-muted">Casos reales del Libro Mayor. Las cuentas T se llenan asiento por asiento.</p>
+            <h3 className="text-lg font-bold text-ink">Guía: cómo se mueve el dinero</h3>
+            <p className="text-sm text-muted">Avanza a tu ritmo con «Siguiente». Cada moneda es un movimiento real del Libro Mayor.</p>
           </div>
           <button type="button" onClick={onCerrar} className="rounded-lg border border-border px-2 py-1 text-sm font-bold text-muted hover:text-ink">Cerrar</button>
         </div>
 
+        {/* Capítulos */}
         <div className="mt-3 flex flex-wrap gap-1">
-          {SECCIONES.map((x, i) => (
-            <button key={x.id} type="button" onClick={() => setSec(i)}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-bold ${i === sec ? "bg-accent text-white" : "bg-surface text-muted hover:text-ink"}`}>
-              {x.icono} {x.titulo.replace(/^\d · /, "")}
-            </button>
-          ))}
+          {CAPITULOS.map((c, n) => {
+            const primero = PASOS.findIndex((p) => p.cap === n);
+            return (
+              <button key={c} type="button" onClick={() => ir(primero)}
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                        paso.cap === n ? "bg-accent text-white" : paso.cap > n ? "bg-emerald-500/15 text-emerald-600" : "bg-surface text-muted"}`}>
+                {paso.cap > n ? "✓ " : ""}{c}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface">
+          <div className="h-full bg-accent transition-all duration-500" style={{ width: `${((i + 1) / PASOS.length) * 100}%` }} />
         </div>
 
-        <div key={s.id} className="mt-3 grid gap-3 lg:grid-cols-[1fr_1.4fr]" style={{ animation: "mck-slide-in-right .35s ease-out both" }}>
-          <div className="space-y-2 text-sm">
-            <p className="text-base font-bold text-ink">{s.icono} {s.titulo}</p>
-            <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-800 dark:text-emerald-300">
-              <b>Qué soluciona.</b> {s.soluciona}
-            </div>
-            <div className="rounded-lg bg-sky-500/10 p-2 text-sky-800 dark:text-sky-300">
-              <b>Cuentas T y contrapartidas.</b> {s.cuentasT}
-            </div>
-            <ol className="space-y-1.5">
-              {s.pasos.map((p, i) => (
-                <li key={i} className={`rounded-lg border p-2 transition-all duration-300 ${
-                  visibles > 0 && i === pasoActual ? "border-accent bg-accent/5" : i < pasoActual ? "border-border opacity-70" : "border-border opacity-40"}`}>
-                  <p className="font-bold text-ink">{p.titulo}</p>
-                  <p className="text-xs text-muted">{p.ref}</p>
-                  <p className="mt-0.5 text-xs text-ink">{p.explica}</p>
-                </li>
-              ))}
-            </ol>
-            {visibles >= plano.length && (
-              <p className="rounded-lg border-2 border-accent/40 p-2 font-semibold text-ink" style={{ animation: "mck-slide-up .4s ease-out both" }}>
-                ✓ {s.cierre}
-              </p>
-            )}
-          </div>
+        {/* Mapa del dinero */}
+        <div className="relative mt-3 h-[420px] overflow-hidden rounded-xl border border-border bg-surface sm:h-[380px]">
+          {(["fuente", "tenemos", "gasto"] as Zona[]).map((z) => (
+            <p key={z} className="absolute top-1 text-[10px] font-bold uppercase tracking-wide text-muted"
+               style={{ left: z === "fuente" ? "2%" : z === "tenemos" ? "30%" : "78%" }}>
+              {z === "fuente" ? "De dónde sale el valor" : z === "tenemos" ? "Lo que tenemos" : "En qué se consume"}
+            </p>
+          ))}
+          <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {fase !== "llego" && paso.movs.map((m, n) => (
+              <line key={n} x1={B[m.de].x} y1={B[m.de].y} x2={B[m.a].x} y2={B[m.a].y}
+                    stroke="currentColor" className="text-accent" strokeWidth="0.5" strokeDasharray="1.5 1.2" vectorEffect="non-scaling-stroke"
+                    style={{ strokeWidth: 2 }} />
+            ))}
+          </svg>
+          {BALDES.map((b) => {
+            const v = saldos[b.cod] ?? 0;
+            const activo = foco.has(b.cod);
+            return (
+              <div key={b.cod}
+                   className={`absolute w-[23%] max-w-[190px] -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 px-1.5 py-1 text-center transition-all duration-500 ${COLOR[b.zona]} ${
+                     activo ? "z-10 scale-105 shadow-lg ring-2 ring-accent" : foco.size ? "opacity-45" : ""}`}
+                   style={{ left: `${b.x}%`, top: `${b.y}%` }}>
+                <p className="text-[11px] font-bold leading-tight text-ink sm:text-xs">{b.nombre}</p>
+                <p className="hidden text-[10px] leading-tight text-muted sm:block">{b.ayuda}</p>
+                <p className={`mt-0.5 text-xs font-extrabold tabular-nums sm:text-sm ${Math.abs(v) < 1 ? "text-muted" : "text-ink"}`}>{cop(v)}</p>
+                <p className="text-[9px] text-muted">{b.cod}</p>
+              </div>
+            );
+          })}
+          {/* Monedas en viaje */}
+          {fase !== "llego" && paso.movs.map((m, n) => {
+            const pos = fase === "quieto" ? B[m.de] : B[m.a];
+            return (
+              <div key={`${i}-${n}`}
+                   className="absolute z-20 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border-2 border-amber-300 bg-amber-400 px-2 py-0.5 text-xs font-extrabold text-amber-950 shadow-lg"
+                   style={{ left: `${pos.x}%`, top: `${pos.y}%`, transition: "left 1.8s ease-in-out, top 1.8s ease-in-out" }}>
+                🪙 {cop(m.v)}
+              </div>
+            );
+          })}
+        </div>
 
-          <div>
-            {ultima && (
-              <p key={visibles} className="mb-2 rounded-lg bg-surface px-2 py-1 text-xs text-ink" style={{ animation: "mck-slide-in-left .3s ease-out both" }}>
-                <b>{ultima.d ? "Débito" : "Crédito"} {ultima.cuenta}</b> {CUENTAS[ultima.cuenta]?.nombre} por {cop(ultima.d || ultima.c || 0)}
-                {ultima.nota ? ` — ${ultima.nota}` : ""}
-              </p>
-            )}
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {cuentas.map((cod) => {
-                const info = CUENTAS[cod];
-                const ls = mostradas.filter((l) => l.cuenta === cod);
-                const d = ls.reduce((a, l) => a + (l.d || 0), 0);
-                const c = ls.reduce((a, l) => a + (l.c || 0), 0);
-                const saldo = info.nat === "D" ? d - c : c - d;
-                const activa = ultima?.cuenta === cod;
-                return (
-                  <div key={cod} className={`rounded-lg border-2 p-2 transition-colors duration-300 ${activa ? "border-accent" : "border-border"} ${ls.length ? "" : "opacity-40"}`}>
-                    <p className="text-xs font-bold text-ink">{cod} · {info.nombre}</p>
-                    <div className="mt-1 grid grid-cols-2 border-t-2 border-ink/60 text-xs tabular-nums">
-                      <div className="min-h-[2.5rem] border-r-2 border-ink/60 pr-1 text-right">
-                        <span className="block text-[10px] text-muted">Débito</span>
-                        {ls.filter((l) => l.d).map((l) => (
-                          <span key={`${l.pi}-${l.li}`} className="block text-ink" style={{ animation: "mck-slide-up .4s ease-out both" }}>{cop(l.d!)}</span>
-                        ))}
-                      </div>
-                      <div className="pl-1">
-                        <span className="block text-[10px] text-muted">Crédito</span>
-                        {ls.filter((l) => l.c).map((l) => (
-                          <span key={`${l.pi}-${l.li}`} className="block text-ink" style={{ animation: "mck-slide-up .4s ease-out both" }}>{cop(l.c!)}</span>
-                        ))}
-                      </div>
-                    </div>
-                    {ls.length > 0 && (
-                      <p className={`mt-1 text-[11px] font-bold ${Math.abs(saldo) < 1 ? "text-muted" : saldo > 0 ? "text-emerald-600" : "text-amber-600"}`}>
-                        Saldo {cop(Math.abs(saldo))}{Math.abs(saldo) < 1 ? " — en cero" : ` — ${saldo > 0 ? info.lectura[0] : info.lectura[1]}`}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <button type="button" onClick={() => { setAuto(false); setVisibles((v) => Math.max(0, v - 1)); }}
-                      className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:text-ink">◀ Atrás</button>
-              <button type="button" onClick={() => setAuto((a) => !a)}
-                      className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:text-ink">{auto ? "Pausa" : "Reproducir"}</button>
-              <button type="button" onClick={() => { setAuto(false); setVisibles((v) => Math.min(plano.length, v + 1)); }}
-                      className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:text-ink">Siguiente ▶</button>
-              <button type="button" onClick={() => { setVisibles(0); setAuto(true); }}
-                      className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:text-ink">Repetir</button>
-              <span className="ml-auto text-xs text-muted">{visibles}/{plano.length} movimientos</span>
-              {visibles >= plano.length && sec < SECCIONES.length - 1 && (
-                <button type="button" onClick={() => setSec(sec + 1)} className="rounded-lg bg-accent px-2.5 py-1 text-xs font-bold text-white">
-                  Siguiente operación →
-                </button>
-              )}
-            </div>
+        {/* Explicación del paso */}
+        <div key={i} className="mt-3 grid gap-3 md:grid-cols-[1.5fr_1fr]" style={{ animation: "mck-slide-in-right .3s ease-out both" }}>
+          <div className="space-y-2 text-sm">
+            <p className="text-base font-bold text-ink">{paso.titulo}</p>
+            {paso.ref && <p className="text-xs text-muted">{paso.ref}</p>}
+            <p className="text-ink">{paso.texto}</p>
+            {paso.porque && <p className="rounded-lg bg-emerald-500/10 p-2 text-emerald-800 dark:text-emerald-300"><b>Por qué importa.</b> {paso.porque}</p>}
           </div>
+          {paso.movs.length > 0 && (
+            <div className="rounded-lg border border-border bg-surface p-2 text-xs">
+              <p className="mb-1 font-bold text-ink">Así se escribe en el libro</p>
+              {paso.movs.map((m, n) => (
+                <div key={n} className="mb-1.5">
+                  <p className="text-ink"><b className="text-sky-700 dark:text-sky-300">Débito</b> {m.a} {B[m.a].nombre} <span className="tabular-nums">{cop(m.v)}</span></p>
+                  <p className="text-ink"><b className="text-amber-700 dark:text-amber-300">Crédito</b> {m.de} {B[m.de].nombre} <span className="tabular-nums">{cop(m.v)}</span></p>
+                </div>
+              ))}
+              <p className="mt-1 text-muted">Débito = a donde llega · Crédito = de donde sale.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <button type="button" onClick={() => ir(i - 1)} disabled={i === 0}
+                  className="rounded-lg border border-border px-3 py-1.5 text-sm font-bold text-muted hover:text-ink disabled:opacity-30">◀ Atrás</button>
+          {paso.movs.length > 0 && fase === "llego" && (
+            <button type="button" onClick={() => setFase("quieto")}
+                    className="rounded-lg border border-border px-3 py-1.5 text-sm font-bold text-muted hover:text-ink">↻ Ver otra vez</button>
+          )}
+          <span className="ml-auto text-xs text-muted">Paso {i + 1} de {PASOS.length}</span>
+          {i < PASOS.length - 1 ? (
+            <button type="button" onClick={() => ir(i + 1)} disabled={fase === "viajando"}
+                    className="rounded-lg bg-accent px-4 py-1.5 text-sm font-bold text-white disabled:opacity-50">Siguiente ▶</button>
+          ) : (
+            <button type="button" onClick={onCerrar} className="rounded-lg bg-accent px-4 py-1.5 text-sm font-bold text-white">Terminar ✓</button>
+          )}
         </div>
       </div>
     </div>

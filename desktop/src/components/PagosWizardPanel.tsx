@@ -98,7 +98,7 @@ type Solicitud = {
   /** Anticipo contra cotización y su legalización con la factura (6-oct-2026). */
   es_anticipo?: number; falta_legalizar?: boolean; legalizacion_movimiento_id?: number | null;
   legalizacion?: { factura_numero?: string; queda_a_favor?: number; queda_por_pagar?: number;
-                   ajuste_retencion?: number; fecha?: string };
+                   retencion?: number; fecha?: string };
   /** Diferencia conocida pendiente de corregir en el asiento (6-oct-2026). */
   por_arreglar?: string; por_arreglar_at?: string; arreglado_at?: string; arreglo_nota?: string;
 };
@@ -2887,9 +2887,9 @@ function PorArreglar({
 
 type Legalizacion = {
   fecha: string; lineas: LineaAsiento[]; cuentas_t?: CuentaT[]; cuadra: boolean;
-  cotizado: { total: number; base: number; retencion: number; girado: number };
-  facturado: { total: number; base: number; iva: number; retencion: number };
-  ajuste_retencion: number; ajuste_ica: number; anticipo_disponible: number; anticipo_aplicado: number;
+  cotizado: { total: number; base: number; retencion: number; anticipo: number };
+  facturado: { total: number; base: number; iva: number; retencion: number; retencion_ica: number };
+  retencion: number; retencion_ica: number; anticipo_disponible: number; anticipo_aplicado: number;
   queda_a_favor: number; queda_por_pagar: number;
   diferencias: Array<{ sku: string; nombre: string;
     cotizado: { cantidad: number; precio: number; total: number } | null;
@@ -3013,15 +3013,15 @@ function LegalizarAnticipo({
       {p && (
         <>
           <div className="grid gap-2 sm:grid-cols-4">
-            <Mini label="Cotizado (anticipo)" valor={cop(p.cotizado.total)} />
+            <Mini label="Anticipo girado" valor={cop(p.cotizado.anticipo)} />
             <Mini label="Facturado" valor={cop(p.facturado.total)} />
             <Mini label="Queda a favor (133005)" valor={cop(p.queda_a_favor)} acento={p.queda_a_favor > 0} />
             <Mini label="Queda por pagar (2205)" valor={cop(p.queda_por_pagar)} acento={p.queda_por_pagar > 0} />
           </div>
-          {Math.abs(p.ajuste_retencion) > 0 && (
+          {(p.retencion > 0 || p.retencion_ica > 0) && (
             <p className="text-xs text-muted">
-              Retención: se practicaron {cop(p.cotizado.retencion)} al girar sobre la base cotizada; sobre la base
-              facturada son {cop(p.facturado.retencion)} → ajuste de {cop(p.ajuste_retencion)}.
+              La retención nace con la factura: {cop(p.retencion)} sobre la base facturada de {cop(p.facturado.base)}
+              {p.retencion_ica > 0 ? ` y ReteICA ${cop(p.retencion_ica)}` : ""}. Se cancela contra el anticipo.
             </p>
           )}
           {p.diferencias.length > 0 && (

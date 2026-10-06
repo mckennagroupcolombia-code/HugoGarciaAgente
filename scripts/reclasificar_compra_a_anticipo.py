@@ -48,10 +48,16 @@ def proponer(mov_id: int, banco_real: float | None) -> dict:
     compra = [l for l in mov["lineas"] if l["cuenta_codigo"] in ("1435", "240810") and l["debito"] > 0]
     if not compra:
         raise SystemExit(f"Asiento #{mov_id} no tiene inventario ni IVA que reclasificar")
-    total = round(sum(l["debito"] for l in compra), 2)
+    # La retención tampoco va en el anticipo: nace con la factura (6-oct-2026).
+    retenciones = [l for l in mov["lineas"] if (l["cuenta_codigo"].startswith("2365") or l["cuenta_codigo"] == "2368")
+                   and l["credito"] > 0]
+    total = round(sum(l["debito"] for l in compra) - sum(l["credito"] for l in retenciones), 2)
     lineas = [{"cuenta_id": pw._asegurar_cuenta_anticipos(), "cuenta_codigo": "133005", "debito": total,
                "credito": 0, "tercero_id": tid,
                "descripcion": f"Reclasifica a anticipo el giro del asiento #{mov_id} (sin factura todavía)"}]
+    lineas += [{"cuenta_id": l["cuenta_id"], "cuenta_codigo": l["cuenta_codigo"], "debito": l["credito"],
+                "credito": 0, "tercero_id": tid,
+                "descripcion": f"Reversa (nace con la factura): {l['descripcion']}"} for l in retenciones]
     lineas += [{"cuenta_id": l["cuenta_id"], "cuenta_codigo": l["cuenta_codigo"], "debito": 0,
                 "credito": l["debito"], "tercero_id": tid,
                 "descripcion": f"Reversa: {l['descripcion']}"} for l in compra]

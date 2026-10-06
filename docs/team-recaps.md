@@ -1,3 +1,12 @@
+### 2026-10-06 - Anticipos sin retención + guía del dinero como wizard
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección contable + mejora (Contabilidad → Solicitudes de pago). Sin LLM.
+- **Qué se implementó:**
+  - El anticipo se registra **solo Débito 133005 / Crédito 1110**, por lo que sale del banco. La retención (236540), el ReteICA (2368), el inventario (1435) y el IVA (240810) nacen al **legalizar** con la factura, sobre la base facturada, y se cancelan contra el anticipo.
+  - #7965 (Factores): el ajuste #9108 (con retención) se anuló junto con su espejo en Alegra y se rehízo como **#9109**: Débito 133005 $4.893.000 + reversa de la retención $105.000 / Crédito 1435 y 240810. Alegra lo publicó también con el número 180.
+  - La **Guía animada** ahora es un wizard que avanza a mano sobre un **mapa del dinero**. Cada caja es una cuenta del Libro Mayor, y una moneda viaja de la cuenta que se acredita a la que se debita: el banco se vuelve un derecho con el proveedor, el derecho se vuelve mercancía e IVA, la venta entra por Mercado Pago y pasa al banco, y los cruces de cartera. Cada paso muestra cómo se escribe en el libro.
+- **Archivos Modificados:** `app/services/pagos_wizard.py`, `desktop/src/components/{GuiaAnimadaPagos,PagosWizardPanel}.tsx`, `scripts/reclasificar_compra_a_anticipo.py`, `tests/test_pagos_anticipo.py`, `docs/agentic/modules/pagos-solicitudes.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-06 - Solicitudes de pago: anticipo contra cotización, legalización con la factura y guía animada
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + corrección contable (Contabilidad → Solicitudes de pago). Sin LLM.

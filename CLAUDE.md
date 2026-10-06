@@ -223,7 +223,7 @@ entra a la conciliación de la empresa. Declarador: `/api/socios/*`, cada socio 
 **cuenta PUC decide el impuesto**, el perfil tributario vive en el tercero; gross-up solo si está pactado; dos tokens
 (uno prepara en el banco, otro confirma con captura). Compras = copia fiel de la cotización (renglones activos en
 Alegra, IVA a 240810, total cuadrado al peso). **Anticipo** (6-oct): compra con cotización a un proveedor obligado a facturar → giro a
-133005 (retención al girar); la compra nace al **legalizar** con la factura (lo facturado; sobrante a favor en 133005, faltante a 2205). ⚠️ Un PUT a Alegra **reemplaza** (no es parcial). Registro de facturas
+133005 **sin retención**; inventario, IVA y retención nacen al **legalizar** con la factura (sobrante a favor en 133005, faltante a 2205). ⚠️ Un PUT a Alegra **reemplaza** (no es parcial). Registro de facturas
 de compra apagado (`FACTURAS_COMPRA_REGISTRO_ACTIVO`).
 
 **P · Agente de ventas v2** (`agente-ventas-v2.md`). `WA_AGENTE_V2` / `WEB_AGENTE_V2` = `off|sombra|activo`. **WhatsApp
