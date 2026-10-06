@@ -5209,3 +5209,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - El componente `canales_producto/` y `/api/canales-producto/*` siguen en el código (sin entrada en el menú).
 - **Verificado:** `npm run build` (tsc + vite) limpio.
 - **Archivos Modificados:** `desktop/src/lib/{navStructure,flujoApp,flujoTickets,hubNav,permisosCatalogo}.ts`, `desktop/src/stores/app.ts`, `desktop/src/components/plantillas-visuales/arbol/ArbolProductoPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-06 — Etiqueta 30 mL: «Modo de uso» también con pictograma GHS
+- Pedido del usuario: el Ácido Glicólico 30 mL (GHS07) no mostraba el modo de uso; un producto peligroso quedaba forzado a «Clasificación» y, con ese texto vacío, el bloque salía en blanco.
+- Ahora el menú del título (Clasificación / Modo de uso / Sugerencia) sale con o sin pictograma; sin título elegido sigue siendo «Clasificación».
+- Datos: `sinTimbreCentro: true` en las etiquetas D PANTENOL 50 mL y SHAROMIX 705 50mL (sin tocar sus plantillas).
+- **Verificado:** `npm run build` (tsc + vite) limpio.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/{etiqueta30mlTypes.ts,RightDocumentationPanel.tsx}`, `docs/team-recaps.md`

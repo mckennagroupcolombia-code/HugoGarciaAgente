@@ -139,8 +139,8 @@ export default function RightDocumentationPanel({
             defaultFontSize={14}
             as="p"
             className="e30-clasif-titulo"
-            // Sin pictograma GHS el bloque puede ser «Modo de uso» o «Sugerencia».
-            opciones={!peligroso && onChange ? TITULOS_CLASIFICACION_30ML : undefined}
+            // El bloque puede ser «Modo de uso» o «Sugerencia», con o sin pictograma GHS.
+            opciones={onChange ? TITULOS_CLASIFICACION_30ML : undefined}
             valorOpcion={tituloClasif}
             onElegirOpcion={(v) => onChange?.({ clasificacionTitulo: v })}
           />
@@ -150,10 +150,10 @@ export default function RightDocumentationPanel({
             editMode={editMode}
             styleKey="e30_clasificacionTexto"
             ejemplo={
-              peligroso
-                ? "Escribe la clasificación de peligro"
-                : esTituloDeUso
-                  ? "Escribe aquí el uso. En blanco, se imprime la clasificación SGA."
+              esTituloDeUso
+                ? "Escribe aquí el uso. En blanco, se imprime la clasificación SGA."
+                : peligroso
+                  ? "Escribe la clasificación de peligro"
                   : CLASIFICACION_NO_PELIGROSO
             }
             tam={TAM_30ML.clasificacion}

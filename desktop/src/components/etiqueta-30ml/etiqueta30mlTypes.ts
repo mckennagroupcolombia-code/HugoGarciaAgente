@@ -182,17 +182,16 @@ export function pictogramasGhs(data: ProductLabelData): string[] {
   });
 }
 
-/** Títulos elegibles del bloque de clasificación. Los dos últimos solo tienen
- *  sentido en un producto SIN pictograma GHS: ahí el círculo «¡NO GHS» ya dice
- *  que no es peligroso y el texto puede aprovecharse para el uso. */
+/** Títulos elegibles del bloque de clasificación. Desde el 2026-10-06 (pedido
+ *  del usuario, Ácido Glicólico con GHS07) también un producto peligroso puede
+ *  usar el bloque para el uso: el pictograma ya avisa del peligro. */
 export const TITULOS_CLASIFICACION_30ML = ["Clasificación", "Modo de uso", "Sugerencia"] as const;
 
-/** Título que se dibuja. Un producto peligroso lleva siempre «Clasificación».
+/** Título que se dibuja; sin uno elegido, «Clasificación».
  *  En vista —lo que se imprime— un título de uso sin texto propio vuelve a
  *  «Clasificación»: debajo saldría la frase del SGA, que no es un modo de uso. */
 export function tituloClasificacion30ml(data: ProductLabelData, editMode: boolean): string {
   const [porDefecto] = TITULOS_CLASIFICACION_30ML;
-  if (esPeligrosoGhs(data.ghs)) return porDefecto;
   const t = data.clasificacionTitulo || "";
   if (!(TITULOS_CLASIFICACION_30ML as readonly string[]).includes(t)) return porDefecto;
   if (!editMode && !textoPropioClasificacion(data).trim()) return porDefecto;
@@ -202,7 +201,7 @@ export function tituloClasificacion30ml(data: ProductLabelData, editMode: boolea
 /** Dato que muestra y edita el bloque: bajo «Modo de uso» es `modoUso`, que
  *  llega de la ficha técnica; si no, el texto de clasificación. */
 export function campoClasificacion30ml(data: ProductLabelData): "modoUso" | "clasificacionTexto" {
-  return !esPeligrosoGhs(data.ghs) && data.clasificacionTitulo === "Modo de uso" ? "modoUso" : "clasificacionTexto";
+  return data.clasificacionTitulo === "Modo de uso" ? "modoUso" : "clasificacionTexto";
 }
 
 /** Lo escrito para el bloque. Bajo «Modo de uso», lo que se hubiera escrito
