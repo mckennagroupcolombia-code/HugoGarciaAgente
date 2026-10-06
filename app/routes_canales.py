@@ -145,6 +145,7 @@ def register_canales_routes(app):
         if request.files:
             f = request.files.get("archivo")
             texto = request.form.get("texto") or ""
+            responde_raw = request.form.get("responde_a")
             try:
                 ref_raw = _json.loads(request.form.get("ref") or "null")
             except ValueError:
@@ -164,8 +165,14 @@ def register_canales_routes(app):
             cuerpo = request.get_json(silent=True) or {}
             texto = cuerpo.get("texto") or ""
             ref_raw = cuerpo.get("ref")
+            responde_raw = cuerpo.get("responde_a")
         try:
-            msg = CI.enviar_mensaje(canal_id, u, texto, adjunto=adjunto, ref=normalizar_ref(ref_raw))
+            responde_a = int(responde_raw) if responde_raw not in (None, "", "null") else None
+        except (TypeError, ValueError):
+            responde_a = None
+        try:
+            msg = CI.enviar_mensaje(canal_id, u, texto, adjunto=adjunto, ref=normalizar_ref(ref_raw),
+                                    responde_a=responde_a)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         except PermissionError as e:

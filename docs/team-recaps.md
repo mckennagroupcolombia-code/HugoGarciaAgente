@@ -1,3 +1,12 @@
+### 2026-10-06 - Grupos: responder a un mensaje (cita al estilo WhatsApp)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Mensajes → Grupos). Sin LLM.
+- **Qué se implementó:**
+  - Cada burbuja tiene **«↩ responder»** (en el celular también se desliza la burbuja a la derecha). Arriba de la caja aparece «Respondiendo a…» con ✕ para cancelar; vale para texto, adjuntos y notas de voz.
+  - La respuesta muestra la **cita** (autor + texto, o 📷/🎤/📎) dentro de la burbuja; al tocarla salta al mensaje original y lo resalta. Si el original se borró, la cita dice «Mensaje eliminado».
+  - Nueva columna `canal_mensajes.responde_a`; solo se responde a mensajes del mismo grupo. `listar_mensajes` y `enviar_mensaje` devuelven `cita`. En grupos con espejo a WhatsApp la respuesta sale con «respondiendo a X» y la línea citada con `>`.
+- **Archivos Modificados:** `app/services/canales_internos.py`, `app/routes_canales.py`, `desktop/src/hooks/useCanalesEquipo.ts`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `tests/test_canales_internos.py`, `docs/team-recaps.md`.
+
 ### 2026-10-06 - Costo vs. precio en el árbol, IVA según la factura de compra y publicaciones nuevas en el despliegue
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + corrección tributaria (Diseño de producto, Alegra, despliegue de ventas). Sin LLM en el cálculo.

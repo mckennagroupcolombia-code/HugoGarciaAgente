@@ -33,6 +33,18 @@ export type MensajeCanal = {
   wa_media_path: string | null;
   ref: Record<string, unknown> | null;
   creado_en: number;
+  /** Mensaje al que responde (del mismo grupo) y su resumen para la cita. */
+  responde_a?: number | null;
+  cita?: CitaMensaje | null;
+};
+
+export type CitaMensaje = {
+  id: number;
+  autor_nombre: string;
+  texto: string;
+  adjunto_nombre: string | null;
+  adjunto_mime: string | null;
+  eliminado: boolean;
 };
 
 export type ModuloCanal = {
@@ -94,16 +106,17 @@ export function useMensajesCanal(canalId: number | null) {
 export function useEnviarCanal(canalId: number | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ texto, archivo, ref }: { texto: string; archivo?: File | null; ref?: RefMensaje | null }) => {
+    mutationFn: async ({ texto, archivo, ref, respondeA }: { texto: string; archivo?: File | null; ref?: RefMensaje | null; respondeA?: number | null }) => {
       if (canalId == null) throw new Error("Sin canal");
       if (archivo) {
         const form = new FormData();
         form.append("texto", texto);
         form.append("archivo", archivo);
         if (ref) form.append("ref", JSON.stringify(ref));
+        if (respondeA) form.append("responde_a", String(respondeA));
         return api.upload<MensajeCanal>(`/api/canales/${canalId}/mensajes`, form, { timeoutMs: 120_000 });
       }
-      return api.post<MensajeCanal>(`/api/canales/${canalId}/mensajes`, { texto, ref: ref ?? null });
+      return api.post<MensajeCanal>(`/api/canales/${canalId}/mensajes`, { texto, ref: ref ?? null, responde_a: respondeA ?? null });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["canales-equipo-mensajes", canalId] });

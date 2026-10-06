@@ -117,6 +117,8 @@ def _conn() -> sqlite3.Connection:
                 tickets_db._safe_migrate(lambda: c.execute("ALTER TABLE canales_internos ADD COLUMN modulo TEXT"))
                 for col in ("tipo", "ref"):
                     tickets_db._safe_migrate(lambda col=col: c.execute(f"ALTER TABLE canal_solicitudes ADD COLUMN {col} TEXT"))
+                # Responder a un mensaje (6-oct): id del mensaje citado, del mismo canal.
+                tickets_db._safe_migrate(lambda: c.execute("ALTER TABLE canal_mensajes ADD COLUMN responde_a INTEGER"))
                 c.commit()
                 _listo[ruta] = True
     return c
@@ -322,7 +324,35 @@ def _fila_mensaje(r: sqlite3.Row) -> dict:
     d = dict(r)
     d["ref"] = json.loads(d["ref"]) if d.get("ref") else None
     d.pop("texto_wa", None)
+    d.setdefault("responde_a", None)
+    d["cita"] = None
     return d
+
+
+def _con_citas(c: sqlite3.Connection, mensajes: list[dict]) -> list[dict]:
+    """Agrega `cita` (autor, texto corto, adjunto) a los mensajes que responden a otro."""
+    ids = {int(m["responde_a"]) for m in mensajes if m.get("responde_a")}
+    if not ids:
+        return mensajes
+    filas = c.execute(
+        f"SELECT id, autor_nombre, texto, adjunto_nombre, adjunto_mime, eliminado FROM canal_mensajes "
+        f"WHERE id IN ({','.join('?' * len(ids))})", tuple(ids)
+    ).fetchall()
+    citas = {
+        int(f["id"]): {
+            "id": int(f["id"]),
+            "autor_nombre": f["autor_nombre"] or "",
+            "texto": "" if f["eliminado"] else (f["texto"] or "")[:200],
+            "adjunto_nombre": None if f["eliminado"] else f["adjunto_nombre"],
+            "adjunto_mime": None if f["eliminado"] else f["adjunto_mime"],
+            "eliminado": bool(f["eliminado"]),
+        }
+        for f in filas
+    }
+    for m in mensajes:
+        if m.get("responde_a"):
+            m["cita"] = citas.get(int(m["responde_a"]))
+    return mensajes
 
 
 def listar_mensajes(canal_id: int, usuario: dict, *, despues_de: int = 0, antes_de: int = 0, limite: int = 80) -> list[dict] | None:
@@ -343,7 +373,7 @@ def listar_mensajes(canal_id: int, usuario: dict, *, despues_de: int = 0, antes_
                 + " ORDER BY id DESC LIMIT ?",
                 (canal_id, antes_de, limite) if antes_de else (canal_id, limite),
             ).fetchall()[::-1]
-    return [_fila_mensaje(f) for f in filas]
+        return _con_citas(c, [_fila_mensaje(f) for f in filas])
 
 
 def enviar_mensaje(
@@ -355,6 +385,7 @@ def enviar_mensaje(
     tipo: str = "mensaje",
     ref: dict | None = None,
     reenviar_wa: bool = True,
+    responde_a: int | None = None,
 ) -> dict:
     """Mensaje del panel (o de sistema si `usuario` es None). Devuelve el mensaje guardado."""
     texto = (texto or "").strip()[:4000]
@@ -367,20 +398,32 @@ def enviar_mensaje(
         if usuario and not _puede_ver(c, canal, usuario):
             raise PermissionError("No eres miembro de este canal")
         autor = _nombre_usuario(usuario) if usuario else "Sistema"
+        citado = None
+        if responde_a:
+            citado = c.execute(
+                "SELECT id, autor_nombre, texto FROM canal_mensajes WHERE id=? AND canal_id=? AND eliminado=0",
+                (int(responde_a), canal_id),
+            ).fetchone()
+            if not citado:
+                raise ValueError("El mensaje al que respondes ya no está en este grupo")
         texto_wa = None
         if reenviar_wa and canal["wa_jid"] and canal["espejo_salida"] and texto:
             texto_wa = f"*{autor}* — panel:\n{texto}"
+            if citado:
+                cita_wa = (citado["texto"] or "(adjunto)").replace("\n", " ")[:80]
+                texto_wa = f"*{autor}* — panel, respondiendo a {citado['autor_nombre']}:\n> {cita_wa}\n{texto}"
         cur = c.execute(
             "INSERT INTO canal_mensajes (canal_id, usuario_id, autor_nombre, origen, tipo, texto, texto_wa, "
-            "adjunto_archivo, adjunto_nombre, adjunto_mime, ref, creado_en) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            "adjunto_archivo, adjunto_nombre, adjunto_mime, ref, creado_en, responde_a) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (canal_id, (usuario or {}).get("id"), autor, "panel", tipo, texto, texto_wa,
              (adjunto or {}).get("archivo"), (adjunto or {}).get("nombre"), (adjunto or {}).get("mime"),
-             json.dumps(ref, ensure_ascii=False) if ref else None, time.time()),
+             json.dumps(ref, ensure_ascii=False) if ref else None, time.time(),
+             int(citado["id"]) if citado else None),
         )
         mid = int(cur.lastrowid)
         if usuario:
             _marcar_leido(c, canal_id, int(usuario["id"]), mid)
-        fila = c.execute("SELECT * FROM canal_mensajes WHERE id=?", (mid,)).fetchone()
+        fila = _con_citas(c, [_fila_mensaje(c.execute("SELECT * FROM canal_mensajes WHERE id=?", (mid,)).fetchone())])[0]
         jid = canal["wa_jid"]
     if usuario:
         try:
@@ -394,7 +437,7 @@ def enviar_mensaje(
         _reenviar_a_wa(jid, texto_wa)
     es_voz = str((adjunto or {}).get("mime") or "").startswith("audio/")
     _avisar(canal_id, (usuario or {}).get("id"), autor, texto or ("🎤 Nota de voz" if es_voz else ""), bool(adjunto))
-    return _fila_mensaje(fila)
+    return fila
 
 
 def _avisar(canal_id: int, autor_id: int | None, autor: str, texto: str, adjunto: bool) -> None:

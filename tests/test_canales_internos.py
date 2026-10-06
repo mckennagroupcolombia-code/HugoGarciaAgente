@@ -150,3 +150,30 @@ def test_notificaciones_y_preferencia(entorno, monkeypatch):
     assert NP.marcar_leidas(50) == 2 and NP.contar_no_leidas(50) == 0
     with pytest.raises(ValueError):
         NP.fijar_preferencia(50, "correo")
+
+
+def test_responder_a_un_mensaje(entorno):
+    CI, _, _ = entorno
+    canal = CI.crear_canal(ANA, "Bodega")
+    otro = CI.crear_canal(ANA, "Otro")
+    m = CI.enviar_mensaje(canal["id"], ANA, "¿Llegó el pedido?")
+    r = CI.enviar_mensaje(canal["id"], BETO, "Sí, esta mañana", responde_a=m["id"])
+    assert r["responde_a"] == m["id"]
+    assert r["cita"]["autor_nombre"] == "Ana" and r["cita"]["texto"] == "¿Llegó el pedido?"
+    listado = CI.listar_mensajes(canal["id"], ANA)
+    assert listado[0]["cita"] is None and listado[1]["cita"]["id"] == m["id"]
+    # Solo se responde a mensajes del mismo grupo.
+    with pytest.raises(ValueError):
+        CI.enviar_mensaje(otro["id"], ANA, "x", responde_a=m["id"])
+    # Si el original se borra, la cita queda como «eliminado».
+    CI.eliminar_mensaje(m["id"], ANA)
+    cita = CI.listar_mensajes(canal["id"], ANA)[0]["cita"]
+    assert cita["eliminado"] is True and cita["texto"] == ""
+
+
+def test_respuesta_espejada_a_wa_lleva_la_cita(entorno):
+    CI, _, reenvios = entorno
+    canal = CI.crear_canal(ANA, "X", wa_jid=JID, espejo_salida=True)
+    m = CI.enviar_mensaje(canal["id"], ANA, "Hola")
+    CI.enviar_mensaje(canal["id"], BETO, "Respuesta", responde_a=m["id"])
+    assert "respondiendo a Ana" in reenvios[-1][1] and "> Hola" in reenvios[-1][1]
