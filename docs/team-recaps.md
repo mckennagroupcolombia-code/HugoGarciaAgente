@@ -5125,3 +5125,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `routes_tickets._ALLOWED` admite webm, ogg, oga, opus, mp3, m4a, aac, wav.
 - **Verificado:** `npm run build`; import de Python; reinicio de `agente-pro`.
 - **Archivos Modificados:** `desktop/src/components/tickets/HiloConversacion.tsx`, `desktop/src/components/chat_equipo/GrabadorVoz.tsx`, `app/routes_tickets.py`, `docs/team-recaps.md`
+
+## 2026-10-05 — Chats: barra de escritura al estilo WhatsApp
+- `BarraEscritura.tsx` (nuevo, en `chat_equipo/`): caja redondeada ancha con 🔗 📎 📷 adentro a la derecha (📷 se esconde al escribir) y un botón redondo afuera que es 🎤 con la caja vacía y ➤ cuando hay texto, foto, archivo o vínculo. Al grabar, la barra pasa a «🗑 ● 0:12 Grabando… ➤».
+- La usan el chat de Grupos (`HiloCanal.tsx`) y el chat de la solicitud (`HiloConversacion.tsx`, que gana 📷 para fotos del chat). La textarea lleva `mck-field-lg` para escapar del `#root textarea` global.
+- **Verificado:** `npm run build`; captura a 390 px con arnés temporal (ya retirado): caja vacía y con texto.
+- **Archivos Modificados:** `desktop/src/components/chat_equipo/BarraEscritura.tsx`, `desktop/src/components/chat_equipo/GrabadorVoz.tsx`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `desktop/src/components/tickets/HiloConversacion.tsx`, `docs/team-recaps.md`

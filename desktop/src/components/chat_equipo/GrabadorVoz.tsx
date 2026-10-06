@@ -18,17 +18,43 @@ function reloj(s: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+export function IconoMic() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden>
+      <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z" />
+    </svg>
+  );
+}
+
+export function IconoEnviar() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden>
+      <path d="M3.4 20.4 21 12 3.4 3.6 3.39 10.1 15 12 3.39 13.9Z" />
+    </svg>
+  );
+}
+
+function IconoBasura() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden>
+      <path d="M9 3h6l1 1h4v2H4V4h4l1-1Zm-3 5h12l-1 13H7L6 8Zm4 2v9h1.5v-9H10Zm3.5 0v9H15v-9h-1.5Z" />
+    </svg>
+  );
+}
+
+/** Botón redondo de la derecha (🎤 / ➤), como en WhatsApp. */
+export const CLASE_BOTON_REDONDO =
+  "mck-btn-no-fx flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent text-white shadow-md disabled:opacity-50";
+
 /**
- * Nota de voz del chat: 🎤 empieza a grabar; mientras graba muestra el tiempo, ✕ descarta y
- * «Enviar» la entrega como archivo (`onListo`), que viaja igual que una foto o un PDF.
+ * Nota de voz del chat: el botón 🎤 empieza a grabar y la barra de escritura se vuelve
+ * «🗑 ● 0:12 Grabando…  ➤»; la papelera descarta y ➤ la entrega como archivo (`onListo`).
  */
-export default function GrabadorVoz({ onListo, onGrabando, onError, deshabilitado, className }: {
+export default function GrabadorVoz({ onListo, onGrabando, onError, deshabilitado }: {
   onListo: (archivo: File) => void;
   onGrabando?: (grabando: boolean) => void;
   onError?: (mensaje: string) => void;
   deshabilitado?: boolean;
-  /** Clases del botón 🎤 para que combine con cada chat. */
-  className?: string;
 }) {
   const [grabando, setGrabando] = useState(false);
   const [segundos, setSegundos] = useState(0);
@@ -94,18 +120,21 @@ export default function GrabadorVoz({ onListo, onGrabando, onError, deshabilitad
 
   if (grabando) {
     return (
-      <div className="flex min-h-[40px] flex-1 items-center gap-2 rounded-lg border border-accent-rose/50 bg-surface-input px-2 py-1">
-        <button onClick={() => terminar(false)} className="rounded px-2 py-1 text-[13px] text-muted hover:text-ink" title="Descartar la nota de voz" aria-label="Descartar">✕</button>
-        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-accent-rose" aria-hidden />
-        <span className="flex-1 font-mono text-[13px] text-ink">Grabando {reloj(segundos)}</span>
-        <button onClick={() => terminar(true)} className="rounded-lg bg-accent px-3 py-1.5 text-[13px] font-bold text-white" title="Terminar y enviar la nota de voz">Enviar 🎤</button>
-      </div>
+      <>
+        <div className="flex min-h-[48px] min-w-0 flex-1 items-center gap-3 rounded-[24px] border border-border bg-surface-input px-2 shadow-sm">
+          <button onClick={() => terminar(false)} className="mck-btn-no-fx flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted hover:text-accent-rose"
+            title="Descartar la nota de voz" aria-label="Descartar"><IconoBasura /></button>
+          <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-accent-rose" aria-hidden />
+          <span className="font-mono text-[15px] text-ink">{reloj(segundos)}</span>
+          <span className="min-w-0 flex-1 truncate text-[13px] text-muted">Grabando…</span>
+        </div>
+        <button onClick={() => terminar(true)} className={CLASE_BOTON_REDONDO} title="Enviar la nota de voz" aria-label="Enviar nota de voz"><IconoEnviar /></button>
+      </>
     );
   }
 
   return (
-    <button onClick={() => void empezar()} disabled={deshabilitado}
-      className={className ?? "rounded-lg border border-border bg-surface-input px-2.5 py-2 text-[15px] disabled:opacity-50"}
-      title="Grabar una nota de voz" aria-label="Nota de voz">🎤</button>
+    <button onClick={() => void empezar()} disabled={deshabilitado} className={CLASE_BOTON_REDONDO}
+      title="Grabar una nota de voz" aria-label="Nota de voz"><IconoMic /></button>
   );
 }

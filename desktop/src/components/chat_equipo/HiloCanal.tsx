@@ -14,7 +14,7 @@ import {
 import { ChipVinculo, SelectorVinculo } from "./VinculoModulo";
 import SolicitudesDelGrupo from "./SolicitudesDelGrupo";
 import { canalesEnPantalla } from "../../hooks/useAvisosMensajes";
-import GrabadorVoz from "./GrabadorVoz";
+import BarraEscritura, { BotonCaja, IconoCamara, IconoClip, IconoEnlace } from "./BarraEscritura";
 
 function hora(ts: number): string {
   const d = new Date(ts * 1000);
@@ -120,7 +120,6 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   const leido = useMarcarCanalLeido();
   const [texto, setTexto] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
-  const [grabando, setGrabando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const finRef = useRef<HTMLDivElement>(null);
   const fotoRef = useRef<HTMLInputElement>(null);
@@ -201,7 +200,7 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
         <div ref={finRef} />
       </div>
 
-      <div className="border-t border-border p-2">
+      <div className="border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {archivo && (
           <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-surface-input p-1.5">
             {vistaPrevia ? <img src={vistaPrevia} alt="" className="h-12 w-12 rounded object-cover" /> : <span className="text-[18px]">📎</span>}
@@ -223,45 +222,23 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
           </div>
         )}
         {error && <p className="mb-1 text-[11.5px] text-accent-rose">{error}</p>}
-        <div className="flex items-end gap-1.5">
-          <input ref={fotoRef} type="file" accept="image/*" capture="environment" className="hidden"
-            onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); e.target.value = ""; }} />
-          <input ref={archivoRef} type="file" className="hidden"
-            accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.doc,.docx,.xls,.xlsx,.txt,.csv"
-            onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); e.target.value = ""; }} />
-          {!grabando && <>
-          <button onClick={() => fotoRef.current?.click()} className="rounded-lg border border-border bg-surface-input px-2.5 py-2 text-[15px]" title="Tomar o subir una foto" aria-label="Foto">📷</button>
-          <button onClick={() => archivoRef.current?.click()} className="rounded-lg border border-border bg-surface-input px-2.5 py-2 text-[15px]" title="Adjuntar archivo" aria-label="Adjuntar">📎</button>
-          {modulos.length > 0 && (
-            <button onClick={() => setEligiendo((v) => !v)} aria-pressed={eligiendo}
-              className={`rounded-lg border px-2.5 py-2 text-[15px] ${eligiendo || vinculo ? "border-accent bg-accent/10" : "border-border bg-surface-input"}`}
-              title={`Vincular ${moduloCanal ? moduloCanal.item.toLowerCase() : "un elemento"} a este mensaje`} aria-label="Vincular">🔗</button>
-          )}
+        <input ref={fotoRef} type="file" accept="image/*" capture="environment" className="hidden"
+          onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+        <input ref={archivoRef} type="file" className="hidden"
+          accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.doc,.docx,.xls,.xlsx,.txt,.csv"
+          onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+        <BarraEscritura
+          texto={texto} onTexto={setTexto} onEnviar={() => void mandar()} onVoz={(f) => void mandarVoz(f)}
+          hayAdjunto={Boolean(archivo || vinculo)} enviando={enviar.isPending} onError={setError}
+          iconos={<>
+            {modulos.length > 0 && (
+              <BotonCaja onClick={() => setEligiendo((v) => !v)} activo={eligiendo || Boolean(vinculo)}
+                titulo={`Vincular ${moduloCanal ? moduloCanal.item.toLowerCase() : "un elemento"} a este mensaje`}><IconoEnlace /></BotonCaja>
+            )}
+            <BotonCaja onClick={() => archivoRef.current?.click()} titulo="Adjuntar archivo"><IconoClip /></BotonCaja>
           </>}
-          <GrabadorVoz onListo={(f) => void mandarVoz(f)} onGrabando={setGrabando} onError={setError} deshabilitado={enviar.isPending} />
-          {!grabando && <>
-          <textarea
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void mandar();
-              }
-            }}
-            rows={1}
-            placeholder="Escribe un mensaje…"
-            className="max-h-32 min-h-[40px] flex-1 resize-none rounded-lg border border-border bg-surface-input px-3 py-2 text-[13px] text-ink"
-          />
-          <button
-            onClick={() => void mandar()}
-            disabled={enviar.isPending || (!texto.trim() && !archivo && !vinculo)}
-            className="rounded-lg bg-accent px-3 py-2 text-[13px] font-bold text-white disabled:opacity-50"
-          >
-            {enviar.isPending ? "…" : "Enviar"}
-          </button>
-          </>}
-        </div>
+          iconosSinTexto={<BotonCaja onClick={() => fotoRef.current?.click()} titulo="Tomar o subir una foto"><IconoCamara /></BotonCaja>}
+        />
       </div>
     </div>
   );

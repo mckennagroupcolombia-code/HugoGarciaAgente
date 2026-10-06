@@ -22,7 +22,7 @@ import { sonarRevisado } from "../combos/sonidoMoneda";
 import VisorFotos, { type FotoVisor } from "./VisorFotos";
 import RevisionEmpaqueEnSolicitud from "../revisionEmpaque/RevisionEmpaque";
 import "./hiloPixel.css";
-import GrabadorVoz from "../chat_equipo/GrabadorVoz";
+import BarraEscritura, { BotonCaja, IconoCamara, IconoClip } from "../chat_equipo/BarraEscritura";
 
 /** La solicitud/acción que la persona está atendiendo (la bandeja la ofrece como «Seguir con…»). */
 export const CLAVE_HILO_ACTUAL = "mck_hilo_actual";
@@ -123,7 +123,6 @@ export default function HiloConversacion({
 
   const [draft, setDraft] = useState("");
   const [archivos, setArchivos] = useState<File[]>([]);
-  const [grabando, setGrabando] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [msg, setMsg] = useState("");
@@ -154,6 +153,7 @@ export default function HiloConversacion({
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const camRef = useRef<HTMLInputElement>(null);
   const draftRef = useRef<HTMLTextAreaElement>(null);
+  const fotoChatRef = useRef<HTMLInputElement>(null);
   const pasoPrevio = useRef<number | null>(null);
 
   useEffect(() => {
@@ -863,63 +863,37 @@ export default function HiloConversacion({
               ))}
             </div>
           )}
-          <div className="flex items-end gap-2">
-            {!grabando && <>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="hp-boton-sm shrink-0 !px-2.5"
-              title="Adjuntar archivo"
-              aria-label="Adjuntar archivo"
-            >
-              <Icon name="paperclip" size={20} />
-            </button>
-            <input
-              ref={fileRef} type="file" multiple hidden
-              onChange={(e) => {
-                if (e.target.files) setArchivos((prev) => [...prev, ...Array.from(e.target.files!)]);
-                e.target.value = "";
-              }}
-            />
-            </>}
-            <GrabadorVoz onListo={(f) => void enviarVoz(f)} onGrabando={setGrabando} deshabilitado={enviar.isPending}
-              onError={(m) => { setMsg(m); setTimeout(() => setMsg(""), 5000); }}
-              className="hp-boton-sm shrink-0 !px-2.5 text-[18px] disabled:opacity-40" />
-            {!grabando && <>
-            <textarea
-              ref={draftRef}
-              value={draft}
-              onChange={(e) => {
-                setDraft(e.target.value);
-                // Crece con el texto (hasta ~6 líneas) para leer lo que se escribe.
-                const el = e.currentTarget;
-                el.style.height = "auto";
-                el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
-              }}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviarMensaje(); } }}
-              onPaste={(e) => {
-                const item = Array.from(e.clipboardData.items).find((it) => it.type.startsWith("image/"));
-                if (!item) return;
-                e.preventDefault();
-                const file = item.getAsFile();
-                if (file) {
-                  setArchivos((prev) => [...prev, new File([file], `captura-${Date.now()}.png`, { type: file.type })]);
-                }
-              }}
-              placeholder="Escribe aquí…"
-              rows={1}
-              className="hp-campo min-h-[52px] min-w-0 flex-1 resize-none px-3 py-3"
-            />
-            <button
-              type="button"
-              onClick={() => void enviarMensaje()}
-              disabled={enviar.isPending || (!draft.trim() && archivos.length === 0)}
-              className="hp-boton-sm activo shrink-0 !min-h-[48px] disabled:opacity-40"
-            >
-              Enviar
-            </button>
-            </>}
-          </div>
+          <input
+            ref={fileRef} type="file" multiple hidden
+            onChange={(e) => {
+              if (e.target.files) setArchivos((prev) => [...prev, ...Array.from(e.target.files!)]);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={fotoChatRef} type="file" accept="image/*" capture="environment" hidden
+            onChange={(e) => {
+              if (e.target.files) setArchivos((prev) => [...prev, ...Array.from(e.target.files!)]);
+              e.target.value = "";
+            }}
+          />
+          <BarraEscritura
+            texto={draft} onTexto={setDraft} onEnviar={() => void enviarMensaje()} onVoz={(f) => void enviarVoz(f)}
+            hayAdjunto={archivos.length > 0} enviando={enviar.isPending} textareaRef={draftRef}
+            placeholder="Escribe aquí…"
+            onError={(m) => { setMsg(m); setTimeout(() => setMsg(""), 5000); }}
+            onPaste={(e) => {
+              const item = Array.from(e.clipboardData.items).find((it) => it.type.startsWith("image/"));
+              if (!item) return;
+              e.preventDefault();
+              const file = item.getAsFile();
+              if (file) {
+                setArchivos((prev) => [...prev, new File([file], `captura-${Date.now()}.png`, { type: file.type })]);
+              }
+            }}
+            iconos={<BotonCaja onClick={() => fileRef.current?.click()} titulo="Adjuntar archivo"><IconoClip /></BotonCaja>}
+            iconosSinTexto={<BotonCaja onClick={() => fotoChatRef.current?.click()} titulo="Tomar o subir una foto"><IconoCamara /></BotonCaja>}
+          />
         </div>
       ) : (
         !jugada && (
