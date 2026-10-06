@@ -8,8 +8,10 @@ const CrearProductosSiigoPanel = lazy(() => import("./CrearProductosSiigoPanel")
  * Botón flotante «Crear en Alegra», mismo patrón que la calculadora mágica
  * (portal + z-index alto), debajo del FAB de calculadora.
  * Minimizar colapsa a una barra sin desmontar el formulario.
- * El alto de la ventana descuenta el espacio de arriba (botón y cabezote): con 82vh el
- * final del formulario quedaba por fuera de la pantalla (5-oct-2026).
+ * La ventana se abre al lado del botón y desde arriba de la pantalla, con casi todo el alto:
+ * el formulario (~690 px) debe verse completo sin desplazar en un portátil de 768 px
+ * (5-oct-2026). Debajo del botón solo quedaban ~590 px. En móvil ocupa el ancho y el alto
+ * (tapa la barra inferior mientras está abierta; ✕ o — la cierran).
  */
 export default function CrearSiigoFab() {
   const [abierta, setAbierta] = useState(false);
@@ -77,7 +79,7 @@ export default function CrearSiigoFab() {
       {abierta && (
         <>
           <div
-            className={`pointer-events-auto flex max-h-[min(44rem,calc(100dvh-12.5rem))] max-md:max-h-[calc(100dvh-17rem)] w-[min(calc(100vw-1.5rem),36rem)] flex-col overflow-hidden rounded-paper-lg border-2 border-sky-500/50 bg-surface-panel shadow-paper-lg ${
+            className={`pointer-events-auto fixed right-24 top-3 flex max-h-[calc(100dvh-1.5rem)] w-[min(calc(100vw-7.5rem),36rem)] flex-col max-md:inset-x-3 max-md:w-auto max-md:max-h-[calc(100dvh-1.5rem)] overflow-hidden rounded-paper-lg border-2 border-sky-500/50 bg-surface-panel shadow-paper-lg ${
               minimizada ? "hidden" : ""
             }`}
             role="dialog"
@@ -114,7 +116,7 @@ export default function CrearSiigoFab() {
                 </button>
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <div className="min-h-0 flex-1 overflow-y-auto p-3 max-md:p-2">
               <Suspense
                 fallback={
                   <p className="py-8 text-center text-sm text-muted">Cargando…</p>
