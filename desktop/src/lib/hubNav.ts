@@ -34,7 +34,7 @@ export const HUB_SECTION_HINT: Record<NavCategory, string> = {
   contabilidad: "Libro Mayor (partida doble, diario, préstamos, créditos), compras exterior, costos y catálogo Alegra.",
   negocio: "Rentabilidad, publicidad MeLi y salud del negocio — cómo va la operación.",
   inventario: "Checklist de stock agotado, crítico o bajo, y registro de entradas/salidas de unidades.",
-  publicaciones: "Canales del producto (SKU en Alegra, MeLi y web) y Vitrina web.",
+  publicaciones: "Vitrina web: banners y origen de las materias primas.",
   placas: "Calculadora de dosificación para placas de concreto pulido.",
   contenido: "Quitar marca de agua estática de un video antes de publicarlo.",
   sistemas: "Supervisor de WhatsApp y canal de voz IA.",

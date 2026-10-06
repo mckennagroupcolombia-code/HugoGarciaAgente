@@ -470,7 +470,8 @@ export const useAppStore = create<AppState>()(
         if (s.panel === "sync" || s.panel === "facturas") s.panel = "facturacion";
         if (s.panel === "sitioweb") s.panel = "etiquetas";
         // «Publicaciones» salió del menú (28-sep-2026): solo se entra desde el taller de combos.
-        if (s.panel === "publicaciones") s.panel = "canales-producto";
+        // «Canales del producto» salió del menú el 6-oct-2026.
+        if (s.panel === "publicaciones" || s.panel === "canales-producto") s.panel = "vitrina-web";
         if (s.panel === "combos") {
           s.panel = "etiquetas";
           s.etiquetasTab = "studio";

@@ -5202,3 +5202,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Hialurónico alto y bajo peso (borradores): `composicion` y `_sds.composicion` con los % de la fórmula; alto peso «al 2 %». Aloe vera (publicado): 90 % → 80 % y composición 80 % extracto + 20 % solución de hialurónico.
 - Sin cambiar, pendientes de decisión: ácido láctico 85 % y glicólico 50 % (la fórmula usa la materia prima al 25 % / 60 %; falta la pureza de esa materia prima) y kójico D palmitato (la fórmula usa ácido kójico en polvo, el documento describe el dipalmitato).
 - Respaldos en `fichas_word/datos/_respaldo_edicion/`; rastro en `_ediciones`. No se regeneraron PDF ni etiquetas.
+
+## 2026-10-06 — «Canales del producto» fuera del menú
+- Pedido del usuario: el apartado se puede eliminar. Sale de `NAV_SECTIONS` (la sección Publicaciones queda solo con Vitrina web), del mapa (`flujoApp.ts`) y del enrutado de tickets (`flujoTickets.ts` → `vitrina-web`); el panel guardado `canales-producto`/`publicaciones` migra a `vitrina-web` (`stores/app.ts`).
+- Árbol del producto: sin botón «Ver en Canales del producto»; la fila Factura ya no salta a ese panel.
+- El componente `canales_producto/` y `/api/canales-producto/*` siguen en el código (sin entrada en el menú).
+- **Verificado:** `npm run build` (tsc + vite) limpio.
+- **Archivos Modificados:** `desktop/src/lib/{navStructure,flujoApp,flujoTickets,hubNav,permisosCatalogo}.ts`, `desktop/src/stores/app.ts`, `desktop/src/components/plantillas-visuales/arbol/ArbolProductoPanel.tsx`, `docs/team-recaps.md`

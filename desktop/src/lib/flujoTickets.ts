@@ -26,7 +26,7 @@ const REGLAS: Regla[] = [
   { si: /\bskus?\b|combo|receta/, etapa: "preparar", panel: "etiquetas" },
   { si: /stock|inventario|agotad|conteo/, etapa: "preparar", panel: "control-inventario" },
   { si: /publicidad|\bads\b|\bacos\b/, etapa: "publicar", panel: "publicidad" },
-  { si: /publicacion|publicar|vitrina|banner/, etapa: "publicar", panel: "canales-producto" },
+  { si: /publicacion|publicar|vitrina|banner/, etapa: "publicar", panel: "vitrina-web" },
   { si: /contenido|video|reel|post\b|redes/, etapa: "publicar", panel: "contenido" },
   { si: /empa(que|car)|alistar/, etapa: "entregar", panel: "empaque" },
   { si: /envio|despach|guia|colecta|flex|entrega|transportadora|mensajeria/, etapa: "entregar", panel: "guias-envio" },
