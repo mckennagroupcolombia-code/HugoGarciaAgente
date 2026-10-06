@@ -105,8 +105,6 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   const [eligiendo, setEligiendo] = useState(false);
   // «→ tarea» en un mensaje: abre el formulario de solicitud del grupo con ese mensaje.
   const [tareaDesde, setTareaDesde] = useState<MensajeCanal | null>(null);
-  // «Solicitar a…» de la cabecera abre el formulario del grupo.
-  const [senalSolicitar, setSenalSolicitar] = useState(0);
   const enviar = useEnviarCanal(canal.id);
   const leido = useMarcarCanalLeido();
   const [texto, setTexto] = useState("");
@@ -165,17 +163,9 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
             )}
           </p>
         </div>
-        <button
-          onClick={() => setSenalSolicitar((n) => n + 1)}
-          className="rounded-md bg-accent px-2.5 py-1 text-[11.5px] font-bold text-white hover:brightness-110"
-          title="Pedirle algo a alguien del equipo: queda como solicitud de este grupo, clasificada y con su enlace"
-        >
-          Solicitar a…
-        </button>
       </div>}
 
-      <SolicitudesDelGrupo canal={canal} modulo={moduloCanal} desde={tareaDesde} onDesdeUsado={() => setTareaDesde(null)}
-        abrirSenal={senalSolicitar} />
+      <SolicitudesDelGrupo canal={canal} modulo={moduloCanal} desde={tareaDesde} onDesdeUsado={() => setTareaDesde(null)} />
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
         {mensajes.isLoading && <p className="text-[12px] text-muted">Cargando…</p>}
