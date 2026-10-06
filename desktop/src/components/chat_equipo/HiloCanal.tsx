@@ -12,6 +12,8 @@ import {
   type RefMensaje,
 } from "../../hooks/useCanalesEquipo";
 import { ChipVinculo, SelectorVinculo } from "./VinculoModulo";
+import SolicitudesDelGrupo from "./SolicitudesDelGrupo";
+import { canalesEnPantalla } from "../../hooks/useAvisosMensajes";
 
 function hora(ts: number): string {
   const d = new Date(ts * 1000);
@@ -84,7 +86,7 @@ function Burbuja({ m, propio, token, modulos, onIncidente }: { m: MensajeCanal; 
         <ChipVinculo refm={m.ref} modulos={modulos} />
         <p className="mt-0.5 flex items-center justify-end gap-2 font-mono text-[9.5px] text-muted">
           <button onClick={onIncidente} className="mck-btn-no-fx opacity-60 hover:text-accent hover:opacity-100"
-            title="Convertir este mensaje en una solicitud de la Agenda (con responsable)">→ tarea</button>
+            title="Convertir este mensaje en una solicitud de este grupo (responsable y fecha límite)">→ tarea</button>
           {hora(m.creado_en)}
         </p>
       </div>
@@ -101,6 +103,10 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   const moduloCanal = modulos.find((x) => x.clave === canal.modulo) ?? null;
   const [vinculo, setVinculo] = useState<RefMensaje | null>(null);
   const [eligiendo, setEligiendo] = useState(false);
+  // «→ tarea» en un mensaje: abre el formulario de solicitud del grupo con ese mensaje.
+  const [tareaDesde, setTareaDesde] = useState<MensajeCanal | null>(null);
+  // «Solicitar a…» de la cabecera abre el formulario del grupo.
+  const [senalSolicitar, setSenalSolicitar] = useState(0);
   const enviar = useEnviarCanal(canal.id);
   const leido = useMarcarCanalLeido();
   const [texto, setTexto] = useState("");
@@ -111,6 +117,12 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   const archivoRef = useRef<HTMLInputElement>(null);
 
   const lista = mensajes.data?.mensajes ?? [];
+
+  // Mientras este grupo está abierto no sale la tarjeta de aviso por sus propios mensajes.
+  useEffect(() => {
+    canalesEnPantalla.add(canal.id);
+    return () => { canalesEnPantalla.delete(canal.id); };
+  }, [canal.id]);
   const ultimoId = lista.length ? lista[lista.length - 1].id : 0;
 
   useEffect(() => {
@@ -154,13 +166,16 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
           </p>
         </div>
         <button
-          onClick={() => reportarIncidente(canal)}
-          className="rounded-md border border-border bg-surface-input px-2 py-1 text-[11px] text-ink hover:border-accent/60"
-          title="Un incidente o una petición que alguien debe resolver va como solicitud en la Agenda: ahí tiene responsable y cronómetro"
+          onClick={() => setSenalSolicitar((n) => n + 1)}
+          className="rounded-md bg-accent px-2.5 py-1 text-[11.5px] font-bold text-white hover:brightness-110"
+          title="Pedirle algo a alguien del equipo: queda como solicitud de este grupo, clasificada y con su enlace"
         >
-          Reportar incidente
+          Solicitar a…
         </button>
       </div>}
+
+      <SolicitudesDelGrupo canal={canal} modulo={moduloCanal} desde={tareaDesde} onDesdeUsado={() => setTareaDesde(null)}
+        abrirSenal={senalSolicitar} />
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
         {mensajes.isLoading && <p className="text-[12px] text-muted">Cargando…</p>}
@@ -169,7 +184,7 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
         )}
         {lista.map((m) => (
           <Burbuja key={m.id} m={m} propio={m.origen === "panel" && m.usuario_id === yo} token={token} modulos={modulos}
-            onIncidente={() => reportarIncidente(canal, m)} />
+            onIncidente={() => setTareaDesde(m)} />
         ))}
         <div ref={finRef} />
       </div>

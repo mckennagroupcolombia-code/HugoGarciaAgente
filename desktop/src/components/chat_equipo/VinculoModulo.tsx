@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppStore, type Panel } from "../../stores/app";
 import { useBuscarVinculos, type ModuloCanal, type RefMensaje } from "../../hooks/useCanalesEquipo";
+import { abrirSolicitud } from "./SelectorMensajes";
 
 /**
  * Grupos de trabajo: un mensaje puede vincular un elemento real de un módulo
@@ -16,7 +17,15 @@ export function ChipVinculo({ refm, modulos }: { refm: Record<string, unknown> |
   let titulo = "";
   let detalle = "";
   let panel = "";
-  if (typeof refm.modulo === "string") {
+  let alTocar: (() => void) | null = null;
+  if (refm.ticket_id != null) {
+    // Aviso del grupo «📋 … creó la solicitud»: abre la solicitud en Mensajes.
+    etiqueta = "Solicitud";
+    titulo = String(refm.titulo || `#${String(refm.ticket_id)}`);
+    detalle = String(refm.detalle || "");
+    const tid = Number(refm.ticket_id);
+    alTocar = () => abrirSolicitud(tid);
+  } else if (typeof refm.modulo === "string") {
     const mod = modulos.find((m) => m.clave === refm.modulo);
     etiqueta = mod?.item || "Enlace";
     titulo = String(refm.titulo || refm.id || "");
@@ -33,9 +42,9 @@ export function ChipVinculo({ refm, modulos }: { refm: Record<string, unknown> |
   return (
     <button
       type="button"
-      onClick={() => panel && setPanel(panel as Panel)}
-      disabled={!panel}
-      title={panel ? `Abrir ${etiqueta.toLowerCase()} en su módulo` : undefined}
+      onClick={() => (alTocar ? alTocar() : panel && setPanel(panel as Panel))}
+      disabled={!panel && !alTocar}
+      title={alTocar ? "Abrir la solicitud" : panel ? `Abrir ${etiqueta.toLowerCase()} en su módulo` : undefined}
       className="mck-btn-no-fx mt-1 flex w-full max-w-[340px] items-start gap-2 rounded-lg border border-accent/40 bg-surface px-2 py-1.5 text-left hover:border-accent"
     >
       <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-wide text-accent">{etiqueta}</span>
@@ -43,7 +52,7 @@ export function ChipVinculo({ refm, modulos }: { refm: Record<string, unknown> |
         <span className="block truncate text-[12px] font-bold text-ink">{titulo}</span>
         {detalle && <span className="block truncate text-[10.5px] text-muted">{detalle}</span>}
       </span>
-      {panel && <span className="shrink-0 text-[12px] text-accent">→</span>}
+      {(panel || alTocar) && <span className="shrink-0 text-[12px] text-accent">→</span>}
     </button>
   );
 }

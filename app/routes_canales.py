@@ -60,9 +60,10 @@ def register_canales_routes(app):
     def canales_listar():
         u = _u()
         admin = CI.puede_administrar(u)
-        from app.services.canales_vinculos import catalogo
+        from app.services.canales_vinculos import catalogo, tipos_solicitud
 
         return jsonify({
+            "tipos_solicitud": tipos_solicitud(),
             "canales": CI.listar_canales(u, incluir_archivados=request.args.get("archivados") == "1"),
             "puede_administrar": admin,
             "modulos": catalogo(),
@@ -170,6 +171,50 @@ def register_canales_routes(app):
         except LookupError as e:
             return jsonify({"error": str(e)}), 404
         return jsonify(msg), 201
+
+    @app.route("/api/canales/novedades", methods=["GET"])
+    @_auth
+    def canales_novedades():
+        """Mensajes nuevos de otros (para el aviso con la app abierta)."""
+        from app.services.canales_avisos import novedades
+
+        return jsonify(novedades(_u(), int(request.args.get("desde") or 0), inicio=request.args.get("inicio") == "1"))
+
+    @app.route("/api/canales/push", methods=["POST"])
+    @_auth
+    def canales_push_registrar():
+        """Este dispositivo quiere avisos de los grupos con la app cerrada (Web Push)."""
+        from app.services.canales_avisos import registrar_suscripcion
+
+        try:
+            registrar_suscripcion(int(_u()["id"]), (request.get_json(silent=True) or {}).get("subscription") or {})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": True})
+
+    @app.route("/api/canales/<int:canal_id>/solicitudes", methods=["GET"])
+    @_auth
+    def canales_solicitudes(canal_id: int):
+        items = CI.listar_solicitudes(canal_id, _u())
+        if items is None:
+            return jsonify({"error": "Canal no encontrado"}), 404
+        return jsonify({"solicitudes": items})
+
+    @app.route("/api/canales/<int:canal_id>/solicitudes", methods=["POST"])
+    @_auth
+    def canales_vincular_solicitud(canal_id: int):
+        """La solicitud ya se creó con POST /api/tickets/ (avisos de siempre); aquí queda en el grupo."""
+        d = request.get_json(silent=True) or {}
+        try:
+            out = CI.vincular_solicitud(
+                canal_id, _u(), int(d.get("ticket_id") or 0),
+                mensaje_id=int(d["mensaje_id"]) if d.get("mensaje_id") else None,
+                fecha_limite=d.get("fecha_limite") or "",
+                tipo=str(d.get("tipo") or ""), ref=d.get("ref"),
+            )
+        except (LookupError, ValueError) as e:
+            return jsonify({"error": str(e)}), 404
+        return jsonify(out), 201
 
     @app.route("/api/canales/<int:canal_id>/leido", methods=["POST"])
     @_auth

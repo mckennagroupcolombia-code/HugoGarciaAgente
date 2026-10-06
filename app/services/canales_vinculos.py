@@ -20,15 +20,43 @@ MODULOS: dict[str, dict[str, str]] = {
     "documentos_tecnicos": {"nombre": "Documentos técnicos", "panel": "fichas", "item": "Documento técnico"},
     "formulas": {"nombre": "Fórmulas", "panel": "formulas", "item": "Fórmula"},
     "solicitudes_pago": {"nombre": "Solicitudes de pago", "panel": "pagos", "item": "Solicitud de pago"},
-    "importaciones": {"nombre": "Compras en el exterior", "panel": "logistica-importaciones", "item": "Importación"},
+    "importaciones": {"nombre": "Compras en el exterior", "panel": "logistica-importaciones", "item": "Importación",
+                      # Los procesos de importación ya son solicitudes con esta categoría: el grupo los muestra.
+                      "categoria": "importaciones"},
     "guias_envio": {"nombre": "Guías de envío", "panel": "guias-envio", "item": "Guía"},
 }
 
 _LIMITE = 25
 
+# «Solicitar a…» en un grupo: el tipo clasifica la solicitud. `categoria` es la de tickets
+# (las que ya existen en producción); el tipo fino queda en canal_solicitudes.tipo.
+TIPOS_SOLICITUD: dict[str, dict[str, str]] = {
+    "pago": {"nombre": "Pago", "categoria": "contabilidad", "modulo": "solicitudes_pago"},
+    "compra": {"nombre": "Compra", "categoria": "compras", "modulo": "importaciones"},
+    "publicacion": {"nombre": "Publicación", "categoria": "ventas", "modulo": ""},
+    "etiqueta": {"nombre": "Etiqueta", "categoria": "diseno", "modulo": ""},
+    "documento_tecnico": {"nombre": "Documento técnico", "categoria": "diseno", "modulo": "documentos_tecnicos"},
+    "formula": {"nombre": "Fórmula", "categoria": "produccion", "modulo": "formulas"},
+    "envio": {"nombre": "Envío", "categoria": "logistica", "modulo": "guias_envio"},
+    "otra": {"nombre": "Otra", "categoria": "logistica", "modulo": ""},
+}
+
+# El tipo que propone cada grupo según su módulo.
+TIPO_POR_MODULO = {
+    "solicitudes_pago": "pago",
+    "importaciones": "compra",
+    "documentos_tecnicos": "documento_tecnico",
+    "formulas": "formula",
+    "guias_envio": "envio",
+}
+
+
+def tipos_solicitud() -> list[dict]:
+    return [{"clave": k, **v} for k, v in TIPOS_SOLICITUD.items()]
+
 
 def catalogo() -> list[dict]:
-    return [{"clave": k, **v} for k, v in MODULOS.items()]
+    return [{"clave": k, **v, "tipo_solicitud": TIPO_POR_MODULO.get(k, "otra")} for k, v in MODULOS.items()]
 
 
 def puede_usar(usuario: dict | None, modulo: str) -> bool:

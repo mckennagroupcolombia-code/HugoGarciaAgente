@@ -78,6 +78,19 @@ CREATE TABLE IF NOT EXISTS canal_mensajes (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ix_canal_mensajes_wa_id ON canal_mensajes(wa_id) WHERE wa_id IS NOT NULL AND wa_id != '';
 CREATE INDEX IF NOT EXISTS ix_canal_mensajes_canal ON canal_mensajes(canal_id, id);
+-- Solicitudes (tickets) que viven en un grupo: creadas desde el grupo o vinculadas a él.
+-- La fecha límite va aquí porque `tickets` no tiene columna de vencimiento.
+CREATE TABLE IF NOT EXISTS canal_solicitudes (
+    canal_id      INTEGER NOT NULL,
+    ticket_id     INTEGER NOT NULL UNIQUE,
+    mensaje_id    INTEGER,
+    fecha_limite  TEXT,
+    tipo          TEXT,
+    ref           TEXT,
+    vinculado_por INTEGER,
+    creado_en     REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_canal_solicitudes_canal ON canal_solicitudes(canal_id);
 CREATE TABLE IF NOT EXISTS canal_lecturas (
     canal_id          INTEGER NOT NULL,
     usuario_id        INTEGER NOT NULL,
@@ -102,6 +115,8 @@ def _conn() -> sqlite3.Connection:
                     "VALUES ('incidente', 'Incidente', '#b54a3c', '🛠️')"))
                 # Grupos de trabajo: el canal se vincula a un módulo (canales_vinculos.MODULOS).
                 tickets_db._safe_migrate(lambda: c.execute("ALTER TABLE canales_internos ADD COLUMN modulo TEXT"))
+                for col in ("tipo", "ref"):
+                    tickets_db._safe_migrate(lambda col=col: c.execute(f"ALTER TABLE canal_solicitudes ADD COLUMN {col} TEXT"))
                 c.commit()
                 _listo[ruta] = True
     return c
@@ -377,7 +392,19 @@ def enviar_mensaje(
             pass
     if texto_wa and jid:
         _reenviar_a_wa(jid, texto_wa)
+    _avisar(canal_id, (usuario or {}).get("id"), autor, texto, bool(adjunto))
     return _fila_mensaje(fila)
+
+
+def _avisar(canal_id: int, autor_id: int | None, autor: str, texto: str, adjunto: bool) -> None:
+    """Notificación a los demás del grupo (canales_avisos: push con la app cerrada)."""
+    try:
+        from app.services import canales_avisos
+
+        nombre = (obtener_canal(canal_id, None, forzar=True) or {}).get("nombre") or "Grupo"
+        canales_avisos.avisar_mensaje(canal_id, nombre, autor_id, autor, texto, adjunto)
+    except Exception as e:
+        print(f"[canales_internos] aviso falló: {e}")
 
 
 def _reenviar_a_wa(jid: str, texto_wa: str) -> None:
@@ -421,6 +448,99 @@ def eliminar_mensaje(mensaje_id: int, usuario: dict) -> bool:
     return True
 
 
+# ── Solicitudes del grupo ────────────────────────────────────────────────────
+
+_ABIERTAS = ("pendiente", "en_proceso", "esperando_aprobacion")
+
+
+def _fecha_valida(fecha: Any) -> str | None:
+    import re
+
+    f = str(fecha or "").strip()[:10]
+    return f if re.fullmatch(r"\d{4}-\d{2}-\d{2}", f) else None
+
+
+def vincular_solicitud(
+    canal_id: int, usuario: dict, ticket_id: int, *, mensaje_id: int | None = None, fecha_limite: str = "",
+    tipo: str = "", ref: dict | None = None,
+) -> dict:
+    """Deja la solicitud dentro del grupo y lo avisa en el chat. Una solicitud vive en un solo grupo.
+    `tipo` (canales_vinculos.TIPOS_SOLICITUD) la clasifica; `ref` es el elemento del módulo
+    que se pide revisar (p. ej. la solicitud de pago #61)."""
+    from app.services.canales_vinculos import TIPOS_SOLICITUD, normalizar_ref
+
+    tipo = tipo if tipo in TIPOS_SOLICITUD else None
+    ref = normalizar_ref(ref)
+    with _conn() as c:
+        canal = _canal(c, canal_id)
+        if not canal or canal["archivado"] or not _puede_ver(c, canal, usuario):
+            raise LookupError("Canal no encontrado")
+        t = c.execute(
+            "SELECT t.id, t.numero, t.titulo, u.nombre AS asignado FROM tickets t "
+            "LEFT JOIN usuarios u ON u.id = t.asignado_a WHERE t.id=?", (int(ticket_id),)
+        ).fetchone()
+        if not t:
+            raise LookupError("Solicitud no encontrada")
+        c.execute(
+            "INSERT INTO canal_solicitudes (canal_id, ticket_id, mensaje_id, fecha_limite, tipo, ref, vinculado_por, creado_en) "
+            "VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(ticket_id) DO UPDATE SET canal_id=excluded.canal_id, "
+            "mensaje_id=COALESCE(excluded.mensaje_id, mensaje_id), fecha_limite=excluded.fecha_limite, "
+            "tipo=COALESCE(excluded.tipo, tipo), ref=COALESCE(excluded.ref, ref)",
+            (canal_id, int(ticket_id), mensaje_id, _fecha_valida(fecha_limite), tipo,
+             json.dumps(ref, ensure_ascii=False) if ref else None, usuario.get("id"), time.time()),
+        )
+    para = f" a {t['asignado']}" if t["asignado"] else ""
+    vence = _fecha_valida(fecha_limite)
+    clase = f" · {TIPOS_SOLICITUD[tipo]['nombre']}" if tipo else ""
+    enviar_mensaje(
+        canal_id, None,
+        f"📋 {_nombre_usuario(usuario)} solicitó{para}: «{t['titulo']}»{clase}" + (f" · vence {vence}" if vence else ""),
+        tipo="sistema", reenviar_wa=False,
+        ref={"ticket_id": int(t["id"]), "titulo": f"{t['numero']} · {t['titulo']}", "detalle": t["asignado"] or ""},
+    )
+    return {"ok": True, "ticket_id": int(t["id"])}
+
+
+def listar_solicitudes(canal_id: int, usuario: dict) -> list[dict] | None:
+    """Solicitudes abiertas del grupo: las vinculadas y, si el módulo tiene categoría
+    (Compras en el exterior → importaciones), las de esa categoría."""
+    from app.services.canales_vinculos import MODULOS
+
+    with _conn() as c:
+        canal = _canal(c, canal_id)
+        if not canal or not _puede_ver(c, canal, usuario):
+            return None
+        modulo = canal["modulo"] if "modulo" in canal.keys() else None
+        categoria = (MODULOS.get(modulo or "") or {}).get("categoria")
+        marcas = ",".join("?" * len(_ABIERTAS))
+        sql = (
+            "SELECT t.id, t.numero, t.titulo, t.estado, t.prioridad, t.asignado_a, u.nombre AS asignado_nombre, "
+            "cs.fecha_limite, cs.mensaje_id, cs.tipo, cs.ref, CASE WHEN cs.canal_id IS NULL THEN 'modulo' ELSE 'grupo' END AS origen, "
+            "t.actualizado_en FROM tickets t "
+            "LEFT JOIN canal_solicitudes cs ON cs.ticket_id = t.id "
+            "LEFT JOIN usuarios u ON u.id = t.asignado_a "
+            f"WHERE t.estado IN ({marcas}) AND (cs.canal_id = ?"
+        )
+        params: list[Any] = [*_ABIERTAS, canal_id]
+        if categoria:
+            sql += " OR (cs.canal_id IS NULL AND t.categoria = ?)"
+            params.append(categoria)
+        sql += ") ORDER BY (cs.fecha_limite IS NULL), cs.fecha_limite, t.actualizado_en DESC LIMIT 40"
+        try:
+            filas = c.execute(sql, params).fetchall()
+        except sqlite3.OperationalError:
+            return []
+    out = []
+    for f in filas:
+        d = dict(f)
+        try:
+            d["ref"] = json.loads(d["ref"]) if d.get("ref") else None
+        except ValueError:
+            d["ref"] = None
+        out.append(d)
+    return out
+
+
 # ── Espejo de WhatsApp (entrada) ─────────────────────────────────────────────
 
 def espejar_desde_wa(
@@ -462,6 +582,7 @@ def espejar_desde_wa(
              "" if texto == "[adjunto]" and media_path else texto, media_path or None, media_mime or None,
              float(ts or time.time())),
         )
+    _avisar(cid, uid, autor_nombre, "" if texto == "[adjunto]" else texto, bool(media_path))
     return True
 
 

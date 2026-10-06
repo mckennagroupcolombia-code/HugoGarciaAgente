@@ -1,4 +1,5 @@
 import { useResumenMensajes } from "../../hooks/useCanalesEquipo";
+import { useAppStore } from "../../stores/app";
 
 /**
  * «Mensajes» es un solo apartado con dos partes (pedido del 5-oct-2026):
@@ -60,4 +61,15 @@ export function SelectorMensajes({
       ))}
     </div>
   );
+}
+
+/** Abre la solicitud en Mensajes → Solicitudes (InboxConversaciones la abre con `abrirTicketId`). */
+export function abrirSolicitud(ticketId: number) {
+  const st = useAppStore.getState();
+  guardarVistaMensajes("solicitudes");
+  st.setAccionesBootTab(null);
+  st.setTicketsBootView("mensajes");
+  st.setCentroMandoView("mensajes");
+  st.setSolicitudBoot({ abrirTicketId: ticketId });
+  st.setPanel("hugo");
 }

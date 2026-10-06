@@ -16,6 +16,7 @@ import { Icon } from "../../icons";
 import { useCanalesEquipo, useResumenMensajes } from "../../hooks/useCanalesEquipo";
 import HiloCanal from "../chat_equipo/HiloCanal";
 import { guardarVistaMensajes } from "../chat_equipo/SelectorMensajes";
+import { useAvisosMensajes, type AvisoMensaje } from "../../hooks/useAvisosMensajes";
 
 /**
  * Burbuja de chat global (portal a body, mismo patrón que CrearSiigoFab): mensajería
@@ -93,6 +94,10 @@ export default function SolicitudesEnProcesoFab() {
   const grupos = useCanalesEquipo(Boolean(user) && abierta && vista === "grupos");
   const listaGrupos = grupos.data?.canales ?? [];
   const canal = canalId != null ? listaGrupos.find((c) => c.id === canalId) ?? null : null;
+  // Mensajes nuevos de los grupos: tarjeta con sonido (app a la vista) y push (app cerrada).
+  const { aviso, cerrarAviso, permiso, activarAvisos } = useAvisosMensajes(
+    Boolean(user), abierta && vista === "grupos" ? canalId : null,
+  );
 
   function setVista(v: VistaFab) {
     setVistaState(v);
@@ -153,8 +158,54 @@ export default function SolicitudesEnProcesoFab() {
   useEffect(() => {
     if (enCentroMando) setAbierta(false);
   }, [enCentroMando]);
-  if (!user || enCentroMando) return null;
+  if (!user) return null;
   if (typeof document === "undefined") return null;
+
+  /** Tocar el aviso abre ese grupo: en la burbuja o, dentro de la Agenda, en Mensajes → Grupos. */
+  function abrirAviso(a: AvisoMensaje) {
+    cerrarAviso();
+    if (enCentroMando) {
+      guardarVistaMensajes("grupos");
+      try {
+        sessionStorage.setItem("mck-chat-equipo-canal", String(a.canal_id));
+      } catch {
+        /* sin almacenamiento */
+      }
+      setPanel("chat-equipo");
+      return;
+    }
+    setVista("grupos");
+    setCanalId(a.canal_id);
+    setAbierta(true);
+  }
+
+  const tarjetaAviso = aviso && (
+    <div className="pointer-events-auto flex w-[min(calc(100vw-1.5rem),20rem)] items-start gap-2 rounded-paper-lg border-2 border-accent/60 bg-surface-panel p-2.5 shadow-paper-lg"
+      role="status" aria-live="polite">
+      <button type="button" onClick={() => abrirAviso(aviso)} className="mck-btn-no-fx flex min-w-0 flex-1 items-start gap-2 text-left">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[12px] font-black text-accent">
+          {(aviso.autor_nombre || "?").slice(0, 1).toUpperCase()}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[12px] font-bold text-ink">{aviso.autor_nombre} · {aviso.canal_nombre}</span>
+          <span className="line-clamp-2 block text-[12px] text-ink-secondary">{aviso.texto}</span>
+        </span>
+      </button>
+      <button type="button" onClick={cerrarAviso} className="mck-btn-no-fx px-1 text-[12px] text-muted hover:text-ink" aria-label="Cerrar aviso">✕</button>
+    </div>
+  );
+
+  // Dentro de la Agenda la burbuja se oculta (el inbox ya está a la vista), pero el aviso sí sale.
+  if (enCentroMando) {
+    if (!tarjetaAviso) return null;
+    return createPortal(
+      <div className="pointer-events-none fixed bottom-5 right-5 z-[900] max-md:bottom-[5.5rem] sm:bottom-6 sm:right-6"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        {tarjetaAviso}
+      </div>,
+      document.body,
+    );
+  }
 
   function irA(c?: Conversacion) {
     setCentroMandoView("mensajes");
@@ -168,6 +219,7 @@ export default function SolicitudesEnProcesoFab() {
       className="pointer-events-none fixed bottom-5 right-5 z-[900] flex flex-col items-end gap-3 max-md:bottom-[5.5rem] sm:bottom-6 sm:right-6"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
+      {!(abierta && vista === "grupos" && canalId === aviso?.canal_id) && tarjetaAviso}
       {abierta && (
         <div
           className={`pointer-events-auto flex flex-col overflow-hidden rounded-paper-lg border-2 border-accent/50 bg-surface-panel shadow-paper-lg ${
@@ -287,6 +339,17 @@ export default function SolicitudesEnProcesoFab() {
             ) : (
               <>
                 <div className="min-h-0 flex-1 overflow-y-auto">
+                  {permiso === "pendiente" && (
+                    <button type="button" onClick={() => void activarAvisos()}
+                      className="mck-btn-no-fx flex w-full items-center gap-2 border-b border-border/40 bg-accent/10 px-3 py-2 text-left text-[12px] font-bold text-accent hover:bg-accent/15">
+                      🔔 Activar avisos de mensajes en este dispositivo
+                    </button>
+                  )}
+                  {permiso === "bloqueado" && (
+                    <p className="border-b border-border/40 px-3 py-2 text-[11px] text-muted">
+                      Los avisos están bloqueados en este navegador. Para recibirlos, permite las notificaciones de bot.mckennagroup.co en la configuración del sitio.
+                    </p>
+                  )}
                   {grupos.isLoading && <p className="px-4 py-6 text-center text-[12.5px] text-muted">Cargando grupos…</p>}
                   {!grupos.isLoading && listaGrupos.length === 0 && (
                     <p className="px-4 py-10 text-center text-[13px] text-muted">Todavía no hay grupos del equipo.</p>

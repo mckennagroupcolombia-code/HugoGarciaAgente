@@ -35,7 +35,32 @@ export type MensajeCanal = {
   creado_en: number;
 };
 
-export type ModuloCanal = { clave: string; nombre: string; panel: string; item: string };
+export type ModuloCanal = {
+  clave: string; nombre: string; panel: string; item: string;
+  /** Categoría de tickets que el grupo también muestra (Compras en el exterior → importaciones). */
+  categoria?: string;
+  /** Tipo de solicitud que propone «Solicitar a…» en este grupo. */
+  tipo_solicitud?: string;
+};
+
+/** Clasificación de «Solicitar a…» (canales_vinculos.TIPOS_SOLICITUD). */
+export type TipoSolicitud = { clave: string; nombre: string; categoria: string; modulo: string };
+
+/** Solicitud abierta que vive en un grupo (o de la categoría de su módulo). */
+export type SolicitudCanal = {
+  id: number;
+  numero: string;
+  titulo: string;
+  estado: string;
+  prioridad: string | null;
+  asignado_a: number | null;
+  asignado_nombre: string | null;
+  fecha_limite: string | null;
+  mensaje_id: number | null;
+  tipo: string | null;
+  ref: RefMensaje | null;
+  origen: "grupo" | "modulo";
+};
 
 /** Elemento de un módulo vinculado en un mensaje. */
 export type RefMensaje = { modulo: string; id: string; titulo: string; detalle: string };
@@ -44,6 +69,7 @@ export type RespCanalesEquipo = {
   canales: CanalEquipo[];
   puede_administrar: boolean;
   modulos: ModuloCanal[];
+  tipos_solicitud: TipoSolicitud[];
   grupos_wa: { jid: string; nombre: string; enlazado: boolean }[];
 };
 
@@ -83,6 +109,15 @@ export function useEnviarCanal(canalId: number | null) {
       void qc.invalidateQueries({ queryKey: ["canales-equipo-mensajes", canalId] });
       void qc.invalidateQueries({ queryKey: ["canales-equipo"] });
     },
+  });
+}
+
+export function useSolicitudesCanal(canalId: number | null) {
+  return useQuery<{ solicitudes: SolicitudCanal[] }>({
+    queryKey: ["canales-equipo-solicitudes", canalId],
+    queryFn: () => api.get(`/api/canales/${canalId}/solicitudes`),
+    enabled: canalId != null,
+    refetchInterval: 15_000,
   });
 }
 

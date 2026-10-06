@@ -5095,3 +5095,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `POST /api/formulas/leer-captura` → `app/services/formulas_captura.py`: Gemini Vision (`_gemini_vision`, 80 s, contexto `formulas_captura`) solo transcribe; Python calcula el % (kg/mg/L/oz/gotas a g o mL, g y mL 1:1 con aviso, fila TOTAL ignorada, redondeo que suma exactamente 100). Si solo hay %, se normalizan a 100.
 - **Verificado:** captura sintética de 5 ingredientes (1000 g) → 70/15/5/8/2 % por la ruta real; `npm run build`.
 - **Archivos Modificados:** `app/services/formulas_captura.py`, `app/routes_formulas.py`, `desktop/src/components/formulas/FormulasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Solicitudes dentro de cada grupo
+- Tabla `canal_solicitudes` (tickets.db): solicitud ↔ grupo, mensaje de origen y fecha límite (tickets no tiene vencimiento).
+- `GET/POST /api/canales/<id>/solicitudes`; Compras en el exterior muestra también las de categoría importaciones.
+- `SolicitudesDelGrupo.tsx` arriba del hilo: abiertas con tipo/responsable/estado/vence y «Ver →»; «Solicitar a…» (cabecera y bloque) y «→ tarea» piden persona, tipo (Pago, Compra, Publicación, Etiqueta, Documento técnico, Fórmula, Envío, Otra; propuesto por el grupo, `canales_vinculos.TIPOS_SOLICITUD` → categoría de tickets) y enlace al detalle (ref); crean con POST /api/tickets/ y la dejan en el grupo con aviso de sistema. Reemplaza «Reportar incidente».
+- Avisos de mensajes (`canales_avisos.py`): Web Push tipo «chat-mensaje» a los demás del grupo (1 cada 2 min por grupo, silencio 22-07; nunca WhatsApp); `GET /api/canales/novedades`, `POST /api/canales/push`; `sw-alarm.js` lo muestra si la app no está a la vista; `useAvisosMensajes` (tarjeta + sonido) y «🔔 Activar avisos» en Grupos.
