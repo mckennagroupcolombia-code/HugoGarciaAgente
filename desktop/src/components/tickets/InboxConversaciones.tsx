@@ -6,6 +6,8 @@ import {
   type Conversacion,
 } from "../../hooks/useConversaciones";
 import HiloConversacion, { Avatar, CLAVE_HILO_ACTUAL } from "./HiloConversacion";
+import BandejaUnificada from "./BandejaUnificada";
+import { useBandejaAngosta } from "../../lib/bandeja";
 import { tiempoRelativo, ESTADO_LABEL, estaAbierta, uidEq } from "./ticketsFormat";
 import "./hiloPixel.css";
 
@@ -110,10 +112,7 @@ function ConversacionRow({
  * acción es un solo botón; y el historial de las hechas queda plegado al final, sin estorbar.
  * Solicitudes y acciones van juntas por defecto (una sola lista), con la etiqueta de cuál es.
  */
-export default function InboxConversaciones({
-  token, user, bootTicketId, onBootConsumed, bootTipo, onBootTipoConsumed,
-  onCrearSolicitud, onCrearAccion,
-}: {
+type PropsInbox = {
   token: string;
   user: TicketsUser;
   bootTicketId?: number | null;
@@ -123,7 +122,30 @@ export default function InboxConversaciones({
   onBootTipoConsumed?: () => void;
   onCrearSolicitud?: () => void;
   onCrearAccion?: () => void;
-}) {
+};
+
+/** En pantallas angostas (celular, tableta vertical) la bandeja es la unificada: solicitudes y
+ *  grupos juntos en Te toca · Enterarte · Haciendo (BandejaUnificada). En escritorio, la de siempre. */
+export default function InboxConversaciones(props: PropsInbox) {
+  const angosta = useBandejaAngosta();
+  // La bandeja unificada no filtra por tipo: el filtro pedido desde otra pantalla se descarta.
+  useEffect(() => {
+    if (angosta && props.bootTipo) props.onBootTipoConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [angosta, props.bootTipo]);
+  if (angosta) {
+    return (
+      <BandejaUnificada token={props.token} user={props.user} bootTicketId={props.bootTicketId} onBootConsumed={props.onBootConsumed}
+                        onCrearSolicitud={props.onCrearSolicitud} onCrearAccion={props.onCrearAccion} />
+    );
+  }
+  return <InboxEscritorio {...props} />;
+}
+
+function InboxEscritorio({
+  token, user, bootTicketId, onBootConsumed, bootTipo, onBootTipoConsumed,
+  onCrearSolicitud, onCrearAccion,
+}: PropsInbox) {
   const nivel = user.rol?.nivel ?? 1;
   const permisos = user.permisos_secciones;
   const verAcciones = puedeVerTipo(permisos, nivel, "acciones");

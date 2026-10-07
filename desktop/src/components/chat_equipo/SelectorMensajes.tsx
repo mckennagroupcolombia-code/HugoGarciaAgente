@@ -26,6 +26,13 @@ export function guardarVistaMensajes(v: VistaMensajes) {
   }
 }
 
+/** Cambia «Mensajes» a otra parte desde dentro de la bandeja (MensajesConGrupos escucha). */
+export const EVENTO_VISTA_MENSAJES = "mck-mensajes-vista";
+export function irAVistaMensajes(v: VistaMensajes) {
+  guardarVistaMensajes(v);
+  window.dispatchEvent(new CustomEvent<VistaMensajes>(EVENTO_VISTA_MENSAJES, { detail: v }));
+}
+
 export function SelectorMensajes({
   actual, onCambiar, conSolicitudes = true,
 }: {

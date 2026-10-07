@@ -1,3 +1,14 @@
+### 2026-10-07 - Bandeja unificada en el celular: Te toca · Enterarte · Haciendo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Mensajes en el celular y la tableta). Sin LLM, sin cambios en el servidor.
+- **Qué se implementó:**
+  - Mensajes es **una sola lista**: solicitudes, tareas y grupos juntos, en tres pestañas con su número. **Te toca** reúne lo que te pidieron y lo que pediste y ya te entregaron (falta finalizarlo). **Enterarte** reúne lo que lleva otra persona y los grupos con mensajes nuevos. **Haciendo** reúne lo que tienes en curso.
+  - Filas de dos líneas con el color de cada persona o grupo: caben ~8 conversaciones en la pantalla (antes 1,5). El buscador encuentra solicitudes, personas y grupos; el «＋» pide algo o crea una tarea (también en la pestaña Mensajes de la barra de abajo).
+  - **Un solo número** en la barra de abajo, la burbuja y la bandeja: lo que te toca + lo abierto con algo sin leer. Antes cada lugar contaba distinto (17 · 83 · 14). Las solicitudes ya resueltas con avisos automáticos sin leer pasan al historial y no cuentan.
+  - En el celular, la burbuja lleva a la bandeja en vez de abrir otra ventana con lo mismo. «Todos los grupos» va plegado al final de Enterarte; quien administra tiene «Administrar grupos».
+  - En el computador, la bandeja de siempre no cambió.
+- **Archivos Modificados:** `desktop/src/lib/bandeja.ts` (nuevo), `desktop/src/components/tickets/{BandejaUnificada.tsx,bandeja.css}` (nuevos), `desktop/src/components/tickets/InboxConversaciones.tsx`, `desktop/src/components/chat_equipo/{MensajesConGrupos,SelectorMensajes}.tsx`, `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `desktop/src/components/MobileHub.tsx`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - Celular: sin Edificio y Mensajes/Grupos compactos
 - **Autor:** Armando García
 - **Tipo de Cambio:** Limpieza + mejora de UX en el celular (Mapa, Mensajes → Solicitudes/Grupos). Sin LLM.

@@ -20,6 +20,7 @@ import { guardarVistaMensajes } from "../chat_equipo/SelectorMensajes";
 import { useAvisosMensajes, type AvisoMensaje } from "../../hooks/useAvisosMensajes";
 import "../chat_equipo/chatEquipo.css";
 import { colorDePersona } from "../../lib/personaColor";
+import { useBandeja, useBandejaAngosta } from "../../lib/bandeja";
 
 /**
  * Burbuja de chat global (portal a body, mismo patrón que CrearSiigoFab): mensajería
@@ -111,6 +112,10 @@ export default function SolicitudesEnProcesoFab() {
     .filter((c) => c.estado === "pendiente" || c.estado === "en_proceso" || c.estado === "esperando_aprobacion")
     .sort((a, b) => b.ultima_actividad.localeCompare(a.ultima_actividad));
   const noLeidos = enProceso.reduce((n, c) => n + (c.no_leidos || 0), 0);
+  // El número de la bolita es el mismo de la barra de abajo y de la bandeja: lo que te toca +
+  // lo que tiene algo nuevo (lib/bandeja.ts). En pantalla angosta tocarla lleva a la bandeja.
+  const porAtender = useBandeja().porAtender;
+  const angosta = useBandejaAngosta();
   const visibles = soloSinLeer ? enProceso.filter((c) => c.no_leidos > 0) : enProceso;
   const chat = chatId != null
     ? enProceso.find((c) => c.id === chatId) ?? (recien?.id === chatId ? recien : null)
@@ -506,26 +511,23 @@ export default function SolicitudesEnProcesoFab() {
 
       <button
         type="button"
-        onClick={() => setAbierta((v) => !v)}
+        onClick={() => (angosta && !abierta ? irA() : setAbierta((v) => !v))}
         className={`pointer-events-auto group relative flex h-14 w-14 items-center justify-center rounded-full border-2 shadow-paper-lg transition active:scale-95 ${
           abierta
             ? "border-accent bg-accent text-white"
             : "border-accent/70 bg-surface-panel text-accent hover:border-accent hover:bg-accent hover:text-white"
         }`}
-        title={noLeidos + noLeidosGrupos > 0 ? `${noLeidos + noLeidosGrupos} mensaje(s) sin leer` : "Chat del equipo"}
+        title={porAtender > 0 ? `${porAtender} por atender` : "Chat del equipo"}
         aria-label={abierta ? "Cerrar chat del equipo" : "Abrir chat del equipo"}
         aria-expanded={abierta}
       >
-        {(noLeidos + noLeidosGrupos > 0 || enProceso.length > 0) && (
+        {porAtender > 0 && (
           <span
             className={`absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-black text-white shadow-sm ${
               noLeidos + noLeidosGrupos > 0 ? "bg-emerald-500 animate-pulse" : "bg-accent"
             }`}
           >
-            {(() => {
-              const n = noLeidos + noLeidosGrupos > 0 ? noLeidos + noLeidosGrupos : enProceso.length;
-              return n > 99 ? "99+" : n;
-            })()}
+            {porAtender > 99 ? "99+" : porAtender}
           </span>
         )}
         <Icon name="chat" size={24} weight={abierta ? "bold" : "regular"} />

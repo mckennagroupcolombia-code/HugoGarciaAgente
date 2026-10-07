@@ -144,6 +144,16 @@ buscador va detrás de la lupa ⌕. En Mensajes/Grupos no salen la calculadora f
 `BarraMovil`, porque tapaban la hora de las filas y el botón de enviar. `chat-equipo` está en
 `PanelTransition.fillHeight`: el chat mide su alto con flex, no con `calc(100dvh-…)`. El botón
 «Vista móvil» (salir de la vista escritorio forzada) ya se ve también en < 640 px.
+**Bandeja unificada (7-oct-2026):** en pantallas < 1024 px, `InboxConversaciones` entrega
+`BandejaUnificada.tsx`. Solicitudes, acciones y grupos van en una sola lista con tres pestañas: **Te toca**
+(pendientes asignadas a mí o sin dueño que pidió otra persona, y las que pedí y ya me entregaron),
+**Enterarte** (lo abierto que lleva otra persona y los grupos con mensajes sin leer; los demás grupos van
+plegados) y **Haciendo** (en proceso a mi nombre; el historial va plegado al final). Las reglas viven en
+`lib/bandeja.ts::seccionDe`. Una solicitud **cerrada** va al historial aunque tenga mensajes sin leer
+(suelen ser avisos automáticos). `useBandeja().porAtender` = Te toca + lo abierto con algo sin leer: es
+el único número de la barra de abajo, de la burbuja y de la bandeja. En pantalla angosta la burbuja
+lleva a la bandeja y no abre su ventana. El selector Solicitudes/Grupos solo aparece en la lista completa de
+Grupos («Administrar grupos», evento `mck-mensajes-vista`). El escritorio no cambió.
 
 ### Paneles disponibles
 

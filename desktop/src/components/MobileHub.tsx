@@ -8,7 +8,7 @@ import { modoAvanzadoEfectivo } from "../lib/adminAccess";
 import { useUiMode } from "../stores/uiMode";
 import { useAppStore, type Panel, type MobileHubTab } from "../stores/app";
 import { usePanelChatMutation } from "../hooks/useChat";
-import { useConversaciones } from "../hooks/useConversaciones";
+import { useBandeja } from "../lib/bandeja";
 import InboxConversaciones from "./tickets/InboxConversaciones";
 import MensajesConGrupos from "./chat_equipo/MensajesConGrupos";
 import { salirDelPanel } from "../hooks/usePanelSession";
@@ -625,10 +625,9 @@ export function BarraMovil({
 }) {
   const token = useTicketsAuth((s) => s.token);
   const [sheetOpen, setSheetOpen] = useState(false);
-  // Total de no-leídos (mías, todas las conversaciones) para el aviso de Mensajes.
-  const { data: conversaciones = [] } = useConversaciones("todas", "mias");
-  const noLeidos = conversaciones.reduce((acc, c) => acc + c.no_leidos, 0);
-  const badges: Partial<Record<Tab, number>> = { mensajes: noLeidos };
+  // El mismo número de la bandeja y de la burbuja: lo que te toca + lo que tiene algo nuevo.
+  const porAtender = useBandeja().porAtender;
+  const badges: Partial<Record<Tab, number>> = { mensajes: porAtender };
 
   return (
     <>
@@ -695,6 +694,8 @@ export default function MobileHub({
   const { user, token, apiToken } = useTicketsAuth();
   const setPanel = useAppStore((s) => s.setPanel);
   const tab = useAppStore((s) => s.mobileTab);
+  // «＋» de la bandeja: el mismo formulario de nueva solicitud que el de «Rápido».
+  const [nuevaAbierta, setNuevaAbierta] = useState(false);
   const setTab = useAppStore((s) => s.setMobileTab);
 
   const navigateTo = useCallback((p: Panel) => {
@@ -731,7 +732,7 @@ export default function MobileHub({
         {tab === "mensajes" && user && (
           <div className="flex h-full overflow-hidden">
             <MensajesConGrupos>
-              <InboxConversaciones token={token} user={user} />
+              <InboxConversaciones token={token} user={user} onCrearSolicitud={() => setNuevaAbierta(true)} />
             </MensajesConGrupos>
           </div>
         )}
@@ -739,6 +740,7 @@ export default function MobileHub({
         {tab === "yo" && <PerfilTab onSwitchDesktop={onSwitchDesktop} onNavigateTo={navigateTo} />}
       </div>
 
+      <NuevaSolicitudSheet open={nuevaAbierta} onClose={() => setNuevaAbierta(false)} token={token} onCreated={() => {}} />
       {/* «+» solo en Rápido: en Mensajes el botón Enviar del hilo queda en esa misma esquina. */}
       <BarraMovil
         active={tab}
