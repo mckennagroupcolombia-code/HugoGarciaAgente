@@ -232,7 +232,7 @@ html[data-mck-skin="peach"] .mck-hub-tab:not(.is-active):hover { background: rgb
 html[data-mck-skin="peach"] .mck-hub-tab.is-active { background: rgb(var(--mck-accent)); color: #fff; }
 
 /* ─── Detalles monoespaciados: contadores, encabezados, placas ──────────────── */
-html[data-mck-skin="peach"] :is(thead th, .mck-piso-placa, .mck-flujo-conteo, .mck-flujo-miga, kbd, code) {
+html[data-mck-skin="peach"] :is(thead th, .mck-flujo-conteo, .mck-flujo-miga, kbd, code) {
   font-family: "JetBrains Mono", ui-monospace, monospace;
 }
 html[data-mck-skin="peach"] thead th {
@@ -250,7 +250,6 @@ html[data-mck-skin="peach"] .mck-flujo-conteo {
   border: 1.5px solid #4A2040;
   box-shadow: 1px 1px 0 #4A2040;
 }
-html[data-mck-skin="peach"] .mck-piso-placa { background: #4A2040; color: #FFE9A0; }
 
 /* ─── Foco, selección y desplazamiento ────────────────────────────────────── */
 html[data-mck-skin="peach"] :is(input, select, textarea, button, a):focus-visible {

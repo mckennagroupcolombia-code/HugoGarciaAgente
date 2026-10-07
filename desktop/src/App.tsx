@@ -456,6 +456,7 @@ export default function App() {
   // "vista escritorio" explícitamente desde el hub si la necesita; al abrir paneles →
   // Layout responsive (mobileShell=app).
   const mobileTab = useAppStore((s) => s.mobileTab);
+  const centroMandoView = useAppStore((s) => s.centroMandoView);
   const setMobileTab = useAppStore((s) => s.setMobileTab);
   // «Agenda» en el celular ES la agenda de escritorio (Layout + navegación por flujo):
   // el hub solo pinta Hugo · Mensajes · Rápido · Yo. Antes el celular tenía su propia
@@ -696,13 +697,15 @@ export default function App() {
         barraMovil={
           isMobile && !forceDesktop ? (
             <BarraMovil
-              active="home"
+              active={panel === "chat-equipo" || ((panel === "hugo" || panel === "tickets") && centroMandoView === "mensajes") ? "mensajes" : "home"}
               onChange={(t) => {
                 if (t === "home") return irAgendaMovil();
                 setMobileTab(t);
                 setMobileShell("hub");
               }}
-              conNueva={panel === "hugo" || panel === "tickets"}
+              // En Mensajes no: el «+» flotante tapaba el botón de enviar del chat
+              // (la bandeja ya trae «Pedir algo»), igual que en el hub (MobileHub).
+              conNueva={(panel === "hugo" || panel === "tickets") && centroMandoView !== "mensajes"}
             />
           ) : undefined
         }

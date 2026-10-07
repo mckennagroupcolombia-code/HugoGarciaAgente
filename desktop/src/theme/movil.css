@@ -1,0 +1,43 @@
+/*
+ * Celular (< 640 px), 7-oct-2026: lo que importa es la lista, no el cromo.
+ * Antes, en Mensajes, el cabezote + las pestañas de la Agenda + los botones de crear + los
+ * contadores + los filtros + el buscador ocupaban ~60 % de la pantalla y cabían 1,5 filas.
+ * Va de último en main.tsx (después de todas las pieles) y sin @layer: manda sobre ellas.
+ */
+@media (max-width: 639px) {
+  /* Pestañas de la Agenda (Mapa · Mensajes · Colaboradores · Juegos): una línea de píldoras. */
+  .mck-flujo-vistas .mck-hub-tab.mck-hub-tab-etiquetado,
+  .mck-flujo-vistas .mck-hub-tab.mck-hub-tab-etiquetado:has(.mck-icon, .mck-illus-icon) {
+    flex-direction: row !important;
+    min-height: 0;
+    min-width: 0;
+    padding: 0.3rem 0.65rem;
+    gap: 0.3rem;
+    box-shadow: 1px 1px 0 rgb(var(--mck-sombra, 0 0 0));
+  }
+  .mck-flujo-vistas .mck-hub-tab :is(.mck-icon, .mck-illus-icon) { display: none; }
+  .mck-flujo-vistas .mck-hub-tab .mck-hub-tab-label { font-size: 13px; }
+
+  /* Bandeja de solicitudes (InboxConversaciones): crear, contadores y filtros en poco alto. */
+  .hp-bandeja-cabeza .hp-boton {
+    min-height: 38px;
+    padding: 6px 8px;
+    font-size: 13px;
+    white-space: nowrap;
+    box-shadow: 2px 2px 0 #000;
+  }
+  .hp-bandeja-cabeza .hp-contador {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center;
+    gap: 5px;
+    padding: 4px 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    box-shadow: 2px 2px 0 rgb(var(--mck-sombra, 0 0 0));
+  }
+  .hp-bandeja-cabeza .hp-contador b { font-size: 17px; }
+  .hp-bandeja-cabeza .hp-contador span { font-size: 10px; letter-spacing: 0; }
+  .hp-bandeja-cabeza .hp-boton-sm { min-height: 32px !important; padding: 4px 10px; font-size: 13px !important; }
+  .hp-bandeja-cabeza .hp-seguir { padding: 6px 10px; }
+}

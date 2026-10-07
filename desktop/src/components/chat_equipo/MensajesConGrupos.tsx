@@ -19,7 +19,7 @@ export default function MensajesConGrupos({ children }: { children: ReactNode })
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <SelectorMensajes actual={vista} onCambiar={cambiar} />
       {vista === "grupos" ? (
-        <div className="flex min-h-0 min-w-0 flex-1 p-2">
+        <div className="flex min-h-0 min-w-0 flex-1 p-2 max-sm:p-0">
           <ChatEquipoPanel embebido />
         </div>
       ) : (

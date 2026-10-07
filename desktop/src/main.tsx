@@ -11,8 +11,10 @@ import "./theme/skin-pixel-paleta.css";
 import "./theme/skin-barbie-pixel.css";
 // «Princesa Peach»: menú de videojuego retro en pastel (reemplaza a Sakura, 26-sep-2026).
 import "./theme/skin-peach-pixel.css";
-// El mapa (MapaVivo + Edificio) en la gama de color de cada tema.
+// El mapa (MapaVivo) en la gama de color de cada tema.
 import "./theme/mapa-temas.css";
+// Celular: compacta el cromo para que se vea la lista (va de último, manda sobre las pieles).
+import "./theme/movil.css";
 import { initFantasyPress } from "./lib/fantasyPress";
 import { escucharMonedasDelServidor } from "./lib/celebracionAprobado";
 

@@ -1,3 +1,14 @@
+### 2026-10-07 - Celular: sin Edificio y Mensajes/Grupos compactos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Limpieza + mejora de UX en el celular (Mapa, Mensajes → Solicitudes/Grupos). Sin LLM.
+- **Qué se implementó:**
+  - Se quitó la vista **Edificio** del Mapa, y con ella la placa «PB/P5» del cabezote. El Mapa queda como la única vista de inicio.
+  - En el celular, Mensajes muestra la lista mucho más arriba: pestañas de la Agenda en una sola línea, botones de crear y contadores más bajos, y el buscador detrás de la lupa ⌕. La primera solicitud pasó de aparecer a ~60 % de la pantalla a ~37 %.
+  - **Grupos**: sin el marco dentro de otro marco, un color propio para cada grupo y los que tienen mensajes sin leer arriba.
+  - **Chat responsivo**: el «+» de la barra de abajo tapaba el botón de enviar y la calculadora tapaba las filas; en Mensajes ya no salen. El chat de grupos toma el alto disponible en vez de una resta fija. La barra de abajo marca «Mensajes» cuando estás ahí.
+  - «Vista móvil» (para salir de la vista escritorio forzada) ahora también se ve en pantallas pequeñas.
+- **Archivos Modificados:** `desktop/src/components/{MapaVivo,Layout,mapaComun}.tsx`, `MapaEdificio.tsx` y `mapa-edificio.css` (borrados), `desktop/src/components/tickets/InboxConversaciones.tsx`, `desktop/src/components/chat_equipo/{ChatEquipoPanel,MensajesConGrupos}.tsx`, `desktop/src/components/nav/CalculadoraFab.tsx`, `desktop/src/components/ui/PanelTransition.tsx`, `desktop/src/App.tsx`, `desktop/src/main.tsx`, `desktop/src/theme/{movil.css (nuevo),skin-pixel.css,skin-peach-pixel.css,mapa-temas.css}`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`.
+
 ### 2026-10-06 - Anticipos sin retención + guía del dinero como wizard
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección contable + mejora (Contabilidad → Solicitudes de pago). Sin LLM.

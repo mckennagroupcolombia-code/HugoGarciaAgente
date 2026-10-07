@@ -143,6 +143,8 @@ export default function InboxConversaciones({
   const [monton, setMonton] = useState<Monton | null>(null);
   const [verHechas, setVerHechas] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  // En el celular el buscador va detrás de la lupa: sin él caben más filas a la vista.
+  const [buscando, setBuscando] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [personaFiltro, setPersonaFiltro] = useState<number | null>(null);
   const [actualId, setActualId] = useState<number | null>(() => {
@@ -273,7 +275,7 @@ export default function InboxConversaciones({
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className={`flex w-full flex-col border-r-2 border-ink lg:w-[400px] lg:shrink-0 ${selectedId != null ? "hidden lg:flex" : "flex"}`}>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="space-y-3 border-b-2 border-ink p-3">
+          <div className="hp-bandeja-cabeza space-y-3 border-b-2 border-ink p-3 max-sm:space-y-2 max-sm:p-2">
             {/* Crear en un toque: sin pasar por pestañas. */}
             {(onCrearSolicitud && verSolicitudes) || (onCrearAccion && verAcciones) ? (
               <div className="grid grid-cols-2 gap-2">
@@ -323,16 +325,19 @@ export default function InboxConversaciones({
             )}
 
             <div className="flex gap-1.5 overflow-x-auto pb-1">
+              <button type="button" className={`${chip(buscando || busqueda.trim() !== "")} sm:hidden`} aria-label="Buscar"
+                      aria-expanded={buscando} onClick={() => setBuscando((v) => !v)}>⌕</button>
               <button type="button" className={chip(quien === "me_toca")} onClick={() => setQuien("me_toca")}>Me toca</button>
               <button type="button" className={chip(quien === "pedi")} onClick={() => setQuien("pedi")}>Pedí yo</button>
               <button type="button" className={chip(quien === "todo")} onClick={() => setQuien("todo")}>Todo</button>
               <button type="button" className={chip(quien === "persona")} onClick={() => setQuien("persona")}>Por persona</button>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className={`flex items-center gap-1.5 ${buscando || busqueda.trim() || (verAmbos && tipo !== "todas") ? "" : "max-sm:hidden"}`}>
               <input
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 placeholder="Buscar…"
+                autoFocus={buscando}
                 className="hp-campo min-w-0 flex-1 px-3 py-2 !text-[16px]"
               />
               {verAmbos && (

@@ -8,7 +8,7 @@ import DisenoNavTabs from "./nav/DisenoNavTabs";
 import DocsNavTabs from "./nav/DocsNavTabs";
 import InicioNavTabs from "./nav/InicioNavTabs";
 import { ORIGEN_APP, ubicacionDe } from "../lib/flujoApp";
-import { COLOR, COLOR_DEF, placaDePiso } from "./mapaComun";
+import { COLOR, COLOR_DEF } from "./mapaComun";
 import { puedeVerSeccionPanel } from "../lib/panelAccess";
 import EquipoConectadoBar from "./nav/EquipoConectadoBar";
 import UserMenuButton from "./nav/UserMenuButton";
@@ -68,11 +68,11 @@ export default function Layout({
   const enFamiliaAgenda = enOrigen || panel === "colaboradores" || panel === "juegos" || panel === "chat-equipo";
   const puedeVerMapa = Boolean(user && puedeVerSeccionPanel(user, "mapa-vivo"));
   const ubicacion = ubicacionDe(panel);
-  // El piso del Edificio donde queda este módulo (la piel pixel lo dibuja: placa, losa y color).
+  // El color de la etapa donde queda este módulo (la piel pixel lo dibuja en la losa y las tablas).
   const piso = enOrigen
-    ? { id: "inicio", placa: "PB", fondo: "#FFEC27", tinta: "#000" }
+    ? { id: "inicio", fondo: "#FFEC27", tinta: "#000" }
     : ubicacion
-      ? { id: ubicacion.etapa.id, placa: placaDePiso(ubicacion.etapa.id), ...(COLOR[ubicacion.etapa.id] ?? COLOR_DEF) }
+      ? { id: ubicacion.etapa.id, ...(COLOR[ubicacion.etapa.id] ?? COLOR_DEF) }
       : null;
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   const isCentroMando = panel === "hugo" || panel === "tickets";
@@ -142,7 +142,7 @@ export default function Layout({
         )}
         {!studioEtiquetasFill && (
         <header
-          className="mck-header-glass z-30 flex shrink-0 flex-col gap-2 border-b border-border/80 px-3 py-2 shadow-paper-sm sm:gap-2.5 sm:px-4 sm:py-2.5"
+          className="mck-header-glass z-30 flex shrink-0 flex-col gap-2 border-b border-border/80 px-3 py-2 shadow-paper-sm max-sm:gap-1.5 max-sm:py-1.5 sm:gap-2.5 sm:px-4 sm:py-2.5"
           style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}
         >
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
@@ -183,8 +183,8 @@ export default function Layout({
                 /* Flujo: la miga dice en qué punto de la secuencia estás; el título, el panel. */
                 <>
                   <div className="min-w-0">
-                    <p className="mck-flujo-miga truncate font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
-                      {piso?.placa && <span className="mck-piso-placa hidden" title="El piso de este módulo en el Edificio">{piso.placa}</span>}
+                    {/* En el celular, dentro de la Agenda, las pestañas de abajo ya dicen dónde estás. */}
+                    <p className={`mck-flujo-miga truncate font-mono text-[10px] font-bold uppercase tracking-wider text-muted ${enFamiliaAgenda ? "max-sm:hidden" : ""}`}>
                       {enOrigen
                         ? "Inicio"
                         : ubicacion
@@ -195,7 +195,7 @@ export default function Layout({
                               ? "Todo el flujo"
                               : "Fuera de la secuencia"}
                     </p>
-                    <h1 className="mck-title truncate text-[22px] font-bold leading-tight tracking-tight">
+                    <h1 className="mck-title truncate text-[22px] font-bold leading-tight tracking-tight max-sm:text-[18px]">
                       {enOrigen ? ORIGEN_APP.titulo : headerTitle}
                     </h1>
                   </div>
@@ -245,7 +245,8 @@ export default function Layout({
               <button
                 type="button"
                 onClick={onExitForceDesktop}
-                className="mck-press hidden shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] font-bold text-muted hover:bg-surface-hover hover:text-ink sm:inline lg:hidden"
+                className="mck-press shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] font-bold text-muted hover:bg-surface-hover hover:text-ink lg:hidden"
+                title="Volver a la vista del celular, con la barra de abajo"
               >
                 Vista móvil
               </button>

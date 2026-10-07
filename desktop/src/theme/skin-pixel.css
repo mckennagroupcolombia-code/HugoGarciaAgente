@@ -204,19 +204,10 @@ html[data-mck-skin] thead th {
   border-bottom: 2px solid rgb(var(--mck-sombra));
 }
 
-/* ─── Cada módulo es un piso del Edificio (MapaEdificio.tsx) ──────────────────
-   Layout.tsx pone en <main> el piso del módulo abierto (data-piso) y su color (--mck-piso):
-   la placa «P5» en la miga, la losa de color bajo el cabezote, la pared con rayas del piso
-   y el encabezado de las tablas teñido. Se entra con puertas de ascensor. */
-html[data-mck-skin] .mck-piso-placa {
-  display: inline-block;
-  margin-right: 6px;
-  padding: 0 5px;
-  background: #000;
-  color: #FFEC27;
-  box-shadow: 2px 0 0 var(--mck-piso), -2px 0 0 var(--mck-piso), 0 2px 0 var(--mck-piso), 0 -2px 0 var(--mck-piso);
-  letter-spacing: 0.02em;
-}
+/* ─── Cada módulo lleva el color de su etapa del Mapa ──────────────────────────
+   Layout.tsx pone en <main> la etapa del módulo abierto (data-piso) y su color (--mck-piso):
+   la losa de color bajo el cabezote, la pared con rayas y el encabezado de las tablas teñido.
+   (La placa «P5» del Edificio se retiró con él, 7-oct-2026.) */
 html[data-mck-skin] main[data-piso] .mck-header-glass {
   border-bottom: 8px solid var(--mck-piso);
   box-shadow: 0 3px 0 rgb(var(--mck-sombra));

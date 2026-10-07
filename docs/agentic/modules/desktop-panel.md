@@ -136,6 +136,14 @@ entrar desde el 21-sep). Cualquier pantalla de ingreso nueva debe detectar el UA
 `googleAuthStartUrl()`. **Celular (23-sep-2026):** «Agenda» es la misma agenda de escritorio (Layout +
 FlujoNav) con la barra inferior `BarraMovil` (Agenda · Hugo · Mensajes · Rápido · Yo); el hub solo pinta
 esas cuatro pestañas, con el mismo lenguaje de la piel «flujo».
+**Celular compacto (7-oct-2026):** se retiró la vista **Edificio** del Mapa (`MapaEdificio.tsx`,
+`mapa-edificio.css` y la placa «PB/P5» del cabezote); el Mapa es la única vista de inicio. El color de
+la etapa en `<main data-piso>` se conserva. `theme/movil.css` (importado de último en `main.tsx`)
+compacta en < 640 px las pestañas de la Agenda y la cabecera de la bandeja (`.hp-bandeja-cabeza`). El
+buscador va detrás de la lupa ⌕. En Mensajes/Grupos no salen la calculadora flotante ni el «+» de
+`BarraMovil`, porque tapaban la hora de las filas y el botón de enviar. `chat-equipo` está en
+`PanelTransition.fillHeight`: el chat mide su alto con flex, no con `calc(100dvh-…)`. El botón
+«Vista móvil» (salir de la vista escritorio forzada) ya se ve también en < 640 px.
 
 ### Paneles disponibles
 

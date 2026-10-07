@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
+import { useAppStore } from "../../stores/app";
 import { Icon } from "../../icons";
 import { CalculadoraPad } from "../CalculadoraMagica";
 import FloatingToolWindow, { defaultFloatRect } from "../FloatingToolWindow";
@@ -14,6 +15,9 @@ import FloatingToolWindow, { defaultFloatRect } from "../FloatingToolWindow";
 export default function CalculadoraFab() {
   const [abierta, setAbierta] = useState(false);
   const user = useTicketsAuth((s) => s.user);
+  // En el celular, dentro de Mensajes/Grupos, la burbuja tapaba la hora y la etiqueta de cada fila.
+  const panel = useAppStore((s) => s.panel);
+  const enMensajes = panel === "hugo" || panel === "tickets" || panel === "chat-equipo";
 
   useEffect(() => {
     if (!abierta) return;
@@ -31,7 +35,7 @@ export default function CalculadoraFab() {
       {createPortal(
         <div
           data-fab="calculadora"
-          className="pointer-events-none fixed bottom-5 right-[5.25rem] z-[900] max-md:bottom-[5.5rem] sm:bottom-6 sm:right-[5.75rem]"
+          className={`pointer-events-none fixed bottom-5 right-[5.25rem] z-[900] max-md:bottom-[5.5rem] sm:bottom-6 sm:right-[5.75rem] ${enMensajes && !abierta ? "max-md:hidden" : ""}`}
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
           <button

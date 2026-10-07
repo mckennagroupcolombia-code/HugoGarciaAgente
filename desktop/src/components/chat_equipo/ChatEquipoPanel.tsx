@@ -7,6 +7,7 @@ import { SelectorMensajes, guardarVistaMensajes } from "./SelectorMensajes";
 import HiloCanal from "./HiloCanal";
 import NuevoCanal from "./NuevoCanal";
 import { sonidoPorId, useAlertasSonido } from "../../lib/alertasSonido";
+import { colorDePersona } from "../../lib/personaColor";
 import "./chatEquipo.css";
 
 /**
@@ -71,12 +72,16 @@ export default function ChatEquipoPanel({ embebido = false }: { embebido?: boole
     }
   }, [sel]);
 
-  const filtrados = canales.filter((c) => !q.trim() || c.nombre.toLowerCase().includes(q.trim().toLowerCase()));
+  // Lo que tiene mensajes sin leer va primero; después, lo que se movió más reciente.
+  const filtrados = canales
+    .filter((c) => !q.trim() || c.nombre.toLowerCase().includes(q.trim().toLowerCase()))
+    .sort((a, b) => (b.no_leidos > 0 ? 1 : 0) - (a.no_leidos > 0 ? 1 : 0) || (b.ultimo?.creado_en ?? 0) - (a.ultimo?.creado_en ?? 0));
 
   const contenido = (
-    <div className={embebido ? "flex min-h-0 w-full min-w-0 flex-1 gap-2" : "mx-auto flex h-[calc(100dvh-235px)] min-h-[440px] max-md:h-[calc(100dvh-295px-env(safe-area-inset-bottom))] max-md:min-h-[360px] w-full max-w-[1400px] gap-3"}>
+    <div className={embebido ? "flex min-h-0 w-full min-w-0 flex-1 gap-2" : "mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 gap-3"}>
       {/* Lista de canales (en móvil se oculta cuando hay uno abierto) */}
-      <aside className={`${actual || creando ? "hidden lg:flex" : "flex"} w-full min-w-0 flex-col rounded-2xl border border-border bg-surface-panel p-2.5 lg:w-[340px] lg:shrink-0`}>
+      {/* En el celular sin marco propio: la lista ya está dentro de Mensajes (nada de cuadro dentro de cuadro). */}
+      <aside className={`${actual || creando ? "hidden lg:flex" : "flex"} w-full min-w-0 flex-col rounded-2xl border border-border bg-surface-panel p-2.5 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:p-1 lg:w-[340px] lg:shrink-0`}>
         <div className="flex items-center gap-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 Buscar grupo…"
             className="min-w-0 flex-1 rounded-full border border-border bg-surface-input px-4 py-2.5 text-[15px]" />
@@ -97,9 +102,10 @@ export default function ChatEquipoPanel({ embebido = false }: { embebido?: boole
             const sonido = sonidoPorId(sonidosCanal[String(c.id)]);
             return (
               <button key={c.id} onClick={() => { setSel(c.id); setCreando(false); }}
-                className={`mck-btn-no-fx flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+                className={`mck-btn-no-fx flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition max-sm:py-2 ${
                   c.id === sel ? "border-accent bg-accent/10 shadow-sm" : sinLeer ? "border-accent/40 bg-surface hover:border-accent" : "border-transparent bg-surface hover:border-border"}`}>
-                <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-[19px] font-black text-accent">
+                <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[19px] font-black text-white max-sm:h-10 max-sm:w-10"
+                      style={{ background: colorDePersona(c.nombre) }}>
                   {c.nombre.slice(0, 1).toUpperCase()}
                   {sonido && <span className="absolute -bottom-1 -right-1 text-[15px] leading-none" title={`Suena: ${sonido.nombre}`}>{sonido.icono}</span>}
                 </span>
@@ -146,7 +152,7 @@ export default function ChatEquipoPanel({ embebido = false }: { embebido?: boole
   if (embebido) return contenido;
   // Abierto como panel propio (campana, burbuja): el mismo selector para volver a Solicitudes.
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-2">
+    <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col gap-2">
       <SelectorMensajes actual="grupos" conSolicitudes={conSolicitudes} onCambiar={(v) => { if (v === "solicitudes") irSolicitudes(); }} />
       {contenido}
     </div>
