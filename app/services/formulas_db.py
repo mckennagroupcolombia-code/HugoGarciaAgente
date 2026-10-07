@@ -44,13 +44,62 @@ def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
+# Alegra guarda los nombres sin tildes y con algún error; las fórmulas y la Composición de
+# los documentos técnicos los muestran corregidos. Palabra completa, respetando mayúsculas.
+_PALABRAS = {
+    "acido": "ácido", "lactico": "láctico", "glicolico": "glicólico", "hialuronico": "hialurónico",
+    "haluronico": "hialurónico", "kojico": "kójico", "ascorbico": "ascórbico", "salicilico": "salicílico",
+    "citrico": "cítrico", "jabon": "jabón", "potasico": "potásico", "caustica": "cáustica",
+    "caustico": "cáustico", "suspension": "suspensión", "solucion": "solución", "hidantoina": "hidantoína",
+    "dipropilengicol": "dipropilenglicol", "formula": "fórmula",
+}
+_FRASES = [
+    (r"\bAZUL METILENO\b", "AZUL DE METILENO"),
+    (r"\bAGUA ROSAS\b", "AGUA DE ROSAS"),
+    (r"\bEXTRACTO ALOE\b", "EXTRACTO DE ALOE"),
+]
+
+
+# Símbolo de la unidad: gramo «g», mililitro «mL», kilogramo «kg» (sin importar cómo venga de Alegra).
+_UNIDADES = {"G": "g", "GR": "g", "GRS": "g", "ML": "mL", "KG": "kg"}
+
+
+def ortografia(texto: str) -> str:
+    """«ACIDO  HALURONICO BAJO PESO» → «ÁCIDO HIALURÓNICO BAJO PESO»."""
+    t = " ".join(str(texto or "").split())
+    for patron, cambio in _FRASES:
+        t = re.sub(patron, lambda m: cambio if m.group(0).isupper() else cambio.capitalize(), t, flags=re.I)
+
+    # «50ML», «100 GR» → «50 mL», «100 g»
+    t = re.sub(r"(\d)\s*(GRS|GR|G|ML|KG)\b", lambda m: m.group(1) + " " + _UNIDADES[m.group(2).upper()], t, flags=re.I)
+
+    def palabra(m: re.Match) -> str:
+        w = m.group(0)
+        if w.upper() in _UNIDADES:
+            return _UNIDADES[w.upper()]
+        bien = _PALABRAS.get(w.lower())
+        if not bien:
+            return w
+        if w.isupper():
+            return bien.upper()
+        return bien[:1].upper() + bien[1:] if w[:1].isupper() else bien
+
+    return re.sub(r"[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+", palabra, t)
+
+
 def _load() -> list[dict]:
     try:
         with open(_ARCHIVO, encoding="utf-8") as fh:
             datos = json.load(fh)
     except FileNotFoundError:
         return []
-    return [f for f in (datos.get("formulas") if isinstance(datos, dict) else datos) or [] if isinstance(f, dict)]
+    formulas = [f for f in (datos.get("formulas") if isinstance(datos, dict) else datos) or [] if isinstance(f, dict)]
+    for f in formulas:
+        f["nombre"] = ortografia(f.get("nombre") or "")
+        for i in f.get("ingredientes") or []:
+            if isinstance(i, dict):
+                i["nombre"] = ortografia(i.get("nombre") or "")
+    return formulas
 
 
 def _save(formulas: list[dict]) -> None:
@@ -81,7 +130,7 @@ def _ingrediente(raw: Any) -> dict | None:
         return None
     return {
         "codigo": codigo,
-        "nombre": nombre or codigo,
+        "nombre": ortografia(nombre or codigo),
         "fase": _texto(raw.get("fase"), 20),
         "porcentaje": round(_numero(raw.get("porcentaje")), 4),
         "funcion": _texto(raw.get("funcion"), 120),
@@ -110,7 +159,7 @@ def _enlazar_alegra(ingredientes: list[dict]) -> list[dict]:
                 ).fetchone()
                 if fila:
                     i["codigo"] = str(fila["reference"])
-                    i["nombre"] = str(fila["name"] or fila["reference"]).strip()
+                    i["nombre"] = ortografia(str(fila["name"] or fila["reference"]).strip())
     except Exception:
         pass  # sin catálogo local se guarda como texto, igual que antes
     return ingredientes
@@ -147,7 +196,7 @@ def listar() -> list[dict]:
 
 
 def guardar(body: dict, autor: str = "") -> dict:
-    nombre = _texto(body.get("nombre"), 160)
+    nombre = ortografia(_texto(body.get("nombre"), 160))
     if not nombre:
         raise ValueError("La fórmula necesita un nombre")
     ingredientes = _enlazar_alegra([i for i in map(_ingrediente, body.get("ingredientes") or []) if i])

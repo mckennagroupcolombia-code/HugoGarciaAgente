@@ -318,6 +318,22 @@ def no_leidos_total(usuario: dict) -> int:
     return sum(c["no_leidos"] for c in listar_canales(usuario))
 
 
+def solicitudes_para_mi(usuario_id: int, limite: int = 8) -> list[dict]:
+    """Solicitudes abiertas asignadas a esta persona que pidió OTRA (las más nuevas).
+
+    La campana las consulta cada pocos segundos: el panel compara los ids con los que ya
+    vio y suena con el sonido elegido para quien la pidió. Solo lectura, sin LLM."""
+    with _conn() as c:
+        filas = c.execute(
+            "SELECT t.id, t.numero, t.titulo, t.creado_por, COALESCE(u.nombre, '') AS creado_por_nombre "
+            "FROM tickets t LEFT JOIN usuarios u ON u.id = t.creado_por "
+            "WHERE t.asignado_a=? AND t.creado_por != ? AND t.estado IN ('pendiente','en_proceso') "
+            "ORDER BY t.id DESC LIMIT ?",
+            (int(usuario_id), int(usuario_id), max(1, min(int(limite), 20))),
+        ).fetchall()
+    return [dict(f) for f in filas]
+
+
 # ── Mensajes ─────────────────────────────────────────────────────────────────
 
 def _fila_mensaje(r: sqlite3.Row) -> dict:

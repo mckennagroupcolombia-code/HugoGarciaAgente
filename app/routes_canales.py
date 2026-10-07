@@ -300,4 +300,10 @@ def register_canales_routes(app):
             out["notificaciones_no_leidas"] = NP.contar_no_leidas(int(u["id"]))
         except Exception:
             pass
+        try:
+            # Las últimas solicitudes abiertas que OTRA persona le hizo a esta: el panel
+            # suena distinto según quién la pidió (desktop/src/lib/alertasSonido.ts).
+            out["solicitudes_para_mi"] = CI.solicitudes_para_mi(int(u["id"]))
+        except Exception:
+            out["solicitudes_para_mi"] = []
         return jsonify(out)

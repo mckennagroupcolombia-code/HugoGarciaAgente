@@ -18,6 +18,8 @@ import HiloCanal from "../chat_equipo/HiloCanal";
 import BarraEscritura, { BotonCaja, IconoCamara, IconoClip } from "../chat_equipo/BarraEscritura";
 import { guardarVistaMensajes } from "../chat_equipo/SelectorMensajes";
 import { useAvisosMensajes, type AvisoMensaje } from "../../hooks/useAvisosMensajes";
+import "../chat_equipo/chatEquipo.css";
+import { colorDePersona } from "../../lib/personaColor";
 
 /**
  * Burbuja de chat global (portal a body, mismo patrón que CrearSiigoFab): mensajería
@@ -146,7 +148,8 @@ export default function SolicitudesEnProcesoFab() {
   }
 
   // Siempre visible (sirve para empezar un chat), salvo sin sesión o dentro del Centro de Mando.
-  const enCentroMando = panel === "hugo" || panel === "tickets";
+  // En el chat del equipo tampoco: la bolita tapaba el botón de enviar (el aviso sí sale).
+  const enCentroMando = panel === "hugo" || panel === "tickets" || panel === "chat-equipo";
   useEffect(() => {
     if (enCentroMando) setAbierta(false);
   }, [enCentroMando]);
@@ -156,6 +159,13 @@ export default function SolicitudesEnProcesoFab() {
   /** Tocar el aviso abre ese grupo: en la burbuja o, dentro de la Agenda, en Mensajes → Grupos. */
   function abrirAviso(a: AvisoMensaje) {
     cerrarAviso();
+    if (a.tipo === "solicitud") {
+      setCentroMandoView("mensajes");
+      setSolicitudBoot({ abrirTicketId: a.id });
+      setPanel("hugo");
+      setAbierta(false);
+      return;
+    }
     if (enCentroMando) {
       guardarVistaMensajes("grupos");
       try {
@@ -171,19 +181,26 @@ export default function SolicitudesEnProcesoFab() {
     setAbierta(true);
   }
 
+  const esSolicitud = aviso?.tipo === "solicitud";
   const tarjetaAviso = aviso && (
-    <div className="pointer-events-auto flex w-[min(calc(100vw-1.5rem),20rem)] items-start gap-2 rounded-paper-lg border-2 border-accent/60 bg-surface-panel p-2.5 shadow-paper-lg"
+    <div className={`mck-aviso-entra pointer-events-auto flex w-[min(calc(100vw-1.5rem),22rem)] items-start gap-2.5 rounded-paper-lg border-2 bg-surface-panel p-3 shadow-paper-lg ${
+      esSolicitud ? "border-amber-400" : "border-accent/60"}`}
       role="status" aria-live="polite">
-      <button type="button" onClick={() => abrirAviso(aviso)} className="mck-btn-no-fx flex min-w-0 flex-1 items-start gap-2 text-left">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[12px] font-black text-accent">
-          {(aviso.autor_nombre || "?").slice(0, 1).toUpperCase()}
+      <button type="button" onClick={() => abrirAviso(aviso)} className="mck-btn-no-fx flex min-w-0 flex-1 items-start gap-2.5 text-left">
+        <span className="relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-black text-white"
+          style={{ background: colorDePersona(aviso.autor_nombre) }}>
+          {iniciales(aviso.autor_nombre)}
+          {aviso.icono && <span className="absolute -bottom-1 -right-1 text-[15px] leading-none" aria-hidden>{aviso.icono}</span>}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[12px] font-bold text-ink">{aviso.autor_nombre} · {aviso.canal_nombre}</span>
-          <span className="line-clamp-2 block text-[12px] text-ink-secondary">{aviso.texto}</span>
+          <span className="block text-[11px] font-bold uppercase tracking-wide text-muted">
+            {esSolicitud ? `Te pidió algo · ${aviso.canal_nombre}` : aviso.canal_nombre}
+          </span>
+          <span className="block truncate text-[14px] font-bold text-ink">{aviso.autor_nombre}</span>
+          <span className="line-clamp-2 block text-[13.5px] leading-snug text-ink-secondary">{aviso.texto}</span>
         </span>
       </button>
-      <button type="button" onClick={cerrarAviso} className="mck-btn-no-fx px-1 text-[12px] text-muted hover:text-ink" aria-label="Cerrar aviso">✕</button>
+      <button type="button" onClick={cerrarAviso} className="mck-btn-no-fx px-1 text-[14px] text-muted hover:text-ink" aria-label="Cerrar aviso">✕</button>
     </div>
   );
 

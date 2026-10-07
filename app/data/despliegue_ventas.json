@@ -1,8 +1,8 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-06T00:55:06",
- "actualizado_por": "armando",
+ "actualizado": "2026-10-06T17:18:49",
+ "actualizado_por": "@cynthia",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
   "GTRVDR10ML12UN": {
@@ -93,6 +93,15 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO592969350"
+   ]
+  },
+  "C-SHA70550ML": {
+   "nombre": "SHAROMIX 705 50mL",
+   "titulo_meli": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO592968863"
    ]
   },
   "C-TEGBET500ML": {
@@ -195,6 +204,15 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO577075253"
+   ]
+  },
+  "C-DPAN50ML": {
+   "nombre": "D PANTENOL 50 mL",
+   "titulo_meli": "D-pantenol Vitamina B5 75%",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO585538997"
    ]
   },
   "C-TEGBETLT": {
@@ -600,6 +618,15 @@
     "MCO848321516"
    ]
   },
+  "C-ELAHID30ML": {
+   "nombre": "ELASTINA HIDROLIZADA 30mL",
+   "titulo_meli": "Elastina 30 Ml Activo Cosmético",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO615815832"
+   ]
+  },
   "C-ACEARGAN50ML": {
    "nombre": "ACEITE ARGAN 50 mL",
    "titulo_meli": "Aceite De Argán 50 Ml 100% Puro",
@@ -607,6 +634,15 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO594012281"
+   ]
+  },
+  "C-ACIGLI50P30ML": {
+   "nombre": "ACIDO GLICOLICO 50% 30mL",
+   "titulo_meli": "Ácido Glicólico 50%  30 Ml Todas",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO859831102"
    ]
   },
   "C-SORPOLKG": {
@@ -1019,6 +1055,15 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO1326787067"
+   ]
+  },
+  "C-ACIHIAALTPES85P30ML": {
+   "nombre": "ACIDO HIALURONICO ALTO PESO MOLECULAR 30mL",
+   "titulo_meli": "Ácido Hialurónico Solución 85% Todas",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1336703989"
    ]
   },
   "C-POLTWE20P250ML": {
@@ -1718,6 +1763,15 @@
     "MCO595161900"
    ]
   },
+  "C-ACIKOJ5P30ML": {
+   "nombre": "ACIDO KOJICO 5% 30mL",
+   "titulo_meli": "Acido Kojico  Todo Tipo De Piel Día/noche",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO600359078"
+   ]
+  },
   "C-LAN40G": {
    "nombre": "LANOLINA 40g",
    "titulo_meli": "Lanolina Pura  Anti Grietas 40 Gramos",
@@ -1890,20 +1944,6 @@
    "por_etiqueta": true
   },
   {
-   "meli_id": "MCO592968863",
-   "sku": "C-SHA70550ML",
-   "titulo": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
-   "motivo": "etiqueta sin aprobar",
-   "por_etiqueta": true
-  },
-  {
-   "meli_id": "MCO585538997",
-   "sku": "C-DPAN50ML",
-   "titulo": "D-pantenol Vitamina B5 75%",
-   "motivo": "etiqueta sin aprobar",
-   "por_etiqueta": true
-  },
-  {
    "meli_id": "MCO566618455",
    "sku": "C-MANKARBLAKG",
    "titulo": "Manteca Karite 1 Kg + Envío",
@@ -1980,13 +2020,6 @@
    "por_etiqueta": true
   },
   {
-   "meli_id": "MCO615815832",
-   "sku": "C-ELAHID30ML",
-   "titulo": "Elastina 30 Ml Activo Cosmético",
-   "motivo": "etiqueta sin aprobar",
-   "por_etiqueta": true
-  },
-  {
    "meli_id": "MCO835404031",
    "sku": "C-COLHID30ML",
    "titulo": "Colágeno Hidrolizado Cosmético Mixta",
@@ -1997,13 +2030,6 @@
    "meli_id": "MCO971453450",
    "sku": "C-RET5P30ML",
    "titulo": "Retinol 5% 30 Ml Noche",
-   "motivo": "etiqueta sin aprobar",
-   "por_etiqueta": true
-  },
-  {
-   "meli_id": "MCO859831102",
-   "sku": "C-ACIGLI50P30ML",
-   "titulo": "Ácido Glicólico 50%  30 Ml Todas",
    "motivo": "etiqueta sin aprobar",
    "por_etiqueta": true
   },
@@ -2075,13 +2101,6 @@
    "sku": "C-LISO100G",
    "titulo": "L Isoleucina 100gr - G A $239 N/a",
    "motivo": "el SKU no existe en Alegra ni tiene alias"
-  },
-  {
-   "meli_id": "MCO1336703989",
-   "sku": "C-ACIHIAALTPES85P30ML",
-   "titulo": "Ácido Hialurónico Solución 85% Todas",
-   "motivo": "etiqueta sin aprobar",
-   "por_etiqueta": true
   },
   {
    "meli_id": "MCO1929017874",
@@ -2194,13 +2213,6 @@
    "meli_id": "MCO587476373",
    "sku": "C-VITE30ML",
    "titulo": "Vitamina E 30 Ml Certificada No Se Identifica En La Información Suministrada",
-   "motivo": "etiqueta sin aprobar",
-   "por_etiqueta": true
-  },
-  {
-   "meli_id": "MCO600359078",
-   "sku": "C-ACIKOJ5P30ML",
-   "titulo": "Acido Kojico  Todo Tipo De Piel Día/noche",
    "motivo": "etiqueta sin aprobar",
    "por_etiqueta": true
   },

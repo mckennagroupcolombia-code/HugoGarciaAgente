@@ -1,0 +1,5 @@
+{
+  "avisadas": {
+    "2000015240779371": "Error de red con Alegra: HTTPSConnectionPool(host='api.alegra.com', port=443): Read timed out. (read timeout=20)"
+  }
+}

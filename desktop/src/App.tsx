@@ -79,6 +79,7 @@ import { onPanelResume } from "./lib/panelRefresh";
 import { esPanelContabilidad } from "./lib/contabilidadAccess";
 import { panelDeInicio, puedeVerSeccionPanel } from "./lib/panelAccess";
 import { instalarSonidos } from "./lib/sonidosJuego";
+import { useAlertasSonido } from "./lib/alertasSonido";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
 function PanelCargando() {
@@ -502,6 +503,7 @@ export default function App() {
     if (json === lastAppliedPrefs.current) return;
     lastAppliedPrefs.current = json;
     applyUserUiPreferences(user.preferencias_ui);
+    useAlertasSonido.getState().hidratar(user.preferencias_ui?.sonidos);
     resetSaveBaseline(user.preferencias_ui);
     guardarMigracionEstilo(token);
   }, [user, token]);

@@ -118,3 +118,4 @@
 {"tipo": "publicacion_nueva", "item_id": "MCO4508050280", "sku": "C-AVEHOJKg", "origen": "", "ts": "2026-10-06T00:22:50"}
 {"tipo": "registro_seguimiento", "item_id": "MCO4508151626", "sku": "C-ALBSEC250g", "origen": "desde_cero", "ts": "2026-10-06T00:54:41"}
 {"tipo": "publicacion_nueva", "item_id": "MCO4508151626", "sku": "C-ALBSEC250g", "origen": "", "ts": "2026-10-06T00:54:43"}
+{"tipo": "revision_diaria", "revisadas": 24, "alertas": 0, "activas": 16, "problemas": 7, "ts": "2026-10-06T08:30:25"}

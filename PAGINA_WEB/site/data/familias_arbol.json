@@ -213,11 +213,11 @@
  },
  "C-ACIGLI50P30ML": {
   "familia": "FOR-ACIGLI50PmL",
-  "nombre": "ÁCIDO GLICÓLICO"
+  "nombre": "ÁCIDO GLICÓLICO 50%"
  },
  "C-ACIHIAALTPES85P30ML": {
   "familia": "FOR-ACIHIAALTPESmL",
-  "nombre": "ÁCIDO HIALURÓNICO ALTO PESO"
+  "nombre": "ÁCIDO HIALURÓNICO ALTO PESO AL 10%"
  },
  "C-ACIKOJ5P30ML": {
   "familia": "FOR-ACIKOJmL",
@@ -377,7 +377,7 @@
  },
  "C-AMILARG100G": {
   "familia": "AMILARGBASg",
-  "nombre": "L-ARGININA"
+  "nombre": "L-ARGININA BASE"
  },
  "C-AMILCAR100G": {
   "familia": "AMITEAg",

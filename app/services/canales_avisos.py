@@ -128,7 +128,7 @@ def novedades(usuario: dict, desde: int, *, inicio: bool = False) -> dict:
             return {"ultimo_id": ultimo, "mensajes": []}
         marcas = ",".join("?" * len(visibles))
         filas = c.execute(
-            f"SELECT id, canal_id, autor_nombre, texto, adjunto_nombre, tipo FROM canal_mensajes "
+            f"SELECT id, canal_id, usuario_id, autor_nombre, texto, adjunto_nombre, tipo FROM canal_mensajes "
             f"WHERE id>? AND eliminado=0 AND canal_id IN ({marcas}) AND (usuario_id IS NULL OR usuario_id != ?) "
             "ORDER BY id DESC LIMIT 5",
             (int(desde), *visibles.keys(), uid),

@@ -57,6 +57,29 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
   y grupo cada 2 h). **Encendido desde el 24-sep** (el bot escribe en los grupos reales; `"activo": false` lo apaga sin reiniciar). Canales creados ese día: «Inventario y llegadas» ↔ MCKG PEDIDOS / COMPRAS y «Sede Sur» ↔ MCKG SEDE SUR (ida y vuelta), «Compras USA y China» (solo llegada).
 - Enlace directo: `/app?panel=<id>` abre esa sección (App.tsx, `PANEL_DEL_ENLACE`).
 
+### AH. Alertas sonoras y chat del equipo legible (6-oct-2026)
+
+- **Sonido por persona y por grupo** (`desktop/src/lib/alertasSonido.ts`, ajustes en `chat_equipo/AjustesSonidos.tsx`,
+  se abre desde la campana → «Sonidos de los avisos» o desde el botón 🔔 Sonido de cada grupo). Prioridad: grupo con
+  sonido propio > persona > general. Solicitud nueva que **otra persona** te hizo → tarjeta + sonido de quien la pidió
+  (`/api/mensajes/resumen` trae `solicitudes_para_mi`, `canales_internos.solicitudes_para_mi`; el panel compara ids con
+  los ya vistos, lo que existía al abrir no suena). Mensajes de grupo: `useAvisosMensajes` (ahora `novedades` trae
+  `usuario_id`). Dos avisos en < 1,5 s suenan una vez.
+- Preferencias en `usuarios.preferencias_ui.sonidos` (validadas en `tickets_db._limpiar_alertas_sonido`; ids de sonido
+  `xx_nombre` o `silencio`) + copia en `localStorage` (`mck-alertas-sonido`).
+- **Los 12 sonidos** (`desktop/src/assets/sonidos/`, ~240 KB): 9 recortes de los mp3 de Duck Hunt
+  (`public/juegos/duckhunt/statics/sounds/`) y 3 de **Circus Charlie grabados de la ROM** corriendo en jsnes desde Node
+  (sin pantalla, `onAudioSample` → WAV → ffmpeg): `cc_salida` (1,95–3,65 s tras Start), `cc_circo` (música de la etapa
+  1), `cc_tropiezo` (choque con el fuego + jingle). Uso interno, detrás de la sesión, como los juegos. Recortes con
+  `loudnorm`; los < 0,5 s quedaron fuertes y se bajaron a mano (−3 a −8 dB).
+- **Chat legible** (`HiloCanal.tsx`, `chatEquipo.css`): botón **Aa** con 3 tamaños de letra (15,5/17,5/20 px, default
+  «grande», `mck-chat-letra`), separadores por día, línea «Mensajes nuevos», mensajes seguidos del mismo autor (≤ 5 min)
+  agrupados con avatar y nombre en color estable (`lib/personaColor.ts`), formato de WhatsApp (`*negrita*`, `_cursiva_`,
+  `~tachado~`, enlaces; con límite de palabra para no romper `foto_1_2.jpg`), y si la persona subió a leer, lo nuevo no
+  la arrastra: sale «↓ N mensajes nuevos».
+- ⚠️ Con un grupo abierto la calculadora flotante se oculta (`html[data-chat-abierto]`) y la burbuja de chat no sale en
+  `chat-equipo`: tapaban el botón de enviar. En celular el alto del chat descuenta la barra inferior (`max-md:` 295 px).
+
 ### AB. Insumos: foto de referencia, equivalencias y contador (25-sep-2026)
 
 Abastecer → Recibirla → Recepción de mercancía → pestaña **«Insumos: fotos y contador»** (`components/insumos/`,

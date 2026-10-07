@@ -30,6 +30,7 @@ export default function CalculadoraFab() {
     <>
       {createPortal(
         <div
+          data-fab="calculadora"
           className="pointer-events-none fixed bottom-5 right-[5.25rem] z-[900] max-md:bottom-[5.5rem] sm:bottom-6 sm:right-[5.75rem]"
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >

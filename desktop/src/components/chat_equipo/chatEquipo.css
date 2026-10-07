@@ -1,0 +1,76 @@
+/*
+ * Chat del equipo (6-oct-2026): lectura cómoda.
+ * - Tres tamaños de letra (Aa en la cabecera del grupo): --chat-fs manda en todo el hilo.
+ * - Fondo con trama suave para separar las burbujas del resto del panel.
+ * - Nombre del autor en su color (lib/personaColor.ts); en oscuro sube la luminosidad.
+ * Ojo: index.css fuerza `position: relative; overflow: hidden` en todo button.
+ */
+.mck-chat {
+  --chat-fs: 15.5px;
+  --mck-autor-l: 36%;
+}
+.mck-chat[data-letra="grande"] { --chat-fs: 17.5px; }
+.mck-chat[data-letra="enorme"] { --chat-fs: 20px; }
+.dark .mck-chat, .dark .mck-sonidos-modal, .dark .mck-aviso-entra { --mck-autor-l: 70%; }
+
+.mck-chat-fondo {
+  background-color: rgb(var(--mck-surface, 250 250 250));
+  background-image:
+    radial-gradient(rgb(var(--mck-accent) / 0.07) 1px, transparent 1.2px),
+    radial-gradient(rgb(var(--mck-accent) / 0.05) 1px, transparent 1.2px);
+  background-size: 22px 22px, 22px 22px;
+  background-position: 0 0, 11px 11px;
+  scroll-behavior: auto;
+  overscroll-behavior: contain;
+}
+
+.mck-chat-texto {
+  font-size: var(--chat-fs);
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+}
+.mck-chat-autor { font-size: calc(var(--chat-fs) * 0.84); line-height: 1.25; }
+.mck-chat-meta { font-size: calc(var(--chat-fs) * 0.72); }
+.mck-chat-acciones button { font-size: calc(var(--chat-fs) * 0.78); }
+
+.mck-burbuja {
+  box-shadow: 0 1px 0.5px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.04);
+  animation: mck-burbuja-entra 220ms ease-out both;
+}
+.mck-burbuja-propia {
+  background: rgb(var(--mck-accent) / 0.16);
+  border: 1px solid rgb(var(--mck-accent) / 0.22);
+}
+.mck-burbuja-otra {
+  background: rgb(var(--mck-surface-panel, 255 255 255));
+  border: 1px solid rgb(var(--mck-border, 220 220 220) / 0.9);
+}
+@keyframes mck-burbuja-entra {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Acciones del mensaje: a la vista en táctil, al pasar el mouse en escritorio. */
+@media (hover: hover) {
+  .mck-msg .mck-chat-acciones { opacity: 0; transition: opacity 120ms; }
+  .mck-msg:hover .mck-chat-acciones, .mck-msg:focus-within .mck-chat-acciones { opacity: 1; }
+}
+
+.mck-separador-dia {
+  position: sticky;
+  top: 6px;
+  z-index: 2;
+}
+
+.mck-aviso-entra { animation: mck-aviso-entra 360ms cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes mck-aviso-entra {
+  from { opacity: 0; transform: translateY(24px) scale(.92); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mck-burbuja, .mck-aviso-entra { animation: none; }
+}
+
+/* Con un grupo abierto la calculadora flotante tapaba la caja de escribir (HiloCanal marca el html). */
+html[data-chat-abierto] [data-fab="calculadora"] { display: none; }

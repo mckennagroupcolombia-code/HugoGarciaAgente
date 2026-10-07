@@ -1900,6 +1900,39 @@ def _limpiar_temas_custom(raw: object) -> list | None:
     return out
 
 
+_SONIDO_ID = re.compile(r"^(?:[a-z]{2}_[a-z_]{2,20}|silencio)$")
+
+
+def _limpiar_alertas_sonido(raw) -> dict | None:
+    """{activo, volumen 0-100, general, solicitud, personas{uid: id}, canales{cid: id}}.
+    Los ids de sonido son claves cortas (dh_risa, cc_circo, silencio…); el catálogo vive en
+    el panel, aquí solo se valida la forma para no guardar basura."""
+    if not isinstance(raw, dict):
+        return None
+    out: dict = {"activo": bool(raw.get("activo", True))}
+    vol = raw.get("volumen", 70)
+    if isinstance(vol, bool) or not isinstance(vol, (int, float)):
+        return None
+    out["volumen"] = max(0, min(100, int(vol)))
+    for k in ("general", "solicitud"):
+        v = raw.get(k)
+        if v is not None:
+            if not isinstance(v, str) or not _SONIDO_ID.match(v):
+                return None
+            out[k] = v
+    for k in ("personas", "canales"):
+        m = raw.get(k) or {}
+        if not isinstance(m, dict) or len(m) > 200:
+            return None
+        limpio = {}
+        for kk, v in m.items():
+            if not str(kk).isdigit() or not isinstance(v, str) or not _SONIDO_ID.match(v):
+                return None
+            limpio[str(int(kk))] = v
+        out[k] = limpio
+    return out
+
+
 def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, str | None, dict | None]:
     """Guarda tema del panel asociado al usuario (JSON validado)."""
     import json as _json
@@ -1998,6 +2031,14 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
     if isinstance(estilo_v, int) and not isinstance(estilo_v, bool) and 0 <= estilo_v <= 99:
         clean["estilo_v"] = estilo_v
 
+    # Alertas sonoras (desktop/src/lib/alertasSonido.ts): sonido general y uno por
+    # persona (quién te pide algo) y por grupo del chat. Se reemplaza entero.
+    if "sonidos" in preferencias:
+        son = _limpiar_alertas_sonido(preferencias.get("sonidos"))
+        if son is None:
+            return False, "sonidos inválido", None
+        clean["sonidos"] = son
+
     if not clean:
         return False, "Nada que guardar", None
 
@@ -2020,6 +2061,8 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             merged["quest"] = {**(merged.get("quest") or {}), **clean["quest"]}
         if "estilo_v" in clean:
             merged["estilo_v"] = clean["estilo_v"]
+        if "sonidos" in clean:
+            merged["sonidos"] = clean["sonidos"]
         db.execute(
             "UPDATE usuarios SET preferencias_ui=? WHERE id=?",
             (_json.dumps(merged), user_id),

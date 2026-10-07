@@ -177,3 +177,36 @@ def test_respuesta_espejada_a_wa_lleva_la_cita(entorno):
     m = CI.enviar_mensaje(canal["id"], ANA, "Hola")
     CI.enviar_mensaje(canal["id"], BETO, "Respuesta", responde_a=m["id"])
     assert "respondiendo a Ana" in reenvios[-1][1] and "> Hola" in reenvios[-1][1]
+
+
+# ── Alertas sonoras (6-oct-2026) ──────────────────────────────────────────────
+
+def test_solicitudes_para_mi_solo_las_que_pidio_otra_persona(entorno):
+    CI, _, _ = entorno
+    yo = tickets_db.crear_usuario("Yo Prueba", "yo.prueba", 3, password="clave-segura-1")[0]["id"]
+    otro = tickets_db.crear_usuario("Otra Prueba", "otra.prueba", 3, password="clave-segura-1")[0]["id"]
+    with tickets_db._conn() as db:
+        for n, (creador, asignado, estado) in enumerate([(otro, yo, "pendiente"), (yo, yo, "pendiente"),
+                                                         (otro, yo, "resuelto"), (otro, otro, "pendiente")]):
+            db.execute("INSERT INTO tickets (numero, titulo, descripcion, estado, creado_por, asignado_a) VALUES (?,?,?,?,?,?)",
+                       (f"TKT-T-{n}", f"t{n}", "d", estado, creador, asignado))
+        db.commit()
+    out = CI.solicitudes_para_mi(yo)
+    assert [x["titulo"] for x in out] == ["t0"]
+    assert out[0]["creado_por"] == otro and "creado_por_nombre" in out[0]
+
+
+def test_preferencias_sonidos_se_validan_y_se_guardan(entorno):
+    limpio = tickets_db._limpiar_alertas_sonido(
+        {"activo": True, "volumen": 140, "general": "dh_ladrido", "personas": {"8": "cc_circo"}, "canales": {"3": "silencio"}})
+    assert limpio == {"activo": True, "volumen": 100, "general": "dh_ladrido",
+                      "personas": {"8": "cc_circo"}, "canales": {"3": "silencio"}}
+    assert tickets_db._limpiar_alertas_sonido({"general": "<script>"}) is None
+    assert tickets_db._limpiar_alertas_sonido({"personas": {"ana": "dh_risa"}}) is None
+    assert tickets_db._limpiar_alertas_sonido({"volumen": True}) is None
+    with tickets_db._conn() as db:
+        uid = db.execute("SELECT id FROM usuarios WHERE activo=1 LIMIT 1").fetchone()["id"]
+    ok, _, merged = tickets_db.actualizar_preferencias_ui(uid, {"panel": {"mode": "dark"}})
+    assert ok
+    ok, _, merged = tickets_db.actualizar_preferencias_ui(uid, {"sonidos": {"general": "cc_tropiezo"}})
+    assert ok and merged["sonidos"]["general"] == "cc_tropiezo" and merged["panel"]["mode"] == "dark"

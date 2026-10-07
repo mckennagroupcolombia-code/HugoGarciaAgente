@@ -155,7 +155,14 @@ export function useMarcarCanalLeido() {
   });
 }
 
-export type ResumenMensajes = { canales_no_leidos: number; notificaciones_no_leidas: number };
+export type SolicitudParaMi = { id: number; numero: string; titulo: string; creado_por: number; creado_por_nombre: string };
+
+export type ResumenMensajes = {
+  canales_no_leidos: number;
+  notificaciones_no_leidas: number;
+  /** Solicitudes abiertas que otra persona me hizo (las más nuevas): para el aviso con sonido. */
+  solicitudes_para_mi?: SolicitudParaMi[];
+};
 
 export function useResumenMensajes(enabled = true) {
   return useQuery<ResumenMensajes>({

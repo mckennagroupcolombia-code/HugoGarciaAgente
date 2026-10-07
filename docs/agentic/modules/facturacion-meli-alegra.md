@@ -390,6 +390,14 @@ muestra `motivo` (`motivo_sin_facturar`, al servir en `anotar_filas`): fecha de 
 qué pasará (próxima corrida del cron o el bloqueo que registró en `app/data/facturar_entregadas_cron.json`).
 La fila guarda `fecha_entrega` del envío.
 
+**Atraso facturado (6-oct, autorizado por el usuario).** El cron facturó 150 ventas entregadas (FE955–FE1104),
+0 dobles. Dos trampas: (1) `refrescar_token_meli()` hacía un POST a /oauth/token en CADA llamada bajo un flock
+compartido; la revalidación del panel lo pedía decenas de veces por minuto y dejó la corrida 20+ min parada.
+Ahora reutiliza el token renovado hace <20 min (`renovado_ts` en credenciales_meli.json; `forzar=True` para
+renovar igual). (2) Un timeout de Alegra al emitir NO significa que no se creó: FE1093 salió con «Read timed
+out». Antes de reintentar, releer Alegra (el reintento del script lo hace: excluye packs con factura vigente).
+El script tiene flock propio (`.facturar_entregadas.lock`) y para tras 5 fallos seguidos.
+
 ---
 
 ## Traído de CLAUDE.md (27-sep-2026)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
 import { useAppStore } from "../../stores/app";
 import {
@@ -16,6 +16,47 @@ import { ChipVinculo, SelectorVinculo } from "./VinculoModulo";
 import SolicitudesDelGrupo from "./SolicitudesDelGrupo";
 import { canalesEnPantalla } from "../../hooks/useAvisosMensajes";
 import BarraEscritura, { BotonCaja, IconoCamara, IconoClip, IconoEnlace } from "./BarraEscritura";
+import AjustesSonidos from "./AjustesSonidos";
+import { sonidoDeMensaje, sonidoPorId, useAlertasSonido, SILENCIO } from "../../lib/alertasSonido";
+import { colorDePersona, colorTextoPersona, iniciales } from "../../lib/personaColor";
+import "./chatEquipo.css";
+
+type Letra = "normal" | "grande" | "enorme";
+const CLAVE_LETRA = "mck-chat-letra";
+const LETRAS: Letra[] = ["normal", "grande", "enorme"];
+
+function leerLetra(): Letra {
+  try {
+    const v = localStorage.getItem(CLAVE_LETRA) as Letra | null;
+    return v && LETRAS.includes(v) ? v : "grande";
+  } catch {
+    return "grande";
+  }
+}
+
+/** «Hoy», «Ayer» o «lunes 5 de octubre»: separa los mensajes por día. */
+function etiquetaDia(ts: number): string {
+  const d = new Date(ts * 1000);
+  const hoy = new Date();
+  const ayer = new Date(hoy);
+  ayer.setDate(hoy.getDate() - 1);
+  if (d.toDateString() === hoy.toDateString()) return "Hoy";
+  if (d.toDateString() === ayer.toDateString()) return "Ayer";
+  const txt = d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long",
+    ...(d.getFullYear() !== hoy.getFullYear() ? { year: "numeric" } : {}) });
+  return txt.charAt(0).toUpperCase() + txt.slice(1);
+}
+
+function horaCorta(ts: number): string {
+  return new Date(ts * 1000).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
+}
+
+/** Mensajes seguidos de la misma persona (≤ 5 min) van juntos: nombre y avatar solo en el primero. */
+function mismaRacha(a: MensajeCanal | undefined, b: MensajeCanal): boolean {
+  return Boolean(a && a.tipo !== "sistema" && b.tipo !== "sistema" && a.autor_nombre === b.autor_nombre
+    && a.origen === b.origen && b.creado_en - a.creado_en < 300
+    && new Date(a.creado_en * 1000).toDateString() === new Date(b.creado_en * 1000).toDateString());
+}
 
 function hora(ts: number): string {
   const d = new Date(ts * 1000);
@@ -74,6 +115,28 @@ function Cita({ cita, onClick, onQuitar }: { cita: CitaMensaje; onClick?: () => 
   );
 }
 
+/**
+ * Formato de WhatsApp en el texto (*negrita*, _cursiva_, ~tachado~) y enlaces tocables: los
+ * mensajes que llegan de los grupos traen los asteriscos y se leían como «*Acción nueva*».
+ */
+const RE_FORMATO = /(https?:\/\/[^\s]+)|(?<![\p{L}\p{N}])\*([^*\n]+)\*(?![\p{L}\p{N}])|(?<![\p{L}\p{N}])_([^_\n]+)_(?![\p{L}\p{N}])|(?<![\p{L}\p{N}])~([^~\n]+)~(?![\p{L}\p{N}])/gu;
+function TextoChat({ texto }: { texto: string }) {
+  const partes: ReactNode[] = [];
+  let ultimo = 0;
+  let k = 0;
+  for (const m of texto.matchAll(RE_FORMATO)) {
+    const i = m.index ?? 0;
+    if (i > ultimo) partes.push(texto.slice(ultimo, i));
+    if (m[1]) partes.push(<a key={k++} href={m[1]} target="_blank" rel="noreferrer" className="break-all font-semibold text-accent underline">{m[1]}</a>);
+    else if (m[2]) partes.push(<strong key={k++} className="font-extrabold">{m[2]}</strong>);
+    else if (m[3]) partes.push(<em key={k++}>{m[3]}</em>);
+    else if (m[4]) partes.push(<s key={k++}>{m[4]}</s>);
+    ultimo = i + m[0].length;
+  }
+  if (ultimo < texto.length) partes.push(texto.slice(ultimo));
+  return <>{partes}</>;
+}
+
 function citaDe(m: MensajeCanal): CitaMensaje {
   return { id: m.id, autor_nombre: m.autor_nombre, texto: m.texto, adjunto_nombre: m.adjunto_nombre, adjunto_mime: m.adjunto_mime, eliminado: false };
 }
@@ -92,9 +155,11 @@ function reportarIncidente(canal: CanalEquipo, m?: MensajeCanal) {
   st.setPanel("hugo");
 }
 
-function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, resaltado }: {
+function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, resaltado, primero }: {
   m: MensajeCanal; propio: boolean; token: string; modulos: ModuloCanal[];
   onIncidente: () => void; onResponder: () => void; onIrA: (id: number) => void; resaltado: boolean;
+  /** Primero de una racha del mismo autor: lleva nombre y avatar. */
+  primero: boolean;
 }) {
   const url = urlAdjunto(m, token);
   // Deslizar la burbuja a la derecha (celular) responde, como en WhatsApp.
@@ -102,15 +167,15 @@ function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, r
   const [arrastre, setArrastre] = useState(0);
   if (m.tipo === "sistema") {
     return (
-      <div className="mx-auto max-w-[85%] rounded-lg border border-accent/30 bg-accent/5 px-3 py-1.5 text-center text-[11.5px] text-ink">
-        <span className="font-mono text-[9.5px] uppercase tracking-wide text-muted">{m.autor_nombre} · {hora(m.creado_en)}</span>
-        <p className="whitespace-pre-wrap">{m.texto}</p>
+      <div id={`msg-canal-${m.id}`} className="mx-auto my-2 max-w-[92%] rounded-2xl border border-accent/30 bg-accent/10 px-4 py-2 text-center text-ink sm:max-w-[80%]">
+        <span className="mck-chat-meta block font-bold uppercase tracking-wide text-muted">{m.autor_nombre} · {hora(m.creado_en)}</span>
+        <p className="mck-chat-texto whitespace-pre-wrap break-words"><TextoChat texto={m.texto} /></p>
         <div className="flex justify-center"><ChipVinculo refm={m.ref} modulos={modulos} /></div>
       </div>
     );
   }
   return (
-    <div id={`msg-canal-${m.id}`} className={`group flex items-center gap-1 ${propio ? "flex-row-reverse" : ""}`}
+    <div id={`msg-canal-${m.id}`} className={`mck-msg group flex items-end gap-2 ${propio ? "flex-row-reverse" : ""} ${primero ? "mt-3" : "mt-0.5"}`}
       onTouchStart={(e) => { toque.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
       onTouchMove={(e) => {
         const t = toque.current;
@@ -120,39 +185,48 @@ function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, r
         setArrastre(Math.max(0, Math.min(dx, 80)));
       }}
       onTouchEnd={() => { if (arrastre > 55) onResponder(); toque.current = null; setArrastre(0); }}>
+      {!propio && (
+        primero
+          ? <span className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center self-start rounded-full text-[13px] font-black text-white shadow-sm"
+              style={{ background: colorDePersona(m.autor_nombre) }} aria-hidden>{iniciales(m.autor_nombre)}</span>
+          : <span className="w-9 shrink-0" aria-hidden />
+      )}
       <div style={arrastre ? { transform: `translateX(${arrastre}px)` } : undefined}
-        className={`max-w-[78%] rounded-2xl px-3 py-1.5 shadow-sm transition-[box-shadow] ${arrastre ? "" : "duration-700"} ${resaltado ? "ring-2 ring-accent" : ""} ${propio ? "rounded-br-sm bg-accent/15" : "rounded-bl-sm border border-border bg-surface-panel"}`}>
-        {!propio && (
-          <p className="text-[10.5px] font-bold text-accent">
+        className={`mck-burbuja min-w-0 max-w-[86%] rounded-2xl px-3.5 py-2 sm:max-w-[72%] ${arrastre ? "" : "transition-[box-shadow] duration-700"} ${resaltado ? "ring-2 ring-accent" : ""} ${
+          propio ? `mck-burbuja-propia ${primero ? "rounded-tr-md" : ""}` : `mck-burbuja-otra ${primero ? "rounded-tl-md" : ""}`}`}>
+        {!propio && primero && (
+          <p className="mck-chat-autor mb-0.5 font-extrabold" style={{ color: colorTextoPersona(m.autor_nombre) }}>
             {m.autor_nombre}
-            {m.origen === "wa" && <span className="ml-1 font-normal text-muted" title="Llegó por el grupo de WhatsApp enlazado">· vía WhatsApp</span>}
+            {m.origen === "wa" && <span className="ml-1.5 rounded-full bg-[#25d366]/15 px-1.5 py-px align-middle text-[0.78em] font-bold text-[#128c7e]" title="Llegó por el grupo de WhatsApp enlazado">WhatsApp</span>}
           </p>
         )}
-        {m.cita && <div className="mb-1 mt-0.5"><Cita cita={m.cita} onClick={() => onIrA(m.cita!.id)} /></div>}
+        {m.cita && <div className="mb-1.5 mt-0.5"><Cita cita={m.cita} onClick={() => onIrA(m.cita!.id)} /></div>}
         {url && esImagen(m) && (
-          <a href={url} target="_blank" rel="noreferrer" className="mt-1 block">
-            <img src={url} alt={m.adjunto_nombre || "foto"} loading="lazy" className="max-h-72 rounded-lg border border-border object-contain" />
+          <a href={url} target="_blank" rel="noreferrer" className="my-1 block">
+            <img src={url} alt={m.adjunto_nombre || "foto"} loading="lazy" className="max-h-80 w-auto max-w-full rounded-xl border border-border object-contain" />
           </a>
         )}
         {url && esAudio(m) && (
-          <audio src={url} controls preload="metadata" className="mt-1 h-10 w-64 max-w-full" />
+          <audio src={url} controls preload="metadata" className="my-1 h-11 w-72 max-w-full" />
         )}
         {url && !esImagen(m) && !esAudio(m) && (
-          <a href={url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-surface px-2 py-1 text-[11px] font-bold text-ink hover:border-accent/60">
-            📎 {m.adjunto_nombre || "archivo"}
+          <a href={url} target="_blank" rel="noreferrer" className="mck-chat-texto my-1 flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 font-bold text-ink hover:border-accent/60">
+            <span className="text-[1.3em]" aria-hidden>📎</span><span className="min-w-0 truncate">{m.adjunto_nombre || "archivo"}</span>
           </a>
         )}
-        {m.texto && <p className="whitespace-pre-wrap break-words text-[13px] leading-snug text-ink">{m.texto}</p>}
+        {m.texto && <p className="mck-chat-texto whitespace-pre-wrap break-words text-ink"><TextoChat texto={m.texto} /></p>}
         <ChipVinculo refm={m.ref} modulos={modulos} />
-        <p className="mt-0.5 flex items-center justify-end gap-2 font-mono text-[9.5px] text-muted">
-          <button onClick={onResponder} className="mck-btn-no-fx opacity-60 hover:text-accent hover:opacity-100"
-            title="Responder a este mensaje">↩ responder</button>
-          <button onClick={onIncidente} className="mck-btn-no-fx opacity-60 hover:text-accent hover:opacity-100"
-            title="Convertir este mensaje en una solicitud de este grupo (responsable y fecha límite)">→ tarea</button>
-          {hora(m.creado_en)}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+          <span className="mck-chat-acciones flex items-center gap-1">
+            <button onClick={onResponder} className="mck-btn-no-fx rounded-full px-2 py-0.5 font-bold text-muted hover:bg-accent/10 hover:text-accent"
+              title="Responder a este mensaje">↩ Responder</button>
+            <button onClick={onIncidente} className="mck-btn-no-fx rounded-full px-2 py-0.5 font-bold text-muted hover:bg-accent/10 hover:text-accent"
+              title="Convertir este mensaje en una solicitud de este grupo (responsable y fecha límite)">→ Tarea</button>
+          </span>
+          <span className="mck-chat-meta font-mono text-muted" title={new Date(m.creado_en * 1000).toLocaleString("es-CO")}>{horaCorta(m.creado_en)}</span>
+        </div>
       </div>
-      {arrastre > 0 && <span className="text-[18px] text-accent" style={{ opacity: arrastre / 55 }} aria-hidden>↩</span>}
+      {arrastre > 0 && <span className="self-center text-[20px] text-accent" style={{ opacity: arrastre / 55 }} aria-hidden>↩</span>}
     </div>
   );
 }
@@ -182,18 +256,70 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   const archivoRef = useRef<HTMLInputElement>(null);
 
   const lista = mensajes.data?.mensajes ?? [];
+  const [letra, setLetra] = useState<Letra>(leerLetra);
+  const [ajustesSonido, setAjustesSonido] = useState(false);
+  const sonidoCanal = useAlertasSonido((st) => st.ajustes.canales[String(canal.id)] ?? null);
+  const sonidoEfectivo = useAlertasSonido((st) => sonidoDeMensaje(st.ajustes, canal.id, null));
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // ¿La persona está abajo del todo? Si subió a leer algo viejo, lo nuevo no la arrastra.
+  const abajo = useRef(true);
+  const [nuevosSinVer, setNuevosSinVer] = useState(0);
+  // Línea «Mensajes nuevos»: lo que no había leído al abrir el grupo.
+  const [primerNoLeido, setPrimerNoLeido] = useState<number | null>(null);
+  const cambiarLetra = () => {
+    const sig = LETRAS[(LETRAS.indexOf(letra) + 1) % LETRAS.length];
+    setLetra(sig);
+    try {
+      localStorage.setItem(CLAVE_LETRA, sig);
+    } catch {
+      /* sin almacenamiento */
+    }
+  };
 
   // Mientras este grupo está abierto no sale la tarjeta de aviso por sus propios mensajes.
   useEffect(() => {
     canalesEnPantalla.add(canal.id);
-    return () => { canalesEnPantalla.delete(canal.id); };
+    document.documentElement.dataset.chatAbierto = "1";
+    return () => {
+      canalesEnPantalla.delete(canal.id);
+      if (!canalesEnPantalla.size) delete document.documentElement.dataset.chatAbierto;
+    };
   }, [canal.id]);
   const ultimoId = lista.length ? lista[lista.length - 1].id : 0;
 
+  const ultimoPrevio = useRef(0);
   useEffect(() => {
-    finRef.current?.scrollIntoView({ block: "end" });
-    if (ultimoId && canal.no_leidos > 0) leido.mutate(canal.id);
+    if (!ultimoId) return;
+    const primeraCarga = ultimoPrevio.current === 0;
+    if (primeraCarga && canal.no_leidos > 0 && lista.length > canal.no_leidos) {
+      setPrimerNoLeido(lista[lista.length - canal.no_leidos].id);
+    }
+    const ultimo = lista[lista.length - 1];
+    const mio = ultimo && ultimo.origen === "panel" && ultimo.usuario_id === yo;
+    if (primeraCarga || abajo.current || mio) {
+      requestAnimationFrame(() => {
+        const marca = primeraCarga && canal.no_leidos > 0 ? document.getElementById("mck-chat-nuevos") : null;
+        if (marca) marca.scrollIntoView({ block: "center" });
+        else finRef.current?.scrollIntoView({ block: "end", behavior: primeraCarga ? "auto" : "smooth" });
+      });
+      setNuevosSinVer(0);
+    } else if (ultimoPrevio.current && ultimoId > ultimoPrevio.current) {
+      setNuevosSinVer((n) => n + lista.filter((x) => x.id > ultimoPrevio.current).length);
+    }
+    ultimoPrevio.current = ultimoId;
+    if (canal.no_leidos > 0) leido.mutate(canal.id);
   }, [ultimoId, canal.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const alDesplazar = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    abajo.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (abajo.current && nuevosSinVer) setNuevosSinVer(0);
+  };
+  const bajar = () => {
+    finRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    setNuevosSinVer(0);
+  };
 
   const vistaPrevia = useMemo(() => (archivo && archivo.type.startsWith("image/") ? URL.createObjectURL(archivo) : null), [archivo]);
   useEffect(() => () => { if (vistaPrevia) URL.revokeObjectURL(vistaPrevia); }, [vistaPrevia]);
@@ -240,16 +366,36 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   // Al cambiar de grupo no se arrastra la respuesta pendiente.
   useEffect(() => { setRespondiendo(null); }, [canal.id]);
 
+  const iconoSonido = sonidoEfectivo === SILENCIO ? "🔇" : sonidoPorId(sonidoEfectivo)?.icono ?? "🔔";
+  const botonesCabecera = (
+    <>
+      <button onClick={cambiarLetra} data-sin-sonido
+        className="mck-btn-no-fx flex h-10 min-w-10 items-center justify-center rounded-full border border-border bg-surface px-2.5 font-black text-ink hover:border-accent"
+        title={`Tamaño de la letra: ${letra}. Toca para cambiar.`} aria-label={`Tamaño de la letra: ${letra}`}>
+        <span className="text-[12px]">A</span><span className={letra === "normal" ? "text-[15px]" : letra === "grande" ? "text-[18px]" : "text-[21px]"}>A</span>
+      </button>
+      <button onClick={() => setAjustesSonido(true)} data-sin-sonido
+        className={`mck-btn-no-fx flex h-10 items-center gap-1 rounded-full border px-3 text-[13px] font-bold ${sonidoCanal ? "border-accent bg-accent/10 text-accent" : "border-border bg-surface text-ink-secondary"} hover:border-accent`}
+        title="Con qué sonido te avisa este grupo" aria-label="Sonido de este grupo">
+        <span className="text-[17px] leading-none" aria-hidden>{iconoSonido}</span>
+        <span className="max-sm:hidden">Sonido</span>
+      </button>
+    </>
+  );
+
   return (
-    <div className={`flex min-h-0 min-w-0 flex-1 flex-col bg-surface ${compacto ? "" : "rounded-xl border border-border"}`}>
+    <div data-letra={letra} className={`mck-chat flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface ${compacto ? "" : "rounded-2xl border border-border"}`}>
       {/* En la burbuja flotante (compacto) el nombre ya va en su propia cabecera. */}
-      {!compacto && <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+      {!compacto ? <div className="flex items-center gap-2.5 border-b border-border bg-surface-panel px-3 py-2.5">
         {onVolver && (
-          <button onClick={onVolver} className="rounded-md border border-border px-2 py-1 text-[12px] lg:hidden" aria-label="Volver a los canales">←</button>
+          <button onClick={onVolver} className="mck-btn-no-fx flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border text-[18px] lg:hidden" aria-label="Volver a los canales">←</button>
         )}
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent text-[18px] font-black text-white max-sm:hidden" aria-hidden>
+          {canal.nombre.slice(0, 1).toUpperCase()}
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-bold text-ink">{canal.nombre}</p>
-          <p className="truncate text-[11px] text-muted">
+          <p className="truncate text-[17px] font-black leading-tight text-ink">{canal.nombre}</p>
+          <p className="truncate text-[12.5px] text-muted">
             {moduloCanal && <span className="mr-1 rounded bg-accent/15 px-1 font-bold text-accent" title="Grupo de trabajo vinculado a este módulo">↔ {moduloCanal.nombre}</span>}
             {canal.descripcion || (canal.miembros.length ? `${canal.miembros.length} miembros` : "Todo el equipo")}
             {canal.wa_jid && (
@@ -259,23 +405,63 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
             )}
           </p>
         </div>
-      </div>}
+        {botonesCabecera}
+      </div> : (
+        <div className="flex items-center justify-end gap-1.5 border-b border-border bg-surface-panel px-2 py-1.5">{botonesCabecera}</div>
+      )}
+      {ajustesSonido && <AjustesSonidos canalInicial={canal.id} onCerrar={() => setAjustesSonido(false)} />}
 
       <SolicitudesDelGrupo canal={canal} modulo={moduloCanal} desde={tareaDesde} onDesdeUsado={() => setTareaDesde(null)} />
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
-        {mensajes.isLoading && <p className="text-[12px] text-muted">Cargando…</p>}
-        {!mensajes.isLoading && lista.length === 0 && (
-          <p className="py-8 text-center text-[12px] text-muted">Todavía no hay mensajes. Lo que se escriba aquí queda registrado y cuenta como actividad.</p>
+      <div className="relative min-h-0 flex-1">
+        <div ref={scrollRef} onScroll={alDesplazar} className="mck-chat-fondo absolute inset-0 overflow-y-auto px-2.5 pb-4 pt-2 sm:px-5">
+          {mensajes.isLoading && <p className="mck-chat-texto py-6 text-center text-muted">Cargando…</p>}
+          {!mensajes.isLoading && lista.length === 0 && (
+            <div className="mx-auto mt-10 max-w-sm rounded-2xl border border-dashed border-border bg-surface-panel/80 p-6 text-center">
+              <p className="text-[34px]" aria-hidden>💬</p>
+              <p className="mck-chat-texto mt-1 font-bold text-ink">Todavía no hay mensajes</p>
+              <p className="mt-1 text-[14px] text-muted">Lo que se escriba aquí queda registrado y cuenta como actividad.</p>
+            </div>
+          )}
+          <div className="mx-auto max-w-[980px]">
+            {lista.map((m, i) => {
+              const previo = lista[i - 1];
+              const nuevoDia = !previo || new Date(previo.creado_en * 1000).toDateString() !== new Date(m.creado_en * 1000).toDateString();
+              const esNuevo = m.id === primerNoLeido;
+              return (
+                <div key={m.id}>
+                  {nuevoDia && (
+                    <div className="mck-separador-dia my-3 flex justify-center">
+                      <span className="rounded-full border border-border bg-surface-panel px-3.5 py-1 text-[13px] font-bold text-ink-secondary shadow-sm">
+                        {etiquetaDia(m.creado_en)}
+                      </span>
+                    </div>
+                  )}
+                  {esNuevo && (
+                    <div id="mck-chat-nuevos" className="my-3 flex items-center gap-2" role="separator">
+                      <span className="h-px flex-1 bg-accent-rose" />
+                      <span className="rounded-full bg-accent-rose px-3 py-0.5 text-[12.5px] font-bold text-white">Mensajes nuevos</span>
+                      <span className="h-px flex-1 bg-accent-rose" />
+                    </div>
+                  )}
+                  <Burbuja m={m} propio={m.origen === "panel" && m.usuario_id === yo} token={token} modulos={modulos}
+                    primero={nuevoDia || esNuevo || !mismaRacha(previo, m)}
+                    onIncidente={() => setTareaDesde(m)} onResponder={() => responder(m)} onIrA={irA} resaltado={resaltado === m.id} />
+                </div>
+              );
+            })}
+          </div>
+          <div ref={finRef} />
+        </div>
+        {nuevosSinVer > 0 && (
+          <button onClick={bajar} data-sin-sonido
+            className="mck-btn-no-fx absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-accent px-4 py-2 text-[14px] font-bold text-white shadow-paper-lg">
+            ↓ {nuevosSinVer} mensaje{nuevosSinVer === 1 ? "" : "s"} nuevo{nuevosSinVer === 1 ? "" : "s"}
+          </button>
         )}
-        {lista.map((m) => (
-          <Burbuja key={m.id} m={m} propio={m.origen === "panel" && m.usuario_id === yo} token={token} modulos={modulos}
-            onIncidente={() => setTareaDesde(m)} onResponder={() => responder(m)} onIrA={irA} resaltado={resaltado === m.id} />
-        ))}
-        <div ref={finRef} />
       </div>
 
-      <div className="border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="border-t border-border bg-surface-panel p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {archivo && (
           <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-surface-input p-1.5">
             {vistaPrevia ? <img src={vistaPrevia} alt="" className="h-12 w-12 rounded object-cover" /> : <span className="text-[18px]">📎</span>}

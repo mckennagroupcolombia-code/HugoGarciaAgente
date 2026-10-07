@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { isMcKennaAndroidApp, webNotificationsAvailable } from "../lib/androidApp";
+import { reproducirSonido, sonidoDeMensaje, sonidoDeSolicitud, sonidoPorId, useAlertasSonido } from "../lib/alertasSonido";
 import { useResumenMensajes } from "./useCanalesEquipo";
 
 /**
@@ -9,13 +10,27 @@ import { useResumenMensajes } from "./useCanalesEquipo";
  *    muestra una tarjeta con un sonido corto.
  *  - App cerrada o en segundo plano: Web Push al Service Worker (sw-alarm.js); este
  *    hook registra la suscripción del dispositivo en /api/canales/push.
+ *  - Solicitud nueva que otra persona te hizo (`solicitudes_para_mi` del resumen): tarjeta
+ *    y el sonido elegido para quien la pidió.
+ * El sonido sale de las alertas sonoras de cada quien (lib/alertasSonido.ts): por grupo,
+ * por persona o el general, con recortes de Duck Hunt y Circus Charlie.
  */
 
-export type AvisoMensaje = { id: number; canal_id: number; canal_nombre: string; autor_nombre: string; texto: string };
+export type AvisoMensaje = {
+  id: number;
+  /** "solicitud": `id` es el del ticket y `canal_id` va en 0. */
+  tipo?: "mensaje" | "solicitud";
+  canal_id: number;
+  canal_nombre: string;
+  autor_nombre: string;
+  texto: string;
+  /** Icono del sonido que sonó (la tarjeta lo muestra para asociar oído y vista). */
+  icono?: string;
+};
 
 type Novedades = {
   ultimo_id: number;
-  mensajes: { id: number; canal_id: number; canal_nombre: string; autor_nombre: string; texto: string; adjunto_nombre: string | null }[];
+  mensajes: { id: number; canal_id: number; usuario_id: number | null; canal_nombre: string; autor_nombre: string; texto: string; adjunto_nombre: string | null }[];
 };
 
 /** Grupos que alguien tiene abiertos en pantalla ahora (HiloCanal los anota): de esos no se avisa. */
@@ -29,31 +44,6 @@ function permisoActual(): PermisoAvisos {
   }
   const p = globalThis.Notification.permission;
   return p === "granted" ? "activo" : p === "denied" ? "bloqueado" : "pendiente";
-}
-
-let ctxAudio: AudioContext | null = null;
-
-/** Dos notas cortas (sin archivo de audio). Si el navegador aún no deja sonar, se calla. */
-function sonar() {
-  try {
-    ctxAudio = ctxAudio ?? new AudioContext();
-    const ctx = ctxAudio;
-    if (ctx.state === "suspended") void ctx.resume();
-    [880, 1320].forEach((f, i) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      const t = ctx.currentTime + i * 0.12;
-      o.frequency.value = f;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.12, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
-      o.connect(g).connect(ctx.destination);
-      o.start(t);
-      o.stop(t + 0.2);
-    });
-  } catch {
-    /* sin audio */
-  }
 }
 
 function base64AUint8(b64: string): Uint8Array {
@@ -81,6 +71,22 @@ export function useAvisosMensajes(activo: boolean, noMostrarCanal: number | null
   const prevN = useRef<number | null>(null);
   const [aviso, setAviso] = useState<AvisoMensaje | null>(null);
   const [permiso, setPermiso] = useState<PermisoAvisos>(permisoActual);
+  const solicitudesVistas = useRef<Set<number> | null>(null);
+  const solicitudes = resumen.data?.solicitudes_para_mi;
+
+  // Solicitudes que otra persona me acaba de hacer: las que ya estaban al abrir no suenan.
+  useEffect(() => {
+    if (!solicitudes) return;
+    const vistas = solicitudesVistas.current;
+    solicitudesVistas.current = new Set([...(vistas ?? []), ...solicitudes.map((x) => x.id)]);
+    if (!vistas) return;
+    const nueva = solicitudes.find((x) => !vistas.has(x.id));
+    if (!nueva) return;
+    const sonido = sonidoDeSolicitud(useAlertasSonido.getState().ajustes, nueva.creado_por);
+    setAviso({ id: nueva.id, tipo: "solicitud", canal_id: 0, canal_nombre: nueva.numero, autor_nombre: nueva.creado_por_nombre || "Alguien",
+      texto: nueva.titulo, icono: sonidoPorId(sonido)?.icono });
+    if (!document.hidden) reproducirSonido(sonido);
+  }, [solicitudes]);
 
   // Punto de partida: lo que ya existía al abrir la app no se avisa.
   useEffect(() => {
@@ -105,9 +111,10 @@ export function useAvisosMensajes(activo: boolean, noMostrarCanal: number | null
         ultimoId.current = r.ultimo_id;
         const m = r.mensajes.find((x) => x.canal_id !== noMostrarCanal && !(canalesEnPantalla.has(x.canal_id) && !document.hidden));
         if (!m) return;
-        setAviso({ id: m.id, canal_id: m.canal_id, canal_nombre: m.canal_nombre, autor_nombre: m.autor_nombre,
-          texto: m.texto || (m.adjunto_nombre ? "📎 Adjunto" : "Mensaje nuevo") });
-        if (!document.hidden) sonar();
+        const sonido = sonidoDeMensaje(useAlertasSonido.getState().ajustes, m.canal_id, m.usuario_id);
+        setAviso({ id: m.id, tipo: "mensaje", canal_id: m.canal_id, canal_nombre: m.canal_nombre, autor_nombre: m.autor_nombre,
+          texto: m.texto || (m.adjunto_nombre ? "📎 Adjunto" : "Mensaje nuevo"), icono: sonidoPorId(sonido)?.icono });
+        if (!document.hidden) reproducirSonido(sonido);
       })
       .catch(() => {});
   }, [n]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -115,7 +122,7 @@ export function useAvisosMensajes(activo: boolean, noMostrarCanal: number | null
   // La tarjeta se va sola.
   useEffect(() => {
     if (!aviso) return;
-    const t = setTimeout(() => setAviso(null), 9000);
+    const t = setTimeout(() => setAviso(null), aviso.tipo === "solicitud" ? 15000 : 9000);
     return () => clearTimeout(t);
   }, [aviso]);
 

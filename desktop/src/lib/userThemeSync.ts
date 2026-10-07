@@ -3,12 +3,15 @@ import type { PanelThemeConfig } from "../theme/types";
 import { usePanelTheme } from "../stores/panelTheme";
 import { useQuestTheme } from "../stores/questTheme";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import type { AjustesSonido } from "./alertasSonido";
 
 export interface UserUiPreferences {
   panel?: Partial<PanelThemeConfig>;
   quest?: { dark?: boolean };
   /** Versión del estilo base que esta persona ya adoptó (ver ESTILO_BASE_V). */
   estilo_v?: number;
+  /** Alertas sonoras por persona y por grupo (lib/alertasSonido.ts); se guardan aparte. */
+  sonidos?: Partial<AjustesSonido>;
 }
 
 /**

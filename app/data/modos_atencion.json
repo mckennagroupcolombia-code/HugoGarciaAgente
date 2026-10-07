@@ -107,13 +107,21 @@
     "268753786933308@lid",
     "573204614978@c.us",
     "573007817423@c.us",
-    "3780208767047@lid"
+    "3780208767047@lid",
+    "229239886483463@lid",
+    "573005285961@c.us",
+    "573154322260@c.us",
+    "130077530583139@lid",
+    "196022391283853@lid",
+    "573134604659@c.us",
+    "573208127621@c.us",
+    "98161678897158@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
     "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe": 1790178747.8837469,
-    "85500551516276@lid": 1791234624.4479208,
-    "573019229626@c.us": 1791234624.4479208,
+    "85500551516276@lid": 1791317287.1725073,
+    "573019229626@c.us": 1791317287.1725073,
     "573192247757@c.us": 1790605714.6285589,
     "16080508592159@lid": 1790605714.6285589,
     "256058081677329@lid": 1790606269.6630688,
@@ -217,8 +225,16 @@
     "94957566173411@lid": 1791247623.1912296,
     "268753786933308@lid": 1791249070.7109535,
     "573204614978@c.us": 1791249070.7109535,
-    "573007817423@c.us": 1791254552.0699537,
-    "3780208767047@lid": 1791254552.0699537
+    "573007817423@c.us": 1791327871.5201366,
+    "3780208767047@lid": 1791327871.5201366,
+    "229239886483463@lid": 1791291641.6095197,
+    "573005285961@c.us": 1791291641.6095197,
+    "573154322260@c.us": 1791293304.301941,
+    "130077530583139@lid": 1791293304.301941,
+    "196022391283853@lid": 1791302827.577846,
+    "573134604659@c.us": 1791302827.577846,
+    "573208127621@c.us": 1791321310.546351,
+    "98161678897158@lid": 1791321310.546351
   },
   "bot_auto_pausados": {
     "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe": {
@@ -227,12 +243,12 @@
       "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
     },
     "85500551516276@lid": {
-      "timestamp": 1791234624.4479208,
+      "timestamp": 1791317287.1725073,
       "razon": "mensaje repetido por posible bot",
       "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
     },
     "573019229626@c.us": {
-      "timestamp": 1791234624.4479208,
+      "timestamp": 1791317287.1725073,
       "razon": "mensaje repetido por posible bot",
       "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
     },
@@ -752,13 +768,53 @@
       "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
     },
     "573007817423@c.us": {
-      "timestamp": 1791254552.0699537,
+      "timestamp": 1791327871.5201366,
       "razon": "fuera de horario autom\u00e1tico",
       "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
     },
     "3780208767047@lid": {
-      "timestamp": 1791254552.0699537,
+      "timestamp": 1791327871.5201366,
       "razon": "fuera de horario autom\u00e1tico",
+      "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
+    },
+    "229239886483463@lid": {
+      "timestamp": 1791291641.6095197,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
+    },
+    "573005285961@c.us": {
+      "timestamp": 1791291641.6095197,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
+    },
+    "573154322260@c.us": {
+      "timestamp": 1791293304.301941,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
+    },
+    "130077530583139@lid": {
+      "timestamp": 1791293304.301941,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
+    },
+    "196022391283853@lid": {
+      "timestamp": 1791302827.577846,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
+    },
+    "573134604659@c.us": {
+      "timestamp": 1791302827.577846,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
+    },
+    "573208127621@c.us": {
+      "timestamp": 1791321310.546351,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
+    },
+    "98161678897158@lid": {
+      "timestamp": 1791321310.546351,
+      "razon": "operador desde panel de chats",
       "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
     }
   },

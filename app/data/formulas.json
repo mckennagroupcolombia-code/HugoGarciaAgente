@@ -2,27 +2,27 @@
   "formulas": [
     {
       "id": "33cc5c37a968",
-      "nombre": "VITAMINA C  SUSPENSION mL",
+      "nombre": "VITAMINA C SUSPENSIÓN mL",
       "categoria": "",
       "descripcion": "",
       "ingredientes": [
         {
           "codigo": "VITCACIASCg",
-          "nombre": "VITAMINA C ACIDO ASCORBICO G",
+          "nombre": "VITAMINA C ÁCIDO ASCÓRBICO g",
           "fase": "",
           "porcentaje": 20.0,
           "funcion": ""
         },
         {
           "codigo": "AGUDESmL",
-          "nombre": "AGUA DESTILADA ML",
+          "nombre": "AGUA DESTILADA mL",
           "fase": "",
           "porcentaje": 20.0,
           "funcion": ""
         },
         {
           "codigo": "DIPGLImL",
-          "nombre": "DIPROPILENGICOL USP DPG mL",
+          "nombre": "DIPROPILENGLICOL USP DPG mL",
           "fase": "",
           "porcentaje": 60.0,
           "funcion": ""
@@ -40,20 +40,20 @@
     },
     {
       "id": "f5eb74b1cab4",
-      "nombre": "ACIDO LACTICO  85% mL",
+      "nombre": "ÁCIDO LÁCTICO 85% mL",
       "categoria": "",
       "descripcion": "",
       "ingredientes": [
         {
           "codigo": "ACILACg",
-          "nombre": "ACIDO LACTICO g",
+          "nombre": "ÁCIDO LÁCTICO g",
           "fase": "",
           "porcentaje": 25.0,
           "funcion": ""
         },
         {
           "codigo": "HIDg",
-          "nombre": "HIDANTOINA g",
+          "nombre": "HIDANTOÍNA g",
           "fase": "",
           "porcentaje": 0.2,
           "funcion": ""
@@ -115,7 +115,7 @@
       "ingredientes": [
         {
           "codigo": "AZUMETg",
-          "nombre": "AZUL METILENO G",
+          "nombre": "AZUL DE METILENO g",
           "fase": "",
           "porcentaje": 0.1,
           "funcion": ""
@@ -171,13 +171,13 @@
     },
     {
       "id": "72c3f03252ee",
-      "nombre": "ACIDO GLICOLICO AL 50% mL",
+      "nombre": "ÁCIDO GLICÓLICO AL 50% mL",
       "categoria": "",
       "descripcion": "",
       "ingredientes": [
         {
           "codigo": "ACIGLIg",
-          "nombre": "ACIDO GLICOLICO",
+          "nombre": "ÁCIDO GLICÓLICO",
           "fase": "",
           "porcentaje": 60.0,
           "funcion": ""
@@ -202,20 +202,20 @@
     },
     {
       "id": "315567ab37c6",
-      "nombre": "ACIDO HIALURONICO ALTO PESO MOLECULAR mL",
+      "nombre": "ÁCIDO HIALURÓNICO ALTO PESO MOLECULAR mL",
       "categoria": "",
       "descripcion": "",
       "ingredientes": [
         {
           "codigo": "ACIHIAALTPESg",
-          "nombre": "ACIDO HALURONICO ALTO PESO G",
+          "nombre": "ÁCIDO HIALURÓNICO ALTO PESO g",
           "fase": "",
           "porcentaje": 2.0,
           "funcion": ""
         },
         {
           "codigo": "HIDg",
-          "nombre": "HIDANTOINA g",
+          "nombre": "HIDANTOÍNA g",
           "fase": "",
           "porcentaje": 0.004,
           "funcion": ""
@@ -240,27 +240,27 @@
     },
     {
       "id": "c040a4d0b2d5",
-      "nombre": "ACIDO  HIALURONICO BAJO PESO mL",
+      "nombre": "ÁCIDO HIALURÓNICO BAJO PESO mL",
       "categoria": "",
       "descripcion": "",
       "ingredientes": [
         {
           "codigo": "ACIHIABAPESg",
-          "nombre": "ACIDO HIALURONICO BAJO PESO ML",
+          "nombre": "ÁCIDO HIALURÓNICO BAJO PESO mL",
           "fase": "",
           "porcentaje": 27.5862,
           "funcion": ""
         },
         {
           "codigo": "HIDg",
-          "nombre": "HIDANTOINA g",
+          "nombre": "HIDANTOÍNA g",
           "fase": "",
           "porcentaje": 3.4483,
           "funcion": ""
         },
         {
           "codigo": "FOR-ACIHIAALTPESmL",
-          "nombre": "ACIDO HIALURONICO ALTO PESO ML",
+          "nombre": "ÁCIDO HIALURÓNICO ALTO PESO mL",
           "fase": "",
           "porcentaje": 68.9655,
           "funcion": ""
@@ -278,13 +278,13 @@
     },
     {
       "id": "d46c27bf1659",
-      "nombre": "JABON POTASICO mL",
+      "nombre": "JABÓN POTÁSICO mL",
       "categoria": "",
       "descripcion": "",
       "ingredientes": [
         {
           "codigo": "POTCAUg",
-          "nombre": "POTASA CAUSTICA",
+          "nombre": "POTASA CÁUSTICA",
           "fase": "",
           "porcentaje": 3.5,
           "funcion": ""
@@ -305,7 +305,7 @@
         },
         {
           "codigo": "ACISALg",
-          "nombre": "ACIDO SALICILICO G",
+          "nombre": "ÁCIDO SALICÍLICO g",
           "fase": "",
           "porcentaje": 0.5,
           "funcion": ""
@@ -330,13 +330,13 @@
     },
     {
       "id": "6f45525c2376",
-      "nombre": "ACIDO KOJICO PALMITATO mL",
+      "nombre": "ÁCIDO KÓJICO PALMITATO mL",
       "categoria": "",
       "descripcion": "",
       "ingredientes": [
         {
           "codigo": "ACIKOJg",
-          "nombre": "ACIDO KOJICO POLVO G",
+          "nombre": "ÁCIDO KÓJICO POLVO g",
           "fase": "",
           "porcentaje": 10.0,
           "funcion": ""
@@ -361,34 +361,34 @@
     },
     {
       "id": "d54da879d9fc",
-      "nombre": "ACIDO KOJICO mL",
+      "nombre": "ÁCIDO KÓJICO mL",
       "categoria": "",
       "descripcion": "",
       "ingredientes": [
         {
           "codigo": "ACIKOJg",
-          "nombre": "ACIDO KOJICO POLVO G",
+          "nombre": "ÁCIDO KÓJICO POLVO g",
           "fase": "",
           "porcentaje": 1.0,
           "funcion": ""
         },
         {
           "codigo": "GLIVEGg",
-          "nombre": "GLICERINA VEGETAL G",
+          "nombre": "GLICERINA VEGETAL g",
           "fase": "",
           "porcentaje": 25.0,
           "funcion": ""
         },
         {
           "codigo": "AGUROSmL",
-          "nombre": "AGUA ROSAS ML",
+          "nombre": "AGUA DE ROSAS mL",
           "fase": "",
           "porcentaje": 2.0,
           "funcion": ""
         },
         {
           "codigo": "VITCACIASCg",
-          "nombre": "VITAMINA C ACIDO ASCORBICO G",
+          "nombre": "VITAMINA C ÁCIDO ASCÓRBICO g",
           "fase": "",
           "porcentaje": 0.2,
           "funcion": ""
@@ -402,7 +402,7 @@
         },
         {
           "codigo": "FOR-ACIHIAALTPESmL",
-          "nombre": "ACIDO HIALURONICO ALTO PESO ML",
+          "nombre": "ÁCIDO HIALURÓNICO ALTO PESO mL",
           "fase": "",
           "porcentaje": 10.0,
           "funcion": ""
@@ -426,14 +426,14 @@
       "ingredientes": [
         {
           "codigo": "EXTALOVERg",
-          "nombre": "EXTRACTO ALOE VERA G",
+          "nombre": "EXTRACTO DE ALOE VERA g",
           "fase": "",
           "porcentaje": 80.0,
           "funcion": ""
         },
         {
           "codigo": "FOR-ACIHIAALTPESmL",
-          "nombre": "ACIDO HIALURONICO ALTO PESO ML",
+          "nombre": "ÁCIDO HIALURÓNICO ALTO PESO mL",
           "fase": "",
           "porcentaje": 20.0,
           "funcion": ""
