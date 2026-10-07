@@ -1,3 +1,12 @@
+### 2026-10-07 - Solicitudes de pago legible en el celular
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección visual (Contabilidad → Solicitudes de pago, celular). Sin LLM.
+- **Qué se implementó:**
+  - **Filtros:** los 11 filtros (Por hacer, Pendientes, Por girar…) van en una fila que se desliza de lado; antes se aplastaban y se leía «Po ha», «Pe», «Gi».
+  - **Tarjeta:** el estado («Montada — falta el segundo visto bueno») baja de línea en vez de salirse, el monto y el estado se acomodan debajo del título, y los enlaces largos de las notas se parten dentro de la tarjeta.
+  - Más espacio al final de la lista, para que la calculadora y la burbuja de chat no tapen la última tarjeta.
+- **Archivos Modificados:** `desktop/src/components/PagosWizardPanel.tsx`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - Tono propio por grupo y «Aprobar pago» lleva a Solicitudes de pago
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora (Mensajes, sonidos, Solicitudes de pago). Sin LLM.

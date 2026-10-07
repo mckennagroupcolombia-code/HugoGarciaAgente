@@ -224,7 +224,8 @@ export default function PagosWizardPanel() {
   const r = listaQ.data?.resumen;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    // En el celular, aire abajo: la calculadora y la burbuja de chat flotan sobre la última tarjeta.
+    <div className="mx-auto min-w-0 max-w-5xl space-y-4 max-md:pb-24">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-ink">Solicitudes de pago</h2>
@@ -329,11 +330,12 @@ export default function PagosWizardPanel() {
         );
       })()}
 
-      <div className="flex gap-1 text-sm">
+      {/* Una fila que se desplaza de lado: en el celular los 11 filtros se aplastaban («Po ha», «Pe»…). */}
+      <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 text-sm">
         {[["por_hacer", "Por hacer"], ["pendiente", "Pendientes"], ["aprobada", "Por girar"], ["en_banco", "En el banco"], ["pagada", "Giradas"], ["borrador", "Borradores"], ["anticipos", "Anticipos sin factura"], ["por_arreglar", "Por arreglar"], ["rechazada", "Rechazadas"], ["plantilla", "Recurrentes"], ["", "Todas"]].map(([v, l]) => (
           <button
             key={v} type="button" onClick={() => setFiltro(v)}
-            className={`rounded-lg px-2.5 py-1 font-bold ${filtro === v ? "bg-accent text-white" : "bg-surface text-muted"}`}
+            className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1 font-bold ${filtro === v ? "bg-accent text-white" : "bg-surface text-muted"}`}
           >{l}</button>
         ))}
       </div>
@@ -2685,12 +2687,12 @@ function FichaSolicitud({
   }
 
   return (
-    <article className={`rounded-xl border-2 bg-surface-panel p-4 ${
+    <article className={`min-w-0 overflow-hidden rounded-xl border-2 bg-surface-panel p-4 max-sm:p-3 ${
       NECESITA_ACCION.has(s.estado) ? "border-amber-500/40" : "border-border"
     }`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-[14rem]">
-          <p className="text-lg font-bold leading-snug text-ink">
+        <div className="min-w-0 flex-1 basis-[14rem]">
+          <p className="text-lg font-bold leading-snug text-ink [overflow-wrap:anywhere]">
             <Ico e={s.icono} /> {s.concepto}
           </p>
           <p className="mt-0.5 text-sm text-muted">
@@ -2699,8 +2701,8 @@ function FichaSolicitud({
             {s.referencia ? ` · ref ${s.referencia}` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 max-sm:w-full">
+          <div className="text-right max-sm:text-left">
             <p className="text-xl font-extrabold tabular-nums text-ink">{cop(s.monto)}</p>
             {(s.retencion > 0 || (s.retencion_ica ?? 0) > 0 || (s.gmf ?? 0) > 0) && (
               <p className="text-xs text-muted">
@@ -2711,7 +2713,7 @@ function FichaSolicitud({
               </p>
             )}
           </div>
-          <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold ${badge.cls}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-bold sm:whitespace-nowrap ${badge.cls}`}>
             {ico(badge.label)}
           </span>
         </div>
@@ -2765,7 +2767,7 @@ function FichaSolicitud({
           </span>
         )}
         {s.notas && !s.notas.includes("Registrado directamente") && (
-          <span className="italic">{s.notas}</span>
+          <span className="min-w-0 basis-full italic [overflow-wrap:anywhere]">{s.notas}</span>
         )}
 
         {s.estado === "borrador" && !s.es_plantilla && (
