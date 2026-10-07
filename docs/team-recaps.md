@@ -1,3 +1,15 @@
+### 2026-10-07 - Comercializadora Internacional: facturas CIV2570 y CIV2578 cuadradas con los pagos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección contable (Libro Mayor, Solicitudes de pago, Taller de conciliación). Sin cambios de código. Sin LLM.
+- **Qué se implementó:**
+  - Las dos facturas del 5-oct no cuadraban con lo registrado. **CIV2570** ($539.070) corresponde a la solicitud #65 y coincide al peso. **CIV2578** ($589.050, 2500 papeles 20×30, sin retención) corresponde a la #68.
+  - **#65:** el banco giró **$425.455**, pero el libro registraba $525.455 porque el valor «montado» no se comparó con el comprobante. El asiento #9251 (Alegra AC-181) corrige Bancos y deja $100.000 por pagar. La línea del extracto del 1-oct quedó conciliada.
+  - **#68:** se había registrado con la cotización, que repetía los 1000 doypacks de CIV2570 y traía una retención que no correspondía (la base está por debajo de 10 UVT). El asiento #9252 (Alegra AC-182) la deja como CIV2578 y con el giro del 5-oct cubre los $100.000 de CIV2570.
+  - **Quedan $415.370 a favor de McKenna** (cuenta 133005). Se descuentan del próximo pedido a este proveedor.
+  - Se revisó el correo: desde agosto solo hay 4 facturas de este proveedor (CIV2336, CIV2539, CIV2570, CIV2578) y las cuatro cuadran con el libro. El inventario de insumos ya cuenta 3000 papeles 20×30 y 1000 doypacks 16×24.
+  - Pendiente: el panel sigue aceptando un valor «montado» distinto al del comprobante del banco.
+- **Archivos Modificados:** `docs/team-recaps.md` (los ajustes viven en `app/data/contabilidad.db`, fuera de git, y en Alegra).
+
 ### 2026-10-07 - Tienda web: se quitan las calcomanías de temporada
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora (tienda web). Sin LLM.
