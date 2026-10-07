@@ -120,7 +120,6 @@ export default function BandejaUnificada({
   const [abierto, setAbierto] = useState<Abierto>(null);
   const [q, setQ] = useState("");
   const [verHechas, setVerHechas] = useState(false);
-  const [verGrupos, setVerGrupos] = useState(false);
   const [menuCrear, setMenuCrear] = useState(false);
 
   useEffect(() => {
@@ -130,6 +129,13 @@ export default function BandejaUnificada({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bootTicketId]);
+
+  // Conversación abierta: en el celular se esconde el cabezote de la agenda (theme/movil.css).
+  useEffect(() => {
+    if (!abierto) return;
+    document.documentElement.dataset.hiloAbierto = "1";
+    return () => { delete document.documentElement.dataset.hiloAbierto; };
+  }, [abierto]);
 
   // Sin elección guardada, abre donde haya algo: primero lo que toca, luego lo nuevo.
   const tab: Tab = tabElegida ?? (b.te_toca.length ? "te_toca" : b.enterarte.length ? "enterarte" : b.haciendo.length ? "haciendo" : "te_toca");
@@ -166,7 +172,12 @@ export default function BandejaUnificada({
   const abrir = (it: ItemBandeja) => setAbierto(it.kind === "grupo" ? { kind: "grupo", id: it.g.id } : { kind: "solicitud", id: it.c.id });
   const fila = (it: ItemBandeja) => <Fila key={it.key} it={it} uid={user.id} onAbrir={() => abrir(it)} />;
   const lista = b[tab];
-  const otrosGrupos = b.grupos.filter((g) => g.noLeidos === 0);
+  // La fila de grupos: primero donde te nombraron, luego lo que tiene mensajes nuevos, luego lo reciente.
+  const filaGrupos = [...b.grupos].sort((x, y) => {
+    const mx = x.kind === "grupo" && (x.g.menciones ?? 0) > 0 ? 1 : 0;
+    const my = y.kind === "grupo" && (y.g.menciones ?? 0) > 0 ? 1 : 0;
+    return my - mx || (y.noLeidos > 0 ? 1 : 0) - (x.noLeidos > 0 ? 1 : 0) || y.ts - x.ts;
+  });
   const puedeCrear = Boolean(onCrearSolicitud || onCrearAccion);
 
   return (
@@ -223,23 +234,33 @@ export default function BandejaUnificada({
           resultados.length ? resultados.map(fila) : <p className="bj-vacio">Nada coincide con «{q.trim()}».</p>
         ) : (
           <>
+            {/* Los grupos siempre a la vista, como las historias de WhatsApp: un toque y adentro.
+                Antes vivían plegados al final de «Enterarte» y había que buscarlos por nombre. */}
+            {(filaGrupos.length > 0 || b.puedeAdministrarGrupos) && (
+              <div className="bj-grupos" role="list" aria-label="Grupos del equipo">
+                {filaGrupos.map((it) => it.kind === "grupo" && (
+                  <button key={it.key} type="button" role="listitem" className="bj-grupo" onClick={() => abrir(it)}
+                          title={it.g.nombre}>
+                    <span className="bj-grupo-avatar" style={{ background: colorDePersona(it.g.nombre) }} aria-hidden>
+                      {it.g.nombre.trim().slice(0, 1).toUpperCase()}
+                      {(it.g.menciones ?? 0) > 0
+                        ? <i className="bj-grupo-badge bj-grupo-arroba">@</i>
+                        : it.noLeidos > 0 && <i className="bj-grupo-badge">{it.noLeidos > 99 ? "99+" : it.noLeidos}</i>}
+                    </span>
+                    <span className={`bj-grupo-nombre ${it.noLeidos > 0 ? "font-black" : ""}`}>{it.g.nombre}</span>
+                  </button>
+                ))}
+                {b.puedeAdministrarGrupos && (
+                  <button type="button" className="bj-grupo" onClick={() => irAVistaMensajes("grupos")} title="Crear o enlazar grupos">
+                    <span className="bj-grupo-avatar bj-grupo-mas" aria-hidden>＋</span>
+                    <span className="bj-grupo-nombre">Grupos</span>
+                  </button>
+                )}
+              </div>
+            )}
             {!b.cargando && b.error == null && lista.length === 0 && <p className="bj-vacio">{TABS.find((t) => t.id === tab)?.vacio}</p>}
             {lista.map(fila)}
 
-            {/* Los grupos sin nada nuevo siguen a la mano, plegados, al final de «Enterarte». */}
-            {tab === "enterarte" && otrosGrupos.length > 0 && (
-              <>
-                <button type="button" className="bj-pliegue" onClick={() => setVerGrupos((v) => !v)} aria-expanded={verGrupos}>
-                  <span className="flex-1">Todos los grupos · {otrosGrupos.length}</span><span aria-hidden>{verGrupos ? "▲" : "▼"}</span>
-                </button>
-                {verGrupos && otrosGrupos.map(fila)}
-              </>
-            )}
-            {tab === "enterarte" && b.puedeAdministrarGrupos && (
-              <button type="button" className="bj-pliegue text-accent" onClick={() => irAVistaMensajes("grupos")}>
-                <span className="flex-1">Administrar grupos (crear, enlazar a WhatsApp) →</span>
-              </button>
-            )}
             {/* El historial: plegado, al final de «Haciendo». */}
             {tab === "haciendo" && b.hechas.length > 0 && (
               <>

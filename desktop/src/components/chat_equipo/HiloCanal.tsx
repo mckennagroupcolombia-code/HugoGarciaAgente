@@ -192,6 +192,8 @@ function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, r
   // Deslizar la burbuja a la derecha (celular) responde, como en WhatsApp.
   const toque = useRef<{ x: number; y: number } | null>(null);
   const [arrastre, setArrastre] = useState(0);
+  // En pantallas táctiles «Responder / Tarea» se esconden: aparecen al tocar la burbuja.
+  const [acciones, setAcciones] = useState(false);
   if (m.tipo === "sistema") {
     return (
       <div id={`msg-canal-${m.id}`} className="mx-auto my-2 max-w-[92%] rounded-2xl border border-accent/30 bg-accent/10 px-4 py-2 text-center text-ink sm:max-w-[80%]">
@@ -202,7 +204,8 @@ function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, r
     );
   }
   return (
-    <div id={`msg-canal-${m.id}`} className={`mck-msg group flex items-end gap-2 ${propio ? "flex-row-reverse" : ""} ${primero ? "mt-3" : "mt-0.5"}`}
+    <div id={`msg-canal-${m.id}`} className={`mck-msg group flex items-end gap-2 ${propio ? "flex-row-reverse" : ""} ${primero ? "mt-3" : "mt-0.5"} ${acciones ? "mck-acciones-on" : ""}`}
+      onClick={(e) => { if (!(e.target as HTMLElement).closest("a, button, audio, img")) setAcciones((v) => !v); }}
       onTouchStart={(e) => { toque.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
       onTouchMove={(e) => {
         const t = toque.current;
@@ -399,12 +402,12 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   const botonesCabecera = (
     <>
       <button onClick={cambiarLetra} data-sin-sonido
-        className="mck-btn-no-fx flex h-10 min-w-10 items-center justify-center rounded-full border border-border bg-surface px-2.5 font-black text-ink hover:border-accent"
+        className="mck-btn-no-fx flex h-10 min-w-10 items-center justify-center rounded-full border border-border bg-surface px-2.5 font-black text-ink hover:border-accent max-sm:h-8 max-sm:min-w-8 max-sm:px-1.5"
         title={`Tamaño de la letra: ${letra}. Toca para cambiar.`} aria-label={`Tamaño de la letra: ${letra}`}>
         <span className="text-[12px]">A</span><span className={letra === "normal" ? "text-[15px]" : letra === "grande" ? "text-[18px]" : "text-[21px]"}>A</span>
       </button>
       <button onClick={() => setAjustesSonido(true)} data-sin-sonido
-        className={`mck-btn-no-fx flex h-10 items-center gap-1 rounded-full border px-3 text-[13px] font-bold ${sonidoCanal ? "border-accent bg-accent/10 text-accent" : "border-border bg-surface text-ink-secondary"} hover:border-accent`}
+        className={`mck-btn-no-fx flex h-10 items-center gap-1 rounded-full border px-3 text-[13px] font-bold max-sm:h-8 max-sm:px-2 ${sonidoCanal ? "border-accent bg-accent/10 text-accent" : "border-border bg-surface text-ink-secondary"} hover:border-accent`}
         title="Con qué sonido te avisa este grupo" aria-label="Sonido de este grupo">
         <span className="text-[17px] leading-none" aria-hidden>{iconoSonido}</span>
         <span className="max-sm:hidden">Sonido</span>
@@ -415,16 +418,16 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   return (
     <div data-letra={letra} className={`mck-chat flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface ${compacto ? "" : "rounded-2xl border border-border"}`}>
       {/* En la burbuja flotante (compacto) el nombre ya va en su propia cabecera. */}
-      {!compacto ? <div className="flex items-center gap-2.5 border-b border-border bg-surface-panel px-3 py-2.5">
+      {!compacto ? <div className="flex items-center gap-2.5 border-b border-border bg-surface-panel px-3 py-2.5 max-sm:gap-2 max-sm:px-2 max-sm:py-1.5">
         {onVolver && (
-          <button onClick={onVolver} className="mck-btn-no-fx flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border text-[18px] lg:hidden" aria-label="Volver a los canales">←</button>
+          <button onClick={onVolver} className="mck-btn-no-fx flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border text-[18px] max-sm:h-8 max-sm:w-8 max-sm:text-[16px] lg:hidden" aria-label="Volver a los canales">←</button>
         )}
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent text-[18px] font-black text-white max-sm:hidden" aria-hidden>
           {canal.nombre.slice(0, 1).toUpperCase()}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[17px] font-black leading-tight text-ink">{canal.nombre}</p>
-          <p className="truncate text-[12.5px] text-muted">
+          <p className="truncate text-[17px] font-black leading-tight text-ink max-sm:text-[15px]">{canal.nombre}</p>
+          <p className="truncate text-[12.5px] text-muted max-sm:text-[11.5px]">
             {moduloCanal && <span className="mr-1 rounded bg-accent/15 px-1 font-bold text-accent" title="Grupo de trabajo vinculado a este módulo">↔ {moduloCanal.nombre}</span>}
             {canal.descripcion || (canal.miembros.length ? `${canal.miembros.length} miembros` : "Todo el equipo")}
             {canal.wa_jid && (
@@ -525,7 +528,7 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
         <BarraEscritura
           texto={texto} onTexto={setTexto} onEnviar={() => void mandar()} onVoz={(f) => void mandarVoz(f)}
           hayAdjunto={Boolean(archivo || vinculo)} enviando={enviar.isPending} onError={setError} textareaRef={cajaRef}
-          placeholder={respondiendo ? `Responder a ${respondiendo.autor_nombre}` : "Mensaje (@ para nombrar a alguien)"}
+          placeholder={respondiendo ? `Responder a ${respondiendo.autor_nombre}` : "Mensaje"}
           personas={mencionables}
           iconos={<>
             {modulos.length > 0 && (

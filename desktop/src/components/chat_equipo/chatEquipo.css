@@ -56,6 +56,9 @@
 .mck-burbuja-mencion { box-shadow: inset 4px 0 0 rgb(var(--mck-accent)), 0 1px 3px rgb(0 0 0 / 0.06); }
 
 /* Acciones del mensaje: a la vista en táctil, al pasar el mouse en escritorio. */
+@media (hover: none) {
+  .mck-msg:not(.mck-acciones-on) .mck-chat-acciones { display: none; }
+}
 @media (hover: hover) {
   .mck-msg .mck-chat-acciones { opacity: 0; transition: opacity 120ms; }
   .mck-msg:hover .mck-chat-acciones, .mck-msg:focus-within .mck-chat-acciones { opacity: 1; }

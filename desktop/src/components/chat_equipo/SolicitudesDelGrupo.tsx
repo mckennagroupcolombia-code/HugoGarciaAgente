@@ -63,7 +63,8 @@ export default function SolicitudesDelGrupo({
   const lista = datos.data?.solicitudes ?? [];
   const tipoDelGrupo = modulo?.tipo_solicitud || "otra";
 
-  const [abierto, setAbierto] = useState(true);
+  // En el celular empieza plegada (una línea): desplegada se comía media pantalla del chat.
+  const [abierto, setAbierto] = useState(() => typeof window === "undefined" || !window.matchMedia("(max-width: 639px)").matches);
   const [creando, setCreando] = useState(false);
   const [para, setPara] = useState<number | "">("");
   const [tipo, setTipo] = useState(tipoDelGrupo);

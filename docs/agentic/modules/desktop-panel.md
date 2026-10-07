@@ -153,7 +153,15 @@ plegados) y **Haciendo** (en proceso a mi nombre; el historial va plegado al fin
 (suelen ser avisos automáticos). `useBandeja().porAtender` = Te toca + lo abierto con algo sin leer: es
 el único número de la barra de abajo, de la burbuja y de la bandeja. En pantalla angosta la burbuja
 lleva a la bandeja y no abre su ventana. El selector Solicitudes/Grupos solo aparece en la lista completa de
-Grupos («Administrar grupos», evento `mck-mensajes-vista`). El escritorio no cambió.
+Grupos (tarjeta «＋ Grupos» de la fila de grupos, evento `mck-mensajes-vista`). El escritorio no cambió.
+**Ajustes del 7-oct tras usarlo en el celular:**
+- **Fila de grupos** (`.bj-grupos`, como las historias de WhatsApp) siempre arriba de la lista. Va ordenada así:
+  primero donde te nombraron (@), luego con no leídos, luego lo reciente. Antes los grupos vivían plegados y había
+  que buscarlos por nombre.
+- **Hilo abierto a pantalla completa:** `BandejaUnificada` marca `html[data-hilo-abierto]` y `theme/movil.css`
+  esconde el cabezote de la agenda y la calculadora.
+- **HiloCanal en < 640 px:** cabecera baja, «Solicitudes abiertas» plegada (`SolicitudesDelGrupo`) y, en pantallas
+  táctiles, «Responder / Tarea» escondidos hasta tocar la burbuja (`.mck-acciones-on`). Deslizar sigue respondiendo.
 
 ### Paneles disponibles
 

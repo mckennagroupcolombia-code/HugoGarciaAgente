@@ -40,4 +40,9 @@
   .hp-bandeja-cabeza .hp-contador span { font-size: 10px; letter-spacing: 0; }
   .hp-bandeja-cabeza .hp-boton-sm { min-height: 32px !important; padding: 4px 10px; font-size: 13px !important; }
   .hp-bandeja-cabeza .hp-seguir { padding: 6px 10px; }
+
+  /* Conversación abierta (BandejaUnificada marca el html): a pantalla completa, sin el cabezote
+     de la agenda encima (Mapa · Mi agenda · pestañas ocupaban ~15 % del alto). Se vuelve con ←. */
+  html[data-hilo-abierto] .mck-header-glass,
+  html[data-hilo-abierto] [data-fab="calculadora"] { display: none; }
 }

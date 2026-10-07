@@ -1,3 +1,12 @@
+### 2026-10-07 - Celular: grupos siempre a la vista y chat a pantalla completa
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de UX (Mensajes en el celular), tras probarlo en el teléfono. Sin LLM.
+- **Qué se implementó:**
+  - **Fila de grupos** arriba de la bandeja, como las historias de WhatsApp: cada grupo con su color, número de no leídos o «@» si te nombraron, y un toque para entrar. Quien administra tiene al final «＋ Grupos». Antes había que buscar el grupo por su nombre.
+  - **Chat a pantalla completa:** al abrir una conversación se esconde el cabezote de la agenda. El encabezado del grupo es más bajo, «Solicitudes abiertas» empieza plegada en una línea, y «Responder / Tarea» aparecen solo al tocar un mensaje (deslizar a la derecha sigue respondiendo).
+  - Se probó en producción en tamaño celular con el grupo HORMIGUITAS.
+- **Archivos Modificados:** `desktop/src/components/tickets/{BandejaUnificada.tsx,bandeja.css}`, `desktop/src/components/chat_equipo/{HiloCanal,SolicitudesDelGrupo}.tsx`, `chatEquipo.css`, `desktop/src/theme/movil.css`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - Menciones con @ en los grupos
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Mensajes → Grupos, servidor + panel). Sin LLM.
