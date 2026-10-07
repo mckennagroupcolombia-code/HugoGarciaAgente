@@ -54,7 +54,9 @@ export type AjustesSonido = {
   activo: boolean;
   /** 0–100 */
   volumen: number;
-  /** Mensaje en un grupo sin regla propia. */
+  /** Cada grupo suena con su propio tono (`tonoPropioDeGrupo`) si no se le eligió uno. */
+  tono_por_grupo: boolean;
+  /** Mensaje en un grupo sin regla propia (con `tono_por_grupo` apagado). */
   general: string;
   /** Solicitud nueva de alguien sin regla propia. */
   solicitud: string;
@@ -67,6 +69,7 @@ export type AjustesSonido = {
 export const AJUSTES_INICIALES: AjustesSonido = {
   activo: true,
   volumen: 70,
+  tono_por_grupo: true,
   general: "dh_ladrido",
   solicitud: "dh_ronda",
   personas: {},
@@ -148,9 +151,29 @@ export function sonidoPorId(id: string | null | undefined): SonidoAlerta | null 
   return CATALOGO_SONIDOS.find((s) => s.id === id) ?? null;
 }
 
-/** Qué suena con un mensaje de grupo: el grupo manda, luego quien escribió, luego el general. */
-export function sonidoDeMensaje(a: AjustesSonido, canalId: number, autorId: number | null | undefined): string {
-  return a.canales[String(canalId)] ?? (autorId != null ? a.personas[String(autorId)] : undefined) ?? a.general;
+/** Tonos cortos para dar a cada grupo uno propio (sin las músicas largas). */
+const TONOS_DE_GRUPO = ["dh_pato", "dh_moneda", "cc_salida", "dh_ladrido", "dh_ronda", "dh_caida", "cc_tropiezo", "dh_ladridos", "dh_disparo", "dh_risa"];
+
+/** El tono característico de un grupo (7-oct-2026): fijo por su id, así cada grupo se
+ *  reconoce de oído sin abrir la app. Con 10 tonos, los grupos 1–10 no se repiten. */
+export function tonoPropioDeGrupo(canalId: number): string {
+  const n = TONOS_DE_GRUPO.length;
+  return TONOS_DE_GRUPO[(((canalId - 1) % n) + n) % n];
+}
+
+/** Qué suena en un grupo: el que se le eligió; si no, su tono propio (o el general, si se apagó). */
+export function sonidoDeCanal(a: AjustesSonido, canalId: number): string {
+  const elegido = a.canales[String(canalId)];
+  if (elegido) return elegido;
+  if (a.tono_por_grupo === false || a.general === SILENCIO) return a.general;
+  return tonoPropioDeGrupo(canalId);
+}
+
+/** Qué suena con un mensaje de grupo: el del grupo (sonidoDeCanal). Los sonidos por persona
+ *  quedan para las solicitudes («quién te pide algo»), si no cada grupo sonaría distinto
+ *  según quién escriba y no se reconocería. */
+export function sonidoDeMensaje(a: AjustesSonido, canalId: number, _autorId?: number | null): string {
+  return sonidoDeCanal(a, canalId);
 }
 
 /** Qué suena con una solicitud nueva: la persona que la pidió, si no el general de solicitudes. */

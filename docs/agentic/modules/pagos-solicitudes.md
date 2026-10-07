@@ -696,3 +696,14 @@ guardado.
   anuló). #65 / asiento #7964 queda **por arreglar** (`por_arreglar`, aviso rojo en el panel).
 - **Guía animada:** wizard a mano sobre un «mapa del dinero» (cajas = cuentas; la moneda viaja de la que
   se acredita a la que se debita). Tests: `tests/test_pagos_anticipo.py`.
+
+### «Aprobar pago — …» en Mensajes lleva a Solicitudes de pago (7-oct-2026)
+El ticket que abre `pagos_wizard._abrir_ticket` (subtipo `pago`, marca `SYS_SOLICITUD_PAGO: <sid>` en la descripción)
+es solo el aviso al aprobador. Se resuelve en Contabilidad → Solicitudes de pago, no con los pasos Leer/Empezar/Evidencia/
+Entregar de una solicitud común, que no hacían nada con el pago.
+- **Servidor:** `listar_conversaciones` devuelve `pago_id` (sale de esa marca).
+- **Panel:** `lib/irAPago.ts::irASolicitudPago` abre el panel `pagos` con `pagosBoot.sid`; el panel pasa a «Todas» y
+  resalta y centra esa solicitud.
+- **Dónde aplica:** bandeja del celular (etiqueta «Pago · aprobar»), inbox del computador y burbuja de chat. Si se
+  llega al hilo por otro lado, `HiloConversacion` muestra solo el botón «Abrir en Solicitudes de pago».
+

@@ -199,8 +199,10 @@ def test_solicitudes_para_mi_solo_las_que_pidio_otra_persona(entorno):
 def test_preferencias_sonidos_se_validan_y_se_guardan(entorno):
     limpio = tickets_db._limpiar_alertas_sonido(
         {"activo": True, "volumen": 140, "general": "dh_ladrido", "personas": {"8": "cc_circo"}, "canales": {"3": "silencio"}})
-    assert limpio == {"activo": True, "volumen": 100, "general": "dh_ladrido",
+    assert limpio == {"activo": True, "volumen": 100, "tono_por_grupo": True, "general": "dh_ladrido",
                       "personas": {"8": "cc_circo"}, "canales": {"3": "silencio"}}
+    # Cada grupo con su tono propio (7-oct): se puede apagar y queda guardado.
+    assert tickets_db._limpiar_alertas_sonido({"tono_por_grupo": False})["tono_por_grupo"] is False
     assert tickets_db._limpiar_alertas_sonido({"general": "<script>"}) is None
     assert tickets_db._limpiar_alertas_sonido({"personas": {"ana": "dh_risa"}}) is None
     assert tickets_db._limpiar_alertas_sonido({"volumen": True}) is None

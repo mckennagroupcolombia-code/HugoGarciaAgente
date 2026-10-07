@@ -6,7 +6,7 @@ import { puedeVerTabInicio } from "../nav/InicioNavTabs";
 import { SelectorMensajes, guardarVistaMensajes } from "./SelectorMensajes";
 import HiloCanal from "./HiloCanal";
 import NuevoCanal from "./NuevoCanal";
-import { sonidoPorId, useAlertasSonido } from "../../lib/alertasSonido";
+import { sonidoDeCanal, sonidoPorId, useAlertasSonido } from "../../lib/alertasSonido";
 import { colorDePersona } from "../../lib/personaColor";
 import "./chatEquipo.css";
 
@@ -58,7 +58,7 @@ export default function ChatEquipoPanel({ embebido = false }: { embebido?: boole
     }
   });
   const [creando, setCreando] = useState(false);
-  const sonidosCanal = useAlertasSonido((st) => st.ajustes.canales);
+  const ajustesSonido = useAlertasSonido((st) => st.ajustes);
   const [q, setQ] = useState("");
 
   const canales = datos.data?.canales ?? [];
@@ -100,7 +100,7 @@ export default function ChatEquipoPanel({ embebido = false }: { embebido?: boole
           )}
           {filtrados.map((c) => {
             const sinLeer = c.no_leidos > 0;
-            const sonido = sonidoPorId(sonidosCanal[String(c.id)]);
+            const sonido = sonidoPorId(sonidoDeCanal(ajustesSonido, c.id));
             return (
               <button key={c.id} onClick={() => { setSel(c.id); setCreando(false); }}
                 className={`mck-btn-no-fx flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition max-sm:py-2 ${

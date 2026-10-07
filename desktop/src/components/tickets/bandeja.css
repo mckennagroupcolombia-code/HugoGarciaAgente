@@ -142,6 +142,7 @@
 .bj-estado-esperando_aprobacion { background: #c2a0ff; }
 .bj-estado-resuelto { background: #00e436; }
 .bj-estado-rechazado { background: #ff77a8; }
+.bj-chip-pago { background: #29adff; }
 .bj-chip-mencion { background: rgb(var(--mck-accent)); color: #fff; border-color: rgb(var(--mck-accent)); }
 .bj-chip-grupo { background: rgb(var(--mck-surface)); color: rgb(var(--mck-ink)); }
 .bj-badge {
@@ -239,3 +240,9 @@
   overflow-wrap: break-word;
   hyphens: auto;
 }
+.bj-grupo-tono { margin-top: -2px; font-size: 12px; line-height: 1; }
+/* Mensajes sin leer: el globo late, para que se note sin abrir el grupo. */
+.bj-grupo-badge:not(.bj-grupo-arroba) { animation: bj-late 1.6s ease-in-out infinite; }
+.bj-grupo-arroba { animation: bj-late 1.1s ease-in-out infinite; }
+@keyframes bj-late { 50% { transform: scale(1.18); } }
+@media (prefers-reduced-motion: reduce) { .bj-grupo-badge, .bj-grupo-arroba { animation: none; } }

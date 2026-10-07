@@ -22,6 +22,7 @@ import { sonarRevisado } from "../combos/sonidoMoneda";
 import VisorFotos, { type FotoVisor } from "./VisorFotos";
 import RevisionEmpaqueEnSolicitud from "../revisionEmpaque/RevisionEmpaque";
 import "./hiloPixel.css";
+import { esSolicitudDePago, irASolicitudPago, pagoIdDeDescripcion } from "../../lib/irAPago";
 import BarraEscritura, { BotonCaja, IconoCamara, IconoClip } from "../chat_equipo/BarraEscritura";
 
 /** La solicitud/acción que la persona está atendiendo (la bandeja la ofrece como «Seguir con…»). */
@@ -232,6 +233,24 @@ export default function HiloConversacion({
 
   if (!ticket) {
     return <div className="flex-1 flex items-center justify-center text-sm text-muted">Cargando conversación…</div>;
+  }
+
+  // Respaldo (campana, enlaces viejos): un «Aprobar pago — …» no tiene pasos aquí; se aprueba allá.
+  if (esSolicitudDePago(ticket)) {
+    const pagoId = pagoIdDeDescripcion(ticket.descripcion);
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+        {onCerrar && <button type="button" onClick={onCerrar} className="hp-boton-sm self-start lg:hidden" aria-label="Volver a la bandeja">←</button>}
+        <p className="text-[40px]" aria-hidden>🏦</p>
+        <p className="text-[18px] font-extrabold text-ink">{ticket.titulo}</p>
+        <p className="max-w-sm text-[15px] text-ink-muted">
+          Este pago se aprueba en <b>Contabilidad → Solicitudes de pago</b>: ahí están el asiento, la firma, el banco y el comprobante.
+        </p>
+        <button type="button" onClick={() => irASolicitudPago(pagoId)} className="hp-boton azul">
+          Abrir en Solicitudes de pago{pagoId ? ` (#${pagoId})` : ""} →
+        </button>
+      </div>
+    );
   }
 
   const esAccion = ticket.tipo === "accion";

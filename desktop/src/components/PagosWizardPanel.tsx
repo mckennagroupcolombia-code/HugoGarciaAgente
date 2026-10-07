@@ -140,7 +140,15 @@ export default function PagosWizardPanel() {
   const pagosBoot = useAppStore((s) => s.pagosBoot);
   const setPagosBoot = useAppStore((s) => s.setPagosBoot);
   const [catInicial, setCatInicial] = useState<string | null>(null);
+  // Desde «Aprobar pago — …» en Mensajes (lib/irAPago.ts): se llega con esa solicitud resaltada.
+  const [resaltar, setResaltar] = useState<number | null>(null);
   useEffect(() => {
+    if (pagosBoot?.sid != null && !pagosBoot.abrir) {
+      setResaltar(pagosBoot.sid);
+      setFiltro("");
+      setPagosBoot(null);
+      return;
+    }
     if (!pagosBoot?.abrir) return;
     setCatInicial(pagosBoot.categoria ?? null);
     setAvanzado(true);
@@ -207,6 +215,12 @@ export default function PagosWizardPanel() {
   const solicitudes = filtro === "anticipos" ? anticipos : filtro === "por_arreglar" ? porArreglar : (listaQ.data?.solicitudes ?? [])
     .filter((s) => !(s.estado === "borrador" && (s.origen_sistema === "prestamos" || s.categoria === "cuota_prestamo")))
     .filter((s) => filtro !== "por_hacer" || PENDIENTE_DE_ALGO.has(s.estado));
+  // Llegó resaltada una solicitud: cuando aparece en la lista, se lleva a la vista.
+  useEffect(() => {
+    if (resaltar == null || !solicitudes.some((s) => s.id === resaltar)) return;
+    const t = window.setTimeout(() => document.getElementById(`pago-sol-${resaltar}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+    return () => window.clearTimeout(t);
+  }, [resaltar, solicitudes.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const r = listaQ.data?.resumen;
 
   return (
@@ -339,13 +353,15 @@ export default function PagosWizardPanel() {
 
           <div className="space-y-2">
             {solicitudes.map((s) => (
-              <FichaSolicitud
-                key={s.id} s={s} onMensaje={setMsg}
-                onEditar={(sol) => {
-                  setEditando(sol ?? s); setAvanzado(false); setCatInicial(null); setAbierto(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-              />
+              <div key={s.id} id={`pago-sol-${s.id}`} className={resaltar === s.id ? "rounded-xl ring-4 ring-accent ring-offset-2" : ""}>
+                <FichaSolicitud
+                  s={s} onMensaje={setMsg}
+                  onEditar={(sol) => {
+                    setEditando(sol ?? s); setAvanzado(false); setCatInicial(null); setAbierto(true);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                />
+              </div>
             ))}
           </div>
         </>

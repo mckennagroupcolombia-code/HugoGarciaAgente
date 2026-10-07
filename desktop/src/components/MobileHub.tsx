@@ -11,6 +11,7 @@ import { usePanelChatMutation } from "../hooks/useChat";
 import { useBandeja } from "../lib/bandeja";
 import InboxConversaciones from "./tickets/InboxConversaciones";
 import MensajesConGrupos from "./chat_equipo/MensajesConGrupos";
+import SolicitudesEnProcesoFab from "./nav/SolicitudesEnProcesoFab";
 import { salirDelPanel } from "../hooks/usePanelSession";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { PanelIcon } from "../icons/PanelIcon";
@@ -740,6 +741,8 @@ export default function MobileHub({
         {tab === "yo" && <PerfilTab onSwitchDesktop={onSwitchDesktop} onNavigateTo={navigateTo} />}
       </div>
 
+      {/* Avisos con sonido de grupos y solicitudes: aquí no hay Layout (que trae la burbuja). */}
+      <SolicitudesEnProcesoFab soloAvisos />
       <NuevaSolicitudSheet open={nuevaAbierta} onClose={() => setNuevaAbierta(false)} token={token} onCreated={() => {}} />
       {/* «+» solo en Rápido: en Mensajes el botón Enviar del hilo queda en esa misma esquina. */}
       <BarraMovil

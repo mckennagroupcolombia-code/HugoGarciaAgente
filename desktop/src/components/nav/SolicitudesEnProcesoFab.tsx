@@ -21,6 +21,8 @@ import { useAvisosMensajes, type AvisoMensaje } from "../../hooks/useAvisosMensa
 import "../chat_equipo/chatEquipo.css";
 import { colorDePersona } from "../../lib/personaColor";
 import { useBandeja, useBandejaAngosta } from "../../lib/bandeja";
+import { esSolicitudDePago, irASolicitudPago } from "../../lib/irAPago";
+import { abrirCanalEnBandeja } from "../tickets/BandejaUnificada";
 
 /**
  * Burbuja de chat global (portal a body, mismo patrón que CrearSiigoFab): mensajería
@@ -72,7 +74,9 @@ function esAudio(a: Adjunto) {
   return Boolean(a.mime?.startsWith("audio/")) || /\.(webm|ogg|oga|opus|mp3|m4a|aac|wav)$/i.test(a.nombre_original);
 }
 
-export default function SolicitudesEnProcesoFab() {
+/** `soloAvisos`: sin la bolita, solo las tarjetas con sonido (pantallas del celular fuera del
+ *  Layout, como Mensajes en MobileHub). Tocar el aviso de un grupo lo abre en la bandeja. */
+export default function SolicitudesEnProcesoFab({ soloAvisos = false }: { soloAvisos?: boolean } = {}) {
   const [abierta, setAbierta] = useState(false);
   const [chatId, setChatId] = useState<number | null>(null);
   const [nuevo, setNuevo] = useState(false);
@@ -135,6 +139,8 @@ export default function SolicitudesEnProcesoFab() {
   }, [abierta, chatId, nuevo, canalId]);
 
   function abrirChat(c: Conversacion) {
+    // «Aprobar pago — …» se aprueba en Solicitudes de pago, no en el chat de la solicitud.
+    if (esSolicitudDePago(c)) { setAbierta(false); irASolicitudPago(c.pago_id); return; }
     setNuevo(false);
     setChatId(c.id);
   }
@@ -164,6 +170,13 @@ export default function SolicitudesEnProcesoFab() {
   /** Tocar el aviso abre ese grupo: en la burbuja o, dentro de la Agenda, en Mensajes → Grupos. */
   function abrirAviso(a: AvisoMensaje) {
     cerrarAviso();
+    if (soloAvisos) {
+      const st = useAppStore.getState();
+      st.setMobileTab("mensajes");
+      if (a.tipo === "solicitud") st.setSolicitudBoot({ abrirTicketId: a.id });
+      else window.setTimeout(() => abrirCanalEnBandeja(a.canal_id), 250);
+      return;
+    }
     if (a.tipo === "solicitud") {
       setCentroMandoView("mensajes");
       setSolicitudBoot({ abrirTicketId: a.id });
@@ -210,7 +223,7 @@ export default function SolicitudesEnProcesoFab() {
   );
 
   // Dentro de la Agenda la burbuja se oculta (el inbox ya está a la vista), pero el aviso sí sale.
-  if (enCentroMando) {
+  if (enCentroMando || soloAvisos) {
     if (!tarjetaAviso) return null;
     return createPortal(
       <div className="pointer-events-none fixed bottom-5 right-5 z-[900] max-md:bottom-[5.5rem] sm:bottom-6 sm:right-6"

@@ -8,6 +8,7 @@ import {
 import HiloConversacion, { Avatar, CLAVE_HILO_ACTUAL } from "./HiloConversacion";
 import BandejaUnificada from "./BandejaUnificada";
 import { useBandejaAngosta } from "../../lib/bandeja";
+import { esSolicitudDePago, irASolicitudPago } from "../../lib/irAPago";
 import { tiempoRelativo, ESTADO_LABEL, estaAbierta, uidEq } from "./ticketsFormat";
 import "./hiloPixel.css";
 
@@ -287,7 +288,7 @@ function InboxEscritorio({
       activa={c.id === selectedId}
       propio={uidEq(c.ultimo_usuario_id, user.id)}
       miaEnCurso={c.id === seguirCon?.id}
-      onClick={() => setSelectedId(c.id)}
+      onClick={() => (esSolicitudDePago(c) ? irASolicitudPago(c.pago_id) : setSelectedId(c.id))}
     />
   );
 

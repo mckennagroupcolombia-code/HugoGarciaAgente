@@ -81,6 +81,15 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
   `chat-equipo`: tapaban el botón de enviar. Desde el 7-oct el alto del chat es flex (`chat-equipo` en
   `PanelTransition.fillHeight`), ya no `calc(100dvh-…)`.
 
+- **Tono propio por grupo (7-oct-2026)**:
+  - `lib/alertasSonido.ts::sonidoDeCanal`: el sonido elegido para el grupo; si no hay, `tonoPropioDeGrupo(id)` (10
+    tonos cortos, fijos por id, así cada grupo se reconoce de oído).
+  - `tono_por_grupo: false` (casilla en los ajustes) vuelve a un solo sonido «general».
+  - Los sonidos por persona quedan para las solicitudes, no para los mensajes de grupo.
+  - La fila de grupos de la bandeja muestra el ícono del tono y el globo de no leídos late.
+  - ⚠️ El aviso con sonido vive en `SolicitudesEnProcesoFab`, que solo monta el Layout: `MobileHub` lo monta con
+    `soloAvisos` (sin la bolita). Sin eso, la pestaña Mensajes de la barra de abajo no sonaba.
+
 ### AI. Menciones con @ en los grupos (7-oct-2026)
 
 - **Qué cuenta como mención** (`canales_internos.detectar_menciones`, sin LLM):

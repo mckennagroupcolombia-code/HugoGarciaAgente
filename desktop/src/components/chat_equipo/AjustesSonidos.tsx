@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useCanalesEquipo } from "../../hooks/useCanalesEquipo";
 import { useUsuariosEquipo } from "../../hooks/useConversaciones";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
-import { CATALOGO_SONIDOS, SILENCIO, reproducirSonido, sonidoPorId, useAlertasSonido, type Juego } from "../../lib/alertasSonido";
+import { CATALOGO_SONIDOS, SILENCIO, reproducirSonido, sonidoDeCanal, sonidoPorId, useAlertasSonido, type Juego } from "../../lib/alertasSonido";
 import { colorDePersona, iniciales } from "../../lib/personaColor";
 import "./chatEquipo.css";
 
@@ -33,7 +33,7 @@ export function SelectorSonido({ valor, onCambiar, heredado, etiqueta }: {
         className={`min-w-0 max-w-[13.5rem] flex-1 rounded-lg border px-2 py-2 text-[14px] ${valor ? "border-accent bg-accent/10 font-bold text-ink" : "border-border bg-surface-input text-ink-secondary"}`}
       >
         {heredado !== undefined && (
-          <option value="">General{sonidoPorId(heredado) ? ` · ${sonidoPorId(heredado)!.icono} ${sonidoPorId(heredado)!.nombre}` : ""}</option>
+          <option value="">Por defecto{sonidoPorId(heredado) ? ` · ${sonidoPorId(heredado)!.icono} ${sonidoPorId(heredado)!.nombre}` : ""}</option>
         )}
         {JUEGOS.map((j) => (
           <optgroup key={j} label={j}>
@@ -128,7 +128,13 @@ export default function AjustesSonidos({ onCerrar, canalInicial }: { onCerrar: (
               </div>
               <div>
                 <p className="mb-1 text-[13px] font-bold text-ink-secondary">💬 Te escriben en un grupo</p>
-                <SelectorSonido etiqueta="mensajes de grupo" valor={ajustes.general} onCambiar={(v) => cambiar({ general: v ?? "dh_ladrido" })} />
+                <label className="mb-1.5 flex items-center gap-2 text-[13.5px] text-ink">
+                  <input type="checkbox" checked={ajustes.tono_por_grupo !== false} onChange={(e) => cambiar({ tono_por_grupo: e.target.checked })} />
+                  Cada grupo con su propio tono (se reconoce de oído)
+                </label>
+                {ajustes.tono_por_grupo === false && (
+                  <SelectorSonido etiqueta="mensajes de grupo" valor={ajustes.general} onCambiar={(v) => cambiar({ general: v ?? "dh_ladrido" })} />
+                )}
               </div>
             </div>
           </section>
@@ -168,7 +174,7 @@ export default function AjustesSonidos({ onCerrar, canalInicial }: { onCerrar: (
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-ink">{c.nombre}</span>
                 <SelectorSonido etiqueta={c.nombre} valor={ajustes.canales[String(c.id)] ?? null}
-                  heredado={ajustes.general} onCambiar={(v) => ponerCanal(c.id, v)} />
+                  heredado={sonidoDeCanal({ ...ajustes, canales: {} }, c.id)} onCambiar={(v) => ponerCanal(c.id, v)} />
               </li>
             ))}
             {pestana === "personas" && usuarios.isLoading && <li className="text-[14px] text-muted">Cargando el equipo…</li>}

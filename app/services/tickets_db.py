@@ -1904,12 +1904,14 @@ _SONIDO_ID = re.compile(r"^(?:[a-z]{2}_[a-z_]{2,20}|silencio)$")
 
 
 def _limpiar_alertas_sonido(raw) -> dict | None:
-    """{activo, volumen 0-100, general, solicitud, personas{uid: id}, canales{cid: id}}.
+    """{activo, volumen 0-100, tono_por_grupo, general, solicitud, personas{uid: id}, canales{cid: id}}.
     Los ids de sonido son claves cortas (dh_risa, cc_circo, silencio…); el catálogo vive en
     el panel, aquí solo se valida la forma para no guardar basura."""
     if not isinstance(raw, dict):
         return None
-    out: dict = {"activo": bool(raw.get("activo", True))}
+    out: dict = {"activo": bool(raw.get("activo", True)),
+                 # Cada grupo suena con su propio tono (7-oct-2026); False = todos con «general».
+                 "tono_por_grupo": bool(raw.get("tono_por_grupo", True))}
     vol = raw.get("volumen", 70)
     if isinstance(vol, bool) or not isinstance(vol, (int, float)):
         return None
@@ -4545,6 +4547,7 @@ def listar_conversaciones(usuario: dict, tipo: str = "todas", scope: str = "mias
             SELECT t.id, t.numero, t.titulo, t.tipo, t.subtipo, t.estado, t.prioridad,
                    t.creado_por, t.asignado_a, t.creado_en, t.actualizado_en,
                    uc.nombre AS creado_por_nombre, ua.nombre AS asignado_a_nombre,
+                   CASE WHEN t.subtipo='pago' THEN t.descripcion END AS _desc_pago,
                    (SELECT COUNT(*) FROM ticket_adjuntos ta WHERE ta.ticket_id=t.id)
                        AS adjuntos_total,
                    (SELECT c.texto FROM comentarios_tickets c
@@ -4574,6 +4577,10 @@ def listar_conversaciones(usuario: dict, tipo: str = "todas", scope: str = "mias
     result = []
     for r in rows:
         d = dict(r)
+        # «Aprobar pago — …» (pagos_wizard._abrir_ticket): se resuelve en Contabilidad →
+        # Solicitudes de pago, no con los pasos de la solicitud. El panel lleva allá con este id.
+        marca = re.search(r"SYS_SOLICITUD_PAGO:\s*(\d+)", d.pop("_desc_pago", None) or "")
+        d["pago_id"] = int(marca.group(1)) if marca else None
         if d["creado_por"] == uid:
             d["contraparte_id"] = d["asignado_a"]
             d["contraparte_nombre"] = d["asignado_a_nombre"] or "Sin asignar"

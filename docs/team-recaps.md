@@ -1,3 +1,13 @@
+### 2026-10-07 - Tono propio por grupo y «Aprobar pago» lleva a Solicitudes de pago
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Mensajes, sonidos, Solicitudes de pago). Sin LLM.
+- **Qué se implementó:**
+  - **Cada grupo suena distinto:** si no se le eligió un sonido, cada grupo tiene su tono fijo (pato, moneda, Charlie, ladrido, ronda…), así se reconoce de oído qué grupo escribió. En la fila de grupos se ve el ícono de su tono, y el globo de mensajes sin leer late. En los ajustes de sonido, la casilla «Cada grupo con su propio tono» permite volver a uno solo.
+  - **Arreglo:** en la pestaña Mensajes de la barra de abajo no salía ni sonaba el aviso de mensajes nuevos (solo existía dentro de la agenda). Ahora sí; al tocar el aviso se abre ese grupo.
+  - **«Aprobar pago — …»** ya no se abre como una solicitud con pasos (Leer, Empezar, Evidencia, Entregar): lleva directo a **Contabilidad → Solicitudes de pago** con esa solicitud resaltada, donde están el asiento, la firma, el banco y el comprobante. En la bandeja se marca «Pago · aprobar».
+  - Probado en producción: el tono del grupo sonó con un mensaje de prueba y «Aprobar pago — Flete» abrió la #71 resaltada.
+- **Archivos Modificados:** `app/services/tickets_db.py` (`pago_id`, `tono_por_grupo`), `tests/test_conversaciones_pago.py` (nuevo), `tests/test_canales_internos.py`, `desktop/src/lib/{alertasSonido.ts,irAPago.ts (nuevo)}`, `desktop/src/components/{MobileHub,PagosWizardPanel}.tsx`, `desktop/src/components/chat_equipo/{AjustesSonidos,ChatEquipoPanel}.tsx`, `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `desktop/src/components/tickets/{BandejaUnificada,HiloConversacion,InboxConversaciones}.tsx`, `bandeja.css`, `desktop/src/hooks/useConversaciones.ts`, `desktop/src/stores/app.ts`, `docs/agentic/modules/{operacion-equipo,pagos-solicitudes}.md`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - Celular: grupos siempre a la vista y chat a pantalla completa
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora de UX (Mensajes en el celular), tras probarlo en el teléfono. Sin LLM.

@@ -236,8 +236,9 @@ interface AppState {
   setVentasBoot: (v: { busqueda?: string; soloPendientes?: boolean } | null) => void;
   /** Abrir Contabilidad → Solicitudes de pago con el wizard ya abierto en una
    * categoría (desde «Solicitud de pago a proveedor» del Centro de Mando). */
-  pagosBoot: { abrir: boolean; categoria?: string } | null;
-  setPagosBoot: (v: { abrir: boolean; categoria?: string } | null) => void;
+  /** `sid`: abrir Solicitudes de pago con esa solicitud resaltada (lib/irAPago.ts). */
+  pagosBoot: { abrir: boolean; categoria?: string; sid?: number } | null;
+  setPagosBoot: (v: { abrir: boolean; categoria?: string; sid?: number } | null) => void;
   /** Panel al que se intentó entrar sin permiso: el guard devuelve al usuario a
    * otro panel y esto permite DECIRLE por qué (antes solo "se salía de la
    * pantalla"). Se limpia al cerrar el aviso. */

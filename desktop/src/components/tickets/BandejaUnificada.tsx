@@ -3,10 +3,12 @@ import type { TicketsUser } from "../../stores/ticketsAuth";
 import { usePresenciaEnLinea } from "../../hooks/useConversaciones";
 import { useBandeja, type ItemBandeja, type SeccionBandeja } from "../../lib/bandeja";
 import { colorDePersona } from "../../lib/personaColor";
+import { sonidoDeCanal, sonidoPorId, SILENCIO, useAlertasSonido } from "../../lib/alertasSonido";
 import HiloConversacion from "./HiloConversacion";
 import HiloCanal from "../chat_equipo/HiloCanal";
 import { ESTADO_LABEL, iniciales, tiempoRelativo, uidEq } from "./ticketsFormat";
 import { irAVistaMensajes } from "../chat_equipo/SelectorMensajes";
+import { esSolicitudDePago, irASolicitudPago } from "../../lib/irAPago";
 import "./bandeja.css";
 
 /**
@@ -25,6 +27,12 @@ const TABS: { id: Tab; label: string; vacio: string }[] = [
 ];
 
 const CLAVE_TAB = "mck-bandeja-tab";
+const EVENTO_ABRIR_CANAL = "mck-bandeja-abrir-canal";
+
+/** Abre un grupo en la bandeja desde fuera (el aviso con sonido de un mensaje nuevo). */
+export function abrirCanalEnBandeja(canalId: number) {
+  window.dispatchEvent(new CustomEvent<number>(EVENTO_ABRIR_CANAL, { detail: canalId }));
+}
 function leerTab(): Tab | null {
   try {
     const v = sessionStorage.getItem(CLAVE_TAB);
@@ -91,7 +99,9 @@ function Fila({ it, uid, onAbrir }: { it: ItemBandeja; uid: number; onAbrir: () 
         </span>
         <span className="bj-linea">
           <span className="bj-sub">
-            <span className={`bj-chip bj-estado-${c.estado}`}>{ESTADO_LABEL[c.estado] ?? c.estado}</span>
+            {esSolicitudDePago(c) && c.estado !== "resuelto" && c.estado !== "rechazado"
+              ? <span className="bj-chip bj-chip-pago">Pago · aprobar</span>
+              : <span className={`bj-chip bj-estado-${c.estado}`}>{ESTADO_LABEL[c.estado] ?? c.estado}</span>}
             {c.ultimo_texto
               ? <>{autor && <b>{autor}</b>}{c.ultimo_texto}</>
               : <>{c.tipo === "accion" ? "Tarea" : "Solicitud"} · {c.contraparte_nombre ?? "—"}</>}
@@ -114,6 +124,12 @@ export default function BandejaUnificada({
   onCrearAccion?: () => void;
 }) {
   const b = useBandeja();
+  // El ícono del tono de cada grupo (su sonido propio): se asocia oído y vista.
+  const ajustesSonido = useAlertasSonido((st) => st.ajustes);
+  const iconoTono = (canalId: number) => {
+    const id = sonidoDeCanal(ajustesSonido, canalId);
+    return id === SILENCIO ? "🔇" : sonidoPorId(id)?.icono ?? "";
+  };
   const { data: presencia } = usePresenciaEnLinea();
   const enLineaIds = useMemo(() => new Set(presencia?.usuario_ids ?? []), [presencia]);
   const [tabElegida, setTabElegida] = useState<Tab | null>(leerTab);
@@ -129,6 +145,12 @@ export default function BandejaUnificada({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bootTicketId]);
+
+  useEffect(() => {
+    const oir = (e: Event) => setAbierto({ kind: "grupo", id: (e as CustomEvent<number>).detail });
+    window.addEventListener(EVENTO_ABRIR_CANAL, oir);
+    return () => window.removeEventListener(EVENTO_ABRIR_CANAL, oir);
+  }, []);
 
   // Conversación abierta: en el celular se esconde el cabezote de la agenda (theme/movil.css).
   useEffect(() => {
@@ -169,7 +191,11 @@ export default function BandejaUnificada({
   const resultados = texto
     ? [...b.te_toca, ...b.enterarte, ...b.haciendo, ...b.hechas, ...b.grupos.filter((g) => g.noLeidos === 0)].filter(coincide)
     : null;
-  const abrir = (it: ItemBandeja) => setAbierto(it.kind === "grupo" ? { kind: "grupo", id: it.g.id } : { kind: "solicitud", id: it.c.id });
+  // «Aprobar pago — …» no se abre como solicitud: se aprueba en Solicitudes de pago (lib/irAPago.ts).
+  const abrir = (it: ItemBandeja) => {
+    if (it.kind === "solicitud" && esSolicitudDePago(it.c)) { irASolicitudPago(it.c.pago_id); return; }
+    setAbierto(it.kind === "grupo" ? { kind: "grupo", id: it.g.id } : { kind: "solicitud", id: it.c.id });
+  };
   const fila = (it: ItemBandeja) => <Fila key={it.key} it={it} uid={user.id} onAbrir={() => abrir(it)} />;
   const lista = b[tab];
   // La fila de grupos: primero donde te nombraron, luego lo que tiene mensajes nuevos, luego lo reciente.
@@ -248,6 +274,7 @@ export default function BandejaUnificada({
                         : it.noLeidos > 0 && <i className="bj-grupo-badge">{it.noLeidos > 99 ? "99+" : it.noLeidos}</i>}
                     </span>
                     <span className={`bj-grupo-nombre ${it.noLeidos > 0 ? "font-black" : ""}`}>{it.g.nombre}</span>
+                    <span className="bj-grupo-tono" aria-label="Su tono">{iconoTono(it.g.id)}</span>
                   </button>
                 ))}
                 {b.puedeAdministrarGrupos && (
