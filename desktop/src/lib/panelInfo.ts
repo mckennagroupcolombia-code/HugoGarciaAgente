@@ -300,6 +300,18 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "diseno",
   },
+  ideas: {
+    emoji: "🌿",
+    label: "Desarrollar idea",
+    description: "Una idea de producto abierta en un cladograma: usuario, requerimientos, arquitectura, ingeniería y manufactura, prototipado, sostenibilidad y riesgos.",
+    tips: [
+      "Escribe la idea y, si quieres, para quién es, el precio y las restricciones; luego «Desarrollar cladograma».",
+      "Clic en una rama para editarla; ✨ la ramifica con IA y + agrega una rama a mano.",
+      "«Copiar como texto» la pega como esquema en un documento.",
+    ],
+    tier: "standard",
+    category: "diseno",
+  },
   fichas: {
     emoji: "📄",
     label: "Documentos técnicos",

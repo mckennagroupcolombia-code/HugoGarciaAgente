@@ -42,6 +42,9 @@ export default function DisenoNavTabs() {
   // Fórmulas de producto (1-oct-2026): otro panel, con permiso propio (`formulas`).
   const enFormulas = panel === "formulas";
   const verFormulas = Boolean(user && puedeVerSeccionPanel(user, "formulas"));
+  // Desarrollar idea (4-oct-2026): la idea de producto en un cladograma, con permiso propio (`ideas`).
+  const enIdeas = panel === "ideas";
+  const verIdeas = Boolean(user && puedeVerSeccionPanel(user, "ideas"));
 
   useEffect(() => {
     if (panel === "etiquetas" || panel === "etiquetas-config") {
@@ -49,6 +52,7 @@ export default function DisenoNavTabs() {
     }
     if (panel === "fichas") guardarUltimoPanelHub("diseno", "fichas");
     if (panel === "formulas") guardarUltimoPanelHub("diseno", "formulas");
+    if (panel === "ideas") guardarUltimoPanelHub("diseno", "ideas");
   }, [panel]);
 
   // Con el hub de Diseño visible ya se pueden pedir las etiquetas de todas las
@@ -57,7 +61,7 @@ export default function DisenoNavTabs() {
     precargarDiseno(qc, user);
   }, [qc, user]);
 
-  if (tabs.length === 0 && !verDocs && !verFormulas) return null;
+  if (tabs.length === 0 && !verDocs && !verFormulas && !verIdeas) return null;
 
   function irAEtiquetas(id: EtiquetasTab) {
     setPanel("etiquetas");
@@ -67,7 +71,7 @@ export default function DisenoNavTabs() {
   return (
     <ScrollableTabList aria-label="Secciones de Diseño" justify="start">
       {tabs.map((t) => {
-        const selected = !enDocs && !enFormulas && activo === t.id;
+        const selected = !enDocs && !enFormulas && !enIdeas && activo === t.id;
         return (
           <button
             key={t.id}
@@ -112,6 +116,20 @@ export default function DisenoNavTabs() {
         >
           <Icon name="flask" size={16} weight="bold" className="shrink-0" />
           <span className={HUB_TAB_LABEL}>Fórmulas</span>
+        </button>
+      )}
+      {verIdeas && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={enIdeas}
+          aria-label="Desarrollar idea"
+          title="Desarrollar una idea de producto en un cladograma"
+          onClick={() => setPanel("ideas")}
+          className={hubTabClass(enIdeas, COMPACTA)}
+        >
+          <Icon name="tree" size={16} weight="bold" className="shrink-0" />
+          <span className={HUB_TAB_LABEL}>Desarrollar idea</span>
         </button>
       )}
     </ScrollableTabList>

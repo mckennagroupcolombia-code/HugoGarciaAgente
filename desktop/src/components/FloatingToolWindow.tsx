@@ -59,10 +59,27 @@ function saveRect(id: string, rect: FloatRect) {
   }
 }
 
-type DragMode = "move" | "resize";
+/** move = arrastrar la cabecera; el resto, el borde o la esquina que se arrastra
+ *  (se/sw = esquinas de abajo; e/w = lados; s = borde inferior). */
+type DragMode = "move" | "se" | "sw" | "e" | "w" | "s";
+
+/** Nuevo rectángulo al arrastrar un borde. Por la izquierda el borde derecho queda quieto. */
+function redimensionar(o: FloatRect, mode: Exclude<DragMode, "move">, dx: number, dy: number, minW: number, minH: number): FloatRect {
+  let { x, w, h } = o;
+  if (mode === "se" || mode === "e") w = o.w + dx;
+  if (mode === "sw" || mode === "w") {
+    w = Math.max(minW, Math.min(o.w - dx, o.x + o.w));
+    x = o.x + o.w - w;
+  }
+  if (mode === "se" || mode === "sw" || mode === "s") h = o.h + dy;
+  return { x, y: o.y, w, h };
+}
 
 /**
  * Ventana flotante arrastrable y redimensionable.
+ * Se agranda desde las dos esquinas de abajo y desde los bordes izquierdo, derecho e
+ * inferior: como suele abrirse pegada a la derecha, la esquina derecha sola no dejaba
+ * agrandarla (no había pantalla hacia ese lado; 5-oct-2026).
  * Persiste posición/tamaño en localStorage por `id` al soltar.
  * Minimizar colapsa a una barra flotante sin desmontar `children` (conserva el formulario).
  */
@@ -121,13 +138,7 @@ export default function FloatingToolWindow({
           ),
         );
       } else {
-        setRect(
-          clampRect(
-            { ...d.orig, w: d.orig.w + dx, h: d.orig.h + dy },
-            minWidth,
-            minHeight,
-          ),
-        );
+        setRect(clampRect(redimensionar(d.orig, d.mode, dx, dy, minWidth, minHeight), minWidth, minHeight));
       }
     };
     const onUp = () => {
@@ -168,12 +179,12 @@ export default function FloatingToolWindow({
     setDragging(true);
   };
 
-  const startResize = (e: ReactPointerEvent) => {
+  const startResize = (mode: Exclude<DragMode, "move">) => (e: ReactPointerEvent) => {
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
     dragRef.current = {
-      mode: "resize",
+      mode,
       startX: e.clientX,
       startY: e.clientY,
       orig: { ...rectRef.current },
@@ -246,17 +257,26 @@ export default function FloatingToolWindow({
 
         <div className="min-h-0 flex-1 overflow-auto">{children}</div>
 
-        <div
-          className="absolute bottom-0 right-0 z-10 hidden h-4 w-4 cursor-se-resize sm:block"
-          onPointerDown={startResize}
-          title="Redimensionar"
-          aria-label="Redimensionar ventana"
-        >
-          <span
-            className="absolute bottom-1 right-1 h-2.5 w-2.5 border-b-2 border-r-2 border-muted/70"
-            aria-hidden
-          />
-        </div>
+        {/* Bordes para agrandar (solo escritorio: en celular ocupa la pantalla). */}
+        <div className="absolute bottom-5 left-0 top-11 z-10 hidden w-1.5 cursor-ew-resize hover:bg-accent/20 sm:block"
+          onPointerDown={startResize("w")} title="Arrastra para cambiar el ancho" aria-hidden />
+        <div className="absolute bottom-5 right-0 top-11 z-10 hidden w-1.5 cursor-ew-resize hover:bg-accent/20 sm:block"
+          onPointerDown={startResize("e")} title="Arrastra para cambiar el ancho" aria-hidden />
+        <div className="absolute bottom-0 left-5 right-5 z-10 hidden h-1.5 cursor-ns-resize hover:bg-accent/20 sm:block"
+          onPointerDown={startResize("s")} title="Arrastra para cambiar el alto" aria-hidden />
+        {(["sw", "se"] as const).map((m) => (
+          <div
+            key={m}
+            className={`absolute bottom-1 z-10 hidden h-5 w-5 sm:block ${m === "se" ? "right-1 cursor-se-resize" : "left-1 cursor-sw-resize"}`}
+            onPointerDown={startResize(m)}
+            title="Arrastra para cambiar el tamaño"
+            aria-label="Redimensionar ventana"
+          >
+            <svg viewBox="0 0 20 20" className={`pointer-events-none h-5 w-5 text-accent/70 ${m === "sw" ? "-scale-x-100" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M17 8 8 17M17 13l-4 4" strokeLinecap="round" />
+            </svg>
+          </div>
+        ))}
       </div>
 
       {minimized && (
@@ -284,13 +304,16 @@ export default function FloatingToolWindow({
 
 /** Defaults útiles si no hay preferencia guardada. */
 export function defaultFloatRect(
-  corner: "tl" | "tr" | "ml",
+  corner: "tl" | "tr" | "ml" | "tr-alto",
   w: number,
   h: number,
 ): FloatRect {
   const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
   const pad = 20;
   const top = 80;
+  // «tr-alto»: a la derecha, desde arriba y con casi todo el alto (formularios largos).
+  if (corner === "tr-alto") return { x: Math.max(pad, vw - w - pad), y: 12, w, h: Math.min(h, vh - 24) };
   if (corner === "tr") return { x: Math.max(pad, vw - w - pad), y: top, w, h };
   if (corner === "ml") return { x: pad + 300, y: top, w, h };
   return { x: pad, y: top, w, h };

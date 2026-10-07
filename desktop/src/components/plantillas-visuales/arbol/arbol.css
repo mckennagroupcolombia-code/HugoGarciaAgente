@@ -269,6 +269,32 @@
   border: 2px solid var(--ed-negro, #000);
 }
 
+/* «Costo vs. precio» (CostoPrecio.tsx): la receta costeada y los precios sugeridos. */
+.arbol-pixel .ap-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  background: #fff;
+  border: 2px solid var(--ed-negro, #000);
+  table-layout: auto;
+}
+.arbol-pixel .ap-tabla td { padding: 3px 6px; vertical-align: middle; border-bottom: 1px dashed var(--ed-gris-osc, #5F574F); }
+.arbol-pixel .ap-tabla td:first-child { max-width: 0; width: 45%; }
+.arbol-pixel .ap-tabla tfoot td { font-weight: 800; border-top: 2px solid var(--ed-negro, #000); border-bottom: 0; }
+.arbol-pixel .ap-tabla thead td { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--ed-gris-osc, #5F574F); }
+.arbol-pixel .ap-tabla-sugerido td:first-child { width: 40%; }
+.arbol-pixel .ap-tabla-falta { background: color-mix(in srgb, var(--ed-rojo-osc, #C8003E) 12%, #fff); }
+.arbol-pixel .ap-fuente {
+  display: inline-block;
+  padding: 0 4px;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  border: 1px solid var(--ed-negro, #000);
+  background: var(--ed-crema, #FFF1E8);
+  color: var(--ed-negro, #000);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .arbol-pixel .ap-rama-viva,
   .arbol-pixel .ap-nodo-sel,

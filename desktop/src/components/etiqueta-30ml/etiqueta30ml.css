@@ -597,6 +597,9 @@
 
 .e30-info-docs {
   max-width: 94%;
+  /* En edición es un <input> al 94 % dentro de una casilla al 100 %: sin
+     esto quedaba pegado a la izquierda, corrido respecto a las demás líneas. */
+  margin-inline: auto;
   font-size: 14px;
   font-weight: 800;
   white-space: nowrap;

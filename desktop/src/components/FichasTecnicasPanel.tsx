@@ -16,6 +16,7 @@ import DocumentoGeneradorTab, {
   textoDesdeFilasTres,
 } from "./documentos/DocumentoGeneradorTab";
 import { TablaComposicion } from "./documentos/TablaComposicion";
+import { ComposicionDesdeFormula } from "./documentos/ComposicionDesdeFormula";
 import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
 import CargarDocumentosWebButton, { type CargarDocumentosWebResult } from "./documentos/CargarDocumentosWebButton";
@@ -243,7 +244,63 @@ function DocDelCombo({ onAbrir, editando, onVolver }: {
   );
 }
 
-function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => void }) {
+/** Botón «Eliminar» de un borrador, con confirmación en la misma fila. El servidor no lo
+ *  borra: lo guarda en fichas_word/_borradores_eliminados/. */
+function EliminarBorradorBoton({ slug, onEliminado }: { slug: string; onEliminado: () => void }) {
+  const [confirmar, setConfirmar] = useState(false);
+  const [enCurso, setEnCurso] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const eliminar = async () => {
+    setEnCurso(true);
+    setError(null);
+    try {
+      await api.delete(`/api/fichas/borradores/${encodeURIComponent(slug)}`);
+      setConfirmar(false);
+      onEliminado();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEnCurso(false);
+    }
+  };
+  if (error) {
+    return (
+      <span className="basis-full text-xs text-danger">
+        {error}{" "}
+        <button type="button" onClick={() => { setError(null); setConfirmar(false); }} className="underline">Cerrar</button>
+      </span>
+    );
+  }
+  if (!confirmar) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirmar(true)}
+        className="shrink-0 rounded border border-border px-2 py-0.5 text-xs font-medium text-muted hover:border-danger hover:text-danger"
+      >
+        Eliminar
+      </button>
+    );
+  }
+  return (
+    <span className="flex shrink-0 items-center gap-1 text-xs">
+      <span className="text-danger">¿Eliminar?</span>
+      <button
+        type="button"
+        disabled={enCurso}
+        onClick={() => void eliminar()}
+        className="rounded border border-danger bg-danger px-2 py-0.5 font-medium text-white disabled:opacity-40"
+      >
+        {enCurso ? "…" : "Sí"}
+      </button>
+      <button type="button" disabled={enCurso} onClick={() => setConfirmar(false)} className="rounded border border-border px-2 py-0.5 text-muted">
+        No
+      </button>
+    </span>
+  );
+}
+
+function BibliotecaTab({ onEditar, onNuevo }: { onEditar: (r: BibliotecaDatosResult) => void; onNuevo: () => void }) {
   const [busqueda, setBusqueda] = useState("");
   // Llegada desde el taller de combos: la biblioteca abre buscando el documento de ese producto.
   const tallerSalto = useAppStore((st) => st.tallerSalto);
@@ -274,6 +331,29 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
     queryKey: ["fichas-biblioteca"],
     queryFn: () => api.get<{ archivos: ArchivoGenerado[] }>("/api/fichas/biblioteca"),
   });
+
+  // Los borradores aún no tienen PDF: se listan aparte para que Calidad los encuentre y los revise.
+  const { data: borradoresData, refetch: refetchBorradores } = useQuery({
+    queryKey: ["fichas-borradores"],
+    queryFn: () => api.get<{ borradores: Array<{ id: string; titulo: string; guardado_at?: string; archivo: string }> }>("/api/fichas/borradores"),
+  });
+  const [abriendoBorrador, setAbriendoBorrador] = useState<string | null>(null);
+  const sinTildes = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const borradores = (borradoresData?.borradores ?? [])
+    .filter((b) => !busqueda.trim() || sinTildes(b.titulo).includes(sinTildes(busqueda.trim())))
+    .sort((x, y) => (y.guardado_at || "").localeCompare(x.guardado_at || ""));
+  const revisarBorrador = async (b: { id: string; titulo: string }) => {
+    setAbriendoBorrador(b.id);
+    setEditError(null);
+    try {
+      const r = await api.get<{ datos: Record<string, unknown> }>(`/api/fichas/datos/${encodeURIComponent(b.id)}`);
+      onEditar({ tipo: "completo", titulo: b.titulo, datos: r.datos || {}, yaml: "", tiene_datos: true });
+    } catch (e: unknown) {
+      setEditError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAbriendoBorrador(null);
+    }
+  };
 
   const getToken = async () => {
     const { useTicketsAuth } = await import("../stores/ticketsAuth");
@@ -355,6 +435,12 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2">
+        <p className="text-[12px] text-muted">¿El producto no tiene documento todavía?</p>
+        <button type="button" onClick={onNuevo} className="rounded-md border border-accent bg-accent px-3 py-1 text-[12px] font-bold text-white hover:opacity-90">
+          ＋ Nuevo documento desde cero
+        </button>
+      </div>
       {/* La biblioteca es la lista de PDF generados. Escanear un COA y publicar en la web son tareas
           ocasionales: una fila compacta (el escáner plegado) en vez de media pantalla sobre la lista. */}
       <div className="grid gap-2 md:grid-cols-2">
@@ -394,7 +480,7 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
         />
         <button
           type="button"
-          onClick={() => void refetch()}
+          onClick={() => { void refetch(); void refetchBorradores(); }}
           className="rounded-lg border border-border px-3 py-2 text-xs text-muted hover:text-ink"
         >
           ↻ Actualizar
@@ -433,6 +519,37 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
         <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
           {(generarLotesMut.error as Error).message}
         </p>
+      )}
+
+      {borradores.length > 0 && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 px-4 py-3 space-y-2">
+          <p className="text-sm font-semibold text-ink">
+            Borradores pendientes de revisión ({borradores.length})
+            <span className="ml-2 text-xs font-normal text-muted">Aún sin PDF: se generan al dar el visto bueno.</span>
+          </p>
+          <ul className="max-h-64 space-y-1 overflow-auto">
+            {borradores.map((b) => (
+              <li key={b.id} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="shrink-0 rounded border border-amber-500/50 px-1.5 text-[10px] font-semibold uppercase text-amber-700 dark:text-amber-300">Borrador</span>
+                <span className="min-w-0 flex-1 truncate text-ink">{b.titulo}</span>
+                {b.guardado_at && (
+                  <span className="shrink-0 text-xs text-muted">
+                    {new Date(b.guardado_at).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  disabled={abriendoBorrador === b.id}
+                  onClick={() => void revisarBorrador(b)}
+                  className="shrink-0 rounded border border-border px-2 py-0.5 text-xs font-medium text-accent hover:border-accent disabled:opacity-40"
+                >
+                  {abriendoBorrador === b.id ? "Abriendo…" : "Revisar"}
+                </button>
+                <EliminarBorradorBoton slug={b.id} onEliminado={() => void refetchBorradores()} />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {isLoading && <p className="text-sm text-muted">Cargando biblioteca…</p>}
@@ -1713,8 +1830,9 @@ function useDebounced<T>(valor: T, ms: number): T {
   return v;
 }
 
-/** «Referencia enlazada»: a qué SKU (materia prima de Alegra) está unido el documento, y
- *  corregirlo. De ese enlace dependen los lotes, Imprimir y el taller de combos. */
+/** «Referencia enlazada»: a qué SKU (materia prima de Alegra, o el combo cuando el producto está
+ *  formulado como combo) está unido el documento, y corregirlo. De ese enlace dependen los lotes,
+ *  Imprimir y el taller de combos. */
 function ReferenciaEnlazada({
   titulo,
   referencia,
@@ -1741,8 +1859,8 @@ function ReferenciaEnlazada({
   const busq = useQuery({
     queryKey: ["doc-referencia-buscar", qDeb],
     queryFn: () =>
-      api.get<{ items: { codigo: string; nombre: string }[] }>(
-        `/api/siigo/productos/buscar?q=${encodeURIComponent(qDeb)}&excluir_combos=1&limit=15`,
+      api.get<{ items: { codigo: string; nombre: string; type?: string }[] }>(
+        `/api/siigo/productos/buscar?q=${encodeURIComponent(qDeb)}&excluir_combos=0&limit=20`,
       ),
     enabled: editando && qDeb.length > 1,
     staleTime: 60_000,
@@ -1804,7 +1922,7 @@ function ReferenciaEnlazada({
 
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-muted">Referencia enlazada (SKU de la materia prima)</p>
+      <p className="text-xs text-muted">Referencia enlazada (SKU de la materia prima, o del combo si está formulado en combo)</p>
       <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-input px-2.5 py-1.5">
         {actual ? (
           <span className="text-sm text-ink">
@@ -1837,7 +1955,7 @@ function ReferenciaEnlazada({
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar la materia prima por nombre o SKU…"
+            placeholder="Buscar la materia prima o el combo por nombre o SKU…"
             className="w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
           />
           {busq.isLoading && <p className="text-[11px] text-muted">Buscando…</p>}
@@ -1852,6 +1970,9 @@ function ReferenciaEnlazada({
               >
                 <code className="shrink-0 font-bold">{it.codigo}</code>
                 <span className="min-w-0 flex-1 truncate">{it.nombre}</span>
+                {it.type === "Combo" && (
+                  <span className="shrink-0 rounded bg-amber-200 px-1 py-px text-[9px] font-bold uppercase text-amber-900 dark:bg-amber-800 dark:text-amber-100">Combo</span>
+                )}
                 {it.codigo === actual && <span className="text-[10px] font-bold text-emerald-700">actual</span>}
               </button>
             ))}
@@ -1864,15 +1985,54 @@ function ReferenciaEnlazada({
   );
 }
 
+/**
+ * Arriba del editor: dice si se está redactando un documento nuevo o editando uno que ya existe, y deja
+ * empezar uno desde cero. Si el formulario tiene algo escrito, pide confirmar (en línea, sin diálogo).
+ */
+function BarraNuevoDocumento({ tituloAbierto, hayCambios, onNuevo }: { tituloAbierto: string; hayCambios: boolean; onNuevo: () => void }) {
+  const [confirmar, setConfirmar] = useState(false);
+  const nuevo = !tituloAbierto;
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-panel px-3 py-2">
+      <span className={`rounded-full border px-2 py-0.5 text-[10.5px] font-bold uppercase ${nuevo ? "border-accent/60 bg-accent/10 text-accent" : "border-border text-muted"}`}>
+        {nuevo ? "Documento nuevo" : "Editando"}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
+        {nuevo ? "Escribe el nombre del producto y llena las tres secciones (FT → COA → SDS)." : tituloAbierto}
+      </span>
+      {confirmar ? (
+        <span className="flex flex-wrap items-center gap-2 text-[12px]">
+          <span className="text-ink">Lo que no hayas guardado se pierde.</span>
+          <button type="button" onClick={() => { setConfirmar(false); onNuevo(); }} className="rounded-md border border-accent bg-accent px-2.5 py-1 font-bold text-white hover:opacity-90">
+            Empezar de cero
+          </button>
+          <button type="button" onClick={() => setConfirmar(false)} className="rounded-md border border-border px-2.5 py-1 font-semibold text-ink hover:border-accent">
+            Cancelar
+          </button>
+        </span>
+      ) : (
+        (!nuevo || hayCambios) && (
+          <button type="button" onClick={() => (hayCambios ? setConfirmar(true) : onNuevo())} className="rounded-md border border-accent px-3 py-1 text-[12px] font-bold text-accent hover:bg-accent/10">
+            ＋ Nuevo documento desde cero
+          </button>
+        )
+      )}
+    </div>
+  );
+}
+
 function DocumentoCompletoTabContent({
   producto,
   preload,
   onVolver,
+  onNuevo,
 }: {
   producto: ProductoDocumentacion | null;
   preload: Record<string, unknown> | null;
   /** Dentro de la ventana del taller: volver al combo tras dar el visto bueno. */
   onVolver?: () => void;
+  /** Vacía el editor para redactar un documento nuevo (sin YAML de partida). */
+  onNuevo?: () => void;
 }) {
   /* FT — delegado a FichaTecnicaForm mediante refs */
   const buildFtRef = useRef<() => Record<string, unknown>>(() => ({}));
@@ -2292,7 +2452,10 @@ function DocumentoCompletoTabContent({
       if (json.slug) {
         try {
           const { propagarFichaTecnicaAEtiquetas } = await import("../lib/fichaTecnicaAplicar");
-          const cambiadas = await propagarFichaTecnicaAEtiquetas([json.slug, `borrador_${json.slug}`]);
+          // También pasan al documento final las enlazadas a la ficha antigua de solo TDS del
+          // mismo producto («elastina» → «ft_coa_sds_elastina»): si no, seguían leyendo la vieja.
+          const fichaAntigua = String(json.slug).replace(/^ft_coa_sds_/, "");
+          const cambiadas = await propagarFichaTecnicaAEtiquetas([json.slug, `borrador_${json.slug}`, fichaAntigua]);
           void qc.invalidateQueries({ queryKey: ["etiquetas-fichas"] });
           setEtiquetasSync({
             ok: true,
@@ -2400,14 +2563,19 @@ function DocumentoCompletoTabContent({
     ? nombre.trim() ? borradores.filter((b) => normTitulo(b.titulo) === normTitulo(nombre)) : []
     : borradores;
 
+  const tituloAbierto = String(preload?.titulo || preload?.nombre_producto || "").trim();
   return (
     <div className="relative space-y-4 pb-28">
+
+      {onNuevo && !desdeTaller && (
+        <BarraNuevoDocumento tituloAbierto={tituloAbierto} hayCambios={Boolean(nombre.trim())} onNuevo={onNuevo} />
+      )}
 
       {borradoresVisibles.length > 0 && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 space-y-2">
           <p className="text-xs font-medium text-ink">{desdeTaller ? "Hay un borrador guardado de este producto" : "Borradores guardados"}</p>
-          <ul className="space-y-1">
-            {borradoresVisibles.slice(0, 8).map((b) => (
+          <ul className="max-h-48 space-y-1 overflow-auto">
+            {borradoresVisibles.map((b) => (
               <li key={b.id} className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="min-w-0 flex-1 truncate text-ink">{b.titulo}</span>
                 {b.guardado_at && (
@@ -2423,6 +2591,9 @@ function DocumentoCompletoTabContent({
                 >
                   {cargandoBorrador === b.id ? "Cargando…" : "Continuar"}
                 </button>
+                {!desdeTaller && (
+                  <EliminarBorradorBoton slug={b.id} onEliminado={() => void qc.invalidateQueries({ queryKey: ["fichas-borradores"] })} />
+                )}
               </li>
             ))}
           </ul>
@@ -2684,6 +2855,12 @@ function DocumentoCompletoTabContent({
           onChange={setCoaComposicion}
           actions={<IaBtn {...ia("composicion")} />}
         />
+        <ComposicionDesdeFormula
+          titulo={nombre}
+          referencia={referencia}
+          value={coaComposicion}
+          onChange={setCoaComposicion}
+        />
       </div>
 
       {/* ─── SDS: solo campos exclusivos ─── */}
@@ -2907,6 +3084,12 @@ export default function FichasTecnicasPanel({ onVolver, archivoInicial }: {
     setTab("completo");
   };
 
+  const nuevoDesdeCero = useCallback(() => {
+    setCompletoPreload(null);
+    setCompletoKey((k) => k + 1);
+    setTab("completo");
+  }, [setTab]);
+
   // Documento que llega desde el taller: editor limpio (key nueva) con ese YAML.
   const handleEditarRef = useRef(handleEditar);
   handleEditarRef.current = handleEditar;
@@ -2945,8 +3128,8 @@ export default function FichasTecnicasPanel({ onVolver, archivoInicial }: {
       {tab === "ft" && <FichaTecnicaTabContent producto={null} preload={ftPreload} />}
       {tab === "coa" && <CoaTabContent producto={null} preload={coaPreload} />}
       {tab === "sds" && <SdsTabContent producto={null} preload={sdsPreload} />}
-      {tab === "completo" && <DocumentoCompletoTabContent key={completoKey} producto={null} preload={completoPreload} onVolver={onVolver} />}
-      {tab === "biblioteca" && <BibliotecaTab onEditar={handleEditar} />}
+      {tab === "completo" && <DocumentoCompletoTabContent key={completoKey} producto={null} preload={completoPreload} onVolver={onVolver} onNuevo={nuevoDesdeCero} />}
+      {tab === "biblioteca" && <BibliotecaTab onEditar={handleEditar} onNuevo={nuevoDesdeCero} />}
       {tab === "revision" && (
         <DocumentosCatalogoTab
           onGenerar={(producto) => {

@@ -204,12 +204,14 @@ queda para el contador. ⛔ Corte `CONTABILIDAD_FECHA_CORTE` = 2026-09-01 (lo an
 Mercado Pago = **130505** (retiro al banco es traslado, no ingreso); 2367 = IVA retenido; 2380 = acreedores varios;
 rendimientos = **236535**; un backfill necesita subir `CONTABILIDAD_LEDGER_BUDGET_S`; ante 503 de Alegra **releer antes
 de reintentar**; IVA de ventas nunca como total/1,19.
+Borradores del 350 (retefuente + reteIVA) y del RTICA para revisar con el contador: Libro Mayor → **Declaraciones**
+(`declaraciones_impuestos.py`).
 
 **K/L/T · Despachos** (`logistica-despachos.md`). Pagos de mensajería por lote → Solicitudes de pago (un lote con
 `solicitud_pago_id` no se postea otra vez). Rótulos térmicos 10×15 **sin contenido ni valor declarado**; MeLi usa su
 etiqueta. Entregas Flex: ⚠️ no usar `meli.listar_ordenes_meli_por_estado` (corta la paginación en silencio).
 
-**M · Préstamos de terceros** (`prestamos.md`). 25 % E.A., 24 cuotas, retención 7 % contra 236535; documento soporte
+**M · Préstamos de terceros** (`prestamos.md`). 25 % E.A., 24 cuotas, retención 7 % contra 236535 + reteICA 11,04‰ contra 2368; documento soporte
 solo por intereses. Dígito del calendario DIAN = **6**.
 
 **N/Q · Socios y terceros** (`relaciones-socios-terceros.md`). Socios compran con tarjeta personal → **2380**; el asiento
@@ -220,7 +222,8 @@ entra a la conciliación de la empresa. Declarador: `/api/socios/*`, cada socio 
 **O · Solicitudes de pago** (`pagos-solicitudes.md`, leerla antes de tocar pagos). Asiento nace al **aprobar**; la
 **cuenta PUC decide el impuesto**, el perfil tributario vive en el tercero; gross-up solo si está pactado; dos tokens
 (uno prepara en el banco, otro confirma con captura). Compras = copia fiel de la cotización (renglones activos en
-Alegra, IVA a 240810, total cuadrado al peso). ⚠️ Un PUT a Alegra **reemplaza** (no es parcial). Registro de facturas
+Alegra, IVA a 240810, total cuadrado al peso). **Anticipo** (6-oct): compra con cotización a un proveedor obligado a facturar → giro a
+133005 **sin retención**; inventario, IVA y retención nacen al **legalizar** con la factura (sobrante a favor en 133005, faltante a 2205). ⚠️ Un PUT a Alegra **reemplaza** (no es parcial). Registro de facturas
 de compra apagado (`FACTURAS_COMPRA_REGISTRO_ACTIVO`).
 
 **P · Agente de ventas v2** (`agente-ventas-v2.md`). `WA_AGENTE_V2` / `WEB_AGENTE_V2` = `off|sombra|activo`. **WhatsApp
@@ -241,11 +244,20 @@ es el **Árbol del producto** (Studio); `combos` es solo alias. `fijar_sku_docum
 `guardar_ficha` reemplaza la ficha entera (toda edición parcial pasa por `actualizar_campos_ficha`).
 La **tienda web se agrupa y nombra como el árbol** (`data/familias_arbol.json`, solo une y renombra, nunca separa);
 rutas de origen del mapa: `scripts/sincronizar_origen_materias.py` (vista previa; `--aplicar`).
+**Costo vs. precio** en cada presentación del árbol (`costo_receta.py`): receta costeada con la última compra
+(Libro Mayor 1435 / facturas → `costos_referencia.json` → costo a mano) contra el precio web, MeLi y lista.
 
 **Operación del equipo** (`operacion-equipo.md`: cese Y, chat del equipo AA, insumos AB, buscador de chats AC,
 bultos AE, solicitudes como misión AF). Cese global: `python3 scripts/cese_actividades.py --activar|--desactivar|--estado`.
 ⚠️ Desde el 27-sep el cese se levantó con **despliegue gradual** (`despliegue_ventas.json`): MeLi, web y Cotizar/Facturar
 solo venden SKUs que se facturan; ampliar con `scripts/desplegar_ventas_facturables.py --ampliar`.
+
+**Menciones con @ en los grupos** (`operacion-equipo.md`, AI, 7-oct): `canal_menciones`. Una mención está pendiente
+hasta que la persona lee el grupo, y ese grupo pasa a «Te toca» en la bandeja del celular (`lib/bandeja.ts`).
+
+**Alertas sonoras + chat legible** (`operacion-equipo.md`, AH, 6-oct): cada quien elige sonido por persona (quién le
+pide algo) y por grupo, con recortes de Duck Hunt y de Circus Charlie grabados de la ROM; `preferencias_ui.sonidos`.
+El hilo del grupo tiene Aa (3 tamaños), separadores por día, autores con color y formato de WhatsApp.
 
 **Revisión de pesos, medidas y empaques** (`operacion-equipo.md`, AG). Solicitud `subtipo=revision_empaque` con wizard
 (pesar cada combo → medir cada tipo de empaque → entregar → el admin aprueba y aplica en MeLi). Es la fuente de verdad
@@ -254,7 +266,7 @@ de peso/medidas por SKU; nada se escribe en MeLi sin aprobar y antes se relee la
 **RRHH y horas** (`rrhh-horas.md`). ⚠️ **Nunca** poner horario de entrada/salida (convierte honorarios en contrato
 laboral). Tiempos solo cronometrados (≥5 muestras) o huella real, nunca estimados a mano. Salarios fuera de git.
 
-**Colaboradores** (`colaboradores.md`): desde el 3-oct un proyecto es **un solo mapa-cladograma por linaje** (cada tarjeta cuelga de la que la originó; `padre_id`, sin ciclos), con turno y ritmo «visto → respuesta»; el edificio se absorbió como rama «Proceso». Proyectos personales o compartidos por **miembros** (`colab_miembros`): cualquiera con el permiso `colaboradores` (Armando, Cynthia) crea e invita; cada quien ve solo los suyos. «Traer del chat» lee el WhatsApp exportado sin guardarlo. · **Grabar pantalla** e **iconografía** (`desktop-panel.md`) ·
+**Colaboradores** (`colaboradores.md`): desde el 3-oct un proyecto es **un solo mapa-cladograma por linaje** (cada tarjeta cuelga de la que la originó; `padre_id`, sin ciclos), con turno y ritmo «visto → respuesta»; el edificio se absorbió como rama «Proceso». Proyectos personales o compartidos por **miembros** (`colab_miembros`): cualquiera con el permiso `colaboradores` (Armando, Cynthia) crea e invita; cada quien ve solo los suyos. «Traer del chat» lee el WhatsApp exportado sin guardarlo. «Precios» (4-oct) = simulador de márgenes por producto entre McKenna y el colaborador (`colab_precios.py`): propuestas con historial y «de acuerdo»; simulación, no toca publicaciones. · **Grabar pantalla** e **iconografía** (`desktop-panel.md`) ·
 **Catálogo PDF, CLI, contenido multimedia y científico** (`contenido-catalogo.md`).
 
 ## Endpoints (tabla completa: `docs/agentic/ENDPOINTS.md`)
@@ -439,7 +451,7 @@ viven en el repo (nivel 2) mientras que los PNG derivados para imprimir viven fu
 | Agente de ventas v2 (P) | `docs/agentic/modules/agente-ventas-v2.md` |
 | Ventas directas (R) | `docs/agentic/modules/ventas-directas.md` |
 | Mapa, combos, EAN, canales, árbol del producto (U, W, X, Z, AD) | `docs/agentic/modules/producto-cadena.md` |
-| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión, revisión de empaques (Y, AA, AB, AC, AE, AF, AG) | `docs/agentic/modules/operacion-equipo.md` |
+| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión, revisión de empaques, alertas sonoras (Y, AA, AB, AC, AE, AF, AG, AH) | `docs/agentic/modules/operacion-equipo.md` |
 | Rendimiento, mapa de funciones, control de horas | `docs/agentic/modules/rrhh-horas.md` |
 | Colaboradores | `docs/agentic/modules/colaboradores.md` |
 | Panel React, iconografía, grabar pantalla (V, S) | `docs/agentic/modules/desktop-panel.md` |

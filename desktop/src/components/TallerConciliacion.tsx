@@ -13,11 +13,11 @@ import {
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
-import { usePanelTheme } from "../stores/panelTheme";
 import { usePantallaCompleta, soportaPantallaCompleta } from "../hooks/usePantallaCompleta";
 import TerceroSelect from "./TerceroSelect";
 import { BTN, BTN_SEC } from "./combos/comun";
 import { ponerSonido, sonarMoneda, sonidoActivo } from "./combos/sonidoMoneda";
+import { perroSeRie } from "../lib/celebracionAprobado";
 import VentanaTaller from "./combos/VentanaTaller";
 
 // Una compra no se causa desde acá con un formulario propio: entra por el MISMO
@@ -1002,7 +1002,7 @@ function PiezaEmergente({ pregunta, recien, siguiente, onSiguiente, onCerrar, ch
     return () => window.removeEventListener("keydown", tecla);
   }, [onCerrar]);
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-3" role="dialog" aria-modal="true" data-pieza="1" aria-label="Pieza de la línea" onClick={onCerrar}>
+    <div className="lm-escala fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-3" role="dialog" aria-modal="true" data-pieza="1" aria-label="Pieza de la línea" onClick={onCerrar}>
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-xl" onClick={(ev) => ev.stopPropagation()}>
         {recien && <p className="mck-mision-gana-tira shrink-0 border-b border-accent-leaf/40 bg-accent-leaf/15 px-4 py-1.5 text-[12px] font-bold text-ink"><Ico e="✅" /> {recien} — seguimos con la siguiente pieza.</p>}
         {pregunta && <p className="shrink-0 border-b border-border bg-accent/5 px-4 py-2 text-[13px] leading-snug text-ink">{pregunta}</p>}
@@ -1062,10 +1062,9 @@ function CuentaEnT({ t, posteado }: { t: CuentaT; posteado: boolean }) {
  * vinculada, el candidato si el libro tiene uno que calza, o el que se propone
  * causar— como libro diario o como cuentas T; abajo, el cotejo banco ↔ asiento.
  */
-function TableroContable({ l, piezas, sel, guia, destello, premio, onSel }: {
-  l: LineaBanco; piezas: Record<ClavePieza, Pieza>; sel: ClavePieza; guia: ClavePieza | null; destello: Set<string>; premio: boolean; onSel: (k: ClavePieza) => void;
+function TableroContable({ l, piezas, sel, guia, destello, onSel }: {
+  l: LineaBanco; piezas: Record<ClavePieza, Pieza>; sel: ClavePieza; guia: ClavePieza | null; destello: Set<string>; onSel: (k: ClavePieza) => void;
 }) {
-  const barbie = usePanelTheme((s) => s.skin) === "barbie";
   const salida = l.tipo === "debito";
   const ok = okDe(piezas);
   const comp = comprobado(l);
@@ -1195,13 +1194,6 @@ function TableroContable({ l, piezas, sel, guia, destello, premio, onSel }: {
         </div>
       )}
 
-      {premio && (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-          {barbie
-            ? Array.from({ length: 34 }, (_, i) => (<span key={i} className="mck-mision-estrella" style={{ left: `${(i * 37 + 7) % 96}%`, top: `${(i * 53 + 11) % 88}%`, fontSize: `${10 + ((i * 7) % 4) * 6}px`, animationDelay: `${(i % 11) * 110}ms`, color: ["#ff4fa3", "#ffd76a", "#c89bff", "#ffffff", "#ff9ecf"][i % 5] }}>{i % 3 ? "✦" : "★"}</span>))
-            : Array.from({ length: 26 }, (_, i) => (<span key={i} className="mck-mision-confeti" style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 9) * 90}ms`, background: ["#0891b2", "#059669", "#d97706", "#7c3aed", "#e11d48"][i % 5] }} />))}
-        </div>
-      )}
     </div>
   );
 }
@@ -1432,7 +1424,6 @@ export default function TallerConciliacion() {
   // El premio: comparar cada línea con cómo estaba la última vez que se vio.
   const antes = useRef<Map<number, Record<string, string>>>(new Map());
   const [destello, setDestello] = useState<Set<string>>(new Set());
-  const [premio, setPremio] = useState(false);
   const [marcador, setMarcador] = useState(leerMarcador);
   const [conSonido, setConSonido] = useState(sonidoActivo);
   useEffect(() => {
@@ -1440,13 +1431,12 @@ export default function TallerConciliacion() {
     const ahora: Record<string, string> = { ...Object.fromEntries(ORDEN_GUIA.map((k) => [k, piezas[k].estado])), comprobado: comprobado(l).estado };
     const previo = antes.current.get(l.id);
     antes.current.set(l.id, ahora);
-    if (!previo) { setPremio(false); return; }
+    if (!previo) return;
     const ganadas = Object.keys(ahora).filter((k) => ahora[k] === "ok" && previo[k] !== "ok");
     if (!ganadas.length) return;
     const cerro = l.estado === "vinculada" && ahora.comprobado === "ok";
     setDestello(new Set(ganadas));
-    setPremio(cerro);
-    if (cerro && conSonido) sonarMoneda();
+    if (cerro) perroSeRie();
     setMarcador((m) => {
       const n = { dia: hoyClave(), conexiones: (m.dia === hoyClave() ? m.conexiones : 0) + ganadas.filter((k) => k !== "comprobado").length, lineas: (m.dia === hoyClave() ? m.lineas : 0) + (cerro ? 1 : 0) };
       try { localStorage.setItem(CLAVE_DIA, JSON.stringify(n)); } catch { /* sin almacenamiento */ }
@@ -1469,11 +1459,9 @@ export default function TallerConciliacion() {
   const mover = (d: number) => {
     if (!cola.length) return;
     const i = pos < 0 ? 0 : (pos + d + cola.length) % cola.length;
-    setPremio(false);
     setRef(cola[i]);
   };
   const elegir = (id: number, pieza?: ClavePieza) => {
-    setPremio(false);
     if (id === ref) { if (pieza) tocarPieza(pieza); return; }
     piezaPedida.current = pieza ?? null;
     setRef(id);
@@ -1603,9 +1591,9 @@ export default function TallerConciliacion() {
             <div className="h-full rounded-full bg-accent-leaf transition-all duration-700" style={{ width: `${(conciliadas / Math.max(totalLineas, 1)) * 100}%` }} />
           </div>
         </div>
-        <div className="mck-flujo-nodo text-[12px] text-ink"><b className="tabular-nums">{marcador.conexiones}</b> <span className="text-muted">conexiones hoy</span></div>
-        <div className="mck-flujo-nodo text-[12px] text-ink"><Ico e="🏆" /> <b className="tabular-nums">{marcador.lineas}</b> <span className="text-muted">líneas conciliadas hoy</span></div>
-        {t && <div className="mck-flujo-nodo font-mono text-[11px] text-accent-rose">sin causar {formatCop(t.monto_sin_causar)}</div>}
+        <div className="mck-flujo-nodo rounded-md px-2 py-0.5 text-[12px] text-ink"><b className="tabular-nums">{marcador.conexiones}</b> <span className="text-muted">conexiones hoy</span></div>
+        <div className="mck-flujo-nodo rounded-md px-2 py-0.5 text-[12px] text-ink"><Ico e="🏆" /> <b className="tabular-nums">{marcador.lineas}</b> <span className="text-muted">líneas conciliadas hoy</span></div>
+        {t && <div className="mck-flujo-nodo rounded-md px-2 py-0.5 font-mono text-[11px] text-accent-rose">sin causar {formatCop(t.monto_sin_causar)}</div>}
         {t && t.libro_sin_banco > 0 && (
           <button onClick={() => setHuerfanosAbierto((v) => !v)} className="mck-flujo-nodo rounded-md border border-accent-sun/60 bg-accent-sun/10 px-2 py-0.5 text-[11px] font-bold text-ink hover:bg-accent-sun/20" title="Asientos del libro en este rango que ningún movimiento del banco respalda">
             {t.libro_sin_banco} en el libro sin banco {huerfanosAbierto ? "▾" : "▸"}
@@ -1740,7 +1728,7 @@ export default function TallerConciliacion() {
             ) : null}
 
             <div className="mt-2 flex min-h-0 flex-1 flex-col">
-              <TableroContable l={l} piezas={piezas} sel={sel} guia={guia} destello={destello} premio={premio} onSel={tocarPieza} />
+              <TableroContable l={l} piezas={piezas} sel={sel} guia={guia} destello={destello} onSel={tocarPieza} />
             </div>
             <p className="mt-1 hidden shrink-0 text-center font-mono text-[9.5px] text-muted [@media(min-height:840px)]:block">toca una pieza para resolverla · ← → cambian de línea · 1–4 abren una pieza · Enter vincula lo que calza</p>
           </div>
@@ -1814,7 +1802,7 @@ export default function TallerConciliacion() {
 export function TallerVentana({ onCerrar }: { onCerrar: () => void }) {
   const { activa, alternar } = usePantallaCompleta();
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex flex-col bg-surface" role="dialog" aria-modal="true" aria-label="Taller de conciliación">
+    <div className="lm-escala fixed inset-0 z-[70] flex flex-col bg-surface" role="dialog" aria-modal="true" aria-label="Taller de conciliación">
       <div className="flex shrink-0 items-center gap-3 border-b border-border bg-surface-panel px-4 py-2">
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent"><Icon name="receipt" size={16} weight="duotone" /></span>
         <div className="min-w-0 flex-1">

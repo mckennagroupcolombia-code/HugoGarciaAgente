@@ -357,6 +357,47 @@ facturas y 30 NC más recientes, y la renueva en segundo plano; `calentar_base_a
 arrancar y cada 30 min (agente_pro.py), y `_facturas_alegra_cacheadas` es de una sola descarga a la vez.
 🔄 sobre 2000018361505814: 90 s → 42 s. «Subir PDF» y «Anular» actualizan la fila en segundo plano.
 
+## 14. Falsos «sin facturar», canceladas cubiertas por MeLi y cron de 48 h (5-oct-2026)
+
+**Falso «sin facturar» (pack 2000015048323195, FE451 vigente).** `obtener_facturas_alegra_paginadas`
+cortaba en silencio si una página fallaba (timeout/429) y `_facturas_alegra_cacheadas` guardaba esa lista
+PARCIAL como base hasta 6 h; la consulta puntual solo le suma las 60 más recientes. Toda factura del hueco
+(FE451, del 18-sep) desaparecía y la venta quedaba «sin facturar» en el histórico (117 filas así). Además,
+`consultar_venta_individual` seguía con lista vacía si Alegra fallaba y guardaba la fila. Ahora: descarga
+**estricta** (facturas y NC), si falla o trae menos facturas que la base anterior se conserva la anterior,
+y sin base no se calcula ni se guarda nada. ⚠️ `_facturas_alegra_existentes` (barrera de «Facturar ahora»)
+solo mira las últimas 60 facturas: con una fila falsa, el botón podía emitir un doble de una venta vieja
+(la protegían el estado local y el documento fiscal de MeLi).
+
+**Canceladas: solo se anula si nos quitaron la plata.** En `payments[]` de la orden:
+`status_detail = bpp_covered` = la devolución la pagó el programa de protección de MeLi (refund con
+`source.type = bpp`, comisiones NO devueltas, el neto se nos liberó) → la venta se cobró y la factura se
+queda. `refunded` / `bpp_refunded` = nos descontaron → NC. `emitir_notas_credito_cron.py` lo aplica
+(`_reembolso_descontado`): `cubierto_por_meli` / `sin_reembolso` no anulan; reembolso o cancelación
+parcial del carrito → `reembolso_parcial`, decisión humana; toma la factura VIGENTE del pack (no la primera).
+El motor RA (`anulaciones_motor.clasificar`) marca `financia=meli` con `bpp_covered` (→ manual).
+Caso: FE797 (pack 2000015065607043) anulada con NC147 el 3-oct aunque estaba `bpp_covered`.
+
+**Cron 48 h** (`scripts/facturar_entregadas_cron.py`, 9:05/13:05/17:05, job `facturar_entregadas_48h`):
+ventas MeLi pagadas (ventanas de 3 días), sin factura vigente en la base completa de Alegra, con estado
+`sin_facturar` (entregada hace >48 h) → `facturar_pack_meli_manual` (mismas barreras que el botón).
+Tope 20/corrida, `--simular`, `FACTURACION_ENTREGADAS_CRON_ACTIVO=0` lo apaga. El webhook
+(`MELI_AUTOFACTURA_ENTREGA_ACTIVO`) sigue apagado.
+
+**Motivo visible (6-oct).** La bandeja abría siempre en «Doble factura» (0 casos): el usuario veía un recuadro
+vacío («──») con «150 sin facturar» arriba. Ahora abre en la primera pestaña con casos y cada venta sin factura
+muestra `motivo` (`motivo_sin_facturar`, al servir en `anotar_filas`): fecha de entrega, días transcurridos y
+qué pasará (próxima corrida del cron o el bloqueo que registró en `app/data/facturar_entregadas_cron.json`).
+La fila guarda `fecha_entrega` del envío.
+
+**Atraso facturado (6-oct, autorizado por el usuario).** El cron facturó 150 ventas entregadas (FE955–FE1104),
+0 dobles. Dos trampas: (1) `refrescar_token_meli()` hacía un POST a /oauth/token en CADA llamada bajo un flock
+compartido; la revalidación del panel lo pedía decenas de veces por minuto y dejó la corrida 20+ min parada.
+Ahora reutiliza el token renovado hace <20 min (`renovado_ts` en credenciales_meli.json; `forzar=True` para
+renovar igual). (2) Un timeout de Alegra al emitir NO significa que no se creó: FE1093 salió con «Read timed
+out». Antes de reintentar, releer Alegra (el reintento del script lo hace: excluye packs con factura vigente).
+El script tiene flock propio (`.facturar_entregadas.lock`) y para tras 5 fallos seguidos.
+
 ---
 
 ## Traído de CLAUDE.md (27-sep-2026)
@@ -464,3 +505,13 @@ entregar" a ventas por WhatsApp — hoy `crear_factura_completa_siigo` lo dispar
 tool-use en cuanto se confirma el pago (`ok <3dígitos>`), no al entregar. Cambiarlo requiere
 tocar el prompt/herramientas de `app/core.py`, que afecta el comportamiento del agente en *toda*
 conversación de WhatsApp — se trata aparte, con su propia revisión.
+
+### IVA de venta = el de la factura de compra (6-oct-2026)
+
+Decisión de Armando: lo que se reempaca sin transformar se vende con la tarifa que trae la factura de compra (la ley la
+fija por producto, no por el empaque). En el XML DIAN: `Percent` 5 → «IVA 5 %» (id 3 en Alegra); línea sin `TaxTotal` →
+«IVA Excluido» (id 2, no «Exento»). Se aplica a la materia prima y a cada combo cuya única materia prima es esa.
+Corregidos: avena, amaranto, quinua roja (5 %); sales, dátiles, uvas pasas (excluido). El precio de lista no cambia (es
+el final); `_precio_base_con_impuesto` divide por la tarifa del ítem. ⚠️ Tras cambiar el IVA de un ítem: reiniciar
+agente-pro y webhook-meli (caché de productos) y sincronizar el catálogo (`alegra_items.iva_pct`).
+Pendiente: vitaminas y ácido giberélico de Factores y Mercadeo (sin IVA en la factura, 19 % en Alegra).

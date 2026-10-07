@@ -1,10 +1,10 @@
 /**
- * Lo que comparten las dos vistas de la pantalla de inicio: el tablero (MapaVivo.tsx) y el
- * edificio (MapaEdificio.tsx). Los datos de cada etapa se calculan UNA vez en MapaVivo y las
- * dos vistas los dibujan distinto: así no pueden contar cosas diferentes.
+ * Lo que comparte el Mapa (MapaVivo.tsx) con el resto del panel: los colores de cada etapa
+ * (Layout los usa para teñir el módulo abierto) y los accesos de la Agenda. El Edificio se
+ * retiró el 7-oct-2026: el Mapa es la única vista de inicio.
  */
 import type { EtapaApp, TramoApp } from "../lib/flujoApp";
-import { ETAPAS_APP, ORIGEN_APP } from "../lib/flujoApp";
+import { ORIGEN_APP } from "../lib/flujoApp";
 import { puedeVerSeccionPanel } from "../lib/panelAccess";
 import { useAppStore, type AccionesBootTab, type Panel } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
@@ -51,8 +51,7 @@ export type DatosOrigen = { nombre: string; pedidas: number; urgentes: number; r
 const DENTRO_DE_LA_AGENDA: Panel[] = ["chat-equipo", "colaboradores", "juegos"];
 
 /** Las acciones de Inicio (Mi agenda, Mensajes, los espacios del equipo) con la regla de permisos
- *  de la Agenda. `abrir` decide CÓMO se llega (en el tablero la cámara se acerca; en el edificio
- *  sube el ascensor). */
+ *  de la Agenda. `abrir` decide CÓMO se llega (en el tablero la cámara se acerca). */
 export function useInicio(abrir: (p: Panel) => void) {
   const user = useTicketsAuth((s) => s.user);
   const token = useTicketsAuth((s) => s.token);
@@ -81,27 +80,3 @@ export function useInicio(abrir: (p: Panel) => void) {
   return { user, token, verMensajes, vistaAgenda, irAcciones, espacios };
 }
 
-// ─── Los pisos del Edificio ─────────────────────────────────────────────────────────────
-// Cada etapa es un piso: la mercancía entra por Abastecer (P1) y sube hasta Contar; Dirigir
-// es el último piso y Sistema el sótano. El cabezote de cada módulo lleva la misma placa
-// («P5»), así que el módulo abierto y el edificio dicen lo mismo.
-
-const PISOS_DE_ARRIBA = ["dirigir", "contar", "facturar", "entregar", "vender", "publicar", "preparar"];
-export const SOTANO = "sistema";
-const BASE = "abastecer";
-
-/** Las etapas de arriba abajo, sin el sótano. Lo que flujoApp.ts agregue entra sobre Abastecer. */
-export function pisosDelEdificio(ids: string[]): string[] {
-  const conocidos = new Set([...PISOS_DE_ARRIBA, SOTANO, BASE]);
-  const otros = ids.filter((id) => !conocidos.has(id));
-  const hay = new Set(ids);
-  return [...PISOS_DE_ARRIBA, ...otros, BASE].filter((id) => hay.has(id));
-}
-
-/** «P5», «S1»… la placa del piso de una etapa (null si no es una etapa). */
-export function placaDePiso(etapaId: string): string | null {
-  if (etapaId === SOTANO) return "S1";
-  const pisos = pisosDelEdificio(ETAPAS_APP.map((e) => e.id));
-  const i = pisos.indexOf(etapaId);
-  return i < 0 ? null : `P${pisos.length - i}`;
-}

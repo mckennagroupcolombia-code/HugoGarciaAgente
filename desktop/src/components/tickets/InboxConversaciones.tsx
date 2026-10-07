@@ -6,6 +6,9 @@ import {
   type Conversacion,
 } from "../../hooks/useConversaciones";
 import HiloConversacion, { Avatar, CLAVE_HILO_ACTUAL } from "./HiloConversacion";
+import BandejaUnificada from "./BandejaUnificada";
+import { useBandejaAngosta } from "../../lib/bandeja";
+import { esSolicitudDePago, irASolicitudPago } from "../../lib/irAPago";
 import { tiempoRelativo, ESTADO_LABEL, estaAbierta, uidEq } from "./ticketsFormat";
 import "./hiloPixel.css";
 
@@ -110,10 +113,7 @@ function ConversacionRow({
  * acción es un solo botón; y el historial de las hechas queda plegado al final, sin estorbar.
  * Solicitudes y acciones van juntas por defecto (una sola lista), con la etiqueta de cuál es.
  */
-export default function InboxConversaciones({
-  token, user, bootTicketId, onBootConsumed, bootTipo, onBootTipoConsumed,
-  onCrearSolicitud, onCrearAccion,
-}: {
+type PropsInbox = {
   token: string;
   user: TicketsUser;
   bootTicketId?: number | null;
@@ -123,7 +123,30 @@ export default function InboxConversaciones({
   onBootTipoConsumed?: () => void;
   onCrearSolicitud?: () => void;
   onCrearAccion?: () => void;
-}) {
+};
+
+/** En pantallas angostas (celular, tableta vertical) la bandeja es la unificada: solicitudes y
+ *  grupos juntos en Te toca · Enterarte · Haciendo (BandejaUnificada). En escritorio, la de siempre. */
+export default function InboxConversaciones(props: PropsInbox) {
+  const angosta = useBandejaAngosta();
+  // La bandeja unificada no filtra por tipo: el filtro pedido desde otra pantalla se descarta.
+  useEffect(() => {
+    if (angosta && props.bootTipo) props.onBootTipoConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [angosta, props.bootTipo]);
+  if (angosta) {
+    return (
+      <BandejaUnificada token={props.token} user={props.user} bootTicketId={props.bootTicketId} onBootConsumed={props.onBootConsumed}
+                        onCrearSolicitud={props.onCrearSolicitud} onCrearAccion={props.onCrearAccion} />
+    );
+  }
+  return <InboxEscritorio {...props} />;
+}
+
+function InboxEscritorio({
+  token, user, bootTicketId, onBootConsumed, bootTipo, onBootTipoConsumed,
+  onCrearSolicitud, onCrearAccion,
+}: PropsInbox) {
   const nivel = user.rol?.nivel ?? 1;
   const permisos = user.permisos_secciones;
   const verAcciones = puedeVerTipo(permisos, nivel, "acciones");
@@ -143,6 +166,8 @@ export default function InboxConversaciones({
   const [monton, setMonton] = useState<Monton | null>(null);
   const [verHechas, setVerHechas] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  // En el celular el buscador va detrás de la lupa: sin él caben más filas a la vista.
+  const [buscando, setBuscando] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [personaFiltro, setPersonaFiltro] = useState<number | null>(null);
   const [actualId, setActualId] = useState<number | null>(() => {
@@ -263,7 +288,7 @@ export default function InboxConversaciones({
       activa={c.id === selectedId}
       propio={uidEq(c.ultimo_usuario_id, user.id)}
       miaEnCurso={c.id === seguirCon?.id}
-      onClick={() => setSelectedId(c.id)}
+      onClick={() => (esSolicitudDePago(c) ? irASolicitudPago(c.pago_id) : setSelectedId(c.id))}
     />
   );
 
@@ -273,7 +298,7 @@ export default function InboxConversaciones({
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className={`flex w-full flex-col border-r-2 border-ink lg:w-[400px] lg:shrink-0 ${selectedId != null ? "hidden lg:flex" : "flex"}`}>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="space-y-3 border-b-2 border-ink p-3">
+          <div className="hp-bandeja-cabeza space-y-3 border-b-2 border-ink p-3 max-sm:space-y-2 max-sm:p-2">
             {/* Crear en un toque: sin pasar por pestañas. */}
             {(onCrearSolicitud && verSolicitudes) || (onCrearAccion && verAcciones) ? (
               <div className="grid grid-cols-2 gap-2">
@@ -323,16 +348,19 @@ export default function InboxConversaciones({
             )}
 
             <div className="flex gap-1.5 overflow-x-auto pb-1">
+              <button type="button" className={`${chip(buscando || busqueda.trim() !== "")} sm:hidden`} aria-label="Buscar"
+                      aria-expanded={buscando} onClick={() => setBuscando((v) => !v)}>⌕</button>
               <button type="button" className={chip(quien === "me_toca")} onClick={() => setQuien("me_toca")}>Me toca</button>
               <button type="button" className={chip(quien === "pedi")} onClick={() => setQuien("pedi")}>Pedí yo</button>
               <button type="button" className={chip(quien === "todo")} onClick={() => setQuien("todo")}>Todo</button>
               <button type="button" className={chip(quien === "persona")} onClick={() => setQuien("persona")}>Por persona</button>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className={`flex items-center gap-1.5 ${buscando || busqueda.trim() || (verAmbos && tipo !== "todas") ? "" : "max-sm:hidden"}`}>
               <input
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 placeholder="Buscar…"
+                autoFocus={buscando}
                 className="hp-campo min-w-0 flex-1 px-3 py-2 !text-[16px]"
               />
               {verAmbos && (

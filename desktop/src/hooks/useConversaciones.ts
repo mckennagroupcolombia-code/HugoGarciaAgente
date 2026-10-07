@@ -30,6 +30,8 @@ export interface Conversacion {
   contraparte_id: number | null;
   contraparte_nombre: string | null;
   ultima_actividad: string;
+  /** Solicitud de pago detrás de un «Aprobar pago — …» (subtipo «pago»); se resuelve allá. */
+  pago_id?: number | null;
 }
 
 export interface TimelineEvento {

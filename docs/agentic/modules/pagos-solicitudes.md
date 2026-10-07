@@ -656,3 +656,54 @@ son de la empresa: asiento directo en el Libro Mayor (Débito 519595 + 240810 co
 como **«Saldo pendiente»** (`saldo_por_pagar`): sin retención, sin ICA y **sin documento soporte**
 (`doc_soporte_pagos` ya excluye esa categoría; antes armaba un DS a nombre de ella y además dejaba el
 giro sin espejo). Por prestación de servicios, registrarlo como «elementos de protección», no «dotación».
+
+### Anticipo contra cotización + legalización con la factura (6-oct-2026)
+
+**Caso.** Factores (#62, asiento #7965) y Comercializadora (#65, asiento #7964) cobran por adelantado
+contra cotización. El giro se contabilizó como compra (1435 + 240810) y la factura vino por otra cosa:
+no había contra qué cruzarla. Además #7964 dice $525.455 a Bancos y el extracto $425.455 (cód 8162).
+
+**Regla** (`pagos_wizard.es_pago_anticipado`): compra con productos + documento **cotización** (cotejo del
+archivo: `pagos_proveedor.tipo_documento` → factura si hay XML DIAN o CUFE en el PDF; en el wizard simple,
+`documento_tipo` que declara quien solicita, default cotización) + tercero **obligado a facturar**
+(`doc_soporte_pagos.requiere` = False). Se guarda en `cc_solicitudes_pago.es_anticipo`; al rearmar manda lo
+guardado.
+
+- **Giro:** solo Débito 133005 / Crédito Bancos, por lo que sale del banco (`valor_anticipo()`: cotización
+  menos la retención que el proveedor ya descontó, o `pagado_ahora`). **Sin retención** (decisión del área
+  contable, 6-oct-2026): la retención no se puede cancelar hasta que llega la factura; se calcula solo para
+  saber cuánto girar. `aprobar()` arma el asiento con `_lineas_anticipo_aprobado()` (no reinyecta impuestos).
+  `cuenta_debito` sigue siendo 1435 (`prev["cuenta_debito"]`). ⚠️ La norma dice «pago o abono en cuenta, lo
+  que ocurra primero»: confirmar el criterio con el contador.
+- **Legalizar** (`legalizar_anticipo`, `POST /api/pagos/solicitudes/<id>/legalizar`, solo Administración):
+  exige factura electrónica cotejada; renglones = lo FACTURADO (`validar_compra`). Asiento
+  `tipo_origen=legalizacion_anticipo`: Débito 1435 por renglón + 240810 / Crédito retención (236540, sobre la
+  base facturada) + 2368 / Crédito 133005 (lo que la factura le reconoce al proveedor, tope = anticipo); lo
+  asumido va a 531520; si facturó más, Crédito 2205; si menos, el sobrante queda en 133005 y se ofrece en el
+  cruce del próximo pago.
+  Guarda `legalizacion_movimiento_id` / `legalizacion_json`; reserva con `legalizada_at='en_curso'` contra doble clic;
+  rechaza factura repetida para el mismo tercero. Espeja a Alegra.
+- **Inventario** (`insumos._entradas`): el anticipo no cuenta como entrada; cuenta la legalización
+  (`plantilla_datos.items`).
+- **Panel:** selector «¿Qué documento tienes?», insignia «anticipo · falta la factura», filtro y aviso
+  «Anticipos sin factura» (`GET /api/pagos/anticipos`), formulario «Llegó la factura — legalizar» con vista
+  previa (cotizado vs facturado, a favor / por pagar, cuentas T) y **Guía animada** (`GuiaAnimadaPagos.tsx`:
+  anticipo, legalización, compra con factura, plata que entra al banco, cartera a favor/en contra, con
+  asientos reales).
+- **Asientos viejos:** `scripts/reclasificar_compra_a_anticipo.py <asiento> [--banco-real N] [--aplicar]`
+  (por defecto solo muestra): Débito 133005 + reversa de la retención / Crédito 1435 + 240810, y corrige
+  Bancos contra 133005 si el extracto difiere. #7965 → ajuste **#9109** (Alegra 180; el #9108 con retención se
+  anuló). #65 / asiento #7964 queda **por arreglar** (`por_arreglar`, aviso rojo en el panel).
+- **Guía animada:** wizard a mano sobre un «mapa del dinero» (cajas = cuentas; la moneda viaja de la que
+  se acredita a la que se debita). Tests: `tests/test_pagos_anticipo.py`.
+
+### «Aprobar pago — …» en Mensajes lleva a Solicitudes de pago (7-oct-2026)
+El ticket que abre `pagos_wizard._abrir_ticket` (subtipo `pago`, marca `SYS_SOLICITUD_PAGO: <sid>` en la descripción)
+es solo el aviso al aprobador. Se resuelve en Contabilidad → Solicitudes de pago, no con los pasos Leer/Empezar/Evidencia/
+Entregar de una solicitud común, que no hacían nada con el pago.
+- **Servidor:** `listar_conversaciones` devuelve `pago_id` (sale de esa marca).
+- **Panel:** `lib/irAPago.ts::irASolicitudPago` abre el panel `pagos` con `pagosBoot.sid`; el panel pasa a «Todas» y
+  resalta y centra esa solicitud.
+- **Dónde aplica:** bandeja del celular (etiqueta «Pago · aprobar»), inbox del computador y burbuja de chat. Si se
+  llega al hilo por otro lado, `HiloConversacion` muestra solo el botón «Abrir en Solicitudes de pago».
+

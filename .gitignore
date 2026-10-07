@@ -202,6 +202,9 @@ PAGINA_WEB/site/data/borradores_blog/
 # Soportes del contador bajados de Gmail (PDF con NIT y declaraciones; se regeneran con scripts/descargar_soportes_contador.py)
 docs/contabilidad/*/Soportes_Contador/
 docs/contabilidad/**/declaraciones_contador.json
+docs/contabilidad/**/comunicados_dian.json
+docs/contabilidad/**/reportes_dian_fe.json
+docs/contabilidad/**/mercadopago_liquidaciones.json
 docs/contabilidad/comparacion_350_vs_2365.json
 app/data/alegra_contactos_cache.json
 
@@ -306,3 +309,4 @@ logs/
 # Certificados de retenciones que nos practicaron (Mercado Pago…): app/services/certificados_retencion.py
 docs/contabilidad/Certificados_Retencion/
 docs/contabilidad/DIAN_listados/
+.facturar_entregadas.lock

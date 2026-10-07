@@ -64,6 +64,9 @@ interface VentaUnificada {
   es_cancelada: boolean;
   fecha: string | null;
   total: number | null;
+  /** Por qué sigue sin factura y qué va a pasar (backend: `motivo_sin_facturar`). */
+  motivo?: string | null;
+  fecha_entrega?: string | null;
   meli_url: string | null;
   cliente: Cliente | null;
   facturas_cliente_en_rango: number;
@@ -1104,7 +1107,9 @@ function BandejaResolucion() {
     staleTime: 30_000,
     refetchInterval: (query) => (query.state.data?.revalidacion?.corriendo ? 8_000 : false),
   });
-  const [tipo, setTipo] = useState<TipoProblema>("doble");
+  // Sin elección, abre en la primera categoría que TENGA casos: antes abría siempre
+  // en «Doble factura» (0) y se veía un recuadro vacío aunque hubiera 150 sin facturar.
+  const [tipoElegido, setTipo] = useState<TipoProblema | null>(null);
   const [verIntervenidas, setVerIntervenidas] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [lote, setLote] = useState<{ total: number; hechas: number; corriendo: boolean; cancelar: boolean } | null>(null);
@@ -1118,6 +1123,7 @@ function BandejaResolucion() {
   const ventas = q.data?.ventas ?? [];
   const casos = ventas.filter((v) => tipoProblema(v) && (verIntervenidas || !v.intervencion?.abierta));
   const porTipo = (t: TipoProblema) => casos.filter((v) => tipoProblema(v) === t);
+  const tipo: TipoProblema = tipoElegido ?? TIPOS_BANDEJA.find((t) => porTipo(t.id).length > 0)?.id ?? "doble";
   const lista = porTipo(tipo).sort((a, b) => (a.fecha ?? "").localeCompare(b.fecha ?? ""));
   const intervenidas = ventas.filter((v) => tipoProblema(v) && v.intervencion?.abierta).length;
 
@@ -1228,6 +1234,7 @@ function BandejaResolucion() {
       {q.isLoading && <p className="text-sm text-muted">Cargando casos…</p>}
       {!q.isLoading && lista.length === 0 && <p className="text-sm text-muted">Nada pendiente en esta categoría.</p>}
 
+      {lista.length > 0 && (
       <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-panel">
         {lista.map((v) => {
           const res = resultados[v.order_id];
@@ -1250,6 +1257,9 @@ function BandejaResolucion() {
                     <span className="text-muted">· {vigentes.map((f) => f.numero).join(", ")}{v.factura_legado ? ` + ${v.factura_legado.factura_numero} (Siigo)` : ""}</span>
                   )}
                 </div>
+                {v.motivo && (
+                  <p className="rounded-md bg-danger/10 px-2 py-1 text-[11px] font-semibold text-danger">{v.motivo}</p>
+                )}
                 {tipo === "sin_facturar" ? (
                   <ProductosDeLaVenta venta={v} />
                 ) : (
@@ -1296,6 +1306,7 @@ function BandejaResolucion() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
@@ -1899,7 +1910,7 @@ export default function VentasAstroKillerPanel() {
                           </>
                         ) : venta.estado_facturacion === "sin_facturar" ? (
                           <span className="font-semibold text-danger">
-                            Sin factura y ya pasó el margen de 48h desde la entrega: hay que facturarla.
+                            {venta.motivo || "Sin factura y ya pasó el margen de 48h desde la entrega: hay que facturarla."}
                           </span>
                         ) : venta.estado_facturacion === "sin_facturar_cierre_mes" ? (
                           <span className="font-semibold text-danger">

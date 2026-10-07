@@ -4,6 +4,8 @@ import { api } from "../../api/client";
 import { Icon } from "../../icons";
 import { useAppStore, type Panel } from "../../stores/app";
 import { useNotificaciones, useResumenMensajes } from "../../hooks/useCanalesEquipo";
+import { sonidoPorId, useAlertasSonido } from "../../lib/alertasSonido";
+import AjustesSonidos from "./AjustesSonidos";
 
 const PREFS: { id: "inapp" | "ambos"; texto: string }[] = [
   { id: "inapp", texto: "Solo en el panel" },
@@ -24,6 +26,9 @@ export default function CampanaNotificaciones() {
   const qc = useQueryClient();
   const setPanel = useAppStore((s) => s.setPanel);
   const [abierto, setAbierto] = useState(false);
+  const [sonidos, setSonidos] = useState(false);
+  const alertas = useAlertasSonido((st) => st.ajustes);
+  const nReglas = Object.keys(alertas.personas).length + Object.keys(alertas.canales).length;
   const resumen = useResumenMensajes();
   const notifs = useNotificaciones(abierto);
   const nNotif = resumen.data?.notificaciones_no_leidas ?? 0;
@@ -86,18 +91,29 @@ export default function CampanaNotificaciones() {
               )}
               {(notifs.data?.notificaciones ?? []).map((n) => (
                 <button key={n.id} onClick={() => ir(n.panel_destino)}
-                  className={`block w-full border-t border-border/60 px-3 py-2 text-left hover:bg-surface-hover ${n.leida_en ? "opacity-60" : ""}`}>
+                  className={`block w-full border-t border-border/60 px-3 py-2.5 text-left hover:bg-surface-hover ${n.leida_en ? "opacity-60" : ""}`}>
                   <span className="flex items-start gap-2">
                     {!n.leida_en && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" />}
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[12.5px] font-bold text-ink">{n.titulo}</span>
-                      {n.cuerpo && <span className="line-clamp-3 block whitespace-pre-wrap text-[11.5px] text-ink-secondary">{n.cuerpo}</span>}
-                      <span className="block font-mono text-[9.5px] text-muted">{hace(n.creada_en)}</span>
+                      <span className="block text-[14px] font-bold leading-snug text-ink">{n.titulo}</span>
+                      {n.cuerpo && <span className="line-clamp-3 block whitespace-pre-wrap text-[13px] leading-snug text-ink-secondary">{n.cuerpo}</span>}
+                      <span className="mt-0.5 block font-mono text-[11px] text-muted">{hace(n.creada_en)}</span>
                     </span>
                   </span>
                 </button>
               ))}
             </div>
+            <button onClick={() => { setAbierto(false); setSonidos(true); }} data-sin-sonido
+              className="flex w-full items-center gap-2.5 border-t border-border px-3 py-2.5 text-left hover:bg-surface-hover">
+              <span className="text-[20px] leading-none" aria-hidden>{alertas.activo ? sonidoPorId(alertas.general)?.icono ?? "🔔" : "🔇"}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13.5px] font-bold text-ink">Sonidos de los avisos</span>
+                <span className="block text-[12px] text-muted">
+                  {alertas.activo ? `Duck Hunt y Circus Charlie · ${nReglas ? `${nReglas} sonido${nReglas === 1 ? "" : "s"} propio${nReglas === 1 ? "" : "s"}` : "elige uno por persona o grupo"}` : "Apagados"}
+                </span>
+              </span>
+              <span className="text-muted" aria-hidden>›</span>
+            </button>
             {notifs.data && (
               <div className="border-t border-border px-3 py-2">
                 <p className="text-[10.5px] font-bold uppercase tracking-wide text-muted">¿Dónde quieres recibir los avisos?</p>
@@ -114,6 +130,7 @@ export default function CampanaNotificaciones() {
           </div>
         </>
       )}
+      {sonidos && <AjustesSonidos onCerrar={() => setSonidos(false)} />}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 /*
- * El mapa (MapaVivo + Edificio) en la gama de cada tema (26-sep-2026).
- * mapa-edificio.css y mapa-vivo.css pintan con variables --ed-* cuyo valor por defecto es la
+ * El mapa (MapaVivo) en la gama de cada tema (26-sep-2026).
+ * mapa-vivo.css pinta con variables --ed-* cuyo valor por defecto es la
  * paleta de consola (PICO-8) del tema Pixel; aquí cada tema las redefine. Los colores de estado
  * (rojo = alarma, verde = listo, naranja = aviso) se conservan para que se lean igual en todos.
  *

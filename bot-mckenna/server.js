@@ -219,6 +219,8 @@ function infoNumeroConectado() {
     return { numero: user || null, pushname };
 }
 
+let ultimoErrorNoListo = '';
+
 async function promoverSistemaListoSiSesionFunciona(origen = 'watchdog') {
     if (sistemaListo || !client.info || !client.info.wid) return false;
     try {
@@ -228,13 +230,48 @@ async function promoverSistemaListoSiSesionFunciona(origen = 'watchdog') {
         logActividad('SISTEMA', { texto: `Sistema listo por ${origen}.` });
         return true;
     } catch (e) {
-        console.warn(`⏳ WhatsApp aún no listo (${origen}):`, e.message);
+        // El mensaje suele venir minificado ("r"); el stack trae la causa real.
+        const detalle = String((e && (e.stack || e.message)) || e).split('\n').slice(0, 2).map(l => l.trim()).join(' | ');
+        if (detalle !== ultimoErrorNoListo) {
+            ultimoErrorNoListo = detalle;
+            console.warn(`⏳ WhatsApp aún no listo (${origen}):`, detalle);
+        }
         return false;
     }
 }
 
-setInterval(() => {
-    promoverSistemaListoSiSesionFunciona('watchdog');
+// Autocuración del arranque. Caso real (2-oct, 3-oct, 4-oct): tras un `systemctl restart`
+// WhatsApp Web carga y autentica, pero whatsapp-web.js nunca emite `ready` y cada consulta
+// falla con "DataError: Failed to execute 'get' on 'IDBObjectStore'". El proceso sigue vivo,
+// systemd no lo relanza y el puente quedaba horas mudo hasta un reinicio manual (que sí
+// arregla). Si pasado el plazo no hay `ready` y no estamos esperando un QR, se cierra limpio
+// y systemd (Restart=always) lo levanta de nuevo.
+const ARRANQUE_MAX_MS = (parseInt(process.env.WA_ARRANQUE_MAX_SEG || '240', 10) || 240) * 1000;
+let arranqueTs = Date.now();
+let autoReinicioEnCurso = false;
+
+async function autoReiniciarSiArranqueAtascado() {
+    if (sistemaListo || sesionReseteando || autoReinicioEnCurso) return;
+    if (ultimoQr) return; // esperando que un humano escanee: reiniciar solo cambiaría el QR
+    const esperaMs = Date.now() - arranqueTs;
+    if (esperaMs < ARRANQUE_MAX_MS) return;
+    autoReinicioEnCurso = true;
+    const minutos = Math.round(esperaMs / 60000);
+    console.error(`♻️ WhatsApp sin 'ready' tras ${minutos} min — reinicio automático. Último error: ${ultimoErrorNoListo || 'ninguno'}`);
+    logActividad('ERROR', { texto: `Arranque atascado ${minutos} min sin 'ready'; reinicio automático.` });
+    logEvent('whatsapp_arranque_atascado', 'error', { minutos, error: ultimoErrorNoListo });
+    try {
+        await Promise.race([
+            client.destroy(),
+            new Promise(r => setTimeout(r, 8000)),
+        ]);
+    } catch (_) {}
+    process.exit(1);
+}
+
+setInterval(async () => {
+    await promoverSistemaListoSiSesionFunciona('watchdog');
+    await autoReiniciarSiArranqueAtascado();
 }, 10000);
 
 // --- EVENTOS DE CONEXIÓN ---
@@ -276,6 +313,7 @@ client.on('disconnected', (reason) => {
 
     setTimeout(() => {
         console.log('🔄 Intentando reconexión automática…');
+        arranqueTs = Date.now();
         logActividad('SISTEMA', { texto: 'Reconexión automática iniciada.' });
         client.initialize().catch(err => {
             console.error('❌ Reconexión falló:', err.message);

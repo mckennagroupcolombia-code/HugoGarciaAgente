@@ -6,7 +6,7 @@
  * publicaciones» (el par web nítida + MeLi desenfocada, cada una con las FOTOS de producto de su
  * canal, que se pegan con Ctrl+V), el antiguo «Taller de combos» (ya no es panel: sus piezas son
  * las hojas del árbol y cada una se resuelve en su emergente, encima, con la misma guía y el mismo
- * premio al completar) y Canales del producto (MeLi, web y si Alegra lo factura).
+ * premio al completar).
  * Categoría → familia (materia prima) → presentación (combo) → pieza.
  *
  * Datos: `GET /api/mapa-sistema/arbol-producto` (app/services/arbol_producto.py), que junta el
@@ -22,7 +22,9 @@ import { Sprite } from "../../colaboradores/pixel";
 import "../../colaboradores/pixel.css";
 import type { Respuesta } from "../../combos/comun";
 import { CladogramaCategoria, CladogramaFamilia } from "./Cladograma";
+import { CambiarSku } from "./CambiarSku";
 import { CopiarSku } from "./CopiarSku";
+import { CostoPrecio } from "./CostoPrecio";
 import { VarianteEtiqueta } from "./ParEtiquetas";
 import { FotosCanal, imagenesDe, useFotosProducto, type Canal } from "./FotosCanal";
 import {
@@ -183,9 +185,6 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
   };
   const [crearCombo, setCrearCombo] = useState<SinCombo | null>(null);
 
-  const saltarDesdeTaller = useAppStore((s) => s.saltarDesdeTaller);
-  const verCanales = (p: Presentacion) =>
-    saltarDesdeTaller({ ref: p.ref, nombre: p.nombre, origen: "etiquetas" }, { panel: "canales-producto", sku: p.ref, buscar: p.ref });
 
   // Columna de fotos donde cae el Ctrl+V (web o MeLi).
   const [destinoFoto, setDestinoFoto] = useState<Canal>("web");
@@ -206,7 +205,6 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
     }
     const pz = piezaTaller(p, clave);
     if (pz) abrirPieza(p.ref, pz);
-    else verCanales(p);
   };
 
   const { ref: raiz, alto } = useAltoDisponible<HTMLDivElement>();
@@ -218,6 +216,13 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
         No se pudo leer el árbol del producto: {(datos.error as Error)?.message}
       </div>
     );
+
+  // Código corregido en Alegra (combo sin movimientos): seguir en el mismo combo con su código nuevo.
+  const skuCambiado = async (anterior: string, nuevo: string) => {
+    setSel((s) => (s.ref === anterior ? { ...s, ref: nuevo } : s));
+    setAviso(`Código cambiado: ${anterior} → ${nuevo}`);
+    await qc.invalidateQueries({ queryKey: ["arbol-producto"] });
+  };
 
   const centro = editor ? (
     <div className="min-h-0 min-w-0 overflow-auto lg:col-span-2">{editor}</div>
@@ -243,6 +248,7 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
             categoria={categoria?.nombre ?? ""}
             sel={pres?.ref ?? null}
             onElegir={(ref) => setSel((s) => ({ ...s, ref }))}
+            onSkuCambiado={skuCambiado}
             onPieza={(ref, clave) => {
               const p = familia.presentaciones.find((x) => x.ref === ref);
               if (p) tocarPieza(p, clave);
@@ -289,9 +295,9 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
           setDestino={setDestinoFoto}
           onAviso={setAviso}
           onPieza={(pieza) => abrirPieza(pres.ref, pieza)}
-          onCanales={() => verCanales(pres)}
           onEditarEtiqueta={onEditarEtiqueta}
           onFotosCambiaron={() => void qc.invalidateQueries({ queryKey: ["arbol-producto"] })}
+          onSkuCambiado={(nuevo) => skuCambiado(pres.ref, nuevo)}
         />
       ) : (
         <div className="ap-carta p-4 text-[12.5px]">
@@ -462,7 +468,7 @@ function Fila({ estado, titulo, valor, onClick, accion }: { estado: Estado; titu
   return onClick ? <button type="button" onClick={onClick} className={clase}>{cuerpo}</button> : <div className={clase}>{cuerpo}</div>;
 }
 
-function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAviso, onPieza, onCanales, onEditarEtiqueta, onFotosCambiaron }: {
+function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAviso, onPieza, onEditarEtiqueta, onFotosCambiaron, onSkuCambiado }: {
   p: Presentacion;
   familia: Familia;
   categoria: string;
@@ -471,9 +477,10 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
   onAviso: (t: string) => void;
   /** Abrir el emergente de una pieza de este combo (encima del árbol). */
   onPieza: (pieza: string) => void;
-  onCanales: () => void;
   onEditarEtiqueta: (fichaId: string) => void;
   onFotosCambiaron: () => void;
+  /** Se corrigió el SKU del combo en Alegra (solo sin movimientos). */
+  onSkuCambiado: (nuevo: string) => void | Promise<void>;
 }) {
   const e = p.piezas.etiquetas;
   const otraCarpeta = e.categoria_png && e.categoria_png !== categoria ? e.categoria_png : "";
@@ -507,6 +514,7 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
           <span className="min-w-0 flex-1 truncate" title={p.nombre}>{p.nombre}</span>
           <code className="shrink-0 normal-case">{p.ref}</code>
           <CopiarSku sku={p.ref} />
+          <CambiarSku sku={p.ref} onCambiado={onSkuCambiado} />
         </div>
         <div className="flex flex-col gap-2 p-2.5">
         <p className="ap-t">
@@ -570,7 +578,7 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
         )}
         <Fila estado={p.alegra.estado} titulo="Alegra" valor={`${p.alegra.detalle}${p.precio_lista ? ` · lista ${pesos(p.precio_lista)}` : ""}`} onClick={() => onPieza("receta")} accion="resolver" />
         <Fila estado={p.piezas.receta.estado} titulo="Receta" valor={p.piezas.receta.detalle} onClick={() => onPieza(p.piezas.receta.pieza_taller || "receta")} accion="resolver" />
-        <Fila estado={p.piezas.factura.estado} titulo="Factura" valor={p.piezas.factura.detalle} onClick={onCanales} accion="canales" />
+        <Fila estado={p.piezas.factura.estado} titulo="Factura" valor={p.piezas.factura.detalle} />
         <Fila estado={p.piezas.ean.estado} titulo="EAN" valor={p.piezas.ean.codigo || p.piezas.ean.detalle} onClick={() => onPieza("ean")} accion="resolver" />
         <Fila estado={familia.documento.estado} titulo="Doc. técnico" valor={familia.documento.detalle || "Sin documento"} onClick={() => onPieza("documento")} accion="resolver" />
         <Fila estado={p.piezas.fotos.estado} titulo="Fotos" valor={p.piezas.fotos.detalle} />
@@ -580,9 +588,10 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
             : <>{p.piezas.meli.detalle}{precioMeli ? ` · ${pesos(precioMeli)}` : ""}</>}
           onClick={() => onPieza("publicacion")} accion="publicar" />
         <Fila estado={p.piezas.web.estado} titulo="Web" valor={p.piezas.web.detalle} onClick={() => onPieza("publicacion")} accion="publicar" />
-        <button type="button" className="ap-btn ap-btn-sec mt-1" onClick={onCanales}>Ver en Canales del producto</button>
         </div>
       </div>
+
+      <CostoPrecio p={p} onReceta={() => onPieza(p.piezas.receta.pieza_taller || "receta")} />
     </>
   );
 }

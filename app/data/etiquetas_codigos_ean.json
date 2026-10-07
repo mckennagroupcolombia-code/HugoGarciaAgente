@@ -379,15 +379,15 @@
       "creado_at": "2026-09-27T17:59:42"
     },
     {
-      "id": "08821d7d0fec",
-      "sku": "C-ACISAL50gBAD",
-      "nombre_producto": "ACIDO SALICILICO 50g",
+      "id": "4972eb40f108",
+      "sku": "C-AVEHOJKg",
+      "nombre_producto": "AVENA HOJUELAS KG",
       "numero_producto": 34,
-      "presentacion": "050",
+      "presentacion": "001",
       "anio": 26,
       "bimestre": 4,
-      "codigo": "7700340502648",
-      "creado_at": "2026-09-27T17:59:42"
+      "codigo": "7700340012642",
+      "creado_at": "2026-10-04T17:31:24"
     },
     {
       "id": "526f60c94a95",
@@ -663,7 +663,7 @@
     },
     {
       "id": "5f4f95298ee9",
-      "sku": "C-ACEESNMAN5mL",
+      "sku": "C-ACEESEMAND5mL",
       "nombre_producto": "ACEITE ESENCIAL MANDARINA 5mL",
       "numero_producto": 59,
       "presentacion": "005",
@@ -774,15 +774,15 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
-      "id": "eeefbe58a9f3",
-      "sku": "C-ACERIC250mL",
-      "nombre_producto": "ACEITE RICINO 250mL",
+      "id": "999aca39fe41",
+      "sku": "C-SEMGIRKg",
+      "nombre_producto": "SEMILLA GIRASOL KG",
       "numero_producto": 69,
-      "presentacion": "250",
+      "presentacion": "001",
       "anio": 26,
-      "bimestre": 3,
-      "codigo": "7700692502631",
-      "creado_at": "2026-07-14T15:35:25"
+      "bimestre": 4,
+      "codigo": "7700690012644",
+      "creado_at": "2026-10-04T17:37:42"
     },
     {
       "id": "129aea1d5f0a",
@@ -2698,15 +2698,15 @@
       "creado_at": "2026-09-19T23:29:41"
     },
     {
-      "id": "ebdad417c4c1",
-      "sku": "C-ACISAL50g",
-      "nombre_producto": "ACIDO SALICILICO 50g",
+      "id": "f6a50924703e",
+      "sku": "C-ACECOCVIR500g",
+      "nombre_producto": "ACEITE COCO VIRGEN 500g",
       "numero_producto": 242,
-      "presentacion": "050",
+      "presentacion": "500",
       "anio": 26,
       "bimestre": 4,
-      "codigo": "7702420502647",
-      "creado_at": "2026-09-19T23:29:41"
+      "codigo": "7702425002647",
+      "creado_at": "2026-10-04T19:27:45"
     },
     {
       "id": "af901362769b",
@@ -2997,15 +2997,15 @@
       "creado_at": "2026-09-24T11:42:52"
     },
     {
-      "id": "a88bbd78aac1",
-      "sku": "C-UVAPASFLA250g",
-      "nombre_producto": "UVAS PASAS FLAME 250g",
+      "id": "fdfdf38f146f",
+      "sku": "C-AVEMOLKg",
+      "nombre_producto": "AVENA MOLIDA KG",
       "numero_producto": 269,
-      "presentacion": "250",
+      "presentacion": "001",
       "anio": 26,
       "bimestre": 4,
-      "codigo": "7702692502642",
-      "creado_at": "2026-09-24T11:42:52"
+      "codigo": "7702690012648",
+      "creado_at": "2026-10-04T21:52:31"
     },
     {
       "id": "4f75098d0174",
@@ -3107,26 +3107,26 @@
       "creado_at": "2026-09-24T11:42:52"
     },
     {
-      "id": "ea803c6a4f5b",
-      "sku": "C-CAFE100g",
-      "nombre_producto": "CAFEINA 100g",
+      "id": "3029b04ac886",
+      "sku": "C-ACECOCVIRKg",
+      "nombre_producto": "ACEITE COCO VIRGEN KG",
       "numero_producto": 279,
-      "presentacion": "100",
-      "anio": 26,
-      "bimestre": 4,
-      "codigo": "7702791002647",
-      "creado_at": "2026-09-27T17:59:42"
-    },
-    {
-      "id": "b740053a3d70",
-      "sku": "C-CERABREFKg",
-      "nombre_producto": "CERA ABEJAS REFINADA AMARILLA KG",
-      "numero_producto": 280,
       "presentacion": "001",
       "anio": 26,
       "bimestre": 4,
-      "codigo": "7702800012643",
-      "creado_at": "2026-09-27T17:59:42"
+      "codigo": "7702790012647",
+      "creado_at": "2026-10-04T19:27:59"
+    },
+    {
+      "id": "2a27d4e6393f",
+      "sku": "C-DIH10g",
+      "nombre_producto": "DIHIDROXIACETONA 10g",
+      "numero_producto": 280,
+      "presentacion": "010",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702800102641",
+      "creado_at": "2026-10-05T15:50:44"
     },
     {
       "id": "9a3a65a71226",
@@ -3381,6 +3381,17 @@
       "bimestre": 4,
       "codigo": "7703030302641",
       "creado_at": "2026-10-02T00:10:40"
+    },
+    {
+      "id": "36a3ac6ff783",
+      "sku": "C-ACECOCVIR250g",
+      "nombre_producto": "ACEITE COCO VIRGEN 250g",
+      "numero_producto": 304,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7703042502640",
+      "creado_at": "2026-10-04T15:01:21"
     }
   ]
 }

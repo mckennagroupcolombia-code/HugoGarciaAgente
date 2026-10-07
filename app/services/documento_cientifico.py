@@ -560,14 +560,21 @@ _RE_NO_INGERIR = re.compile(r"\bno (ingerir|tomar|beber|consumir)\b", re.IGNOREC
 USO_EXTERNO = "Solo para uso externo."
 
 
+#: El modo de uso cosmético es una instrucción corta de aplicación en la piel,
+#: «Solo para uso externo.» incluido.
+MAX_PALABRAS_MODO_USO_COSMETICO = 20
+
+
 def modo_uso_cosmetico(texto: str) -> str:
     """Quita del modo de uso las oraciones que hablen de ingerir o tomar el
-    producto y, si el texto no lo dice ya, cierra con «Solo para uso externo.»."""
+    producto, lo deja en 20 palabras y, si el texto no lo dice ya, cierra con
+    «Solo para uso externo.»."""
     oraciones = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", (texto or "").strip()))
-    quedan = [o for o in oraciones if o and not _RE_INGESTA.search(_RE_NO_INGERIR.sub("", o))]
-    if not re.search(r"uso (externo|t[oó]pico)", " ".join(quedan), re.IGNORECASE):
-        quedan.append(USO_EXTERNO)
-    return " ".join(quedan).strip()
+    quedan = " ".join(o for o in oraciones if o and not _RE_INGESTA.search(_RE_NO_INGERIR.sub("", o)))
+    if re.search(r"uso (externo|t[oó]pico)", quedan, re.IGNORECASE):
+        return _asegurar_punto_final(recortar_a_palabras(quedan, MAX_PALABRAS_MODO_USO_COSMETICO))
+    cuerpo = recortar_a_palabras(quedan, MAX_PALABRAS_MODO_USO_COSMETICO - len(USO_EXTERNO.split()))
+    return f"{_asegurar_punto_final(cuerpo)} {USO_EXTERNO}".strip() if cuerpo else USO_EXTERNO
 
 
 _CAMPOS_ORACION_CORTA = {
@@ -823,15 +830,15 @@ def sugerir_campo_ficha(campo: str, nombre: str, grado: str = "") -> dict[str, A
         ),
         "modo_uso": (
             (
-                f'Redacta el modo de uso de "{nombre}" como materia prima COSMÉTICA, '
-                "exclusivamente de USO EXTERNO (piel, cabello, uñas).\n"
+                f'Redacta el modo de uso de "{nombre}" como producto COSMÉTICO: cómo se aplica '
+                "sobre la piel.\n"
                 f"EVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-                "OBLIGATORIO: indica la concentración típica de uso en la formulación (porcentaje, "
-                "ej. «0,5–2 %») y en qué tipo de producto o fase se incorpora (cremas, lociones, "
-                "champús, jabones, fase oleosa o acuosa…).\n"
-                "PROHIBIDO: sugerir ingerirlo, tomarlo, beberlo, dosis diarias en mg o g, vía oral, "
-                "cápsulas o uso con alimentos.\n"
-                "2-3 oraciones técnicas, en español. Sin markdown, sin advertencias legales largas."
+                "OBLIGATORIO: empieza por un verbo en infinitivo (Aplicar / Masajear / Extender…) y di "
+                "cuánto, dónde y cómo se aplica en la piel y con qué frecuencia.\n"
+                f"MÁXIMO {MAX_PALABRAS_MODO_USO_COSMETICO - 4} palabras (luego se añade «Solo para uso externo.»).\n"
+                "PROHIBIDO: sugerir ingerirlo, tomarlo, beberlo, dosis en mg o g, vía oral, "
+                "cápsulas, uso con alimentos o porcentajes de formulación.\n"
+                "En español. Sin markdown, sin preámbulo: responde solo el modo de uso."
             )
             if es_solo_cosmetico(grado)
             else (

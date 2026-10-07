@@ -6,6 +6,9 @@
  * conservan al guardar, pero ya no se muestran). Los gramos se calculan
  * para la cantidad que se escriba. Se guarda la fórmula en %, que no
  * cambia con el lote (API: app/routes_formulas.py).
+ * Cada fórmula se asocia a su SKU de Alegra (el combo C-FOR-…mL que la representa).
+ * «Leer de pantallazo» llena los ingredientes desde una captura: la IA
+ * transcribe y el servidor calcula los porcentajes (formulas_captura.py).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +31,10 @@ interface Formula {
   categoria: string;
   descripcion: string;
   ingredientes: Ingrediente[];
+  /** Combo de Alegra que representa la fórmula ("" = sin asociar). */
+  sku_alegra?: string;
+  /** Nombre de ese combo en Alegra (solo lectura, lo agrega el servidor). */
+  sku_alegra_nombre?: string;
   /** Cantidad a preparar, en la unidad de `unidad` (el nombre del campo es histórico). */
   lote_g: number;
   unidad?: Unidad;
@@ -78,7 +85,7 @@ export default function FormulasPanel() {
     const q = buscar.trim().toLowerCase();
     if (!q) return formulas;
     return formulas.filter((f) =>
-      [f.nombre, f.categoria, ...f.ingredientes.map((i) => i.nombre)].some((t) => (t || "").toLowerCase().includes(q)),
+      [f.nombre, f.categoria, f.sku_alegra, ...f.ingredientes.map((i) => i.nombre)].some((t) => (t || "").toLowerCase().includes(q)),
     );
   }, [formulas, buscar]);
 
@@ -157,6 +164,12 @@ export default function FormulasPanel() {
                 >
                   <span className="block truncate text-sm font-medium text-ink">{f.nombre}</span>
                   <span className="block truncate text-[11px] text-muted">
+                    {f.sku_alegra ? (
+                      <span className="font-medium text-accent">{f.sku_alegra}</span>
+                    ) : (
+                      <span className="text-amber-600">Sin SKU de Alegra</span>
+                    )}
+                    {" · "}
                     {f.ingredientes.length} ingredientes
                   </span>
                 </button>
@@ -235,6 +248,21 @@ function EditorFormula({
   const [nueva, setNueva] = useState<number | null>(null);
   /** Fila resaltada al pasar el mouse por la barra o por la tabla. */
   const [resaltada, setResaltada] = useState<number | null>(null);
+  const [captura, setCaptura] = useState(false);
+
+  /** Lo leído del pantallazo reemplaza los ingredientes; si la captura traía cantidades, la calculadora queda en ese total. */
+  function usarCaptura(r: LecturaCaptura) {
+    const patch: Partial<Formula> = {
+      ingredientes: r.ingredientes.map((i) => ({ ...FILA_VACIA, nombre: i.nombre, porcentaje: i.porcentaje })),
+    };
+    if (!formula.nombre.trim() && r.nombre) patch.nombre = r.nombre;
+    if (r.total > 0) {
+      patch.lote_g = Math.round(r.total * 100) / 100;
+      patch.unidad = r.unidad;
+    }
+    setNueva(null);
+    onChange(patch);
+  }
 
   function cambiarFila(idx: number, patch: Partial<Ingrediente>) {
     onChange({ ingredientes: ingredientes.map((i, k) => (k === idx ? { ...i, ...patch } : i)) });
@@ -308,6 +336,12 @@ function EditorFormula({
         />
       </label>
 
+      <SkuAlegra
+        sku={formula.sku_alegra || ""}
+        nombre={formula.sku_alegra_nombre || ""}
+        onElegir={(sku_alegra, sku_alegra_nombre) => onChange({ sku_alegra, sku_alegra_nombre })}
+      />
+
       {/* ── Paso 1: ingredientes y porcentajes ── */}
       <div className="rounded-xl border border-border bg-surface p-3">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -315,6 +349,14 @@ function EditorFormula({
             {numeroPaso(1, conNombre.length > 0 && cuadra)}
             Ingredientes y porcentajes
           </h3>
+          <button
+            type="button"
+            className={`${BOTON_SUAVE} ml-auto`}
+            onClick={() => setCaptura((v) => !v)}
+            title="Sube o pega (Ctrl+V) el pantallazo de una fórmula y se calculan los porcentajes"
+          >
+            {captura ? "Cerrar pantallazo" : "📷 Leer de pantallazo"}
+          </button>
           <span
             className={`rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums transition-colors ${
               cuadra ? "bg-green-600/15 text-green-700" : total > 100 ? "bg-red-600/15 text-red-600" : "bg-amber-500/15 text-amber-600"
@@ -323,6 +365,16 @@ function EditorFormula({
             {num(total)} % {cuadra ? "✓" : ""}
           </span>
         </div>
+
+        {captura && (
+          <LeerCaptura
+            hayIngredientes={conNombre.length > 0}
+            onUsar={(r) => {
+              usarCaptura(r);
+              setCaptura(false);
+            }}
+          />
+        )}
 
         {/* Barra de composición: cada ingrediente ocupa su porcentaje. */}
         <div className="mb-3 flex h-3 w-full overflow-hidden rounded-full bg-border/50" title="Composición de la fórmula">
@@ -346,8 +398,9 @@ function EditorFormula({
           })}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[320px] border-collapse text-xs">
+        {/* Sin overflow aquí: recortaba la lista de materias primas de la última fila. */}
+        <div>
+          <table className="w-full border-collapse text-xs">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wide text-muted">
                 <th className="w-4" />
@@ -572,6 +625,159 @@ function EditorFormula({
   );
 }
 
+interface LecturaCaptura {
+  nombre: string;
+  ingredientes: { nombre: string; porcentaje: number; cantidad_captura: string }[];
+  /** Suma de las cantidades de la captura (0 si solo traía porcentajes). */
+  total: number;
+  unidad: Unidad;
+  origen: "cantidades" | "porcentajes" | "mixto" | "";
+  avisos: string[];
+}
+
+function leerArchivo(f: File): Promise<string> {
+  return new Promise((ok, mal) => {
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result));
+    r.onerror = () => mal(new Error("No se pudo abrir la imagen."));
+    r.readAsDataURL(f);
+  });
+}
+
+/** Pantallazo de una fórmula → porcentajes. Se sube, se arrastra o se pega con Ctrl+V;
+ *  se ve el resultado (cantidad de la captura → %) antes de pasarlo a la tabla. */
+function LeerCaptura({ hayIngredientes, onUsar }: { hayIngredientes: boolean; onUsar: (r: LecturaCaptura) => void }) {
+  const [imagen, setImagen] = useState<string | null>(null);
+  const [encima, setEncima] = useState(false);
+  const archivo = useRef<HTMLInputElement>(null);
+
+  const leer = useMutation({
+    mutationFn: (dataUrl: string) => api.post<LecturaCaptura>("/api/formulas/leer-captura", { imagen: dataUrl }),
+  });
+
+  async function tomar(f: File | null | undefined) {
+    if (!f || !f.type.startsWith("image/")) return;
+    const url = await leerArchivo(f);
+    setImagen(url);
+    leer.mutate(url);
+  }
+
+  // Ctrl+V en cualquier parte mientras el panel está abierto.
+  useEffect(() => {
+    const pegar = (e: ClipboardEvent) => {
+      const f = Array.from(e.clipboardData?.files ?? []).find((x) => x.type.startsWith("image/"));
+      if (!f) return;
+      e.preventDefault();
+      void tomar(f);
+    };
+    document.addEventListener("paste", pegar);
+    return () => document.removeEventListener("paste", pegar);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const r = leer.data;
+  const unidadCaptura = r?.unidad ?? "g";
+
+  return (
+    <div className="mb-3 rounded-lg border border-accent/40 bg-accent/5 p-2.5">
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setEncima(true);
+        }}
+        onDragLeave={() => setEncima(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setEncima(false);
+          void tomar(e.dataTransfer.files[0]);
+        }}
+        onClick={() => archivo.current?.click()}
+        className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed p-3 transition-colors ${
+          encima ? "border-accent bg-accent/10" : "border-border hover:border-accent/60"
+        }`}
+      >
+        {imagen ? (
+          <img src={imagen} alt="Pantallazo de la fórmula" className="max-h-28 max-w-[40%] rounded border border-border object-contain" />
+        ) : (
+          <span className="text-2xl">📷</span>
+        )}
+        <span className="text-xs text-ink">
+          {leer.isPending ? (
+            "Leyendo la fórmula de la captura…"
+          ) : (
+            <>
+              <b>Pega el pantallazo con Ctrl+V</b>, arrástralo aquí o haz clic para elegirlo.
+              <span className="block text-[11px] text-muted">
+                Sirve con gramos, kilos, mililitros o porcentajes: se calcula el % de cada ingrediente.
+              </span>
+            </>
+          )}
+        </span>
+        <input
+          ref={archivo}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            void tomar(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      {leer.error && <p className="mt-2 text-xs text-red-600">{(leer.error as Error).message}</p>}
+
+      {r && !leer.isPending && r.ingredientes.length > 0 && (
+        <div className="mt-2.5">
+          <p className="mb-1 text-xs text-ink">
+            {r.ingredientes.length} ingredientes
+            {r.total > 0 ? ` · la captura suma ${num(r.total)} ${unidadCaptura}` : " · la captura traía porcentajes"}
+          </p>
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wide text-muted">
+                <th className="px-1 py-1 font-medium">Ingrediente</th>
+                <th className="px-1 py-1 text-right font-medium">En la captura</th>
+                <th className="px-1 py-1 text-right font-medium">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {r.ingredientes.map((i, k) => (
+                <tr key={k} className="border-t border-border/60">
+                  <td className="px-1 py-1 text-ink">{i.nombre}</td>
+                  <td className="px-1 py-1 text-right tabular-nums text-muted">{i.cantidad_captura || "—"}</td>
+                  <td className="px-1 py-1 text-right font-semibold tabular-nums text-ink">{num(i.porcentaje, 4)} %</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {r.avisos.map((a, k) => (
+            <p key={k} className="mt-1 text-[11px] text-amber-600">
+              {a}
+            </p>
+          ))}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className={BOTON}
+              onClick={() => {
+                if (hayIngredientes && !window.confirm("Esto reemplaza los ingredientes que ya tiene la fórmula. ¿Continuar?")) return;
+                onUsar(r);
+              }}
+            >
+              Usar estos porcentajes
+            </button>
+            <span className="text-[11px] text-muted">Revisa los nombres: la IA puede equivocarse en letras borrosas.</span>
+          </div>
+        </div>
+      )}
+      {r && !leer.isPending && r.ingredientes.length === 0 && (
+        <p className="mt-2 text-xs text-amber-600">{r.avisos[0] || "No encontré ingredientes en la imagen."}</p>
+      )}
+    </div>
+  );
+}
+
 /** Ingrediente: se escribe libre o se elige una materia prima del catálogo de
  *  Alegra (sin combos). Elegida, guarda su código; si se reescribe, vuelve a texto libre. */
 function BuscadorIngrediente({
@@ -618,6 +824,12 @@ function BuscadorIngrediente({
           setAbierto(true);
         }}
         onFocus={() => setAbierto(true)}
+        onBlur={() => {
+          // Código o nombre escrito completo (p. ej. «AGUDESmL») queda enlazado sin tener que hacer clic.
+          const t = valor.nombre.trim().toLowerCase();
+          const igual = !valor.codigo && t ? items.find((it) => it.codigo.toLowerCase() === t || it.nombre.trim().toLowerCase() === t) : undefined;
+          if (igual) onElegir(igual.codigo, igual.nombre);
+        }}
         autoFocus={autoFocus}
         placeholder="Buscar materia prima o escribir…"
         className={CAMPO_TABLA}
@@ -641,6 +853,87 @@ function BuscadorIngrediente({
               </button>
             </li>
           ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** SKU de Alegra de la fórmula: se elige entre los combos (C-FOR-…mL). */
+function SkuAlegra({ sku, nombre, onElegir }: { sku: string; nombre: string; onElegir: (sku: string, nombre: string) => void }) {
+  const [q, setQ] = useState("");
+  const [qDeb, setQDeb] = useState("");
+  const [abierto, setAbierto] = useState(false);
+  const caja = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setQDeb(q.trim()), 250);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => {
+    if (!abierto) return;
+    const fuera = (e: MouseEvent) => {
+      if (caja.current && !caja.current.contains(e.target as Node)) setAbierto(false);
+    };
+    document.addEventListener("mousedown", fuera);
+    return () => document.removeEventListener("mousedown", fuera);
+  }, [abierto]);
+
+  const { data, isFetching } = useQuery({
+    queryKey: ["formulas-combos", qDeb],
+    queryFn: () => api.get<{ items: { codigo: string; nombre: string }[] }>(`/api/formulas/combos?q=${encodeURIComponent(qDeb)}`),
+    enabled: abierto && qDeb.length >= 2,
+    staleTime: 60_000,
+  });
+  const items = data?.items ?? [];
+
+  if (sku) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+        SKU en Alegra
+        <span className="rounded-full border border-accent/50 bg-accent/10 px-2.5 py-1 font-semibold text-accent">{sku}</span>
+        {nombre && <span className="text-ink">{nombre}</span>}
+        <button type="button" className="text-muted underline hover:text-red-600" onClick={() => onElegir("", "")}>
+          Quitar
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={caja} className="relative flex flex-col gap-1 text-xs text-muted">
+      SKU en Alegra
+      <input
+        value={q}
+        onChange={(e) => {
+          setQ(e.target.value);
+          setAbierto(true);
+        }}
+        onFocus={() => setAbierto(true)}
+        placeholder="Buscar el combo de la fórmula, p. ej. C-FOR o FORMULA…"
+        className={CAMPO}
+      />
+      {abierto && qDeb.length >= 2 && (
+        <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-border bg-surface shadow-lg">
+          {items.map((it) => (
+            <li key={it.codigo}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onElegir(it.codigo, it.nombre);
+                  setQ("");
+                  setAbierto(false);
+                }}
+                className="w-full px-2.5 py-1.5 text-left text-xs text-ink hover:bg-accent/10"
+              >
+                <span className="font-semibold">{it.codigo}</span>
+                <span className="ml-1.5 text-muted">{it.nombre}</span>
+              </button>
+            </li>
+          ))}
+          {!isFetching && items.length === 0 && <li className="px-2.5 py-1.5 text-xs text-muted">Ningún combo coincide.</li>}
         </ul>
       )}
     </div>

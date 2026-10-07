@@ -136,6 +136,32 @@ entrar desde el 21-sep). Cualquier pantalla de ingreso nueva debe detectar el UA
 `googleAuthStartUrl()`. **Celular (23-sep-2026):** «Agenda» es la misma agenda de escritorio (Layout +
 FlujoNav) con la barra inferior `BarraMovil` (Agenda · Hugo · Mensajes · Rápido · Yo); el hub solo pinta
 esas cuatro pestañas, con el mismo lenguaje de la piel «flujo».
+**Celular compacto (7-oct-2026):** se retiró la vista **Edificio** del Mapa (`MapaEdificio.tsx`,
+`mapa-edificio.css` y la placa «PB/P5» del cabezote); el Mapa es la única vista de inicio. El color de
+la etapa en `<main data-piso>` se conserva. `theme/movil.css` (importado de último en `main.tsx`)
+compacta en < 640 px las pestañas de la Agenda y la cabecera de la bandeja (`.hp-bandeja-cabeza`). El
+buscador va detrás de la lupa ⌕. En Mensajes/Grupos no salen la calculadora flotante ni el «+» de
+`BarraMovil`, porque tapaban la hora de las filas y el botón de enviar. `chat-equipo` está en
+`PanelTransition.fillHeight`: el chat mide su alto con flex, no con `calc(100dvh-…)`. El botón
+«Vista móvil» (salir de la vista escritorio forzada) ya se ve también en < 640 px.
+**Bandeja unificada (7-oct-2026):** en pantallas < 1024 px, `InboxConversaciones` entrega
+`BandejaUnificada.tsx`. Solicitudes, acciones y grupos van en una sola lista con tres pestañas: **Te toca**
+(pendientes asignadas a mí o sin dueño que pidió otra persona, y las que pedí y ya me entregaron),
+**Enterarte** (lo abierto que lleva otra persona y los grupos con mensajes sin leer; los demás grupos van
+plegados) y **Haciendo** (en proceso a mi nombre; el historial va plegado al final). Las reglas viven en
+`lib/bandeja.ts::seccionDe`. Una solicitud **cerrada** va al historial aunque tenga mensajes sin leer
+(suelen ser avisos automáticos). `useBandeja().porAtender` = Te toca + lo abierto con algo sin leer: es
+el único número de la barra de abajo, de la burbuja y de la bandeja. En pantalla angosta la burbuja
+lleva a la bandeja y no abre su ventana. El selector Solicitudes/Grupos solo aparece en la lista completa de
+Grupos (tarjeta «＋ Grupos» de la fila de grupos, evento `mck-mensajes-vista`). El escritorio no cambió.
+**Ajustes del 7-oct tras usarlo en el celular:**
+- **Fila de grupos** (`.bj-grupos`, como las historias de WhatsApp) siempre arriba de la lista. Va ordenada así:
+  primero donde te nombraron (@), luego con no leídos, luego lo reciente. Antes los grupos vivían plegados y había
+  que buscarlos por nombre.
+- **Hilo abierto a pantalla completa:** `BandejaUnificada` marca `html[data-hilo-abierto]` y `theme/movil.css`
+  esconde el cabezote de la agenda y la calculadora.
+- **HiloCanal en < 640 px:** cabecera baja, «Solicitudes abiertas» plegada (`SolicitudesDelGrupo`) y, en pantallas
+  táctiles, «Responder / Tarea» escondidos hasta tocar la burbuja (`.mck-acciones-on`). Deslizar sigue respondiendo.
 
 ### Paneles disponibles
 
@@ -190,3 +216,22 @@ WhatsApp (mismos `/api/bot/bridge/status` y `/api/supervisor/bridge/status`), `G
 incrustados (`embebido`), o guía para llaves de API. `meli-oauth` y `gmail-oauth` salieron del menú (siguen como panel
 para enlaces viejos). **Se ve arriba de Ajustes y Sistema** (solo admin): Sistemas solo sale en modo avanzado y el
 equipo no lo encontraba ahí. Gmail avisa 2 días antes del vencimiento de 7 días mientras `GMAIL_OAUTH_MODO_PRUEBA` ≠ 0.
+
+**Escala de lectura del Libro Mayor (5-oct-2026).** Todo lo que cuelga de `.lm-root` (Libro Mayor, Tabla de
+contabilidad, Documentos soporte, Retenciones, Créditos) y los emergentes por portal marcados `.lm-escala` (Taller
+de conciliación) suben de tamaño desde `components/libroMayor.css`: 9-9,5 → 11,5 px, 10 → 12, 10,5-11,5 → 13,
+`text-xs`/12 px → 14, 12,5-13 → 14,5, `text-sm` → 15,5, `text-base` → 17, con interlineado mayor y cifras
+`tabular-nums` en tablas. Antes: 305 textos a 12 px y 75 entre 9 y 11,5 px. Para que un componente nuevo de la
+sección se lea igual basta con que viva dentro de `.lm-root`; si abre con `createPortal`, poner `lm-escala` en su
+raíz. El riel lateral pasó a 256 px y en móvil la columna usa `grid-cols-[minmax(0,1fr)]` (sin eso la tabla del
+PUC estiraba la vista a 1.667 px y cortaba los filtros).
+
+### Celebración = el perro de Duck Hunt (6-oct-2026)
+
+Toda acción, flujo o formulario completado (aprobar ficha/etiqueta, visto bueno SDS, revisado,
+combo completo, línea conciliada, tarea resuelta y toda moneda que paga el servidor vía
+`X-Mck-Monedas`) lo celebra `perroSeRie()` en `desktop/src/lib/celebracionAprobado.ts`: el perro
+asoma abajo al centro y se ríe. Reemplazó el confeti/estrellas y la fanfarria/moneda de 8 bits.
+La tarjeta/aviso con las monedas se mantiene. La risa se calla con el interruptor 🔊 del taller
+(`sonidoActivo`); el perro igual se ve. Para celebrar algo nuevo: `celebrarAprobacion({...})` (si
+paga misión) o `perroSeRie()` directo. Los sonidos de navegación (`sonidosJuego.ts`) no cambian.

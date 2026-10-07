@@ -252,7 +252,7 @@
         {
           "lote_numero": "GI/2025/11/540",
           "estado": "sin_cambios",
-          "fabricante": "",
+          "fabricante": "Química Interkrol Ltda.",
           "pais_origen": "India",
           "fecha_fabricacion": "2025-11-01",
           "fecha_vencimiento": "2027-10-01",
@@ -261,10 +261,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-23T23:21:53+00:00"
+          "registrado_en": "2026-10-06T19:40:47+00:00"
         }
       ],
-      "updated_at": "2026-09-23T23:21:53+00:00"
+      "updated_at": "2026-10-06T19:40:47+00:00"
     },
     "C-ACERIC250ML": {
       "ref": "C-ACERIC250ML",
@@ -287,7 +287,7 @@
         {
           "lote_numero": "GI/2025/11/540",
           "estado": "sin_cambios",
-          "fabricante": "",
+          "fabricante": "Química Interkrol Ltda.",
           "pais_origen": "India",
           "fecha_fabricacion": "2025-11-01",
           "fecha_vencimiento": "2027-10-01",
@@ -296,10 +296,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-23T23:21:53+00:00"
+          "registrado_en": "2026-10-06T19:40:47+00:00"
         }
       ],
-      "updated_at": "2026-09-23T23:21:53+00:00"
+      "updated_at": "2026-10-06T19:40:47+00:00"
     },
     "C-ACERIC10ML": {
       "ref": "C-ACERIC10ML",
@@ -322,7 +322,7 @@
         {
           "lote_numero": "GI/2025/11/540",
           "estado": "sin_cambios",
-          "fabricante": "",
+          "fabricante": "Química Interkrol Ltda.",
           "pais_origen": "India",
           "fecha_fabricacion": "2025-11-01",
           "fecha_vencimiento": "2027-10-01",
@@ -331,10 +331,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-23T23:21:53+00:00"
+          "registrado_en": "2026-10-06T19:40:47+00:00"
         }
       ],
-      "updated_at": "2026-09-23T23:21:53+00:00"
+      "updated_at": "2026-10-06T19:40:47+00:00"
     },
     "C-ACEESEALB5ML": {
       "ref": "C-ACEESEALB5ML",
@@ -1171,7 +1171,7 @@
     },
     "C-ALA100G": {
       "ref": "C-ALA100G",
-      "nombre": "ALANTOÍNA",
+      "nombre": "Alantoína",
       "lotes": [
         {
           "lote_numero": "GRB644",
@@ -1184,11 +1184,25 @@
           "codigo_verificacion": "93S6DD",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "20251201",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-12-01",
+          "fecha_vencimiento": "2028-12-01",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "75TRNV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:28+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-10-06T19:40:28+00:00"
     },
     "C-ALCCETKG": {
       "ref": "C-ALCCETKG",
@@ -1324,11 +1338,25 @@
           "codigo_verificacion": "2TT5ZP",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-22T16:24:27+00:00"
+        },
+        {
+          "lote_numero": "251201C6",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-12-01",
+          "fecha_vencimiento": "2027-11-30",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "2QRTLG",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:30+00:00"
         }
       ],
-      "updated_at": "2026-09-22T16:24:27+00:00"
+      "updated_at": "2026-10-06T19:40:30+00:00"
     },
     "C-ALU500G": {
       "ref": "C-ALU500G",
@@ -1359,11 +1387,25 @@
           "codigo_verificacion": "2TT5ZP",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-22T16:24:27+00:00"
+        },
+        {
+          "lote_numero": "251201C6",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-12-01",
+          "fecha_vencimiento": "2027-11-30",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "2QRTLG",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:30+00:00"
         }
       ],
-      "updated_at": "2026-09-22T16:24:27+00:00"
+      "updated_at": "2026-10-06T19:40:30+00:00"
     },
     "C-ALUKG": {
       "ref": "C-ALUKG",
@@ -1394,11 +1436,25 @@
           "codigo_verificacion": "2TT5ZP",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-22T16:24:27+00:00"
+        },
+        {
+          "lote_numero": "251201C6",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-12-01",
+          "fecha_vencimiento": "2027-11-30",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "2QRTLG",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:30+00:00"
         }
       ],
-      "updated_at": "2026-09-22T16:24:27+00:00"
+      "updated_at": "2026-10-06T19:40:30+00:00"
     },
     "C-AZUMMET30ML": {
       "ref": "C-AZUMMET30ML",
@@ -1682,10 +1738,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-22T20:32:19+00:00"
+          "registrado_en": "2026-10-06T04:34:01+00:00"
         }
       ],
-      "updated_at": "2026-09-22T20:32:19+00:00"
+      "updated_at": "2026-10-06T04:34:01+00:00"
     },
     "C-CERABEREFBLAKG": {
       "ref": "C-CERABEREFBLAKG",
@@ -2088,7 +2144,7 @@
     },
     "C-COLHID30ML": {
       "ref": "C-COLHID30ML",
-      "nombre": "COLÁGENO HIDROLIZADO",
+      "nombre": "COLÁGENO HIDROLIZADO COSMÉTICO",
       "lotes": [
         {
           "lote_numero": "XBG567",
@@ -2101,11 +2157,25 @@
           "codigo_verificacion": "WVWBGS",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "79761225",
+          "estado": "nuevo",
+          "fabricante": "Química Interkrol Ltda.",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "2025-10-15",
+          "fecha_vencimiento": "2028-10-15",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "H6282P",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:40+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-10-06T19:40:40+00:00"
     },
     "C-COLHID30M": {
       "ref": "C-COLHID30M",
@@ -2206,11 +2276,25 @@
           "codigo_verificacion": "RWEPEQ",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "LE2603-149M",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-03-16",
+          "fecha_vencimiento": "2028-03-15",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "9PRN2W",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:33+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-10-06T19:40:33+00:00"
     },
     "C-DIOTIT500G": {
       "ref": "C-DIOTIT500G",
@@ -2436,19 +2520,19 @@
         {
           "lote_numero": "26030824301",
           "estado": "sin_cambios",
-          "fabricante": "",
+          "fabricante": "Smart Chemical",
           "pais_origen": "China",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
+          "fecha_fabricacion": "2026-03-08",
+          "fecha_vencimiento": "2030-03-07",
           "fecha_recepcion": "2026-09-22",
           "codigo_verificacion": "KT4WX7",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-27T04:08:26+00:00"
+          "registrado_en": "2026-10-06T19:40:45+00:00"
         }
       ],
-      "updated_at": "2026-09-27T04:08:26+00:00"
+      "updated_at": "2026-10-06T19:40:45+00:00"
     },
     "C-INU500G": {
       "ref": "C-INU500G",
@@ -2471,19 +2555,19 @@
         {
           "lote_numero": "26030824301",
           "estado": "sin_cambios",
-          "fabricante": "",
+          "fabricante": "Smart Chemical",
           "pais_origen": "China",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
+          "fecha_fabricacion": "2026-03-08",
+          "fecha_vencimiento": "2030-03-07",
           "fecha_recepcion": "2026-09-22",
           "codigo_verificacion": "KT4WX7",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-27T04:08:26+00:00"
+          "registrado_en": "2026-10-06T19:40:45+00:00"
         }
       ],
-      "updated_at": "2026-09-27T04:08:26+00:00"
+      "updated_at": "2026-10-06T19:40:45+00:00"
     },
     "C-INUKG": {
       "ref": "C-INUKG",
@@ -2506,19 +2590,19 @@
         {
           "lote_numero": "26030824301",
           "estado": "sin_cambios",
-          "fabricante": "",
+          "fabricante": "Smart Chemical",
           "pais_origen": "China",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
+          "fecha_fabricacion": "2026-03-08",
+          "fecha_vencimiento": "2030-03-07",
           "fecha_recepcion": "2026-09-22",
           "codigo_verificacion": "KT4WX7",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-27T04:08:26+00:00"
+          "registrado_en": "2026-10-06T19:40:45+00:00"
         }
       ],
-      "updated_at": "2026-09-27T04:08:26+00:00"
+      "updated_at": "2026-10-06T19:40:45+00:00"
     },
     "C-LACCAL100G": {
       "ref": "C-LACCAL100G",
@@ -2738,11 +2822,25 @@
           "codigo_verificacion": "X7N8PR",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-22T19:01:18+00:00"
+        },
+        {
+          "lote_numero": "GR902A2606030400",
+          "estado": "actualizado",
+          "fabricante": "Aceites Manuelita S.A.",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "2026-06-03",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "2X3XPY",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:39+00:00"
         }
       ],
-      "updated_at": "2026-09-22T19:01:18+00:00"
+      "updated_at": "2026-10-06T19:40:39+00:00"
     },
     "C-GLICVEG500ML": {
       "ref": "C-GLICVEG500ML",
@@ -2773,11 +2871,25 @@
           "codigo_verificacion": "X7N8PR",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-22T19:01:18+00:00"
+        },
+        {
+          "lote_numero": "GR902A2606030400",
+          "estado": "actualizado",
+          "fabricante": "Aceites Manuelita S.A.",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "2026-06-03",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "2X3XPY",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:39+00:00"
         }
       ],
-      "updated_at": "2026-09-22T19:01:18+00:00"
+      "updated_at": "2026-10-06T19:40:39+00:00"
     },
     "C-GLIVEG250ML": {
       "ref": "C-GLIVEG250ML",
@@ -2808,11 +2920,25 @@
           "codigo_verificacion": "X7N8PR",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-22T19:01:18+00:00"
+        },
+        {
+          "lote_numero": "GR902A2606030400",
+          "estado": "actualizado",
+          "fabricante": "Aceites Manuelita S.A.",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "2026-06-03",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "2X3XPY",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:39+00:00"
         }
       ],
-      "updated_at": "2026-09-22T19:01:18+00:00"
+      "updated_at": "2026-10-06T19:40:39+00:00"
     },
     "C-GLUMONKG": {
       "ref": "C-GLUMONKG",
@@ -2829,11 +2955,25 @@
           "codigo_verificacion": "TAC9BD",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "N10 20260311",
+          "estado": "nuevo",
+          "fabricante": "Tongliao Meihua Biological Sci-Tech Co., Ltd.",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-03-11",
+          "fecha_vencimiento": "2029-03-10",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "QC4U59",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:38+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-10-06T19:40:38+00:00"
     },
     "C-GLUMON500G": {
       "ref": "C-GLUMON500G",
@@ -2850,11 +2990,25 @@
           "codigo_verificacion": "TAC9BD",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "N10 20260311",
+          "estado": "nuevo",
+          "fabricante": "Tongliao Meihua Biological Sci-Tech Co., Ltd.",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-03-11",
+          "fecha_vencimiento": "2029-03-10",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "QC4U59",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:38+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-10-06T19:40:38+00:00"
     },
     "C-GOMGUA500G": {
       "ref": "C-GOMGUA500G",
@@ -3074,11 +3228,25 @@
           "codigo_verificacion": "Z6U3QD",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-22T19:11:20+00:00"
+        },
+        {
+          "lote_numero": "1B000746205",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "Estados Unidos",
+          "fecha_fabricacion": "2026-04-15",
+          "fecha_vencimiento": "2028-04-14",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "D6PQRH",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:35+00:00"
         }
       ],
-      "updated_at": "2026-09-22T19:11:20+00:00"
+      "updated_at": "2026-10-06T19:40:35+00:00"
     },
     "C-OXIZIN250G": {
       "ref": "C-OXIZIN250G",
@@ -3163,20 +3331,20 @@
         },
         {
           "lote_numero": "PROBL20260408",
-          "estado": "nuevo",
-          "fabricante": "Andina Food Ingredients & Additives.",
+          "estado": "sin_cambios",
+          "fabricante": "Andina Food Ingredients & Additives",
           "pais_origen": "Colombia",
-          "fecha_fabricacion": "abril 08, 2026",
-          "fecha_vencimiento": "abril 07, 2028",
+          "fecha_fabricacion": "2026-04-08",
+          "fecha_vencimiento": "2028-04-07",
           "fecha_recepcion": "2026-09-29",
           "codigo_verificacion": "372ME9",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-29T19:09:09+00:00"
+          "registrado_en": "2026-10-06T22:11:07+00:00"
         }
       ],
-      "updated_at": "2026-09-29T19:09:09+00:00"
+      "updated_at": "2026-10-06T22:11:07+00:00"
     },
     "C-SABCARAHU100G": {
       "ref": "C-SABCARAHU100G",
@@ -3271,10 +3439,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-12T16:10:37+00:00"
+          "registrado_en": "2026-10-06T17:10:14+00:00"
         }
       ],
-      "updated_at": "2026-09-12T16:10:37+00:00"
+      "updated_at": "2026-10-06T17:10:14+00:00"
     },
     "C-SHA70550ML": {
       "ref": "C-SHA70550ML",
@@ -3306,10 +3474,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-12T16:10:37+00:00"
+          "registrado_en": "2026-10-06T17:10:14+00:00"
         }
       ],
-      "updated_at": "2026-09-12T16:10:37+00:00"
+      "updated_at": "2026-10-06T17:10:14+00:00"
     },
     "C-SORPOT250G": {
       "ref": "C-SORPOT250G",
@@ -3452,11 +3620,25 @@
           "codigo_verificacion": "5MKBCJ",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:42+00:00"
+        },
+        {
+          "lote_numero": "2215A03-26",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "Alemania",
+          "fecha_fabricacion": "2025-11-30",
+          "fecha_vencimiento": "2027-11-29",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "QMWXUV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:34+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:42+00:00"
+      "updated_at": "2026-10-06T19:40:34+00:00"
     },
     "C-URE500G": {
       "ref": "C-URE500G",
@@ -3473,11 +3655,25 @@
           "codigo_verificacion": "5MKBCJ",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:42+00:00"
+        },
+        {
+          "lote_numero": "2215A03-26",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "Alemania",
+          "fecha_fabricacion": "2025-11-30",
+          "fecha_vencimiento": "2027-11-29",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "QMWXUV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:34+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:42+00:00"
+      "updated_at": "2026-10-06T19:40:34+00:00"
     },
     "C-ACEARG50ML": {
       "ref": "C-ACEARG50ML",
@@ -3901,7 +4097,7 @@
     },
     "C-VITCACIASC100G": {
       "ref": "C-VITCACIASC100G",
-      "nombre": "ÁCIDO ASCÓRBICO",
+      "nombre": "Ácido Ascórbico",
       "lotes": [
         {
           "lote_numero": "YTW223",
@@ -3914,15 +4110,29 @@
           "codigo_verificacion": "K8LC7S",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T07:16:01+00:00"
+        },
+        {
+          "lote_numero": "1250550044",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-05-11",
+          "fecha_vencimiento": "2029-05-10",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "H8B3DW",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:29+00:00"
         }
       ],
-      "updated_at": "2026-07-19T07:16:01+00:00"
+      "updated_at": "2026-10-06T19:40:29+00:00"
     },
     "C-VITCACIASC500G": {
       "ref": "C-VITCACIASC500G",
-      "nombre": "ÁCIDO ASCÓRBICO",
+      "nombre": "Ácido Ascórbico",
       "lotes": [
         {
           "lote_numero": "YTW223",
@@ -3935,15 +4145,29 @@
           "codigo_verificacion": "K8LC7S",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T07:16:01+00:00"
+        },
+        {
+          "lote_numero": "1250550044",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-05-11",
+          "fecha_vencimiento": "2029-05-10",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "H8B3DW",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:29+00:00"
         }
       ],
-      "updated_at": "2026-07-19T07:16:01+00:00"
+      "updated_at": "2026-10-06T19:40:29+00:00"
     },
     "C-VITCACIASC250G": {
       "ref": "C-VITCACIASC250G",
-      "nombre": "ÁCIDO ASCÓRBICO",
+      "nombre": "Ácido Ascórbico",
       "lotes": [
         {
           "lote_numero": "YTW223",
@@ -3956,11 +4180,25 @@
           "codigo_verificacion": "K8LC7S",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T07:16:01+00:00"
+        },
+        {
+          "lote_numero": "1250550044",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-05-11",
+          "fecha_vencimiento": "2029-05-10",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "H8B3DW",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:29+00:00"
         }
       ],
-      "updated_at": "2026-07-19T07:16:01+00:00"
+      "updated_at": "2026-10-06T19:40:29+00:00"
     },
     "C-EXTALOVER30ML": {
       "ref": "C-EXTALOVER30ML",
@@ -4027,7 +4265,7 @@
     },
     "C-TEGBETLT": {
       "ref": "C-TEGBETLT",
-      "nombre": "BETAÍNA DE COCO",
+      "nombre": "TEGO BETAÍNA DE COCO",
       "lotes": [
         {
           "lote_numero": "UMJ969",
@@ -4040,15 +4278,29 @@
           "codigo_verificacion": "MDT7VH",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T07:16:01+00:00"
+        },
+        {
+          "lote_numero": "11900068620",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "India",
+          "fecha_fabricacion": "2026-05-28",
+          "fecha_vencimiento": "2028-05-17",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "N644YL",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:37+00:00"
         }
       ],
-      "updated_at": "2026-07-19T07:16:01+00:00"
+      "updated_at": "2026-10-06T19:40:37+00:00"
     },
     "C-TEGBET500ML": {
       "ref": "C-TEGBET500ML",
-      "nombre": "BETAÍNA DE COCO",
+      "nombre": "TEGO BETAÍNA DE COCO",
       "lotes": [
         {
           "lote_numero": "UMJ969",
@@ -4061,11 +4313,25 @@
           "codigo_verificacion": "MDT7VH",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T07:16:01+00:00"
+        },
+        {
+          "lote_numero": "11900068620",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "India",
+          "fecha_fabricacion": "2026-05-28",
+          "fecha_vencimiento": "2028-05-17",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "N644YL",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:37+00:00"
         }
       ],
-      "updated_at": "2026-07-19T07:16:01+00:00"
+      "updated_at": "2026-10-06T19:40:37+00:00"
     },
     "C-CLOMAGHEXKG": {
       "ref": "C-CLOMAGHEXKG",
@@ -4082,11 +4348,25 @@
           "codigo_verificacion": "FJWPFK",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T07:16:01+00:00"
+        },
+        {
+          "lote_numero": "20260114",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-01-14",
+          "fecha_vencimiento": "2028-01-13",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "CFDQXX",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:27+00:00"
         }
       ],
-      "updated_at": "2026-07-19T07:16:01+00:00"
+      "updated_at": "2026-10-06T19:40:27+00:00"
     },
     "C-CREMON100G": {
       "ref": "C-CREMON100G",
@@ -4255,7 +4535,7 @@
         },
         {
           "lote_numero": "MCC260205",
-          "estado": "nuevo",
+          "estado": "sin_cambios",
           "fabricante": "Andina",
           "pais_origen": "China",
           "fecha_fabricacion": "febrero 10, 2026",
@@ -4265,10 +4545,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-22T18:54:26+00:00"
+          "registrado_en": "2026-10-06T04:07:09+00:00"
         }
       ],
-      "updated_at": "2026-09-22T18:54:26+00:00"
+      "updated_at": "2026-10-06T04:07:09+00:00"
     },
     "L-AMIPRO100G": {
       "ref": "L-AMIPRO100G",
@@ -4431,19 +4711,19 @@
         {
           "lote_numero": "20161250705",
           "estado": "sin_cambios",
-          "fabricante": "",
+          "fabricante": "Smart Chemical",
           "pais_origen": "China",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
+          "fecha_fabricacion": "2025-07-07",
+          "fecha_vencimiento": "2028-07-06",
           "fecha_recepcion": "2026-09-22",
           "codigo_verificacion": "3SNTGV",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-22T20:12:31+00:00"
+          "registrado_en": "2026-10-06T19:40:43+00:00"
         }
       ],
-      "updated_at": "2026-09-22T20:12:31+00:00"
+      "updated_at": "2026-10-06T19:40:43+00:00"
     },
     "ACERIC250ML": {
       "ref": "ACERIC250ML",
@@ -5697,20 +5977,20 @@
       "lotes": [
         {
           "lote_numero": "20260110",
-          "estado": "nuevo",
-          "fabricante": "",
+          "estado": "sin_cambios",
+          "fabricante": "Andina Food Ingredients & Additives",
           "pais_origen": "China",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
+          "fecha_fabricacion": "2026-01-10",
+          "fecha_vencimiento": "2029-01-09",
           "fecha_recepcion": "2026-09-22",
           "codigo_verificacion": "T9T978",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-22T18:59:54+00:00"
+          "registrado_en": "2026-10-06T19:40:43+00:00"
         }
       ],
-      "updated_at": "2026-09-22T18:59:54+00:00"
+      "updated_at": "2026-10-06T19:40:43+00:00"
     },
     "DPANG": {
       "ref": "DPANG",
@@ -5718,8 +5998,8 @@
       "lotes": [
         {
           "lote_numero": "260111T061",
-          "estado": "nuevo",
-          "fabricante": "",
+          "estado": "sin_cambios",
+          "fabricante": "Smart Chemical",
           "pais_origen": "China",
           "fecha_fabricacion": "2026-01-11",
           "fecha_vencimiento": "2028-01-10",
@@ -5728,10 +6008,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-22T19:28:31+00:00"
+          "registrado_en": "2026-10-06T19:40:46+00:00"
         }
       ],
-      "updated_at": "2026-09-22T19:28:31+00:00"
+      "updated_at": "2026-10-06T19:40:46+00:00"
     },
     "C-DATSAY250G": {
       "ref": "C-DATSAY250G",
@@ -6022,10 +6302,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-25T20:16:22+00:00"
+          "registrado_en": "2026-10-05T00:37:46+00:00"
         }
       ],
-      "updated_at": "2026-09-25T20:16:22+00:00"
+      "updated_at": "2026-10-05T00:37:46+00:00"
     },
     "C-NUENOG250G": {
       "ref": "C-NUENOG250G",
@@ -6349,19 +6629,19 @@
         {
           "lote_numero": "211SBCFM250722022",
           "estado": "sin_cambios",
-          "fabricante": "",
+          "fabricante": "Smart Chemical",
           "pais_origen": "China",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
+          "fecha_fabricacion": "2025-07-22",
+          "fecha_vencimiento": "2028-07-21",
           "fecha_recepcion": "2026-09-26",
           "codigo_verificacion": "LXQCXW",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-26T21:00:42+00:00"
+          "registrado_en": "2026-10-06T19:40:48+00:00"
         }
       ],
-      "updated_at": "2026-09-26T21:00:42+00:00"
+      "updated_at": "2026-10-06T19:40:48+00:00"
     },
     "C-LTRI100G": {
       "ref": "C-LTRI100G",
@@ -6551,6 +6831,258 @@
         }
       ],
       "updated_at": "2026-09-29T14:25:33+00:00"
+    },
+    "ACECOCVIRG": {
+      "ref": "ACECOCVIRG",
+      "nombre": "ACEITE DE COCO VIRGEN ORGANICO",
+      "lotes": [
+        {
+          "lote_numero": "CON01125",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "Sri Lanka",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "2027-05-01",
+          "fecha_recepcion": "2026-10-04",
+          "codigo_verificacion": "HGG5L9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-05T00:29:25+00:00"
+        }
+      ],
+      "updated_at": "2026-10-05T00:29:25+00:00"
+    },
+    "AVEHOJG": {
+      "ref": "AVEHOJG",
+      "nombre": "HOJUELA DE AVENA ENTERA",
+      "lotes": [
+        {
+          "lote_numero": "290526-3A1",
+          "estado": "sin_cambios",
+          "fabricante": "SOCIEDAD AVENAS DEL PACIFICO S.A.",
+          "pais_origen": "Chile",
+          "fecha_fabricacion": "2026-05-29",
+          "fecha_vencimiento": "2027-05-29",
+          "fecha_recepcion": "2026-10-05",
+          "codigo_verificacion": "PCKZAZ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-05T02:13:27+00:00"
+        }
+      ],
+      "updated_at": "2026-10-05T02:13:27+00:00"
+    },
+    "AVEHARG": {
+      "ref": "AVEHARG",
+      "nombre": "HARINA DE AVENA",
+      "lotes": [
+        {
+          "lote_numero": "CO-2025-00533-1",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "Chile",
+          "fecha_fabricacion": "2025-05-14",
+          "fecha_vencimiento": "2026-05-14",
+          "fecha_recepcion": "2026-10-05",
+          "codigo_verificacion": "9UTMQM",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-05T02:51:27+00:00"
+        }
+      ],
+      "updated_at": "2026-10-05T02:51:27+00:00"
+    },
+    "C-ALA250G": {
+      "ref": "C-ALA250G",
+      "nombre": "Alantoína",
+      "lotes": [
+        {
+          "lote_numero": "20251201",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-12-01",
+          "fecha_vencimiento": "2028-12-01",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "75TRNV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:28+00:00"
+        }
+      ],
+      "updated_at": "2026-10-06T19:40:28+00:00"
+    },
+    "C-GOMXAN500G": {
+      "ref": "C-GOMXAN500G",
+      "nombre": "GOMA XANTHAN",
+      "lotes": [
+        {
+          "lote_numero": "HH202510160301",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-10-10",
+          "fecha_vencimiento": "2027-10-09",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "4BHPTA",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:31+00:00"
+        }
+      ],
+      "updated_at": "2026-10-06T19:40:31+00:00"
+    },
+    "C-GOMXANKG": {
+      "ref": "C-GOMXANKG",
+      "nombre": "GOMA XANTHAN",
+      "lotes": [
+        {
+          "lote_numero": "HH202510160301",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-10-10",
+          "fecha_vencimiento": "2027-10-09",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "4BHPTA",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:31+00:00"
+        }
+      ],
+      "updated_at": "2026-10-06T19:40:31+00:00"
+    },
+    "LANG": {
+      "ref": "LANG",
+      "nombre": "LANOLINA ANHIDRA",
+      "lotes": [
+        {
+          "lote_numero": "3103",
+          "estado": "nuevo",
+          "fabricante": "Química Interkrol Ltda.",
+          "pais_origen": "Uruguay",
+          "fecha_fabricacion": "2025-12-01",
+          "fecha_vencimiento": "2028-12-01",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "G3RRUR",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:36+00:00"
+        }
+      ],
+      "updated_at": "2026-10-06T19:40:36+00:00"
+    },
+    "C-NIA100G": {
+      "ref": "C-NIA100G",
+      "nombre": "Niacinamida",
+      "lotes": [
+        {
+          "lote_numero": "NM2601029",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-01-20",
+          "fecha_vencimiento": "2029-01-19",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "8WVVBG",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T19:40:41+00:00"
+        }
+      ],
+      "updated_at": "2026-10-06T19:40:41+00:00"
+    },
+    "C-FOR-EXTALOVERML": {
+      "ref": "C-FOR-EXTALOVERML",
+      "nombre": "ALOE VERA",
+      "lotes": [
+        {
+          "lote_numero": "76118525",
+          "estado": "nuevo",
+          "fabricante": "Química Interkrol Ltda.",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "2025-05-14",
+          "fecha_vencimiento": "2029-05-14",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "XUDLH7",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T22:11:01+00:00"
+        }
+      ],
+      "updated_at": "2026-10-06T22:11:01+00:00"
+    },
+    "COLMARPEPG": {
+      "ref": "COLMARPEPG",
+      "nombre": "Péptidos de Colágeno de Pescado",
+      "lotes": [
+        {
+          "lote_numero": "20260220111",
+          "estado": "nuevo",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-02-20",
+          "fecha_vencimiento": "2028-02-19",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "MQ22ZW",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T22:28:23+00:00"
+        }
+      ],
+      "updated_at": "2026-10-06T22:28:23+00:00"
+    },
+    "GOMALGG": {
+      "ref": "GOMALGG",
+      "nombre": "GOMA DE ALGARROBO",
+      "lotes": [
+        {
+          "lote_numero": "2050326227",
+          "estado": "sin_cambios",
+          "fabricante": "Andina Food Ingredients & Additives",
+          "pais_origen": "Turquía",
+          "fecha_fabricacion": "2026-02-09",
+          "fecha_vencimiento": "2028-02-08",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "89TLKH",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T22:29:23+00:00"
+        }
+      ],
+      "updated_at": "2026-10-06T22:29:23+00:00"
+    },
+    "GLUCALG": {
+      "ref": "GLUCALG",
+      "nombre": "Gluconato de Calcio",
+      "lotes": [
+        {
+          "lote_numero": "20260420",
+          "estado": "sin_cambios",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-04-20",
+          "fecha_vencimiento": "2028-04-19",
+          "fecha_recepcion": "2026-10-06",
+          "codigo_verificacion": "DZQTEG",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-06T22:30:35+00:00"
+        }
+      ],
+      "updated_at": "2026-10-06T22:30:35+00:00"
     }
   }
 }

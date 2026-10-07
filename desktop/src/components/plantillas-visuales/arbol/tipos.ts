@@ -32,12 +32,54 @@ export type Pieza = {
 
 export type ClavePieza = "etiquetas" | "fotos" | "ean" | "receta" | "factura" | "meli" | "web";
 
+/** Costo de la receta (última compra de cada componente) contra el precio publicado.
+ *  app/services/costo_receta.py. Precios con IVA; margen sobre el precio sin IVA. */
+export type LineaCosto = {
+  codigo: string;
+  nombre: string;
+  casilla: string;
+  cantidad: number;
+  costo_unitario: number | null;
+  subtotal: number | null;
+  fuente: "libro" | "factura" | "referencia" | "manual" | "alegra" | "";
+  fecha: string;
+  detalle: string;
+};
+
+export type ContrasteCanal = {
+  canal: "web" | "meli" | "lista";
+  precio: number;
+  neto: number;
+  comision: number;
+  utilidad: number;
+  margen: number | null;
+  veces_costo: number | null;
+};
+
+export type CostoReceta = {
+  total: number;
+  lineas: LineaCosto[];
+  sin_costo: string[];
+  completo: boolean;
+  /** Hay piezas sin costo: el margen es un techo, no el real. */
+  parcial: boolean;
+  contraste: ContrasteCanal[];
+  con_iva: boolean;
+  /** Tarifa de IVA de venta del combo en Alegra (0.19, 0.05, 0). */
+  tasa_iva?: number;
+  comision_meli: number;
+  error?: string;
+};
+
 export type Presentacion = {
   ref: string;
   nombre: string;
   corto: string;
   presentacion: string;
   precio_lista: number | null;
+  /** Precios publicados con IVA: vitrina web, MeLi (según la vitrina) y lista de Alegra. */
+  precios?: { web?: number | null; meli?: number | null; lista?: number | null };
+  costo?: CostoReceta | null;
   foto: string | null;
   foto_estado: string;
   foto_motivo: string;

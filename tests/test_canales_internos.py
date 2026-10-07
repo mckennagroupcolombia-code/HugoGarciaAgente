@@ -150,3 +150,133 @@ def test_notificaciones_y_preferencia(entorno, monkeypatch):
     assert NP.marcar_leidas(50) == 2 and NP.contar_no_leidas(50) == 0
     with pytest.raises(ValueError):
         NP.fijar_preferencia(50, "correo")
+
+
+def test_responder_a_un_mensaje(entorno):
+    CI, _, _ = entorno
+    canal = CI.crear_canal(ANA, "Bodega")
+    otro = CI.crear_canal(ANA, "Otro")
+    m = CI.enviar_mensaje(canal["id"], ANA, "¿Llegó el pedido?")
+    r = CI.enviar_mensaje(canal["id"], BETO, "Sí, esta mañana", responde_a=m["id"])
+    assert r["responde_a"] == m["id"]
+    assert r["cita"]["autor_nombre"] == "Ana" and r["cita"]["texto"] == "¿Llegó el pedido?"
+    listado = CI.listar_mensajes(canal["id"], ANA)
+    assert listado[0]["cita"] is None and listado[1]["cita"]["id"] == m["id"]
+    # Solo se responde a mensajes del mismo grupo.
+    with pytest.raises(ValueError):
+        CI.enviar_mensaje(otro["id"], ANA, "x", responde_a=m["id"])
+    # Si el original se borra, la cita queda como «eliminado».
+    CI.eliminar_mensaje(m["id"], ANA)
+    cita = CI.listar_mensajes(canal["id"], ANA)[0]["cita"]
+    assert cita["eliminado"] is True and cita["texto"] == ""
+
+
+def test_respuesta_espejada_a_wa_lleva_la_cita(entorno):
+    CI, _, reenvios = entorno
+    canal = CI.crear_canal(ANA, "X", wa_jid=JID, espejo_salida=True)
+    m = CI.enviar_mensaje(canal["id"], ANA, "Hola")
+    CI.enviar_mensaje(canal["id"], BETO, "Respuesta", responde_a=m["id"])
+    assert "respondiendo a Ana" in reenvios[-1][1] and "> Hola" in reenvios[-1][1]
+
+
+# ── Alertas sonoras (6-oct-2026) ──────────────────────────────────────────────
+
+def test_solicitudes_para_mi_solo_las_que_pidio_otra_persona(entorno):
+    CI, _, _ = entorno
+    yo = tickets_db.crear_usuario("Yo Prueba", "yo.prueba", 3, password="clave-segura-1")[0]["id"]
+    otro = tickets_db.crear_usuario("Otra Prueba", "otra.prueba", 3, password="clave-segura-1")[0]["id"]
+    with tickets_db._conn() as db:
+        for n, (creador, asignado, estado) in enumerate([(otro, yo, "pendiente"), (yo, yo, "pendiente"),
+                                                         (otro, yo, "resuelto"), (otro, otro, "pendiente")]):
+            db.execute("INSERT INTO tickets (numero, titulo, descripcion, estado, creado_por, asignado_a) VALUES (?,?,?,?,?,?)",
+                       (f"TKT-T-{n}", f"t{n}", "d", estado, creador, asignado))
+        db.commit()
+    out = CI.solicitudes_para_mi(yo)
+    assert [x["titulo"] for x in out] == ["t0"]
+    assert out[0]["creado_por"] == otro and "creado_por_nombre" in out[0]
+
+
+def test_preferencias_sonidos_se_validan_y_se_guardan(entorno):
+    limpio = tickets_db._limpiar_alertas_sonido(
+        {"activo": True, "volumen": 140, "general": "dh_ladrido", "personas": {"8": "cc_circo"}, "canales": {"3": "silencio"}})
+    assert limpio == {"activo": True, "volumen": 100, "tono_por_grupo": True, "general": "dh_ladrido",
+                      "personas": {"8": "cc_circo"}, "canales": {"3": "silencio"}}
+    # Cada grupo con su tono propio (7-oct): se puede apagar y queda guardado.
+    assert tickets_db._limpiar_alertas_sonido({"tono_por_grupo": False})["tono_por_grupo"] is False
+    assert tickets_db._limpiar_alertas_sonido({"general": "<script>"}) is None
+    assert tickets_db._limpiar_alertas_sonido({"personas": {"ana": "dh_risa"}}) is None
+    assert tickets_db._limpiar_alertas_sonido({"volumen": True}) is None
+    with tickets_db._conn() as db:
+        uid = db.execute("SELECT id FROM usuarios WHERE activo=1 LIMIT 1").fetchone()["id"]
+    ok, _, merged = tickets_db.actualizar_preferencias_ui(uid, {"panel": {"mode": "dark"}})
+    assert ok
+    ok, _, merged = tickets_db.actualizar_preferencias_ui(uid, {"sonidos": {"general": "cc_tropiezo"}})
+    assert ok and merged["sonidos"]["general"] == "cc_tropiezo" and merged["panel"]["mode"] == "dark"
+
+
+# ── Menciones con @ (7-oct-2026) ─────────────────────────────────────────────
+
+def _usuarios(*filas):
+    from app.services import canales_internos as CI
+
+    with CI._conn() as c:
+        for uid, nombre, usuario in filas:
+            c.execute("INSERT OR REPLACE INTO usuarios (id, nombre, username, password_hash, activo) VALUES (?,?,?,?,1)",
+                      (uid, nombre, usuario, "x"))
+
+
+def test_mencion_por_nombre_usuario_y_sin_tilde(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana Ruiz", "ana"), (2, "Sebastián García", "sebas"), (3, "Carla Díaz", "carla"))
+    canal = CI.crear_canal(ANA, "Bodega")
+    m = CI.enviar_mensaje(canal["id"], ANA, "@sebastian revisa esto y @carla.diaz no, @Carla Díaz sí")
+    assert {x["id"] for x in m["menciones"]} == {2, 3}
+    # Con correo no es mención; el autor no se menciona a sí mismo.
+    assert CI.enviar_mensaje(canal["id"], ANA, "escribe a ana@mckenna.co o @Ana")["menciones"] == []
+
+
+def test_nombre_repetido_pide_el_completo(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana Ruiz", "ana"), (2, "Victor Garcia", "victor"), (3, "Victor Gómez", "vgomez"))
+    canal = CI.crear_canal(ANA, "Sede")
+    assert [x["id"] for x in CI.enviar_mensaje(canal["id"], ANA, "@victor ven")["menciones"]] == [2]  # por usuario
+    assert [x["id"] for x in CI.enviar_mensaje(canal["id"], ANA, "@Victor Gómez ven")["menciones"]] == [3]
+
+
+def test_mencion_pendiente_hasta_leer_y_todos(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana", "ana"), (2, "Beto", "beto"), (3, "Carla", "carla"))
+    canal = CI.crear_canal(ANA, "Compras", miembros=[1, 2, 3])
+    CI.enviar_mensaje(canal["id"], ANA, "@Beto ¿llegó la factura?")
+    assert CI.obtener_canal(canal["id"], BETO)["menciones"] == 1
+    assert CI.obtener_canal(canal["id"], CARLA)["menciones"] == 0
+    assert CI.menciones_pendientes(BETO) == 1
+    CI.marcar_leido(canal["id"], BETO)
+    assert CI.menciones_pendientes(BETO) == 0
+    CI.enviar_mensaje(canal["id"], ANA, "@todos reunión a las 3")
+    assert CI.menciones_pendientes(BETO) == 1 and CI.menciones_pendientes(CARLA) == 1
+    assert CI.menciones_pendientes(ANA) == 0
+
+
+def test_mencion_desde_whatsapp_por_telefono(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana", "ana"), (2, "Stella", "stella"))
+    canal = CI.crear_canal(ANA, "Despachos", wa_jid=JID)
+    assert CI.espejar_desde_wa(jid=JID, wa_id="w1", texto="@573001112233 ya salió", from_me=True, autor="", ts=0)
+    assert CI.obtener_canal(canal["id"], BETO)["menciones"] == 1
+
+
+def test_mencionables_son_los_miembros_menos_yo(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana", "ana"), (2, "Beto", "beto"), (3, "Carla", "carla"))
+    canal = CI.crear_canal(ANA, "Privado", miembros=[1, 2])
+    assert [p["id"] for p in CI.mencionables(canal["id"], ANA)] == [2]
+    assert CI.mencionables(canal["id"], CARLA) is None
+
+
+def test_cuentas_tecnicas_no_se_nombran_y_username_con_arroba(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana", "ana"), (2, "Hugo IA", "hugo_ia_bot"), (3, "Cynthia Ruiz", "@cynthia"))
+    canal = CI.crear_canal(ANA, "Equipo")
+    assert [p["id"] for p in CI.mencionables(canal["id"], ANA)] == [3]
+    assert [x["id"] for x in CI.enviar_mensaje(canal["id"], ANA, "@Hugo @cynthia mira")["menciones"]] == [3]

@@ -1,0 +1,15 @@
+{
+  "_doc": "Insumos para los saldos iniciales al 31-ago-2026 que el sistema no detecta solo. Los muestra Libro Mayor → Revisión del libro (app/services/revision_libro.py). Cambiar «estado» a «ok» cuando se consiga cada uno.",
+  "insumos": [
+    {"id": "saldo_mp", "titulo": "Saldo de Mercado Pago al 31-ago-2026", "estado": "falta",
+     "nota": "Disponible y por liberar, del reporte de Mercado Pago",
+     "detalle": ["Las ventas MeLi de jul-ago quedaron en Bancos (1110) y no en Mercado Pago: el saldo real lo fija este reporte."]},
+    {"id": "inventario", "titulo": "Inventario valorizado al 31-ago-2026", "estado": "falta",
+     "nota": "Conteo físico o el valor que tenía en Siigo/Alegra",
+     "detalle": ["En la renta 2025 el inventario era $292.000.000: es la cifra más grande del balance."]},
+    {"id": "capital", "titulo": "Capital social (certificado de Cámara de Comercio)", "estado": "falta",
+     "nota": "Para separar capital de utilidades acumuladas"},
+    {"id": "otras_cuentas", "titulo": "Confirmar si hay otras cuentas de la empresa", "estado": "falta",
+     "nota": "Nequi, otro banco, tarjeta de crédito empresarial o créditos bancarios"}
+  ]
+}

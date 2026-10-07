@@ -29,10 +29,33 @@ self.addEventListener("message", (event) => {
   event.waitUntil(mostrarNotificacion(self.registration));
 });
 
+// Mensaje nuevo en un grupo del equipo (app/services/canales_avisos.py). Si la app está
+// a la vista, la página ya lo muestra con su propia tarjeta y sonido: no se duplica.
+function mostrarMensajeChat(data) {
+  return self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+    const visible = clients.some((c) => c.visibilityState === "visible" && c.focused);
+    if (visible) return undefined;
+    return self.registration.showNotification(data.titulo || "Mensaje nuevo del equipo", {
+      body: data.cuerpo || "",
+      icon: "/app/icon-512.png",
+      badge: "/app/icon-192.png",
+      tag: data.tag || "chat-mensaje",
+      renotify: true,
+      silent: false,
+      vibrate: [120, 60, 120],
+      data: { canal_id: data.canal_id || null },
+    });
+  });
+}
+
 // Canal 2: push del servidor (pantalla bloqueada / Chrome suspendido)
 self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data?.json() ?? {}; } catch { /* payload vacío: disparar igual */ }
+  if (data.type === "chat-mensaje") {
+    event.waitUntil(mostrarMensajeChat(data));
+    return;
+  }
   if (data.type && data.type !== "alarm-notification") return;
   event.waitUntil(mostrarNotificacion(self.registration));
 });

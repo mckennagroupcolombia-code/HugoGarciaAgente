@@ -2170,6 +2170,201 @@
         "aprobado_at": "2026-10-03T14:21:14",
         "por": "@cynthia"
       }
+    },
+    "48fbea948413": {
+      "barcode": "7703042502640",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aceites & Grasas/ACEITE_COCO_VIRGEN_250g.png",
+        "aprobado_at": "2026-10-04T19:26:41",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aceites & Grasas/ACEITE_COCO_VIRGEN_250g_digital.png",
+        "aprobado_at": "2026-10-04T19:26:41",
+        "por": "@cynthia"
+      }
+    },
+    "399a4e5136df": {
+      "barcode": "7702425002647",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aceites & Grasas/ACEITE_COCO_VIRGEN_500g.png",
+        "aprobado_at": "2026-10-04T19:32:15",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aceites & Grasas/ACEITE_COCO_VIRGEN_500g_digital.png",
+        "aprobado_at": "2026-10-04T19:32:15",
+        "por": "@cynthia"
+      }
+    },
+    "34f1a24f8673": {
+      "barcode": "7702790012647",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aceites & Grasas/ACEITE_COCO_VIRGEN_KG.png",
+        "aprobado_at": "2026-10-04T19:32:58",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aceites & Grasas/ACEITE_COCO_VIRGEN_KG_digital.png",
+        "aprobado_at": "2026-10-04T19:32:58",
+        "por": "@cynthia"
+      }
+    },
+    "64ee427a3790": {
+      "barcode": "7700690012644",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SEMILLA_GIRASOL_KG.png",
+        "aprobado_at": "2026-10-04T19:38:32",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SEMILLA_GIRASOL_KG_digital.png",
+        "aprobado_at": "2026-10-04T19:38:32",
+        "por": "@cynthia"
+      }
+    },
+    "04f10714ba84": {
+      "barcode": "7700340012642",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/AVENA_HOJUELAS_KG.png",
+        "aprobado_at": "2026-10-04T21:26:26",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/AVENA_HOJUELAS_KG_digital.png",
+        "aprobado_at": "2026-10-04T21:26:27",
+        "por": "@cynthia"
+      }
+    },
+    "bd1f42a0ac19": {
+      "barcode": "7702690012648",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/AVENA_MOLIDA_KG.png",
+        "aprobado_at": "2026-10-04T22:00:40",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/AVENA_MOLIDA_KG_digital.png",
+        "aprobado_at": "2026-10-04T22:00:40",
+        "por": "@cynthia"
+      }
+    },
+    "d2bc4f11f77f": {
+      "barcode": "7702270302633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/VITAMINA_C_30_30mL.png",
+        "aprobado_at": "2026-10-06T17:18:47",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/VITAMINA_C_30_30mL_digital.png",
+        "aprobado_at": "2026-10-06T17:18:48",
+        "por": "@cynthia"
+      }
+    },
+    "0e237bf389a6": {
+      "barcode": "7701791002633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/LACTATO_CALCIO_100g.png",
+        "aprobado_at": "2026-10-05T13:07:43",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/LACTATO_CALCIO_100g_digital.png",
+        "aprobado_at": "2026-10-05T13:07:44",
+        "por": "@cynthia"
+      }
+    },
+    "3437cad4d51d": {
+      "barcode": "7701500302634",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/EMBRION_PATO_30mL.png",
+        "aprobado_at": "2026-10-05T13:23:53",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/EMBRION_PATO_30mL_digital.png",
+        "aprobado_at": "2026-10-05T13:23:54",
+        "por": "@cynthia"
+      }
+    },
+    "bcbbfbf969f2": {
+      "barcode": "7701460502631",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Vitaminas & Enzimas/D_PANTENOL_50_mL.png",
+        "aprobado_at": "2026-10-06T11:59:03",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Vitaminas & Enzimas/D_PANTENOL_50_mL_digital.png",
+        "aprobado_at": "2026-10-06T11:59:04",
+        "por": "@cynthia"
+      }
+    },
+    "7d8053727e52": {
+      "barcode": "7702100502639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/SHAROMIX_705_50mL.png",
+        "aprobado_at": "2026-10-06T12:13:49",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/SHAROMIX_705_50mL_digital.png",
+        "aprobado_at": "2026-10-06T12:13:49",
+        "por": "@cynthia"
+      }
+    },
+    "040208d058e4": {
+      "barcode": "7700290302633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/ACIDO_HIALURONICO_ALTO_PESO_30mL.png",
+        "aprobado_at": "2026-10-06T15:32:12",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/ACIDO_HIALURONICO_ALTO_PESO_30mL_digital.png",
+        "aprobado_at": "2026-10-06T15:32:12",
+        "por": "@cynthia"
+      }
+    },
+    "7fcf69144480": {
+      "barcode": "7700780302631",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/ACIDO_KOJICO_5_30mL.png",
+        "aprobado_at": "2026-10-06T15:39:44",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/ACIDO_KOJICO_5_30mL_digital.png",
+        "aprobado_at": "2026-10-06T15:39:44",
+        "por": "@cynthia"
+      }
+    },
+    "ad7d76b9f27e": {
+      "barcode": "7701490302638",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/ELASTINA_HIDROLIZADA_30mL.png",
+        "aprobado_at": "2026-10-06T15:40:17",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/ELASTINA_HIDROLIZADA_30mL_digital.png",
+        "aprobado_at": "2026-10-06T15:40:17",
+        "por": "@cynthia"
+      }
+    },
+    "03b4aa2d982b": {
+      "barcode": "7700270302639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/ACIDO_GLICOLICO_30mL.png",
+        "aprobado_at": "2026-10-06T17:16:27",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/ACIDO_GLICOLICO_30mL_digital.png",
+        "aprobado_at": "2026-10-06T17:16:27",
+        "por": "@cynthia"
+      }
     }
   }
 }

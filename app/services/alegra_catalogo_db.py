@@ -77,6 +77,22 @@ def _tiene_iva(raw: dict) -> int:
     return 1
 
 
+def _tasa_iva(raw: dict) -> float:
+    """Tarifa del IVA del ítem (19, 5 o 0 si es exento/excluido o no lleva). La avena va al 5 %:
+    con solo `iva` 0/1 el costeo asumía 19 % y daba mal el margen."""
+    total = 0.0
+    for t in raw.get("tax") or raw.get("taxes") or []:
+        if not isinstance(t, dict):
+            continue
+        if str(t.get("type") or "IVA").upper() != "IVA" and "IVA" not in str(t.get("name") or "").upper():
+            continue
+        try:
+            total += float(t.get("percentage") or 0)
+        except (TypeError, ValueError):
+            pass
+    return total
+
+
 def _componentes_desde_raw(raw: dict) -> list[dict]:
     """Extrae [{reference, name, quantity}] de subitems Alegra."""
     from app.services.alegra import _resolver_referencia_item_alegra
@@ -127,6 +143,7 @@ def upsert_item(
     iva: bool | int = False,
     componentes: list[dict] | None = None,
     synced_at: str | None = None,
+    iva_pct: float | None = None,
 ) -> None:
     """Inserta o actualiza un ítem local; si es kit, reemplaza componentes."""
     cdb._ensure()
@@ -140,8 +157,8 @@ def upsert_item(
             """
             INSERT INTO alegra_items (
                 id, reference, name, type, status, unit, unit_cost,
-                precio_lista, iva, updated_at, synced_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                precio_lista, iva, updated_at, synced_at, iva_pct
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(reference) DO UPDATE SET
                 id=excluded.id,
                 name=excluded.name,
@@ -151,6 +168,7 @@ def upsert_item(
                 unit_cost=excluded.unit_cost,
                 precio_lista=excluded.precio_lista,
                 iva=excluded.iva,
+                iva_pct=COALESCE(excluded.iva_pct, alegra_items.iva_pct),
                 updated_at=excluded.updated_at,
                 synced_at=excluded.synced_at
             """,
@@ -166,6 +184,7 @@ def upsert_item(
                 1 if iva else 0,
                 now,
                 now,
+                None if iva_pct is None else float(iva_pct),
             ),
         )
         if tipo_n == "kit":
@@ -226,6 +245,7 @@ def upsert_item_desde_alegra(raw: dict, componentes: list[dict] | None = None) -
         unit_cost=_unit_cost(raw),
         precio_lista=_precio_lista(raw),
         iva=_tiene_iva(raw),
+        iva_pct=_tasa_iva(raw),
         componentes=comps,
     )
 

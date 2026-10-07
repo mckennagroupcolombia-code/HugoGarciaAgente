@@ -334,11 +334,12 @@ function MarcaEstado({ estado, compacta = false }: { estado: EstadoEtiqueta; com
   );
 }
 
-/** Parte la lista (ya ordenada) en «por aprobar» y «aprobadas». */
+/** Parte la lista (ya ordenada) en «aprobadas» y la carpeta «Borradores» (las
+ *  por aprobar), que va después y plegada (pedido 2026-10-06). */
 function gruposPorEstado(lista: EtiquetaDeCategoria[]) {
   return [
-    { id: "por_aprobar", titulo: "Por aprobar", items: lista.filter((e) => e.estado === "por_aprobar") },
     { id: "aprobadas", titulo: "Aprobadas", items: lista.filter((e) => e.estado !== "por_aprobar") },
+    { id: "por_aprobar", titulo: "Borradores", items: lista.filter((e) => e.estado === "por_aprobar") },
   ].filter((g) => g.items.length > 0);
 }
 
@@ -367,6 +368,62 @@ function ImagenPngAprobado({ png, alt, className }: { png: EtiquetaStudioPng; al
     <p className="px-4 py-8 text-center text-xs text-white/70">
       {fallo ? "No se pudo cargar la imagen." : "Cargando…"}
     </p>
+  );
+}
+
+/** Miniatura de una tarjeta del detalle. Arranca con la de 72 px del índice (si
+ *  la hay) y, cuando la tarjeta entra en pantalla, pide al servidor una copia de
+ *  360 px: el PNG de impresión completo pesa demasiado para una cuadrícula. */
+function MiniaturaTarjeta({ etiqueta }: { etiqueta: EtiquetaDeCategoria }) {
+  const png = etiqueta.png;
+  const caja = useRef<HTMLSpanElement>(null);
+  const previa = png?.thumb_b64 ? `data:${png.thumb_mime || "image/png"};base64,${png.thumb_b64}` : null;
+  const [src, setSrc] = useState<string | null>(previa);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = caja.current;
+    if (!el || !png) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((x) => x.isIntersecting)) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "300px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [png]);
+  useEffect(() => {
+    if (!visible || !png) return;
+    let vivo = true;
+    const v = encodeURIComponent(png.subido_at || "");
+    void resolverUrlImagenCanvas(
+      `/api/etiquetas/recursos-png/archivo/${codificarRutaRecursoPng(png.nombre)}?ancho=360&v=${v}`,
+    )
+      .then((url) => {
+        if (vivo) setSrc(url);
+      })
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [visible, png]);
+  return (
+    <span ref={caja} className="flex h-24 w-full items-center justify-center bg-[#525659] p-1.5">
+      {src ? (
+        <img src={src} alt="" className="max-h-full max-w-full object-contain" />
+      ) : (
+        <span className="px-2 text-center text-[10px] leading-tight text-white/70">
+          {png ? "Cargando…" : "Sin PNG aprobado"}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -659,6 +716,8 @@ export default function StudioCategoriasPanel({
       /* sin almacenamiento */
     }
   };
+  /** Carpeta «Borradores» (etiquetas por aprobar): plegada salvo que se abra. */
+  const [borradoresAbiertos, setBorradoresAbiertos] = useState(false);
   /** Categorías desplegadas en la lista lateral (muestran sus etiquetas debajo). */
   const [desplegadas, setDesplegadas] = useState<Set<string>>(() => new Set());
   const alternarDesplegada = (id: string) =>
@@ -842,6 +901,8 @@ export default function StudioCategoriasPanel({
   // Secos y mostraba sus 33 etiquetas, como si el buscador no filtrara. Entera
   // solo sale si ninguna etiqueta coincide pero sí su nombre, claves o plantillas.
   const q = normalizarBusqueda(buscar);
+  // Con una búsqueda escrita, la carpeta se abre sola: si no, lo encontrado no se vería.
+  const verBorradores = borradoresAbiertos || Boolean(q);
   const visibles = useMemo(() => {
     if (!q) return ordenadas;
     const conEtiquetas: ResumenCategoria[] = [];
@@ -970,13 +1031,25 @@ export default function StudioCategoriasPanel({
                   <div className="mb-1 ml-3 mt-0.5 hidden border-l border-border pl-1.5 lg:block">
                     {gruposPorEstado(r.etiquetas).map((g) => (
                       <div key={g.id}>
-                        <p
-                          className={`mt-1 px-1.5 text-[9px] font-bold uppercase tracking-wider ${
-                            g.id === "por_aprobar" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
-                          }`}
-                        >
-                          {g.titulo} · {g.items.length}
-                        </p>
+                        {g.id === "por_aprobar" ? (
+                          <button
+                            type="button"
+                            onClick={() => setBorradoresAbiertos((v) => !v)}
+                            aria-expanded={verBorradores}
+                            className="mck-btn-no-fx mt-1 flex w-full items-center gap-1 rounded px-1.5 text-left text-[9px] font-bold uppercase tracking-wider text-amber-700 hover:bg-surface-hover dark:text-amber-400"
+                          >
+                            <span className={`inline-block text-[8px] transition-transform ${verBorradores ? "rotate-90" : ""}`}>▶</span>
+                            <span aria-hidden="true">📁</span>
+                            {g.titulo} · {g.items.length}
+                          </button>
+                        ) : (
+                          <p className="mt-1 px-1.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                            {g.titulo} · {g.items.length}
+                          </p>
+                        )}
+                        {(g.id !== "por_aprobar" ||
+                          verBorradores ||
+                          g.items.some((e) => Boolean(etiquetaAbiertaId && e.fichaId === etiquetaAbiertaId))) && (
                         <ul>
                           {g.items.map((e) => {
                             const esta = Boolean(etiquetaAbiertaId && e.fichaId === etiquetaAbiertaId);
@@ -1008,6 +1081,7 @@ export default function StudioCategoriasPanel({
                             );
                           })}
                         </ul>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1311,46 +1385,62 @@ export default function StudioCategoriasPanel({
                 ) : (
                   gruposPorEstado(sel.etiquetas).map((g) => (
                   <div key={g.id} className="mb-2">
-                  <p
-                    className={`mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${
-                      g.id === "por_aprobar" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
-                    }`}
-                  >
-                    <MarcaEstado estado={g.id === "por_aprobar" ? "por_aprobar" : "aprobada"} compacta />
-                    {g.titulo} · {g.items.length}
-                  </p>
-                  <ul
-                    className={`grid grid-cols-1 gap-x-4 gap-y-0.5 rounded-lg border-l-4 pl-2 sm:grid-cols-2 2xl:grid-cols-3 ${
-                      g.id === "por_aprobar" ? "border-amber-400" : "border-emerald-500"
-                    }`}
-                  >
+                  {g.id === "por_aprobar" ? (
+                    <button
+                      type="button"
+                      onClick={() => setBorradoresAbiertos((v) => !v)}
+                      aria-expanded={verBorradores}
+                      title={verBorradores ? "Plegar los borradores" : "Ver las etiquetas que aún no se aprueban"}
+                      className="mck-btn-no-fx mb-1 mt-3 flex w-full items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-left text-[11px] font-bold uppercase tracking-wider text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                    >
+                      <span className={`inline-block text-[9px] transition-transform ${verBorradores ? "rotate-90" : ""}`}>▶</span>
+                      <span aria-hidden="true">📁</span>
+                      <span className="flex-1">{g.titulo} · {g.items.length}</span>
+                      <span className="text-[10px] font-medium normal-case tracking-normal opacity-80">por aprobar</span>
+                    </button>
+                  ) : (
+                    <p className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                      <MarcaEstado estado="aprobada" compacta />
+                      {g.titulo} · {g.items.length}
+                    </p>
+                  )}
+                  {/* Tarjetas con la miniatura del PNG aprobado (pedido 2026-10-06): la
+                      lista de nombres en columnas no dejaba reconocerlas de un vistazo. */}
+                  {(g.id !== "por_aprobar" || verBorradores) && (
+                  <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                     {g.items.map((e) => (
-                      <li key={e.clave} className="flex min-w-0 items-center gap-1">
+                      <li
+                        key={e.clave}
+                        className={`group relative flex min-w-0 flex-col overflow-hidden rounded-lg border bg-surface ${
+                          e.estado === "por_aprobar" ? "border-amber-300 dark:border-amber-700" : "border-border"
+                        }`}
+                      >
                         <button
                           type="button"
                           onClick={() => setPrevia({ etiqueta: e })}
                           title={`${e.nombre}${e.detalle ? ` — ${e.detalle}` : ""} · ${TEXTO_ESTADO_ETIQUETA[e.estado]}${
                             (e.versionesPng ?? 0) > 1 ? ` (${e.versionesPng} versiones del PNG)` : ""
                           }`}
-                          className="flex min-w-0 flex-1 items-center gap-1.5 rounded px-1.5 py-1 text-left hover:bg-surface-hover"
+                          className="mck-btn-no-fx flex min-w-0 flex-1 flex-col text-left hover:bg-surface-hover"
                         >
-                          <MarcaEstado estado={e.estado} />
-                          <span className={`min-w-0 flex-1 truncate text-xs ${e.estado === "por_aprobar" ? "text-ink" : "text-ink-secondary"}`}>
-                            {e.nombre}
+                          <MiniaturaTarjeta etiqueta={e} />
+                          <span className="flex w-full min-w-0 flex-col gap-0.5 px-2 py-1.5">
+                            <span className="line-clamp-2 text-xs font-medium leading-snug text-ink">{e.nombre}</span>
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <MarcaEstado estado={e.estado} compacta />
+                              {e.detalle && (
+                                <span className="min-w-0 flex-1 truncate text-[10px] text-muted">{tamanoCorto(e.detalle)}</span>
+                              )}
+                              {(e.versionesPng ?? 0) > 1 && (
+                                <span className="shrink-0 rounded bg-emerald-100 px-1 text-[9px] font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                  ×{e.versionesPng}
+                                </span>
+                              )}
+                            </span>
                           </span>
-                          {(e.versionesPng ?? 0) > 1 && (
-                            <span className="shrink-0 rounded bg-emerald-100 px-1 text-[9px] font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                              ×{e.versionesPng}
-                            </span>
-                          )}
-                          {e.detalle && (
-                            <span className="max-w-[40%] shrink-0 truncate text-[10px] text-muted">
-                              {tamanoCorto(e.detalle)}
-                            </span>
-                          )}
                         </button>
                         {confirmando === e.clave ? (
-                          <span className="flex shrink-0 items-center gap-1">
+                          <span className="flex items-center justify-end gap-1 border-t border-border px-2 py-1">
                             <button
                               type="button"
                               onClick={() => eliminarEtiqueta(e)}
@@ -1368,18 +1458,22 @@ export default function StudioCategoriasPanel({
                             </button>
                           </span>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmando(e.clave)}
-                            title="Eliminar etiqueta"
-                            className="shrink-0 rounded px-1 py-0.5 text-xs text-muted hover:bg-red-50 hover:text-red-600"
-                          >
-                            ×
-                          </button>
+                          // Envoltorio: `absolute` en un <button> no funciona (index.css).
+                          <span className="absolute right-1 top-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
+                            <button
+                              type="button"
+                              onClick={() => setConfirmando(e.clave)}
+                              title="Eliminar etiqueta"
+                              className="mck-btn-no-fx rounded bg-black/55 px-1.5 py-0.5 text-xs leading-none text-white hover:bg-red-600"
+                            >
+                              ×
+                            </button>
+                          </span>
                         )}
                       </li>
                     ))}
                   </ul>
+                  )}
                   </div>
                   ))
                 )}

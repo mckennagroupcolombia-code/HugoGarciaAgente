@@ -1187,6 +1187,69 @@ def ruta_comprobante(movimiento_id: int) -> tuple[str, str, str] | None:
     return ruta_abs, mov.get("soporte_mime") or "application/octet-stream", mov.get("soporte_nombre") or archivo
 
 
+# ── Adjuntos adicionales (oct-2026) ─────────────────────────────────────────
+# `guardar_comprobante` guarda UN archivo por asiento y borra el anterior: al
+# confirmar un giro, la captura del banco pisaba la factura adjuntada al aprobar
+# (pagos_wizard). Los adjuntos van aparte, con su rol, y nunca se borran.
+
+ROLES_ADJUNTO = ("factura", "comprobante_pago", "recibo", "otro")
+
+
+def _ensure_adjuntos(con) -> None:
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS cc_movimiento_adjuntos (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               movimiento_id INTEGER NOT NULL,
+               rol TEXT NOT NULL DEFAULT 'otro',
+               archivo TEXT NOT NULL,
+               nombre TEXT NOT NULL DEFAULT '',
+               mime TEXT NOT NULL DEFAULT '',
+               sha256 TEXT NOT NULL DEFAULT '',
+               created_at TEXT NOT NULL DEFAULT (datetime('now')))"""
+    )
+    con.execute("CREATE INDEX IF NOT EXISTS idx_adjuntos_mov ON cc_movimiento_adjuntos (movimiento_id)")
+
+
+def guardar_adjunto(movimiento_id: int, contenido: bytes, nombre: str, mime: str, rol: str = "otro") -> dict:
+    """Agrega un archivo al asiento sin tocar los que ya tiene. Si el mismo contenido
+    ya está con ese rol, devuelve el existente (no duplica)."""
+    import hashlib
+
+    _ensure()
+    if not obtener_movimiento(movimiento_id):
+        raise ValueError("Movimiento no encontrado")
+    if not contenido:
+        raise ValueError("Archivo vacío")
+    rol = rol if rol in ROLES_ADJUNTO else "otro"
+    sha = hashlib.sha256(contenido).hexdigest()
+    with _conn() as con:
+        _ensure_adjuntos(con)
+        ya = con.execute("SELECT * FROM cc_movimiento_adjuntos WHERE movimiento_id=? AND rol=? AND sha256=?",
+                         (int(movimiento_id), rol, sha)).fetchone()
+        if ya:
+            return dict(ya)
+    os.makedirs(_COMPROBANTES_DIR, exist_ok=True)
+    ext = os.path.splitext(nombre or "")[1][:10] or ""
+    archivo = f"mov{movimiento_id}_{rol}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
+    with open(os.path.join(_COMPROBANTES_DIR, archivo), "wb") as f:
+        f.write(contenido)
+    rel = os.path.relpath(os.path.join(_COMPROBANTES_DIR, archivo), os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+    with _conn() as con:
+        cur = con.execute(
+            "INSERT INTO cc_movimiento_adjuntos (movimiento_id, rol, archivo, nombre, mime, sha256) VALUES (?,?,?,?,?,?)",
+            (int(movimiento_id), rol, rel, (nombre or "")[:200], (mime or "")[:100], sha),
+        )
+        return dict(con.execute("SELECT * FROM cc_movimiento_adjuntos WHERE id=?", (cur.lastrowid,)).fetchone())
+
+
+def listar_adjuntos(movimiento_id: int) -> list[dict]:
+    _ensure()
+    with _conn() as con:
+        _ensure_adjuntos(con)
+        return [dict(r) for r in con.execute(
+            "SELECT * FROM cc_movimiento_adjuntos WHERE movimiento_id=? ORDER BY id", (int(movimiento_id),))]
+
+
 def eliminar_comprobante(movimiento_id: int) -> bool:
     _ensure()
     mov = obtener_movimiento(movimiento_id)
@@ -1380,7 +1443,19 @@ def resumen_prestamos() -> dict:
     (como `saldo_tercero`), no una cifra de un período — se calcula sobre todo
     el histórico, igual que hace `PrestamosPanel.tsx` en el frontend."""
     _ensure()
-    movs = listar_movimientos(limit=2000)
+    # Por tipo de origen y sin tope: con `limit=2000` sobre todo el libro (más de
+    # 8.000 asientos en oct-2026) los desembolsos de agosto ya no entraban.
+    movs = [
+        m
+        for tipo in sorted(_TIPOS_PRESTAMO_RECIBIDO | _TIPOS_PRESTAMO_OTORGADO)
+        for m in listar_movimientos(tipo_origen=tipo, limit=100_000)
+    ]
+    # El PUC real movió los préstamos de terceros de 2295 a 2195: se aceptan el
+    # código histórico y el vivo, o los préstamos «desaparecen» del resumen. La
+    # 1355 de socios NO se traduce (su alias 1325 también recibe reposiciones con
+    # otro tipo de origen, y el saldo saldría inflado).
+    pasivo = _CUENTAS_PRESTAMO_PASIVO | {codigo_vivo("2295")}
+    activo = _CUENTAS_PRESTAMO_ACTIVO
     recibido: dict[int, float] = {}
     otorgado: dict[int, float] = {}
     nombres: dict[int, str] = {}
@@ -1395,16 +1470,18 @@ def resumen_prestamos() -> dict:
             if l.get("tercero_nombre"):
                 nombres[tid] = l["tercero_nombre"]
             codigo = l.get("cuenta_codigo")
-            if codigo in _CUENTAS_PRESTAMO_PASIVO:
+            if codigo in pasivo:
                 recibido[tid] = recibido.get(tid, 0) + float(l.get("credito") or 0) - float(l.get("debito") or 0)
-            if codigo in _CUENTAS_PRESTAMO_ACTIVO:
+            if codigo in activo:
                 otorgado[tid] = otorgado.get(tid, 0) + float(l.get("debito") or 0) - float(l.get("credito") or 0)
 
     def _armar(saldos: dict[int, float]) -> dict:
         terceros = [
             {"tercero_id": tid, "nombre": nombres.get(tid, ""), "saldo": round(saldo, 2)}
             for tid, saldo in saldos.items()
-            if round(saldo, 2) != 0
+            # Un préstamo vigente es un saldo positivo; un negativo es otro flujo
+            # (p. ej. un pago a un socio por encima de lo que se le debía).
+            if round(saldo, 2) > 0
         ]
         terceros.sort(key=lambda t: -t["saldo"])
         return {

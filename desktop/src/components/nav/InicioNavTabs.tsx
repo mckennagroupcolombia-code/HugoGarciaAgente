@@ -39,7 +39,7 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
 
   const showAcciones = puedeVerTabInicio(permisos, nivel, "acciones");
   const showSolicitudes = puedeVerTabInicio(permisos, nivel, "solicitudes");
-  const showMensajes = showAcciones || showSolicitudes;
+  const showSolicitudesChat = showAcciones || showSolicitudes;
 
   // El mapa de la aplicación es la otra forma de llegar a todo: por secuencia, no por menú.
   const showMapa = !soloVistas && Boolean(user && puedeVerSeccionPanel(user, "mapa-sistema"));
@@ -50,8 +50,9 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
   // vistas de la Agenda, también en `soloVistas`.
   const showColaboradores = Boolean(user && puedeVerSeccionPanel(user, "colaboradores"));
   const colaboradoresActivo = panel === "colaboradores";
+  // «Mensajes» es un solo apartado: Solicitudes + Grupos (los canales de «Equipo»).
   const showEquipo = Boolean(user && puedeVerSeccionPanel(user, "chat-equipo"));
-  const equipoActivo = panel === "chat-equipo";
+  const showMensajes = showSolicitudesChat || showEquipo;
   const showJuegos = Boolean(user && puedeVerSeccionPanel(user, "juegos"));
   const juegosActivo = panel === "juegos";
 
@@ -74,6 +75,7 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
 
   /** Inbox unificado de Solicitudes + Acciones (chat estilo WhatsApp Web). */
   function irMensajes() {
+    if (!showSolicitudesChat) { setPanel("chat-equipo"); return; }
     setAccionesBootTab(null);
     setTicketsBootView("mensajes");
     setCentroMandoView("mensajes");
@@ -87,9 +89,9 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
   }
 
   const agendaActiva = enAgenda && (centroMandoView === "home" || centroMandoView === "agente");
-  const mensajesActiva = enAgenda && (
+  const mensajesActiva = panel === "chat-equipo" || (enAgenda && (
     centroMandoView === "mensajes" || centroMandoView === "acciones" || centroMandoView === "solicitudes"
-  );
+  ));
   const metricasActiva = panel === "dashboard";
   // Métricas del equipo: solo tiene sentido para quien administra la operación.
   const showMetricas = !soloVistas && nivel >= 3;
@@ -115,26 +117,12 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
           role="tab"
           aria-selected={mensajesActiva}
           aria-label="Mensajes"
-          title="Mensajes (Solicitudes y Acciones)"
+          title="Mensajes (Solicitudes y Grupos del equipo)"
           onClick={irMensajes}
           className={tabClass(mensajesActiva)}
         >
           <Icon name="chat" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Mensajes</span>
-        </button>
-      )}
-      {showEquipo && (
-        <button
-          type="button"
-          role="tab"
-          aria-selected={equipoActivo}
-          aria-label="Chat del equipo"
-          title="Chat del equipo — lo que antes iba a los grupos de WhatsApp"
-          onClick={() => setPanel("chat-equipo")}
-          className={tabClass(equipoActivo)}
-        >
-          <PanelIcon panel="chat-equipo" size={22} active={equipoActivo} bubble={false} />
-          <span className={HUB_TAB_LABEL}>Equipo</span>
         </button>
       )}
       {showColaboradores && (

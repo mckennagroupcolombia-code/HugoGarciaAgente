@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
+import AvisoPersonal from "./components/nav/AvisoPersonal";
 import { useAppStore, type Panel, waitForAppHydration } from "./stores/app";
 import { useTicketsAuth, type TicketsUser, ensureTicketsAuthHydrated } from "./stores/ticketsAuth";
 import MobileHub, { BarraMovil, useMobileLayout } from "./components/MobileHub";
@@ -22,6 +23,7 @@ const PostventaPanel = lazy(() => import("./components/PostventaPanel"));
 const VentasEmailPanel = lazy(() => import("./components/VentasEmailPanel"));
 const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"));
 const FormulasPanel = lazy(() => import("./components/formulas/FormulasPanel"));
+const IdeasPanel = lazy(() => import("./components/ideas/IdeasPanel"));
 const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
 const EmpaquePanel = lazy(() => import("./components/EmpaquePanel"));
 const GuiasEnvioPanel = lazy(() => import("./components/GuiasEnvioPanel"));
@@ -77,6 +79,7 @@ import { onPanelResume } from "./lib/panelRefresh";
 import { esPanelContabilidad } from "./lib/contabilidadAccess";
 import { panelDeInicio, puedeVerSeccionPanel } from "./lib/panelAccess";
 import { instalarSonidos } from "./lib/sonidosJuego";
+import { useAlertasSonido } from "./lib/alertasSonido";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
 function PanelCargando() {
@@ -160,6 +163,8 @@ function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
       return <FichasTecnicasPanel />;
     case "formulas":
       return <FormulasPanel />;
+    case "ideas":
+      return <IdeasPanel />;
     case "pedidos":
       return <PedidosWebPanel />;
     case "empaque":
@@ -451,6 +456,7 @@ export default function App() {
   // "vista escritorio" explícitamente desde el hub si la necesita; al abrir paneles →
   // Layout responsive (mobileShell=app).
   const mobileTab = useAppStore((s) => s.mobileTab);
+  const centroMandoView = useAppStore((s) => s.centroMandoView);
   const setMobileTab = useAppStore((s) => s.setMobileTab);
   // «Agenda» en el celular ES la agenda de escritorio (Layout + navegación por flujo):
   // el hub solo pinta Hugo · Mensajes · Rápido · Yo. Antes el celular tenía su propia
@@ -498,6 +504,7 @@ export default function App() {
     if (json === lastAppliedPrefs.current) return;
     lastAppliedPrefs.current = json;
     applyUserUiPreferences(user.preferencias_ui);
+    useAlertasSonido.getState().hidratar(user.preferencias_ui?.sonidos);
     resetSaveBaseline(user.preferencias_ui);
     guardarMigracionEstilo(token);
   }, [user, token]);
@@ -666,6 +673,7 @@ export default function App() {
         <MatrixRain />
         <BarbieSparkles />
         <ThemesDialog />
+        <AvisoPersonal />
         <MobileHub
           onSwitchDesktop={() => {
             localStorage.setItem("mck-force-desktop", "1");
@@ -684,17 +692,20 @@ export default function App() {
       <MatrixRain />
       <BarbieSparkles />
       <ThemesDialog />
+      <AvisoPersonal />
       <Layout
         barraMovil={
           isMobile && !forceDesktop ? (
             <BarraMovil
-              active="home"
+              active={panel === "chat-equipo" || ((panel === "hugo" || panel === "tickets") && centroMandoView === "mensajes") ? "mensajes" : "home"}
               onChange={(t) => {
                 if (t === "home") return irAgendaMovil();
                 setMobileTab(t);
                 setMobileShell("hub");
               }}
-              conNueva={panel === "hugo" || panel === "tickets"}
+              // En Mensajes no: el «+» flotante tapaba el botón de enviar del chat
+              // (la bandeja ya trae «Pedir algo»), igual que en el hub (MobileHub).
+              conNueva={(panel === "hugo" || panel === "tickets") && centroMandoView !== "mensajes"}
             />
           ) : undefined
         }

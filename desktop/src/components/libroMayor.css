@@ -363,3 +363,142 @@
     transform: none;
   }
 }
+
+/* ─── Escala de lectura del Libro Mayor ───────────────────────────────────────
+ * Los paneles contables usan sobre todo text-xs (12 px) y 9-11 px para etiquetas,
+ * cifras secundarias y tablas. Medido en /app (oct-2026, piel pixel): 305 textos a
+ * 12 px, 75 entre 9 y 11,5 px y solo 7 a 16 px — se leía con esfuerzo. En vez de
+ * reescribir ~500 clases repartidas en siete componentes, la escala sube aquí,
+ * igual para todas las pieles, dentro de .lm-root y de los emergentes que se abren
+ * por portal fuera de él (.lm-escala: Taller de conciliación). Dos clases de
+ * especificidad (0,2,0) ganan a la utilidad de Tailwind sin !important. El
+ * interlineado sube con la letra para que las filas no se monten. */
+:is(.lm-root, .lm-escala) :is(.text-\[9px\], .text-\[9\.5px\]) {
+  font-size: calc(11.5px * var(--lm-esc, 1));
+  line-height: 1.35;
+}
+:is(.lm-root, .lm-escala) .text-\[10px\] {
+  font-size: calc(12px * var(--lm-esc, 1));
+  line-height: 1.4;
+}
+:is(.lm-root, .lm-escala) :is(.text-\[10\.5px\], .text-\[11px\], .text-\[11\.5px\]) {
+  font-size: calc(13px * var(--lm-esc, 1));
+  line-height: 1.45;
+}
+:is(.lm-root, .lm-escala) :is(.text-xs, .text-\[12px\]) {
+  font-size: calc(14px * var(--lm-esc, 1));
+  line-height: 1.45;
+}
+:is(.lm-root, .lm-escala) :is(.text-\[12\.5px\], .text-\[13px\]) {
+  font-size: calc(14.5px * var(--lm-esc, 1));
+  line-height: 1.45;
+}
+:is(.lm-root, .lm-escala) .text-sm {
+  font-size: calc(15.5px * var(--lm-esc, 1));
+  line-height: 1.5;
+}
+:is(.lm-root, .lm-escala) .text-base {
+  font-size: calc(17px * var(--lm-esc, 1));
+  line-height: 1.5;
+}
+
+/* Cifras: mismo ancho por dígito para que las columnas de valores se alineen. */
+:is(.lm-root, .lm-escala) :is(td, th) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Revisión del libro + visita guiada ──────────────────────────────────────
+ * Pantalla de entrada para la reunión con el contador (RevisionLibro.tsx): letra
+ * grande, una línea por renglón y el detalle al desplegar. Todos los tamaños se
+ * multiplican por --lm-esc (control A−/A+ del encabezado). */
+.rv { display: flex; flex-direction: column; gap: 1.1rem; max-width: 72rem; width: 100%; margin: 0 auto; padding-bottom: 2rem; }
+.rv-titulo { font-size: calc(26px * var(--lm-esc, 1)); font-weight: 800; color: rgb(var(--mck-ink)); line-height: 1.2; }
+.rv-h { display: block; font-size: calc(18px * var(--lm-esc, 1)); font-weight: 700; color: rgb(var(--mck-ink)); line-height: 1.35; }
+.rv-txt { font-size: calc(17px * var(--lm-esc, 1)); line-height: 1.55; color: rgb(var(--mck-ink)); }
+.rv-sub { display: block; font-size: calc(15.5px * var(--lm-esc, 1)); line-height: 1.5; color: rgb(var(--mck-ink-secondary)); }
+.rv-cargando { padding: 2rem 0; color: rgb(var(--mck-muted)); }
+.rv-encabezado { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.75rem; }
+.rv-boton, .rv-ir {
+  display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 0.6rem; font-weight: 700;
+  font-size: calc(16px * var(--lm-esc, 1)); padding: 0.55rem 1rem;
+  border: 2px solid rgb(var(--mck-accent)); color: rgb(var(--mck-accent)); background: rgb(var(--mck-surface-panel));
+}
+.rv-boton:hover, .rv-ir:hover { background: rgb(var(--mck-accent)); color: #fff; }
+.rv-invitacion {
+  text-align: left; border-radius: 0.75rem; padding: 0.85rem 1.1rem; font-weight: 600;
+  font-size: calc(16px * var(--lm-esc, 1)); line-height: 1.5;
+  border: 2px dashed rgb(var(--mck-accent) / 0.55); background: rgb(var(--mck-accent) / 0.07); color: rgb(var(--mck-ink));
+}
+.rv-veredicto { border-radius: 0.9rem; padding: 1.2rem 1.4rem; border: 2px solid; border-left-width: 10px; }
+.rv-veredicto-titulo { font-size: calc(22px * var(--lm-esc, 1)); font-weight: 800; line-height: 1.35; color: rgb(var(--mck-ink)); margin-bottom: 0.35rem; }
+.rv-verde { border-color: rgb(22 163 74 / 0.55); background: rgb(22 163 74 / 0.08); }
+.rv-amarillo { border-color: rgb(217 119 6 / 0.6); background: rgb(217 119 6 / 0.08); }
+.rv-rojo { border-color: rgb(220 38 38 / 0.6); background: rgb(220 38 38 / 0.08); }
+.rv-columnas { display: grid; gap: 1.1rem; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1100px) { .rv-columnas { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.rv-bloque { border: 2px solid rgb(var(--mck-border)); border-radius: 0.9rem; background: rgb(var(--mck-surface-panel)); padding: 1rem 1.1rem; min-width: 0; }
+.rv-bloque-titulo { font-size: calc(20px * var(--lm-esc, 1)); font-weight: 800; color: rgb(var(--mck-ink)); }
+.rv-bloque-ayuda { margin: 0.15rem 0 0.75rem; }
+.rv-vacio { color: rgb(var(--mck-muted)); }
+.rv-lista { display: flex; flex-direction: column; gap: 0.5rem; }
+.rv-fila { border: 1.5px solid rgb(var(--mck-border)); border-radius: 0.7rem; background: rgb(var(--mck-surface)); }
+.rv-fila-cabeza { display: flex; width: 100%; align-items: center; gap: 0.85rem; padding: 0.8rem 0.9rem; text-align: left; position: relative; overflow: visible; }
+.rv-fila-cabeza:disabled { cursor: default; }
+.rv-fila-cabeza:not(:disabled):hover { background: rgb(var(--mck-surface-hover)); border-radius: 0.7rem; }
+.rv-fila-textos { flex: 1; min-width: 0; }
+.rv-marca {
+  display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center;
+  width: calc(34px * var(--lm-esc, 1)); height: calc(34px * var(--lm-esc, 1)); border-radius: 999px;
+  font-size: calc(16px * var(--lm-esc, 1));
+}
+.rv-ok .rv-marca { background: rgb(22 163 74 / 0.14); color: rgb(21 128 61); }
+.rv-parcial .rv-marca { background: rgb(217 119 6 / 0.15); color: rgb(180 83 9); }
+.rv-falta .rv-marca { background: rgb(220 38 38 / 0.13); color: rgb(185 28 28); }
+.rv-tema .rv-marca { background: rgb(var(--mck-accent) / 0.13); color: rgb(var(--mck-accent)); }
+.dark .rv-ok .rv-marca { color: rgb(74 222 128); }
+.dark .rv-parcial .rv-marca { color: rgb(251 191 36); }
+.dark .rv-falta .rv-marca { color: rgb(248 113 113); }
+.rv-falta.rv-txt { color: rgb(185 28 28); }
+.rv-cifra {
+  flex-shrink: 0; font-weight: 800; font-variant-numeric: tabular-nums; border-radius: 999px; padding: 0.2rem 0.7rem;
+  font-size: calc(15.5px * var(--lm-esc, 1)); background: rgb(var(--mck-surface-hover)); color: rgb(var(--mck-ink));
+}
+.rv-chevron { flex-shrink: 0; color: rgb(var(--mck-muted)); transition: transform 0.15s ease; }
+.rv-chevron-abierto { transform: rotate(180deg); }
+.rv-pregunta { font-weight: 600; color: rgb(var(--mck-accent)); }
+.rv-detalle { border-top: 1.5px dashed rgb(var(--mck-border)); padding: 0.85rem 1rem 1rem calc(1rem + 34px * var(--lm-esc, 1)); display: flex; flex-direction: column; gap: 0.75rem; }
+.rv-detalle ul { display: flex; flex-direction: column; gap: 0.35rem; list-style: disc; padding-left: 1.1rem; }
+.rv-detalle li, .rv-detalle p { font-size: calc(16px * var(--lm-esc, 1)); line-height: 1.55; color: rgb(var(--mck-ink)); font-variant-numeric: tabular-nums; }
+.rv-ir { align-self: flex-start; }
+@media (max-width: 640px) {
+  .rv-detalle { padding-left: 1rem; }
+  .rv-fila-cabeza { gap: 0.6rem; padding: 0.7rem; }
+}
+
+/* Control de tamaño de letra del encabezado. */
+.lm-letra { display: inline-flex; align-items: center; border: 1.5px solid rgb(var(--mck-border)); border-radius: 999px; overflow: hidden; }
+.lm-letra button { padding: 0.25rem 0.65rem; font-weight: 800; color: rgb(var(--mck-ink-secondary)); line-height: 1.2; }
+.lm-letra button:hover:not(:disabled) { background: rgb(var(--mck-surface-hover)); color: rgb(var(--mck-ink)); }
+.lm-letra button:disabled { opacity: 0.35; }
+.lm-letra span { padding: 0 0.35rem; font-size: 13px; color: rgb(var(--mck-muted)); font-variant-numeric: tabular-nums; }
+
+/* Visita guiada (portal en <body>, encima de todo). */
+.vg { position: fixed; inset: 0; z-index: 120; }
+.vg-velo { position: absolute; inset: 0; background: rgb(0 0 0 / 0.55); }
+.vg-luz {
+  position: fixed; border-radius: 0.8rem; pointer-events: none;
+  box-shadow: 0 0 0 4px rgb(var(--mck-accent)), 0 0 0 9999px rgb(0 0 0 / 0.55);
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+.vg-tarjeta {
+  position: fixed; border-radius: 0.9rem; padding: 1.1rem 1.2rem 1rem; background: rgb(var(--mck-surface-panel));
+  border: 2px solid rgb(var(--mck-accent)); box-shadow: 0 18px 40px rgb(0 0 0 / 0.3);
+}
+.vg-paso { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: rgb(var(--mck-muted)); }
+.vg-titulo { font-size: 21px; font-weight: 800; margin: 0.2rem 0 0.4rem; color: rgb(var(--mck-ink)); line-height: 1.3; }
+.vg-texto { font-size: 16.5px; line-height: 1.55; color: rgb(var(--mck-ink)); }
+.vg-botones { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; }
+.vg-espacio { flex: 1; }
+.vg-salir { font-size: 15px; color: rgb(var(--mck-muted)); padding: 0.4rem 0.2rem; }
+.vg-btn { font-size: 15.5px; font-weight: 700; border-radius: 0.55rem; padding: 0.45rem 0.9rem; border: 1.5px solid rgb(var(--mck-border)); color: rgb(var(--mck-ink)); }
+.vg-btn-primario { background: rgb(var(--mck-accent)); border-color: rgb(var(--mck-accent)); color: #fff; }

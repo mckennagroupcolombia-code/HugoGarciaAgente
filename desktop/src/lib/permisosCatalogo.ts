@@ -115,7 +115,7 @@ const EXTRAS: Partial<Record<NavCategory, PermisoDef[]>> = {
     {
       id: "publicaciones",
       label: "Publicaciones",
-      nota: "abre Canales del producto, Vitrina web y el paso Publicación del taller de combos",
+      nota: "abre Vitrina web y el paso Publicación del taller de combos",
     },
   ],
   contabilidad: [

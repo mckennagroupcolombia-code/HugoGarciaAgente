@@ -43,7 +43,7 @@ import {
   type Bloqueos, type DatosEtapa, type DatosOrigen, type Urgencia,
 } from "./mapaComun";
 import { BotonMiFicha } from "./MiRendimiento";
-import MapaEdificio from "./MapaEdificio";
+import AccesosRapidos from "./nav/AccesosRapidos";
 
 // ─── Datos vivos ─────────────────────────────────────────────────────────────
 
@@ -65,8 +65,6 @@ const CLAVE_VISTA = "mck-mapa-vivo-vista";
 /** Siempre se muestra TODO lo que cada quien puede abrir (26-sep-2026: se quitaron los niveles
  *  Etapas · Cotidiano · Operación · Todo). Las descripciones de cada panel van en el título al pasar. */
 const NIVEL = 2;
-/** «mapa» (el tablero) o «edificio» (el diorama: cada etapa es un piso). */
-const CLAVE_MODO = "mck-mapa-vivo-modo";
 
 function leer(clave: string): string | null {
   try { return localStorage.getItem(clave); } catch { return null; }
@@ -288,9 +286,8 @@ function Mapa() {
   // En el celular la secuencia va de arriba abajo: se lee con el pulgar.
   const vertical = ancho < 700;
 
-  const [modo, setModo] = useState<"mapa" | "edificio">(() => (leer(CLAVE_MODO) === "edificio" ? "edificio" : "mapa"));
-  const cambiarModo = (m: "mapa" | "edificio") => { setModo(m); guardar(CLAVE_MODO, m); };
   const [sonido, setSonido] = useState(sonidosActivos);
+  const [menuMas, setMenuMas] = useState(false);
   const alternarSonido = () => {
     const nuevo = !sonido;
     ponerSonidos(nuevo);
@@ -489,45 +486,61 @@ function Mapa() {
   const conUrgente = cartas.filter((c) => Object.keys(c.urgentes).length > 0);
   const totalUrgente = conUrgente.reduce((s, c) => s + Object.values(c.urgentes).reduce((a, u) => a + u.n, 0), 0);
   const irALoUrgente = () => {
-    if (modo === "edificio") {
-      document.querySelector(".ed-piso[data-urgente]")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
-    }
     void rf.fitView({ nodes: conUrgente.map((c) => ({ id: c.etapa.id })), padding: 0.15, maxZoom: 1.2, duration: 400 });
   };
 
   return (
-    <div ref={contenedor} className="colab-pixel mapa-vivo flex min-h-0 flex-1 flex-col gap-2">
-      <div className="px-hud flex min-w-0 flex-wrap items-center gap-2">
+    <div ref={contenedor} className="colab-pixel mapa-vivo relative flex min-h-0 flex-1 flex-col gap-2">
+      {/* En el celular (<640 px) el HUD cabe en una fila: título corto y «⋯»
+          (Sonido, Encuadrar); lo urgente flota sobre el mapa y «Rápido» queda en la barra de abajo. */}
+      <div className="px-hud relative flex min-w-0 flex-wrap items-center gap-2">
         <Sprite s="control" px={2} titulo="Mapa de la aplicación" />
-        <span className="px-t min-w-0 flex-1 truncate" style={{ color: "var(--ed-amarillo, #FFEC27)", fontSize: 16 }}>Mapa de McKenna</span>
-        <span className="px-t hidden sm:inline" style={{ fontSize: 11, color: "var(--ed-gris, #C2C3C7)" }}>
+        <span className="px-t min-w-0 flex-1 truncate" style={{ color: "var(--ed-amarillo, #FFEC27)", fontSize: 16 }}>
+          <span className="mv-solo-ancho">Mapa de </span>McKenna
+        </span>
+        <span className="px-t mv-solo-ancho" style={{ fontSize: 11, color: "var(--ed-gris, #C2C3C7)" }}>
           {participa} de {cartas.length} etapas son tuyas
         </span>
-        <div className="flex shrink-0 gap-1" role="group" aria-label="Cómo ver la aplicación">
-          <button type="button" aria-pressed={modo === "mapa"} onClick={() => cambiarModo("mapa")}
-                  className={`mv-nivel ${modo === "mapa" ? "mv-nivel-on" : ""}`} title="El tablero: la secuencia del negocio">Mapa</button>
-          <button type="button" aria-pressed={modo === "edificio"} onClick={() => cambiarModo("edificio")}
-                  className={`mv-nivel ${modo === "edificio" ? "mv-nivel-on" : ""}`} title="El diorama: cada departamento es un piso">Edificio</button>
-        </div>
-        <button type="button" className={`mv-nivel ${sonido ? "" : "mv-silencio"}`} aria-pressed={sonido} onClick={alternarSonido} data-sin-sonido
-                title={sonido ? "Silenciar los sonidos al tocar los apartados" : "Activar los sonidos al tocar los apartados"}>
-          {sonido ? "♪ Sonido" : "Silencio"}
-        </button>
-        {totalUrgente > 0 && (
-          <button type="button" className="mv-nivel mv-ir-urgente" onClick={irALoUrgente}
-                  title="Llevar la cámara a lo que necesita atención ya">
-            ¡Ir a lo urgente! ({totalUrgente})
+        <div className="mv-solo-ancho flex shrink-0 items-center gap-2">
+          <button type="button" className={`mv-nivel ${sonido ? "" : "mv-silencio"}`} aria-pressed={sonido} onClick={alternarSonido} data-sin-sonido
+                  title={sonido ? "Silenciar los sonidos al tocar los apartados" : "Activar los sonidos al tocar los apartados"}>
+            {sonido ? "♪ Sonido" : "Silencio"}
           </button>
-        )}
-        {modo === "mapa" && (
+          {/* Accesos rápidos (Ctrl+K) viven aquí en el mapa, no en el cabezote de la app. */}
+          <AccesosRapidos enMapa />
+          {totalUrgente > 0 && (
+            <button type="button" className="mv-nivel mv-ir-urgente" onClick={irALoUrgente}
+                    title="Llevar la cámara a lo que necesita atención ya">
+              ¡Ir a lo urgente! ({totalUrgente})
+            </button>
+          )}
           <button type="button" className="mv-nivel" title="Ver todo el mapa"
                   onClick={() => void rf.fitView({ padding: 0.08, duration: 300 })}>Encuadrar</button>
+        </div>
+        <button type="button" className={`mv-nivel mv-solo-movil ${menuMas ? "mv-nivel-on" : ""}`}
+                aria-expanded={menuMas} aria-label="Más opciones" onClick={() => setMenuMas((v) => !v)}>⋯</button>
+        {menuMas && (
+          <>
+            <div className="fixed inset-0 z-20" onClick={() => setMenuMas(false)} aria-hidden="true" />
+            <div className="px-hud mv-mas-menu" role="menu">
+              <button type="button" role="menuitem" className={`mv-nivel ${sonido ? "" : "mv-silencio"}`} aria-pressed={sonido} data-sin-sonido
+                      onClick={() => { alternarSonido(); setMenuMas(false); }}>
+                {sonido ? "♪ Silenciar" : "♪ Activar sonido"}
+              </button>
+              <button type="button" role="menuitem" className="mv-nivel"
+                      onClick={() => { setMenuMas(false); void rf.fitView({ padding: 0.08, duration: 300 }); }}>⤢ Encuadrar</button>
+            </div>
+          </>
         )}
       </div>
-      {modo === "edificio" ? (
-        <MapaEdificio cartas={cartas} origen={origen} vertical={vertical} onAbrir={(p) => setPanel(p)} />
-      ) : (
+      {totalUrgente > 0 && (
+        <div className="px-hud mv-urgente-flotante mv-solo-movil">
+          <button type="button" className="mv-nivel mv-ir-urgente" onClick={irALoUrgente}
+                  title="Llevar la cámara a lo que necesita atención ya">
+            ⚠ Urgente ({totalUrgente})
+          </button>
+        </div>
+      )}
       <div className="px-lienzo relative min-h-0 min-w-0 flex-1 overflow-hidden">
         <svg width="0" height="0" className="absolute" aria-hidden="true">
           <defs>
@@ -560,7 +573,6 @@ function Mapa() {
           <p className="mv-aviso">No se pudieron traer tus pendientes; el mapa sigue funcionando.</p>
         )}
       </div>
-      )}
     </div>
   );
 }

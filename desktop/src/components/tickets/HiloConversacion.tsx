@@ -22,12 +22,18 @@ import { sonarRevisado } from "../combos/sonidoMoneda";
 import VisorFotos, { type FotoVisor } from "./VisorFotos";
 import RevisionEmpaqueEnSolicitud from "../revisionEmpaque/RevisionEmpaque";
 import "./hiloPixel.css";
+import { esSolicitudDePago, irASolicitudPago, pagoIdDeDescripcion } from "../../lib/irAPago";
+import BarraEscritura, { BotonCaja, IconoCamara, IconoClip } from "../chat_equipo/BarraEscritura";
 
 /** La solicitud/acción que la persona está atendiendo (la bandeja la ofrece como «Seguir con…»). */
 export const CLAVE_HILO_ACTUAL = "mck_hilo_actual";
 
 function esImagen(nombre: string, mime?: string | null) {
   return Boolean(mime?.startsWith("image/")) || /\.(jpe?g|png|gif|webp|heic)$/i.test(nombre);
+}
+
+function esAudio(nombre: string, mime?: string | null) {
+  return Boolean(mime?.startsWith("audio/")) || /\.(webm|ogg|oga|opus|mp3|m4a|aac|wav)$/i.test(nombre);
 }
 
 /** Las cuatro casillas del wizard, como las piezas del taller de combos. */
@@ -148,6 +154,7 @@ export default function HiloConversacion({
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const camRef = useRef<HTMLInputElement>(null);
   const draftRef = useRef<HTMLTextAreaElement>(null);
+  const fotoChatRef = useRef<HTMLInputElement>(null);
   const pasoPrevio = useRef<number | null>(null);
 
   useEffect(() => {
@@ -228,6 +235,24 @@ export default function HiloConversacion({
     return <div className="flex-1 flex items-center justify-center text-sm text-muted">Cargando conversación…</div>;
   }
 
+  // Respaldo (campana, enlaces viejos): un «Aprobar pago — …» no tiene pasos aquí; se aprueba allá.
+  if (esSolicitudDePago(ticket)) {
+    const pagoId = pagoIdDeDescripcion(ticket.descripcion);
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+        {onCerrar && <button type="button" onClick={onCerrar} className="hp-boton-sm self-start lg:hidden" aria-label="Volver a la bandeja">←</button>}
+        <p className="text-[40px]" aria-hidden>🏦</p>
+        <p className="text-[18px] font-extrabold text-ink">{ticket.titulo}</p>
+        <p className="max-w-sm text-[15px] text-ink-muted">
+          Este pago se aprueba en <b>Contabilidad → Solicitudes de pago</b>: ahí están el asiento, la firma, el banco y el comprobante.
+        </p>
+        <button type="button" onClick={() => irASolicitudPago(pagoId)} className="hp-boton azul">
+          Abrir en Solicitudes de pago{pagoId ? ` (#${pagoId})` : ""} →
+        </button>
+      </div>
+    );
+  }
+
   const esAccion = ticket.tipo === "accion";
   const esAsignado = uidEq(ticket.asignado_a, user.id);
   const esCreadoPorMi = uidEq(ticket.creado_por, user.id);
@@ -260,6 +285,16 @@ export default function HiloConversacion({
       if (draftRef.current) draftRef.current.style.height = "";
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "No se pudo enviar el mensaje");
+      setTimeout(() => setMsg(""), 3500);
+    }
+  }
+
+  // La nota de voz sale sola al terminar de grabar; lo escrito se queda en la caja.
+  async function enviarVoz(voz: File) {
+    try {
+      await enviar.mutateAsync({ ticketId, texto: "", archivos: [voz] });
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "No se pudo enviar la nota de voz");
       setTimeout(() => setMsg(""), 3500);
     }
   }
@@ -786,7 +821,9 @@ export default function HiloConversacion({
                   <div className="max-w-[85%] space-y-1 lg:max-w-[65%]">
                     {!esMio && <p className="hp-autor px-0.5">{autorNombre}</p>}
                     {item.kind === "adjunto" ? (
-                      esImagen(item.adjunto.nombre_original, item.adjunto.mime) ? (
+                      esAudio(item.adjunto.nombre_original, item.adjunto.mime) ? (
+                        <audio src={ticketsUploadUrl(item.adjunto.nombre_archivo, token)} controls preload="metadata" className="h-10 w-64 max-w-full" />
+                      ) : esImagen(item.adjunto.nombre_original, item.adjunto.mime) ? (
                         <button type="button" onClick={() => abrirFoto(ticketsUploadUrl(item.adjunto.nombre_archivo, token))} aria-label="Ver foto">
                           <img
                             src={ticketsUploadUrl(item.adjunto.nombre_archivo, token)}
@@ -845,56 +882,37 @@ export default function HiloConversacion({
               ))}
             </div>
           )}
-          <div className="flex items-end gap-2">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="hp-boton-sm shrink-0 !px-2.5"
-              title="Adjuntar archivo"
-              aria-label="Adjuntar archivo"
-            >
-              <Icon name="paperclip" size={20} />
-            </button>
-            <input
-              ref={fileRef} type="file" multiple hidden
-              onChange={(e) => {
-                if (e.target.files) setArchivos((prev) => [...prev, ...Array.from(e.target.files!)]);
-                e.target.value = "";
-              }}
-            />
-            <textarea
-              ref={draftRef}
-              value={draft}
-              onChange={(e) => {
-                setDraft(e.target.value);
-                // Crece con el texto (hasta ~6 líneas) para leer lo que se escribe.
-                const el = e.currentTarget;
-                el.style.height = "auto";
-                el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
-              }}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviarMensaje(); } }}
-              onPaste={(e) => {
-                const item = Array.from(e.clipboardData.items).find((it) => it.type.startsWith("image/"));
-                if (!item) return;
-                e.preventDefault();
-                const file = item.getAsFile();
-                if (file) {
-                  setArchivos((prev) => [...prev, new File([file], `captura-${Date.now()}.png`, { type: file.type })]);
-                }
-              }}
-              placeholder="Escribe aquí…"
-              rows={1}
-              className="hp-campo min-h-[52px] min-w-0 flex-1 resize-none px-3 py-3"
-            />
-            <button
-              type="button"
-              onClick={() => void enviarMensaje()}
-              disabled={enviar.isPending || (!draft.trim() && archivos.length === 0)}
-              className="hp-boton-sm activo shrink-0 !min-h-[48px] disabled:opacity-40"
-            >
-              Enviar
-            </button>
-          </div>
+          <input
+            ref={fileRef} type="file" multiple hidden
+            onChange={(e) => {
+              if (e.target.files) setArchivos((prev) => [...prev, ...Array.from(e.target.files!)]);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={fotoChatRef} type="file" accept="image/*" capture="environment" hidden
+            onChange={(e) => {
+              if (e.target.files) setArchivos((prev) => [...prev, ...Array.from(e.target.files!)]);
+              e.target.value = "";
+            }}
+          />
+          <BarraEscritura
+            texto={draft} onTexto={setDraft} onEnviar={() => void enviarMensaje()} onVoz={(f) => void enviarVoz(f)}
+            hayAdjunto={archivos.length > 0} enviando={enviar.isPending} textareaRef={draftRef}
+            placeholder="Escribe aquí…"
+            onError={(m) => { setMsg(m); setTimeout(() => setMsg(""), 5000); }}
+            onPaste={(e) => {
+              const item = Array.from(e.clipboardData.items).find((it) => it.type.startsWith("image/"));
+              if (!item) return;
+              e.preventDefault();
+              const file = item.getAsFile();
+              if (file) {
+                setArchivos((prev) => [...prev, new File([file], `captura-${Date.now()}.png`, { type: file.type })]);
+              }
+            }}
+            iconos={<BotonCaja onClick={() => fileRef.current?.click()} titulo="Adjuntar archivo"><IconoClip /></BotonCaja>}
+            iconosSinTexto={<BotonCaja onClick={() => fotoChatRef.current?.click()} titulo="Tomar o subir una foto"><IconoCamara /></BotonCaja>}
+          />
         </div>
       ) : (
         !jugada && (

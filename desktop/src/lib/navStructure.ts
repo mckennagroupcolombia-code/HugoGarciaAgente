@@ -90,6 +90,8 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "fichas", tier: "standard" },
       // Fórmulas de producto (1-oct-2026): receta de elaboración, con permiso propio.
       { panel: "formulas", tier: "standard" },
+      // Desarrollar idea (4-oct-2026): la idea de producto abierta en un cladograma, con IA.
+      { panel: "ideas", tier: "standard" },
     ],
   },
   {
@@ -142,8 +144,8 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     // La pestaña «Publicaciones» (Catálogo, Galería, Republicar MeLi, Crear desde cero…)
     // salió del menú el 28-sep-2026: no se usaba. El panel sigue vivo para el paso
     // Publicación del taller de combos, que salta a él (ver navSectionForPanel).
+    // «Canales del producto» también salió el 6-oct-2026: no se usaba.
     items: [
-      { panel: "canales-producto", tier: "standard" },
       { panel: "vitrina-web", tier: "standard" },
     ],
   },

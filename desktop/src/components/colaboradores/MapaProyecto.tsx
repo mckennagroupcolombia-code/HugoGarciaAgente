@@ -22,6 +22,7 @@ import type { Adjunto } from "./modelo";
 import { Sprite } from "./pixel";
 import { COLOR_TIPO, HIJO_DE, NOMBRE_TIPO, SECCIONES, SPRITE_TIPO, type TipoT } from "./mapaTipos";
 import GuiaMapa, { guiaYaVista } from "./GuiaMapa";
+import PreciosProyecto from "./PreciosProyecto";
 
 type Rel = "viene_de" | "resuelve" | "bloquea";
 type Fuente = { canal: string; autor: string; fecha: string; texto: string };
@@ -592,6 +593,7 @@ export default function MapaProyecto({ did, yoId, titulo, subir }: {
   });
   const [hoja, setHoja] = useState<{ id: number | null; b: Borrador } | null>(null);
   const [chat, setChat] = useState(false);
+  const [precios, setPrecios] = useState(false);
   const [verRitmo, setVerRitmo] = useState(false);
   const [guia, setGuia] = useState(() => !guiaYaVista());   // la primera vez, sola
   const [filtro, setFiltro] = useState<Filtro>("todo");
@@ -698,6 +700,9 @@ export default function MapaProyecto({ did, yoId, titulo, subir }: {
         <button type="button" data-chat onClick={() => setChat(true)} className="px-btn flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-sm font-bold text-ink">
           <Sprite s="doc" px={1} /> Traer del chat
         </button>
+        <button type="button" data-precios onClick={() => setPrecios(true)} className="px-btn flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-sm font-bold text-ink">
+          <Sprite s="moneda" px={1} /> Precios
+        </button>
         <button type="button" data-guia-abrir onClick={() => setGuia(true)} className="px-btn flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-sm font-bold text-ink">
           <Sprite s="bandera" px={1} /> Guía
         </button>
@@ -748,6 +753,7 @@ export default function MapaProyecto({ did, yoId, titulo, subir }: {
       </div>
 
       {guia && <GuiaMapa onCerrar={() => setGuia(false)} />}
+      {precios && <PreciosProyecto did={did} yoId={yoId} onCerrar={() => setPrecios(false)} />}
       {chat && (
         <HojaChat did={did} part={t.participantes} yoId={yoId} onCerrar={() => setChat(false)} onRitmo={refrescar}
                   onCrear={(b) => setHoja({ id: null, b })} />

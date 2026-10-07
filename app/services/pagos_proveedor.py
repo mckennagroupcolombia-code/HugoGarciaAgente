@@ -540,6 +540,21 @@ def _numero_documento(texto: str) -> str:
     return ""
 
 
+def tipo_documento(texto: str, xml: dict | None) -> str:
+    """'factura' si es factura electrónica (XML DIAN o PDF con CUFE); si no, 'cotizacion'.
+
+    Decide si una compra se causa o queda como anticipo (`pagos_wizard.es_pago_anticipado`).
+    El CUFE es lo que hace factura a un PDF: una cotización o proforma no lo trae, y sin
+    factura electrónica el IVA no es descontable (Art. 771-2 E.T.).
+    """
+    if xml:
+        return "factura"
+    t = _norm(texto)
+    if re.search(r"\bcufe\b", t) or re.search(r"\b[0-9a-f]{96}\b", t):
+        return "factura"
+    return "cotizacion"
+
+
 def verificar_factura(contenido: bytes, nombre: str, items: list[dict], monto: float,
                       tercero: dict | None) -> dict:
     """Coteja el archivo del proveedor contra lo pedido. Nunca falla por 'no entendí': si no hay
@@ -563,6 +578,7 @@ def verificar_factura(contenido: bytes, nombre: str, items: list[dict], monto: f
     if len(tn) < 40:
         advertencias.append("El archivo no tiene texto legible (¿foto o PDF escaneado?). No se pudo cotejar.")
         return {"fiel": False, "legible": False, "origen": leido["origen"], "advertencias": advertencias,
+                "tipo_documento": "factura" if xml else "cotizacion",
                 "numero_documento": "", "nit_ok": None, "total_ok": False, "total_detectado": None,
                 "items": [{**it, "encontrado": False, "cantidad_ok": False, "precio_ok": False} for it in items]}
 
@@ -615,6 +631,7 @@ def verificar_factura(contenido: bytes, nombre: str, items: list[dict], monto: f
         advertencias.append("La solicitud no tiene productos para cotejar.")
     return {
         "fiel": fiel, "legible": True, "origen": leido["origen"], "advertencias": advertencias,
+        "tipo_documento": tipo_documento(texto, xml),
         "numero_documento": (xml or {}).get("numero") or _numero_documento(texto),
         "fecha_documento": (xml or {}).get("fecha") or "",
         "nit_ok": nit_ok, "total_ok": total_ok, "total_detectado": total_xml or None,

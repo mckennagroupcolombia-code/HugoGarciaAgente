@@ -1,3 +1,199 @@
+### 2026-10-07 - El perro solo celebra cuando se termina un flujo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (sonidos del panel). Sin LLM.
+- **Qué se implementó:**
+  - Escribir un mensaje en una solicitud, subir una evidencia o marcar un paso ya **no** hace reír al perro: la moneda suena con un tono corto.
+  - El perro sale solo al **terminar un flujo**: cerrar una tarea o solicitud, completar una acción, finalizar una corrida o un lote, o emitir una factura.
+  - Los tonos de los grupos ya no usan ladridos ni la risa del perro: un mensaje suena solo con un tono (pato, moneda, Charlie, ronda, caída, tropiezo o disparo).
+- **Archivos Modificados:** `desktop/src/lib/{celebracionAprobado,alertasSonido}.ts`, `docs/agentic/modules/operacion-equipo.md`, `docs/team-recaps.md`.
+
+### 2026-10-07 - Solicitudes de pago legible en el celular
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección visual (Contabilidad → Solicitudes de pago, celular). Sin LLM.
+- **Qué se implementó:**
+  - **Filtros:** los 11 filtros (Por hacer, Pendientes, Por girar…) van en una fila que se desliza de lado; antes se aplastaban y se leía «Po ha», «Pe», «Gi».
+  - **Tarjeta:** el estado («Montada — falta el segundo visto bueno») baja de línea en vez de salirse, el monto y el estado se acomodan debajo del título, y los enlaces largos de las notas se parten dentro de la tarjeta.
+  - Más espacio al final de la lista, para que la calculadora y la burbuja de chat no tapen la última tarjeta.
+- **Archivos Modificados:** `desktop/src/components/PagosWizardPanel.tsx`, `docs/team-recaps.md`.
+
+### 2026-10-07 - Tono propio por grupo y «Aprobar pago» lleva a Solicitudes de pago
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Mensajes, sonidos, Solicitudes de pago). Sin LLM.
+- **Qué se implementó:**
+  - **Cada grupo suena distinto:** si no se le eligió un sonido, cada grupo tiene su tono fijo (pato, moneda, Charlie, ladrido, ronda…), así se reconoce de oído qué grupo escribió. En la fila de grupos se ve el ícono de su tono, y el globo de mensajes sin leer late. En los ajustes de sonido, la casilla «Cada grupo con su propio tono» permite volver a uno solo.
+  - **Arreglo:** en la pestaña Mensajes de la barra de abajo no salía ni sonaba el aviso de mensajes nuevos (solo existía dentro de la agenda). Ahora sí; al tocar el aviso se abre ese grupo.
+  - **«Aprobar pago — …»** ya no se abre como una solicitud con pasos (Leer, Empezar, Evidencia, Entregar): lleva directo a **Contabilidad → Solicitudes de pago** con esa solicitud resaltada, donde están el asiento, la firma, el banco y el comprobante. En la bandeja se marca «Pago · aprobar».
+  - Probado en producción: el tono del grupo sonó con un mensaje de prueba y «Aprobar pago — Flete» abrió la #71 resaltada.
+- **Archivos Modificados:** `app/services/tickets_db.py` (`pago_id`, `tono_por_grupo`), `tests/test_conversaciones_pago.py` (nuevo), `tests/test_canales_internos.py`, `desktop/src/lib/{alertasSonido.ts,irAPago.ts (nuevo)}`, `desktop/src/components/{MobileHub,PagosWizardPanel}.tsx`, `desktop/src/components/chat_equipo/{AjustesSonidos,ChatEquipoPanel}.tsx`, `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `desktop/src/components/tickets/{BandejaUnificada,HiloConversacion,InboxConversaciones}.tsx`, `bandeja.css`, `desktop/src/hooks/useConversaciones.ts`, `desktop/src/stores/app.ts`, `docs/agentic/modules/{operacion-equipo,pagos-solicitudes}.md`, `docs/team-recaps.md`.
+
+### 2026-10-07 - Celular: grupos siempre a la vista y chat a pantalla completa
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de UX (Mensajes en el celular), tras probarlo en el teléfono. Sin LLM.
+- **Qué se implementó:**
+  - **Fila de grupos** arriba de la bandeja, como las historias de WhatsApp: cada grupo con su color, número de no leídos o «@» si te nombraron, y un toque para entrar. Quien administra tiene al final «＋ Grupos». Antes había que buscar el grupo por su nombre.
+  - **Chat a pantalla completa:** al abrir una conversación se esconde el cabezote de la agenda. El encabezado del grupo es más bajo, «Solicitudes abiertas» empieza plegada en una línea, y «Responder / Tarea» aparecen solo al tocar un mensaje (deslizar a la derecha sigue respondiendo).
+  - Se probó en producción en tamaño celular con el grupo HORMIGUITAS.
+- **Archivos Modificados:** `desktop/src/components/tickets/{BandejaUnificada.tsx,bandeja.css}`, `desktop/src/components/chat_equipo/{HiloCanal,SolicitudesDelGrupo}.tsx`, `chatEquipo.css`, `desktop/src/theme/movil.css`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`.
+
+### 2026-10-07 - Menciones con @ en los grupos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Mensajes → Grupos, servidor + panel). Sin LLM.
+- **Qué se implementó:**
+  - En un grupo, escribir **«@»** abre la lista de quién se puede nombrar; al elegir, queda «@Nombre Apellido». También valen «@Nombre» (si no hay otro igual), «@usuario» y **«@todos»**. Desde WhatsApp, las menciones con número se reconocen por el teléfono registrado de cada persona.
+  - A quien nombran le llega un **aviso aparte** («Ana te mencionó · Bodega»), aunque el grupo haya avisado hace poco. En pantalla, la tarjeta dice «@ Te mencionó».
+  - El grupo donde te nombraron pasa a **Te toca** en la bandeja del celular («@ Te nombraron») y sale primero, con «@», en la lista de Grupos. Deja de «tocarte» en cuanto lees el grupo.
+  - En el chat, los @ salen resaltados (el tuyo más fuerte) y la burbuja que te nombra lleva una franja y «@ Te nombró».
+- **Archivos Modificados:** `app/services/canales_internos.py`, `app/services/canales_avisos.py`, `app/routes_canales.py`, `tests/test_canales_internos.py` (5 tests nuevos), `desktop/src/lib/menciones.ts` (nuevo), `desktop/src/lib/bandeja.ts`, `desktop/src/hooks/{useCanalesEquipo,useAvisosMensajes}.ts`, `desktop/src/components/chat_equipo/{BarraEscritura,HiloCanal,ChatEquipoPanel}.tsx`, `chatEquipo.css`, `desktop/src/components/tickets/{BandejaUnificada.tsx,bandeja.css}`, `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/agentic/modules/operacion-equipo.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
+### 2026-10-07 - Bandeja unificada en el celular: Te toca · Enterarte · Haciendo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Mensajes en el celular y la tableta). Sin LLM, sin cambios en el servidor.
+- **Qué se implementó:**
+  - Mensajes es **una sola lista**: solicitudes, tareas y grupos juntos, en tres pestañas con su número. **Te toca** reúne lo que te pidieron y lo que pediste y ya te entregaron (falta finalizarlo). **Enterarte** reúne lo que lleva otra persona y los grupos con mensajes nuevos. **Haciendo** reúne lo que tienes en curso.
+  - Filas de dos líneas con el color de cada persona o grupo: caben ~8 conversaciones en la pantalla (antes 1,5). El buscador encuentra solicitudes, personas y grupos; el «＋» pide algo o crea una tarea (también en la pestaña Mensajes de la barra de abajo).
+  - **Un solo número** en la barra de abajo, la burbuja y la bandeja: lo que te toca + lo abierto con algo sin leer. Antes cada lugar contaba distinto (17 · 83 · 14). Las solicitudes ya resueltas con avisos automáticos sin leer pasan al historial y no cuentan.
+  - En el celular, la burbuja lleva a la bandeja en vez de abrir otra ventana con lo mismo. «Todos los grupos» va plegado al final de Enterarte; quien administra tiene «Administrar grupos».
+  - En el computador, la bandeja de siempre no cambió.
+- **Archivos Modificados:** `desktop/src/lib/bandeja.ts` (nuevo), `desktop/src/components/tickets/{BandejaUnificada.tsx,bandeja.css}` (nuevos), `desktop/src/components/tickets/InboxConversaciones.tsx`, `desktop/src/components/chat_equipo/{MensajesConGrupos,SelectorMensajes}.tsx`, `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `desktop/src/components/MobileHub.tsx`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`.
+
+### 2026-10-07 - Celular: sin Edificio y Mensajes/Grupos compactos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Limpieza + mejora de UX en el celular (Mapa, Mensajes → Solicitudes/Grupos). Sin LLM.
+- **Qué se implementó:**
+  - Se quitó la vista **Edificio** del Mapa, y con ella la placa «PB/P5» del cabezote. El Mapa queda como la única vista de inicio.
+  - En el celular, Mensajes muestra la lista mucho más arriba: pestañas de la Agenda en una sola línea, botones de crear y contadores más bajos, y el buscador detrás de la lupa ⌕. La primera solicitud pasó de aparecer a ~60 % de la pantalla a ~37 %.
+  - **Grupos**: sin el marco dentro de otro marco, un color propio para cada grupo y los que tienen mensajes sin leer arriba.
+  - **Chat responsivo**: el «+» de la barra de abajo tapaba el botón de enviar y la calculadora tapaba las filas; en Mensajes ya no salen. El chat de grupos toma el alto disponible en vez de una resta fija. La barra de abajo marca «Mensajes» cuando estás ahí.
+  - «Vista móvil» (para salir de la vista escritorio forzada) ahora también se ve en pantallas pequeñas.
+- **Archivos Modificados:** `desktop/src/components/{MapaVivo,Layout,mapaComun}.tsx`, `MapaEdificio.tsx` y `mapa-edificio.css` (borrados), `desktop/src/components/tickets/InboxConversaciones.tsx`, `desktop/src/components/chat_equipo/{ChatEquipoPanel,MensajesConGrupos}.tsx`, `desktop/src/components/nav/CalculadoraFab.tsx`, `desktop/src/components/ui/PanelTransition.tsx`, `desktop/src/App.tsx`, `desktop/src/main.tsx`, `desktop/src/theme/{movil.css (nuevo),skin-pixel.css,skin-peach-pixel.css,mapa-temas.css}`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`.
+
+### 2026-10-06 - Anticipos sin retención + guía del dinero como wizard
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección contable + mejora (Contabilidad → Solicitudes de pago). Sin LLM.
+- **Qué se implementó:**
+  - El anticipo se registra **solo Débito 133005 / Crédito 1110**, por lo que sale del banco. La retención (236540), el ReteICA (2368), el inventario (1435) y el IVA (240810) nacen al **legalizar** con la factura, sobre la base facturada, y se cancelan contra el anticipo.
+  - #7965 (Factores): el ajuste #9108 (con retención) se anuló junto con su espejo en Alegra y se rehízo como **#9109**: Débito 133005 $4.893.000 + reversa de la retención $105.000 / Crédito 1435 y 240810. Alegra lo publicó también con el número 180.
+  - La **Guía animada** ahora es un wizard que avanza a mano sobre un **mapa del dinero**. Cada caja es una cuenta del Libro Mayor, y una moneda viaja de la cuenta que se acredita a la que se debita: el banco se vuelve un derecho con el proveedor, el derecho se vuelve mercancía e IVA, la venta entra por Mercado Pago y pasa al banco, y los cruces de cartera. Cada paso muestra cómo se escribe en el libro.
+- **Archivos Modificados:** `app/services/pagos_wizard.py`, `desktop/src/components/{GuiaAnimadaPagos,PagosWizardPanel}.tsx`, `scripts/reclasificar_compra_a_anticipo.py`, `tests/test_pagos_anticipo.py`, `docs/agentic/modules/pagos-solicitudes.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
+### 2026-10-06 - Solicitudes de pago: anticipo contra cotización, legalización con la factura y guía animada
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección contable (Contabilidad → Solicitudes de pago). Sin LLM.
+- **Qué se implementó:**
+  - Una compra pagada con **cotización** a un proveedor **obligado a facturar** se registra como **anticipo**: Débito 133005 / Crédito retención / Crédito Bancos. Ya no carga inventario ni IVA sin factura. El wizard simple pregunta «¿Qué documento tienes?»; el cotejo detecta factura por XML DIAN o CUFE.
+  - **Legalizar con la factura** (botón en la solicitud, solo Administración): causa 1435 + 240810 con lo FACTURADO, cruza el anticipo, ajusta la retención a la base facturada y deja el sobrante a favor (133005) o el faltante por pagar (2205). Filtro y aviso «Anticipos sin factura»; el inventario cuenta la factura, no la cotización.
+  - **Guía animada** en Solicitudes de pago: anticipo, legalización, compra con factura, plata que entra al banco (venta vs. traslado de Mercado Pago) y cartera a favor/en contra, con asientos reales y cuentas T que se llenan paso a paso.
+  - **Asientos por arreglar**: una diferencia conocida queda marcada en la solicitud y en un aviso rojo hasta que alguien la cierre con «Ya se arregló».
+  - Datos: asiento #7965 (Factores, #62) reclasificado a anticipo con el ajuste #9108 (Alegra 180); #62 queda por legalizar. #65 (Comercializadora, asiento #7964) marcado por arreglar: libro $525.455 vs. extracto $425.455 y BOLTRA16X24ZIP cargado otra vez en #8999.
+- **Archivos Modificados:** `app/services/pagos_wizard.py`, `app/services/pagos_proveedor.py`, `app/services/insumos.py`, `app/routes.py`, `desktop/src/components/PagosWizardPanel.tsx`, `desktop/src/components/GuiaAnimadaPagos.tsx` (nuevo), `scripts/reclasificar_compra_a_anticipo.py` (nuevo), `tests/test_pagos_anticipo.py` (nuevo), `docs/agentic/modules/pagos-solicitudes.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
+### 2026-10-06 - Grupos: responder a un mensaje (cita al estilo WhatsApp)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Mensajes → Grupos). Sin LLM.
+- **Qué se implementó:**
+  - Cada burbuja tiene **«↩ responder»** (en el celular también se desliza la burbuja a la derecha). Arriba de la caja aparece «Respondiendo a…» con ✕ para cancelar; vale para texto, adjuntos y notas de voz.
+  - La respuesta muestra la **cita** (autor + texto, o 📷/🎤/📎) dentro de la burbuja; al tocarla salta al mensaje original y lo resalta. Si el original se borró, la cita dice «Mensaje eliminado».
+  - Nueva columna `canal_mensajes.responde_a`; solo se responde a mensajes del mismo grupo. `listar_mensajes` y `enviar_mensaje` devuelven `cita`. En grupos con espejo a WhatsApp la respuesta sale con «respondiendo a X» y la línea citada con `>`.
+- **Archivos Modificados:** `app/services/canales_internos.py`, `app/routes_canales.py`, `desktop/src/hooks/useCanalesEquipo.ts`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `tests/test_canales_internos.py`, `docs/team-recaps.md`.
+
+### 2026-10-06 - Costo vs. precio en el árbol, IVA según la factura de compra y publicaciones nuevas en el despliegue
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección tributaria (Diseño de producto, Alegra, despliegue de ventas). Sin LLM en el cálculo.
+- **Qué se implementó:**
+  - **«Costo vs. precio»** en cada presentación del Árbol del producto: receta costeada pieza por pieza con la última compra (Libro Mayor 1435 / facturas de compra → equivalencias en `costos_referencia.json` → costo a mano → Alegra), contra el precio web, MeLi (−16,5 % de comisión de referencia) y lista de Alegra, con el margen y el precio que deja 40/50/60 %. Si falta el costo de una pieza, el margen sale como techo («≤»).
+  - El margen usa la **tarifa real de IVA** del combo: nueva columna `alegra_items.iva_pct`, que llena la sincronización del catálogo.
+  - **IVA de venta = el de la factura de compra** (XML DIAN): avena, amaranto y quinua roja pasan a 5 %; sales (marina ahumada, rosada con ajo y chili, Himalaya fina y gruesa), dátiles y uvas pasas a «Excluido». 25 ítems en Alegra (materia prima + combos), verificados uno por uno. El precio al cliente no cambia.
+  - **Publicaciones creadas después del cese** entran al despliegue (`registrar_publicacion_nueva`): evalúa solo ese SKU, sin recalcular la lista. La primera versión recalculaba y, con la relación de códigos a medias, sacó 34 SKUs; se restauró desde git.
+  - Publicados en MeLi y en la web: aceite de coco virgen 250 g / 500 g / 1 kg (precio de la competencia, por rotación), avena en hojuelas 1 kg ($6.500) y albaricoque seco 250 g ($26.000).
+- **Archivos Modificados:** `app/services/costo_receta.py` (nuevo), `app/data/costos_referencia.json` (nuevo), `app/services/{arbol_producto,despliegue_ventas,alegra_catalogo_db,contabilidad_db}.py`, `app/data/despliegue_ventas.json`, `desktop/src/components/plantillas-visuales/arbol/{CostoPrecio.tsx (nuevo),tipos.ts,ArbolProductoPanel.tsx,arbol.css}`, `tests/test_costo_receta.py` (nuevo), `tests/test_despliegue_ventas.py`, `docs/agentic/modules/{producto-cadena,operacion-equipo,facturacion-meli-alegra}.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
+### 2026-10-05 - Préstamos: reteICA 11,04‰ sobre los intereses y contratos reenviados
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección tributaria + corrección (Contabilidad → Préstamos y Solicitudes de pago). Sin LLM.
+- **Qué se implementó:**
+  - Por recomendación del contador, cada cuota retiene **reteICA de Bogotá al 11,04 por mil** sobre el interés bruto → cuenta **2368** (entra al borrador del RTICA). Lo asume el prestamista, igual que el 7%; con gross-up lo asume McKenna. Parámetro `reteica_pct` por préstamo, editable en el formulario del panel.
+  - Aplicado a los 5 préstamos vivos con `aplicar_reteica()` (ninguna cuota pagada) y a los borradores de pago #4, #5 y #6. Ej.: 1ª cuota de Antonio $679.287 → $675.971.
+  - Contrato, certificado, correo mensual y documento soporte muestran el reteICA. Contratos MUT-2026-0001…0005 reenviados como «versión actualizada» con un párrafo que explica el cambio (`motivo_reenvio`).
+  - **Corrección:** al aprobar la solicitud de una cuota, el asiento salía todo a 2195 y la retención a 236595, porque `aprobar()` no pasaba `origen_ref`. Ahora separa capital, 530520, 236535 y 2368. Test de regresión incluido.
+- **Archivos Modificados:** `app/services/prestamos.py`, `app/services/pagos_wizard.py`, `app/tools/prestamos_pdf.py`, `app/routes.py`, `desktop/src/components/PrestamosCronogramaPanel.tsx`, `tests/test_prestamos.py`, `docs/agentic/modules/prestamos.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
+### 2026-10-05 - Despliegue de ventas: sin etiqueta aprobada no se vende (MeLi + web)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Regla de negocio (despliegue gradual de ventas). Sin LLM.
+- **Qué se implementó:**
+  - Un combo cuya etiqueta no tiene «Terminar y aprobar» (PNG registrado en `etiquetas_png_aprobados.json`, o el `_digital` de las aprobadas antes del registro) sale de la lista de `despliegue_ventas.json` con motivo «etiqueta sin aprobar»: la web lo oculta y la sincronización de stock no lo reactiva en MeLi.
+  - Exentos (no llevan etiqueta impresa): líneas Equipos y Materiales, Otros y Kits, y lo que no tiene diseño ni etiqueta en la receta (`_SIN_ETIQUETA_LINEAS`, `etiquetas_sin_aprobar()`).
+  - `despliegue_ventas.sincronizar()` pausa en MeLi lo que deja de cumplir y reactiva lo que pausó esta regla cuando ya cumple (anotado en `meli_pausa_global.json` → `pausadas_por_etiqueta`). La aprobación de una etiqueta (POST `/api/etiquetas/recursos-png` con `etiqueta_id`) la dispara en segundo plano, una corrida a la vez.
+  - Primera corrida: 50 publicaciones de 45 combos pausadas en MeLi, 0 fallos (lista habilitada: 259 → 193 SKUs).
+- **Archivos Modificados:** `app/services/despliegue_ventas.py`, `app/routes.py`, `docs/team-recaps.md`.
+
+### 2026-10-05 - Expediente contable (fases 2 y 3): observaciones del contador y paquete ZIP mensual
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección (Libro Mayor → Expediente contable). Sin LLM.
+- **Qué se implementó:**
+  - **Observaciones del contador** en el mes, en cada cuenta y en cada asiento: «Marcar revisado» de un clic o «Dejar nota» (pregunta / ajuste / nota). El autor lo pone el backend desde la sesión. Lo abierto sale al equipo en Revisión del libro → «Observaciones del contador por atender», con botón Resolver (solo equipo). El contador puede crear observaciones y pedir el paquete, pero sigue sin poder resolver, importar ni entrar a rutas nuevas (test con su perfil).
+  - **Paquete mensual (ZIP)** desde la tarjeta del mes: LEEME.md con cómo corroborar, manifest.json con SHA-256 de cada archivo y a qué asiento respalda, balance, auxiliares por cuenta, Libro Diario, extracto y conciliación, listado DIAN y cruces, borradores 350/RTICA con declaraciones y recibos, y 07_soportes con todos los documentos locales (sin duplicar). Septiembre real: 18 s, 43 MB, 957 archivos, 5 faltantes anotados. Se genera en segundo plano y el panel avisa si quedó desactualizado.
+  - **Corrección (tira de meses):** con la letra ampliada (A+) el nombre del mes se partía en dos líneas y, como todo `<button>` de la app lleva `overflow: hidden`, se veía «Ma…». Ahora mes y año van en dos líneas explícitas y el botón crece con la letra (ancho en `em`). Verificado al 150 % en escritorio y celular. Después, como 22 meses no caben en una línea y el scroll horizontal pasaba desapercibido («solo se ve hasta febrero»), la tira se acomoda en filas por año con todos los meses a la vista.
+  - **Corrección:** al confirmar un giro, la captura del banco borraba la factura adjuntada al aprobar el pago. Ahora factura y captura quedan como adjuntos con rol (`cc_movimiento_adjuntos`) y la factura sigue como comprobante principal.
+- **Archivos Modificados:** `app/services/{observaciones_contador,expediente_paquete}.py` (nuevos), `app/services/{contabilidad_core,pagos_wizard,revision_libro,expediente_contable}.py`, `app/routes.py`, `desktop/src/components/expediente/{CajaObservacion,PaquetePanel}.tsx` (nuevos), `EspinaPUC.tsx`, `TarjetaMes.tsx`, `expediente.css`, `tests/test_{observaciones_contador,expediente_paquete}.py` (nuevos), `docs/agentic/modules/contabilidad.md`, `docs/team-recaps.md`.
+
+### 2026-10-05 - Expediente contable: el libro por mes y por cuenta, para el contador (fase 1)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (panel `/app` → Contabilidad → Libro Mayor). Sin LLM.
+- **Qué se implementó:**
+  - **Expediente contable**, nueva entrada y landing del contador: tira de meses, tarjeta del estado del mes (partida doble, banco vs extracto, cruce con la DIAN, impuestos vs declarado, soportes) y las cuentas del PUC como fichas con insignias; cada cuenta abre su auxiliar y cada asiento su comprobante, documentos y verificaciones. Filtro «Por revisar» por defecto. Meses anteriores al corte = «período del contador» con sus fuentes.
+  - **Cruce con la DIAN documento por documento** (`dian_cruce.py`): importa los listados a `dian_documentos` y clasifica cada factura, nota y documento soporte en cuadra / difiere / solo DIAN / solo libro. Septiembre: 912 ventas en ambos (750 exactas), 131 notas crédito sin asiento, 10/10 documentos soporte cuadran, 46 facturas recibidas sin referencia.
+  - **Pasarela única de documentos** (`expediente_documentos.py`): comprobantes, facturas de compra (PDF+XML), facturas de venta por número FE (se bajan de Alegra si no están), documentos soporte en PDF/XML, recibos 490/SDH, declaraciones, certificados MP, contratos de préstamo, extractos y listados DIAN, con validación de raíces. El contador llega a todo sin abrirle rutas nuevas.
+  - Riel del Libro Mayor simplificado: Consultar = Expediente, Revisión, Plan de cuentas, Diario (los demás apartados viven como detalle de la cuenta). Arreglado el CSV del Libro Diario, que devolvía 401.
+  - Visita guiada con tres pasos nuevos sobre el expediente.
+- **Archivos Modificados:** `app/services/{expediente_contable,dian_cruce,expediente_documentos}.py` (nuevos), `app/services/{doc_soporte_pagos,alegra_espejo}.py`, `app/routes.py`, `desktop/src/components/ExpedienteContable.tsx` y `expediente/*` (nuevos), `LibroMayorPanel.tsx`, `RevisionLibro.tsx`, `VisitaGuiada.tsx`, `tests/test_{dian_cruce,expediente_contable,expediente_documentos}.py` (nuevos), `docs/agentic/modules/contabilidad.md`, `docs/team-recaps.md`.
+
+### 2026-10-05 - Libro Mayor: «Revisión del libro», visita guiada y tamaño de letra por persona
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección (panel `/app` → Contabilidad → Libro Mayor). Sin LLM.
+- **Qué se implementó:**
+  - Nueva vista de entrada **«Revisión del libro»**, pensada para abrir la reunión con el contador: un veredicto en una frase, **lo que tenemos** y **lo que nos falta** lado a lado, **para ajustar hoy** numerado y **para hablar con el contador**. Minimalista primero (un renglón por tema en letra grande); al tocarlo se despliega el detalle y un botón a la vista donde se resuelve. Datos vivos desde `GET /api/contabilidad/revision`.
+  - Lo pendiente se separa de lo que solo espera el extracto del mes (octubre), para no presentar como error lo que el banco aún no muestra. Las facturas de Siigo se nombran «factura de Siigo a consumidor final» en vez del UUID.
+  - **Visita guiada** de 11 pasos: ilumina cada parte (veredicto, tenemos, falta, ajustar, temas, riel, plan de cuentas, diario, retenciones, conciliar, letra), cambia de vista sola y se maneja con ← → y Esc. Se invita a hacerla la primera vez.
+  - **Control A−/A+** en el encabezado (100-150 %, por persona): escala solo el texto de la sección sin romper el diseño.
+  - Dos temas nuevos para la reunión: los $499.770 de efectivo de la renta 2025 que no están en el banco y la composición de los $272M de pasivos.
+  - Corrección: el checklist del hub decía «no hay préstamos con saldo vigente» con cinco vivos ($101.950.000). `resumen_prestamos()` buscaba la 2295 (ahora 2195) y solo los últimos 2.000 asientos. Test nuevo en `tests/test_prestamos.py`.
+- **Archivos Modificados:** `app/services/revision_libro.py` (nuevo), `app/data/revision_libro_insumos.json` (nuevo), `app/data/temas_reunion_contador.json`, `app/routes.py`, `app/services/contabilidad_core.py`, `desktop/src/components/{RevisionLibro,VisitaGuiada}.tsx` (nuevos), `LibroMayorPanel.tsx`, `libroMayor.css`, `tests/test_prestamos.py`, `docs/agentic/modules/contabilidad.md`, `docs/team-recaps.md`.
+
+### 2026-10-05 - Libro Mayor más legible: escala de letra para toda la sección
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (panel `/app` → Contabilidad → Libro Mayor). Sin LLM.
+- **Qué se implementó:**
+  - Escala tipográfica propia de la sección, aplicada desde `.lm-root` a todas las pieles: lo que estaba en 9-12 px (305 textos a 12 px y 75 entre 9 y 11,5 px, medidos en pantalla) pasa a 11,5-14 px, `text-sm` a 15,5 y `text-base` a 17, con más interlineado. Las cifras de las tablas se alinean (`tabular-nums`). No se reescribieron las ~500 clases: la escala vive en `libroMayor.css`.
+  - El Taller de conciliación, que se abre por portal fuera del libro, recibe la misma escala con la clase `lm-escala`; sus contadores («conexiones hoy», «líneas conciliadas hoy», «sin causar») ganaron relleno porque el texto se salía de la caja.
+  - El riel lateral pasó de 218 a 256 px y sus etiquetas bajan de línea en vez de cortarse con «…».
+  - En celular la vista quedaba más ancha que la pantalla (la tabla del PUC la estiraba) y cortaba los filtros de período: la columna ahora se limita al ancho de la pantalla.
+  - Verificado con capturas reales antes/después (escritorio 1440 px y celular 390 px) del Plan de cuentas, Libro Diario, Tabla de contabilidad, Retenciones y el Taller.
+- **Archivos Modificados:** `desktop/src/components/libroMayor.css`, `LibroMayorPanel.tsx`, `TallerConciliacion.tsx`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`.
+
+### 2026-10-05 - Conciliación bancaria sep/ago, préstamo de Cindy Castellanos y base para los saldos iniciales
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección contable (Libro Mayor, conciliación, préstamos). Sin LLM.
+- **Qué se implementó:**
+  - **Septiembre conciliado entero** contra el extracto Bancolombia: comisiones e IVA de pagos automáticos (72 líneas, 530505), pagos a proveedores con su solicitud, cobros de clientes con su factura FE (incluidos los pagados por otra persona, con nota). Se corrigieron vínculos mal hechos: Amanda (asiento anulado), Gilberto (venta MeLi #936), Red Chocolate (factura de agosto).
+  - **8 facturas Siigo del 1-sep eran ventas MeLi contadas dos veces**: 6 anuladas tras verificar la cédula del comprador en MeLi (#503-#509, $329.686); quedan #510 y #511 (consumidor final) por confirmar con el PDF de Siigo.
+  - **Honorarios del contador duplicados**: la cuenta de cobro de septiembre se causaba de nuevo aunque ya estaba pagada por solicitud (#6058 anulado). `contabilidad_ledger` ahora omite la cuenta de cobro que `cuenta_cobro_contador.buscar_pago()` empareja con su pago.
+  - **Préstamo #5 — Cindy Milady Castellanos Prieto**: $20.000.000 del 28-sep, mismo esquema familiar (25 % E.A., 24 cuotas 30/70, 7 %, un mes de gracia desde el depósito), asiento #8241 vinculado al banco; contrato MUT-2026-0005 enviado a su correo.
+  - **Libro Mayor → «Retenciones y temas»** (visible para el perfil contador): certificados de retención de Mercado Pago may-sep ($6.059.670, sin causar en 135515/17/18) y temas para la reunión con William (IVA de comisiones bancarias ¿gasto o 2408?).
+  - **Agosto (antes del corte)**: 14 líneas con asiento y 11 vinculadas con nota `nota:precorte:<línea>` (retiros MP y cobros de clientes), sin crear ingresos de un período ya declarado. Quedan 6 abiertas.
+  - **`scripts/descargar_listados_dian.py`**: baja de la DIAN, mes a mes y con el token del correo, los documentos emitidos y recibidos. 2025 cuadró al peso con el F110 y 2026 con los F300 — base para reconstruir los saldos iniciales al 31-ago con lo declarado. Extractos Bancolombia dic-2025 → ago-2026 completos y encadenados.
+- **Archivos Modificados:** `app/services/certificados_retencion.py`, `desktop/src/components/RetencionesContador.tsx`, `app/data/temas_reunion_contador.json`, `app/services/contabilidad_ledger.py`, `scripts/descargar_listados_dian.py`, `app/routes.py`, `desktop/src/components/LibroMayorPanel.tsx`, `docs/agentic/modules/{contabilidad,prestamos}.md`, `.gitignore` (código ya entró en el auto-commit del 3-oct). Asientos y vínculos en `contabilidad.db` (no está en git).
+
+### 2026-10-04 - Colaboradores: simulador de precios y márgenes (Armando ↔ Sebastián)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (app de colaboradores y panel `/app`). Sin LLM.
+- **Qué se implementó:**
+  - Botón **«Precios»** en la barra del mapa del proyecto: abre un emergente donde se mueven el precio de la publicación y lo que McKenna le paga al colaborador, y se ve cuánto le queda a cada parte. Incluye barra con el reparto (comisión, envío, IVA, costo del colaborador, ganancias), marcadores con el mínimo de cada uno, tope de compra, piso del colaborador, publicación mínima y atajos.
+  - IVA «incluido en el precio» (factura) o «sobre el precio» (colchón). Desglose del costo de fabricación del colaborador con merma.
+  - «Guardar propuesta» guarda solo lo que cambió, deja historial (quién, de cuánto a cuánto) y reinicia los «de acuerdo»; con los dos de acuerdo queda **Precio acordado**. Es simulación: no toca Alegra, publicaciones ni inventario.
+  - Precargados en el proyecto 1 los collares L (C-COLPERGRAND) y M (C-COLPERSPEQUE). El simulador muestra que con $29.310 el L queda por debajo del costo de fabricación de Sebastián ($30.513).
+- **Archivos Modificados:** `app/services/colab_precios.py` (nuevo), `app/routes_colaboradores.py`, `desktop/src/components/colaboradores/{PreciosProyecto.tsx,precios.ts}` (nuevos), `MapaProyecto.tsx`, `desktop/dev/colaboradores.tsx`, `tests/test_colab_precios.py`, `docs/agentic/modules/colaboradores.md`, `docs/agentic/ENDPOINTS.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-04 - Cuenta 110510 «Caja menor» y reintegro a Victor García por solicitud de pago
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora contable (Libro Mayor + Solicitudes de pago). Sin LLM.
@@ -4954,3 +5150,183 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Las cabezas de cada tarjeta del mapa (`mapaTipos.ts` → `COLOR_TIPO`) pintan con `var(--colab-<tipo>, #PICO8)` y su letra con `--colab-<tipo>-t`; cada tema (Barbie, Peach, Matrix, Bodega, Botica, Flujo) las define en `theme/mapa-temas.css`. La guía animada usa los mismos colores y la raíz va con el acento del tema.
   - **Verificado:** `npm run build`.
 - **Archivos Modificados:** `desktop/src/components/colaboradores/{pixel.css,guia-mapa.css,mapaTipos.ts,GuiaMapa.tsx,MapaProyecto.tsx}`, `desktop/src/theme/mapa-temas.css`, `docs/team-recaps.md`
+
+### 2026-10-04 - Diseño de producto: «Desarrollar idea» en cladograma
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva función (Diseño de producto)
+- **Qué se implementó:**
+  - Pestaña nueva «Desarrollar idea» (panel `ideas`) en Diseño, al lado de Fórmulas. Se escribe la idea (y, opcional, para quién, precio y restricciones) y «Desarrollar cladograma» la abre en un árbol: idea → 7 ramas del ciclo de diseño (usuario, requerimientos, arquitectura, ingeniería y DFM, prototipado, sostenibilidad, riesgos) → 17 sub-ramas → 3-5 puntos concretos cada una.
+  - El esqueleto de ramas es fijo (`RAMAS` en `ideas_db.py`); la IA (Gemini 2.5 Flash vía `documento_cientifico._sintetizar_texto`, límite 120 s) solo llena los puntos. Va en segundo plano con `coa_scan_jobs.iniciar_job` (POST → `job_id`, GET `/api/ideas/job/<id>`) por el corte de ~100 s del túnel.
+  - Cada nodo: clic para editar, ✨ ramifica con IA (con la ruta desde la raíz como contexto, sin repetir hijos existentes), + agrega a mano, × quita, ◂ contrae. «Solo ramas principales», «Expandir todo», «Copiar como texto» (esquema con sangría). Al terminar de desarrollar se guarda solo.
+  - Permiso propio `ideas` (Ajustes → «Diseño (desarrollar idea)»); administradores siempre. Datos en `app/data/ideas.json` con candado fcntl.
+  - **Verificado:** `npm run build`; reinicio de `agente-pro`; curl: desarrollar (7 ramas × sub-ramas × 5 puntos), ramificar «Materiales» (5 ramas nuevas), guardar y borrar una idea de prueba; captura en Chrome headless del cladograma en un arnés temporal ya retirado.
+- **Archivos Modificados:** `app/routes_ideas.py` (nuevo), `app/services/ideas_db.py` (nuevo), `agente_pro.py`, `desktop/src/components/ideas/IdeasPanel.tsx` (nuevo), `desktop/src/components/nav/DisenoNavTabs.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/{navStructure.ts,panelInfo.ts}`, `desktop/src/components/Settings.tsx`, `desktop/src/icons/mck/paths/panels.tsx`, `docs/team-recaps.md`
+
+### 2026-10-04 - «Desarrollar idea»: el cladograma se construye rama por rama
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Diseño de producto → Desarrollar idea)
+- **Qué se implementó:**
+  - Pedido: los 7 bloques eran solo un ejemplo; cada proyecto tiene sus propias necesidades y el árbol se va construyendo. Se quitó «Desarrollar cladograma» (llenaba todo con IA de una vez; ruta `/api/ideas/desarrollar` eliminada).
+  - **Parámetros del proyecto** por idea (`parametros: [{nombre, valor}]`): una idea nueva arranca con los 5 del ejemplo (tipo de producto, usuario objetivo, rango de precio, proceso de manufactura, restricciones clave), que se llenan, se quitan o se amplían con «+ Parámetro propio».
+  - La idea arranca solo con la raíz. «＋» en cualquier rama abre una bandeja flotante con tres fuentes: **la guía** (las 7 etapas en la raíz; en cada etapa, sus sub-ramas), **«✨ Sugerir con IA»** (5-6 opciones según los parámetros y la ruta desde la raíz; `ramificar` ahora devuelve `opciones` y no toca el árbol) y **una rama escrita a mano**. Solo entra lo que se elige.
+  - **Verificado:** `npm run build`; reinicio de `agente-pro`; curl de ramificar con dos juegos de parámetros (agricultores de café / urbano premium) que dan opciones distintas; captura en Chrome headless de la bandeja en un arnés temporal ya retirado.
+- **Archivos Modificados:** `app/services/ideas_db.py`, `app/routes_ideas.py`, `desktop/src/components/ideas/IdeasPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-10-05 - Modo de uso cosmético: aplicación en la piel en 20 palabras
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (Documento técnico → sugerencia IA de Modo de uso)
+- **Qué se implementó:**
+  - Pedido: si el documento técnico es de un cosmético (grado solo cosmético), la IA sugiere cómo aplicarlo en la piel, en 20 palabras.
+  - El prompt cosmético de `modo_uso` ya no pide % de formulación: pide cuánto, dónde, cómo y con qué frecuencia se aplica en la piel, empezando por un verbo en infinitivo.
+  - `modo_uso_cosmetico` impone el tope (`MAX_PALABRAS_MODO_USO_COSMETICO = 20`, «Solo para uso externo.» incluido) con `recortar_a_palabras`, además del filtro de ingesta que ya tenía.
+  - **Verificado:** pruebas de la función con textos largos y con ingesta; Gemini real para manteca de karité (18 palabras) y aceite de rosa mosqueta (15); reinicio de `agente-pro`.
+- **Archivos Modificados:** `app/services/documento_cientifico.py`, `docs/team-recaps.md`
+
+### 2026-10-05 - Vitamina C 30 mL: encabezado técnico centrado y un solo timbre
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Studio → etiqueta 30 mL)
+- **Qué se implementó:**
+  - En edición, «TDS - COA - SDS» (un input al 94 % dentro de una casilla al 100 %) quedaba pegado a la izquierda, ~10 px corrido de «Información técnica», «Disponible en» y la web. `.e30-info-docs` lleva `margin-inline: auto`; en vista ya estaba centrado. Aplica a todas las etiquetas 30 mL.
+  - VITAMINA C 30% 30mL (`d2bc4f11f77f`) tenía dos timbres: se puso `sinTimbreCentro: true` solo en esa etiqueta (su plantilla de Vitaminas 30 mL la comparten Vitamina E, Retinol 5 % y D-Pantenol, que no se tocaron).
+  - **Verificado:** arnés temporal (ya retirado) con la ficha real: las cuatro líneas del encabezado a 896,8 px = centro de la columna, en vista y edición; captura con un solo timbre; `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/etiqueta30ml.css`, `app/data/etiquetas_fichas.json` (dato), `docs/team-recaps.md`
+
+### 2026-10-05 - Editor de etiquetas: la etiqueta ya no parpadea al autoguardar
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Studio → editor de etiquetas)
+- **Qué se implementó:**
+  - Queja: las plantillas de Activos Cosméticos (y antes Vitamina C 30 mL) parpadeaban en el editor. Causa: la barra de herramientas es `flex-wrap` y tres piezas cambiaban de ancho con el autoguardado (texto «Sin guardar…/Guardando…/✓ Guardado h:mm», botón «Guardar borrador»→«Guardando…» −30 px, «Siguiente →»→«Guardando…»). En anchos de ventana cerca del límite (p. ej. 1440-1520 px) la barra saltaba entre una y dos líneas (30↔64 px) en cada guardado; la mesa cambiaba de alto y la etiqueta se movía/re-escalaba.
+  - El texto de estado va a ancho fijo (`w-36`, truncado con title) y los dos botones usan `RotuloEstable` (todas las variantes apiladas en una celda `inline-grid`, solo la actual visible).
+  - **Verificado:** arnés temporal (ya retirado) con el editor completo, GET reales y escrituras interceptadas: antes la barra alternaba 30/64 px a 1440 y 1500 px; después, un solo estado en 1280-1920 px con ÁCIDO GLICÓLICO, la plantilla de Activos 30 mL y Vitamina C. `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Grupos de trabajo en el chat del equipo
+- Canales con `modulo` (Documentos técnicos, Fórmulas, Solicitudes de pago, Compras en el exterior, Guías de envío): `app/services/canales_vinculos.py`.
+- Mensajes con `ref` {modulo,id,titulo,detalle}: botón 🔗 en el hilo, chip que abre el módulo; `GET /api/canales/vinculos` respeta permisos del panel.
+- Grupos: Inventario y llegadas → COA y fichas técnicas; Compras USA y China → Compras en el exterior; nuevos Fórmulas, Solicitudes de pago, Guías y envíos.
+
+## 2026-10-05 — «Mensajes» = Solicitudes + Grupos
+- Se quitó la pestaña «Equipo» de la Agenda: «Mensajes» trae el selector Solicitudes | Grupos (`MensajesConGrupos`, `SelectorMensajes`), en escritorio (TicketsPanel) y móvil (MobileHub). El panel `chat-equipo` sigue existiendo (campana, burbuja) con el mismo selector.
+- Burbuja flotante (`SolicitudesEnProcesoFab`): pestañas Solicitudes | Grupos; los grupos se escriben ahí (`HiloCanal compacto`); el contador suma ambos.
+
+## 2026-10-05 — Fórmulas: «Leer de pantallazo»
+- Botón «📷 Leer de pantallazo» en el paso 1 del editor de fórmulas: se pega (Ctrl+V), arrastra o elige una captura; se ve «cantidad en la captura → %» y «Usar estos porcentajes» reemplaza los ingredientes (pide confirmar si ya había). Si la captura traía cantidades, la calculadora queda en ese total.
+- `POST /api/formulas/leer-captura` → `app/services/formulas_captura.py`: Gemini Vision (`_gemini_vision`, 80 s, contexto `formulas_captura`) solo transcribe; Python calcula el % (kg/mg/L/oz/gotas a g o mL, g y mL 1:1 con aviso, fila TOTAL ignorada, redondeo que suma exactamente 100). Si solo hay %, se normalizan a 100.
+- **Verificado:** captura sintética de 5 ingredientes (1000 g) → 70/15/5/8/2 % por la ruta real; `npm run build`.
+- **Archivos Modificados:** `app/services/formulas_captura.py`, `app/routes_formulas.py`, `desktop/src/components/formulas/FormulasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Solicitudes dentro de cada grupo
+- Tabla `canal_solicitudes` (tickets.db): solicitud ↔ grupo, mensaje de origen y fecha límite (tickets no tiene vencimiento).
+- `GET/POST /api/canales/<id>/solicitudes`; Compras en el exterior muestra también las de categoría importaciones.
+- `SolicitudesDelGrupo.tsx` arriba del hilo: abiertas con tipo/responsable/estado/vence y «Ver →»; «Solicitar a…» (cabecera y bloque) y «→ tarea» piden persona, tipo (Pago, Compra, Publicación, Etiqueta, Documento técnico, Fórmula, Envío, Otra; propuesto por el grupo, `canales_vinculos.TIPOS_SOLICITUD` → categoría de tickets) y enlace al detalle (ref); crean con POST /api/tickets/ y la dejan en el grupo con aviso de sistema. Reemplaza «Reportar incidente».
+- Avisos de mensajes (`canales_avisos.py`): Web Push tipo «chat-mensaje» a los demás del grupo (1 cada 2 min por grupo, silencio 22-07; nunca WhatsApp); `GET /api/canales/novedades`, `POST /api/canales/push`; `sw-alarm.js` lo muestra si la app no está a la vista; `useAvisosMensajes` (tarjeta + sonido) y «🔔 Activar avisos» en Grupos.
+
+## 2026-10-05 — Fórmulas: código de Alegra escrito a mano queda enlazado
+- Si en un ingrediente se escribía el código (p. ej. `AGUDESmL`) sin elegirlo de la lista, se guardaba como texto libre sin código. `formulas_db._enlazar_alegra` lo enlaza al guardar cuando coincide exacto con la referencia o el nombre en la copia local de Alegra (sin combos).
+- Se corrigieron las fórmulas guardadas: ÁCIDO LÁCTICO 85 % y VIOLETA DE GENCIANA ya apuntan a AGUA DESTILADA mL (`AGUDESmL`).
+- **Archivos Modificados:** `app/services/formulas_db.py`, `docs/team-recaps.md`
+
+## 2026-10-05 — Fórmulas: la lista de materias primas ya no se recorta
+- La tabla de ingredientes estaba dentro de `overflow-x-auto`, que recortaba la lista de sugerencias de la última fila (al crear una fórmula no aparecía AGUA DESTILADA). Se quitó el overflow.
+- Al salir de la casilla, si el texto es exacto a un código o nombre de la lista (p. ej. `AGUDESmL`), queda enlazado sin hacer clic.
+- **Verificado:** arnés temporal (ya retirado), captura con «agua» → AGUA DESTILADA GL / mL / AGUA ROSAS visibles; `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/formulas/FormulasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Grupos: notas de voz en el chat
+- Botón 🎤 en el hilo de un grupo (`GrabadorVoz.tsx`): graba con MediaRecorder (WebM/Opus en Chrome y Android, M4A en Safari/iPhone), muestra el tiempo, ✕ descarta y «Enviar 🎤» la manda sola; máximo 10 min. La app Android ya concedía el micrófono (`onPermissionRequest`).
+- Las burbujas reproducen el audio con `<audio controls>`, también los audios que llegan del grupo de WhatsApp enlazado.
+- Servidor: `_EXT_ADJUNTO` admite webm, ogg, oga, opus, mp3, m4a, aac, wav; el aviso push dice «🎤 Nota de voz».
+- **Verificado:** `npm run build`; import de Python; reinicio de `agente-pro`.
+- **Archivos Modificados:** `desktop/src/components/chat_equipo/GrabadorVoz.tsx`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `app/routes_canales.py`, `app/services/canales_internos.py`, `docs/team-recaps.md`
+
+## 2026-10-05 — Solicitudes: notas de voz en el chat de la solicitud
+- El 🎤 también va en el hilo de una solicitud (`HiloConversacion.tsx`, la vista que se abre en el celular desde Mensajes → Solicitudes), reusando `GrabadorVoz` (nuevo prop `className`). Los audios se reproducen en la burbuja.
+- `routes_tickets._ALLOWED` admite webm, ogg, oga, opus, mp3, m4a, aac, wav.
+- **Verificado:** `npm run build`; import de Python; reinicio de `agente-pro`.
+- **Archivos Modificados:** `desktop/src/components/tickets/HiloConversacion.tsx`, `desktop/src/components/chat_equipo/GrabadorVoz.tsx`, `app/routes_tickets.py`, `docs/team-recaps.md`
+
+## 2026-10-05 — Chats: barra de escritura al estilo WhatsApp
+- `BarraEscritura.tsx` (nuevo, en `chat_equipo/`): caja redondeada ancha con 🔗 📎 📷 adentro a la derecha (📷 se esconde al escribir) y un botón redondo afuera que es 🎤 con la caja vacía y ➤ cuando hay texto, foto, archivo o vínculo. Al grabar, la barra pasa a «🗑 ● 0:12 Grabando… ➤».
+- La usan el chat de Grupos (`HiloCanal.tsx`) y el chat de la solicitud (`HiloConversacion.tsx`, que gana 📷 para fotos del chat). La textarea lleva `mck-field-lg` para escapar del `#root textarea` global.
+- **Verificado:** `npm run build`; captura a 390 px con arnés temporal (ya retirado): caja vacía y con texto.
+- **Archivos Modificados:** `desktop/src/components/chat_equipo/BarraEscritura.tsx`, `desktop/src/components/chat_equipo/GrabadorVoz.tsx`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `desktop/src/components/tickets/HiloConversacion.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Burbuja del chat: siempre grande, botón minimizar y barra WhatsApp
+- `SolicitudesEnProcesoFab.tsx`: la burbuja abre siempre al tamaño máximo (todo el alto libre sobre la bolita, hasta 42×52 rem; en el celular sobre la barra de abajo). Se quitó agrandar/achicar (`mck_fab_chat_grande`).
+- Botón «—» minimiza y conserva la conversación abierta; ✕ cierra y vuelve a la lista.
+- El mini chat de la solicitud usa `BarraEscritura` (📎 📷 🎤/➤) y reproduce audios; «Abrir completo →» queda encima de la barra.
+- **Verificado:** `npx tsc --noEmit` sin errores en estos archivos; `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Avisos personales al abrir la app (comunicado a Stella y Victor)
+- `app/services/avisos_personales.py` + `app/routes_avisos_personales.py`: comunicado para una persona que sale una sola vez al entrar. `GET /api/avisos-personales/pendientes` y `POST /api/avisos-personales/<id>/visto` (sesión de tickets, cada quien solo los suyos). Datos en `app/data/avisos_personales.json` (sin cifras de salario). Se crean con `avisos_personales.crear(usuario_id, titulo, mensaje, firma)`.
+- `AvisoPersonal.tsx` (en `nav/`): ventana con «Entendido, ¡gracias!»; montada en `App.tsx` para escritorio y MobileHub.
+- Primer uso: agradecimiento y ajuste de salario a Stella (id 9) y Victor (id 7).
+- **Verificado:** `npm run build`; reinicio de agente-pro; la ruta responde 401 sin sesión; los dos avisos creados.
+- **Archivos Modificados:** `app/services/avisos_personales.py`, `app/routes_avisos_personales.py`, `agente_pro.py`, `desktop/src/components/nav/AvisoPersonal.tsx`, `desktop/src/App.tsx`, `app/data/avisos_personales.json`, `docs/team-recaps.md`
+
+## 2026-10-05 — Documento técnico: las etiquetas enlazadas a la ficha antigua toman la versión nueva
+- Problema: al generar el documento FT+COA+SDS se escribe `ft_coa_sds_<producto>.yaml`, pero 35 etiquetas seguían enlazadas a la ficha antigua de solo TDS (`elastina`, `sci`, `urea`…). La propagación solo alcanzaba `[slug, borrador_slug]`: esas etiquetas y el formulario que se abre desde ellas se quedaban con la versión vieja.
+- `FichasTecnicasPanel.tsx` (`handleGenerar`): la propagación incluye también la ficha antigua (`ft_coa_sds_` quitado); `sincronizar_etiquetas_con_ficha_tecnica` ya las re-enlaza al documento vigente.
+- Pasada única: 23 documentos, 32 etiquetas re-enlazadas y actualizadas (fotos con `patchDesdeDatos`/`fotoFicha` compilados con esbuild); las 3 plantillas de categoría se saltan. Respaldo `/tmp/etiquetas_fichas.antes_relink_ft_antigua_2233.json`.
+- **Verificado:** `npm run build`; ELASTINA HIDROLIZADA 30mL enlaza ahora `ft_coa_sds_elastina` con el modo de uso nuevo.
+- **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-05 — Fórmulas: combos C-FOR en Alegra y SKU de Alegra en cada fórmula
+- En Alegra se crearon con `alegra.crear_combo_en_alegra` los combos de las fórmulas consolidadas, igual que el ejemplo `C-FOR-ACIHIAALTPESmL`: «FORMULA … mL», IVA, precio 0, cantidad = % ÷ 100 por 1 mL (ids 809–817 y 821: ACILAC85P, AZUMET, VIOGEN, VERMAL, ACIGLI50P, ACIHIABAJPES, ACIKOJ, ACIKOJPAL, EXTALOVER, JABPOT).
+- `formulas_db`: campo `sku_alegra` (ítem activo de la copia local; uno por fórmula; sin la clave en el cuerpo se conserva). `listar` agrega `sku_alegra_nombre`. Nueva ruta `GET /api/formulas/combos?q=` (solo combos).
+- `FormulasPanel.tsx`: «SKU en Alegra» bajo el nombre (buscador de combos / chip con «Quitar»); la lista muestra el SKU o «Sin SKU de Alegra».
+- Las 12 fórmulas quedaron asociadas (Vitamina C suspensión → `FOR-VITC30mL`). Respaldo `/tmp/formulas.antes_sku.json`.
+- **Verificado:** `npm run build`; reinicio de agente-pro; `/api/formulas/combos` responde con token; rechaza SKU repetido o inexistente.
+- **Archivos Modificados:** `app/services/formulas_db.py`, `app/routes_formulas.py`, `desktop/src/components/formulas/FormulasPanel.tsx`, `app/data/formulas.json`, `docs/team-recaps.md`
+
+## 2026-10-05 — Documentos técnicos enlazados a los combos de fórmula (C-FOR)
+- `mapa_producto.fijar_sku_documento`: `referencia` = combo C-FOR en azul de metileno, violeta de genciana, verde malaquita, hialurónico alto peso (borrador), kójico, kójico D palmitato (borrador), aloe vera (`ft_coa_sds_`), glicólico (borrador), láctico y jabón potásico. Hialurónico bajo peso conserva `FOR-ACIHIABAJPESmL` y agrega `C-FOR-ACIHIABAJPESmL` en `referencias_equivalentes` (lo usa el combo de 30 mL). Vitamina C ya estaba (`FOR-VITC30mL`).
+- **Verificado:** foto del mapa antes/después: solo cambiaron combos C-FOR (6 que estaban unidos por parecido a agua destilada, salicílico o kójico); ningún combo de 30 mL cambió de documento. Los 12 combos de fórmula quedan «unido por SKU».
+- **Archivos Modificados:** 11 YAML en `fichas_word/datos/` (fuera de git; respaldos de `fijar_sku_documento`), `docs/team-recaps.md`
+
+## 2026-10-05 — Documentos técnicos ajustados a las fórmulas C-FOR (las fórmulas mandan)
+- Regla del usuario: los combos C-FOR son la composición definitiva; el documento se corrige aunque dijera otra cosa.
+- Azul de metileno y verde malaquita 1 % → 0,1 %; violeta de genciana 5 %/95 % → 0,1 %/99,9 %; ácido kójico 5 % → 1 % (descripción, recomendaciones, estabilidad); fila COMPONENTES con los % de la fórmula (también en jabón potásico).
+- Hialurónico alto y bajo peso (borradores): `composicion` y `_sds.composicion` con los % de la fórmula; alto peso «al 2 %». Aloe vera (publicado): 90 % → 80 % y composición 80 % extracto + 20 % solución de hialurónico.
+- Sin cambiar, pendientes de decisión: ácido láctico 85 % y glicólico 50 % (la fórmula usa la materia prima al 25 % / 60 %; falta la pureza de esa materia prima) y kójico D palmitato (la fórmula usa ácido kójico en polvo, el documento describe el dipalmitato).
+- Respaldos en `fichas_word/datos/_respaldo_edicion/`; rastro en `_ediciones`. No se regeneraron PDF ni etiquetas.
+
+## 2026-10-06 — «Canales del producto» fuera del menú
+- Pedido del usuario: el apartado se puede eliminar. Sale de `NAV_SECTIONS` (la sección Publicaciones queda solo con Vitrina web), del mapa (`flujoApp.ts`) y del enrutado de tickets (`flujoTickets.ts` → `vitrina-web`); el panel guardado `canales-producto`/`publicaciones` migra a `vitrina-web` (`stores/app.ts`).
+- Árbol del producto: sin botón «Ver en Canales del producto»; la fila Factura ya no salta a ese panel.
+- El componente `canales_producto/` y `/api/canales-producto/*` siguen en el código (sin entrada en el menú).
+- **Verificado:** `npm run build` (tsc + vite) limpio.
+- **Archivos Modificados:** `desktop/src/lib/{navStructure,flujoApp,flujoTickets,hubNav,permisosCatalogo}.ts`, `desktop/src/stores/app.ts`, `desktop/src/components/plantillas-visuales/arbol/ArbolProductoPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-06 — Etiqueta 30 mL: «Modo de uso» también con pictograma GHS
+- Pedido del usuario: el Ácido Glicólico 30 mL (GHS07) no mostraba el modo de uso; un producto peligroso quedaba forzado a «Clasificación» y, con ese texto vacío, el bloque salía en blanco.
+- Ahora el menú del título (Clasificación / Modo de uso / Sugerencia) sale con o sin pictograma; sin título elegido sigue siendo «Clasificación».
+- Datos: `sinTimbreCentro: true` en las etiquetas D PANTENOL 50 mL y SHAROMIX 705 50mL (sin tocar sus plantillas).
+- **Verificado:** `npm run build` (tsc + vite) limpio.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/{etiqueta30mlTypes.ts,RightDocumentationPanel.tsx}`, `docs/team-recaps.md`
+
+## 2026-10-06 — Plantillas por categoría: etiquetas en tarjetas con miniatura
+- Pedido del usuario: la lista de nombres en columnas no era cómoda. Ahora cada etiqueta es una tarjeta (miniatura del PNG aprobado, nombre, estado y tamaño), siguen los grupos «Por aprobar» / «Aprobadas»; las por aprobar llevan borde ámbar y «Sin PNG aprobado». La × de eliminar aparece al pasar el mouse.
+- `GET /api/etiquetas/recursos-png/archivo/<nombre>?ancho=N` (80–800): copia reducida cacheada en el temporal (clave con mtime, re-aprobar la renueva). 650 KB → 31 KB por tarjeta. Las tarjetas la piden solo al entrar en pantalla.
+- **Verificado:** `npm run build` limpio; ruta probada en localhost:8080 tras reiniciar `agente-pro`.
+- **Archivos Modificados:** `app/routes.py`, `desktop/src/components/plantillas-visuales/StudioCategoriasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-06 — COA del grupo «COA y fichas técnicas» → documentos técnicos; borradores en la Biblioteca
+- Pedido del usuario: aplicar los 36 certificados que subió Jenniffer al grupo. 21 documentos actualizados (lote, fechas, proveedor, resultados; PDF regenerado y lote registrado para Imprimir), propagados a etiquetas (origen, y Tego Betaína reescrita y re-enlazada al documento completo).
+- Fusionados: goma xanthana/xanthan → goma xantana; glicerina → glicerina vegetal; L-arginina → L-arginina base; proteína de suero (2) → proteína concentrada de suero de leche. Retirados a `backups_manual/fichas_retiradas_2026-10-06/`.
+- 5 materias primas nuevas como borrador (SDS sugerida, falta visto bueno de Calidad): gluconato de calcio, ácido giberélico, goma de algarrobo, aceite de pescado omega 3, péptidos de colágeno de pescado.
+- La Biblioteca solo listaba PDF: ahora muestra arriba los borradores pendientes con «Revisar»; se quitó el tope de 8 en «Borradores guardados».
+- **Verificado:** `npm run build` limpio; vista previa de los borradores generada.
+- **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `fichas_word/datos/*` (datos), `docs/team-recaps.md`
+
+## 2026-10-06 — Plantillas por categoría: carpeta «Borradores»
+- Pedido del usuario: las etiquetas por aprobar van dentro de una carpeta plegable «📁 Borradores · N», después de las aprobadas, tanto en el detalle (tarjetas) como en el árbol lateral. Plegada por defecto; se abre sola al buscar, y en el árbol también si contiene la etiqueta abierta en el editor. Solo vista: no se crean archivos.
+- **Verificado:** `npm run build` (tsc + vite) limpio.
+- **Archivos Modificados:** `desktop/src/components/plantillas-visuales/StudioCategoriasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-06 — Eliminar borradores de documentos técnicos
+- Pedido del usuario: poder eliminar borradores. Botón «Eliminar» (confirmación en la fila) en la Biblioteca y en «Borradores guardados».
+- `DELETE /api/fichas/borradores/<slug>` → `eliminar_borrador_completo`: solo `borrador_ft_coa_sds_*`; no borra, mueve a `fichas_word/_borradores_eliminados/` con fecha; se niega si hay etiquetas enlazadas al borrador.
+- **Verificado:** `npm run build` limpio; `agente-pro` reiniciado; ruta responde 401 sin token; prueba con una copia (se movió y salió de la lista; un documento final no se puede borrar por esta vía).
+- **Archivos Modificados:** `app/routes.py`, `app/services/ficha_tecnica.py`, `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`

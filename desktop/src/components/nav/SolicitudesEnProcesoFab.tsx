@@ -13,6 +13,16 @@ import {
 } from "../tickets/ticketsFormat";
 import { ticketsUploadUrl } from "../../lib/profilePhoto";
 import { Icon } from "../../icons";
+import { useCanalesEquipo, useResumenMensajes } from "../../hooks/useCanalesEquipo";
+import HiloCanal from "../chat_equipo/HiloCanal";
+import BarraEscritura, { BotonCaja, IconoCamara, IconoClip } from "../chat_equipo/BarraEscritura";
+import { guardarVistaMensajes } from "../chat_equipo/SelectorMensajes";
+import { useAvisosMensajes, type AvisoMensaje } from "../../hooks/useAvisosMensajes";
+import "../chat_equipo/chatEquipo.css";
+import { colorDePersona } from "../../lib/personaColor";
+import { useBandeja, useBandejaAngosta } from "../../lib/bandeja";
+import { esSolicitudDePago, irASolicitudPago } from "../../lib/irAPago";
+import { abrirCanalEnBandeja } from "../tickets/BandejaUnificada";
 
 /**
  * Burbuja de chat global (portal a body, mismo patrón que CrearSiigoFab): mensajería
@@ -26,7 +36,27 @@ import { Icon } from "../../icons";
  * está a la vista.
  */
 
-const CLAVE_GRANDE = "mck_fab_chat_grande";
+const CLAVE_VISTA = "mck_fab_chat_vista";
+
+/** Dos conversaciones en la misma burbuja: las de las solicitudes y los grupos de trabajo (pestaña «Equipo»). */
+type VistaFab = "solicitudes" | "grupos";
+
+function leerVista(): VistaFab {
+  try {
+    return localStorage.getItem(CLAVE_VISTA) === "grupos" ? "grupos" : "solicitudes";
+  } catch {
+    return "solicitudes";
+  }
+}
+
+/** Los canales traen segundos Unix (no la fecha del servidor de las solicitudes). */
+function haceSeg(ts: number): string {
+  const s = Date.now() / 1000 - ts;
+  if (s < 60) return "recién";
+  if (s < 3600) return `${Math.round(s / 60)} min`;
+  if (s < 86400) return `${Math.round(s / 3600)} h`;
+  return `${Math.round(s / 86400)} d`;
+}
 
 type ItemChat =
   | { kind: "mensaje"; id: string; ts: string; ev: TimelineEvento }
@@ -40,34 +70,56 @@ function esImagen(a: Adjunto) {
   return Boolean(a.mime?.startsWith("image/")) || /\.(jpe?g|png|gif|webp|heic)$/i.test(a.nombre_original);
 }
 
-function leerGrande(): boolean {
-  try {
-    return localStorage.getItem(CLAVE_GRANDE) === "1";
-  } catch {
-    return false;
-  }
+function esAudio(a: Adjunto) {
+  return Boolean(a.mime?.startsWith("audio/")) || /\.(webm|ogg|oga|opus|mp3|m4a|aac|wav)$/i.test(a.nombre_original);
 }
 
-export default function SolicitudesEnProcesoFab() {
+/** `soloAvisos`: sin la bolita, solo las tarjetas con sonido (pantallas del celular fuera del
+ *  Layout, como Mensajes en MobileHub). Tocar el aviso de un grupo lo abre en la bandeja. */
+export default function SolicitudesEnProcesoFab({ soloAvisos = false }: { soloAvisos?: boolean } = {}) {
   const [abierta, setAbierta] = useState(false);
   const [chatId, setChatId] = useState<number | null>(null);
   const [nuevo, setNuevo] = useState(false);
   const [soloSinLeer, setSoloSinLeer] = useState(false);
   // La solicitud recién creada tarda un refresco en llegar a la lista: mientras, se usa esta.
   const [recien, setRecien] = useState<Conversacion | null>(null);
-  const [grande, setGrande] = useState(leerGrande);
+  const [vista, setVistaState] = useState<VistaFab>(leerVista);
+  const [canalId, setCanalId] = useState<number | null>(null);
 
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
   const setCentroMandoView = useAppStore((s) => s.setCentroMandoView);
   const setSolicitudBoot = useAppStore((s) => s.setSolicitudBoot);
   const user = useTicketsAuth((s) => s.user);
+  const resumenGrupos = useResumenMensajes(Boolean(user));
+  const noLeidosGrupos = resumenGrupos.data?.canales_no_leidos ?? 0;
+  const grupos = useCanalesEquipo(Boolean(user) && abierta && vista === "grupos");
+  const listaGrupos = grupos.data?.canales ?? [];
+  const canal = canalId != null ? listaGrupos.find((c) => c.id === canalId) ?? null : null;
+  // Mensajes nuevos de los grupos: tarjeta con sonido (app a la vista) y push (app cerrada).
+  const { aviso, cerrarAviso, permiso, activarAvisos } = useAvisosMensajes(
+    Boolean(user), abierta && vista === "grupos" ? canalId : null,
+  );
+
+  function setVista(v: VistaFab) {
+    setVistaState(v);
+    setCanalId(null);
+    try {
+      localStorage.setItem(CLAVE_VISTA, v);
+    } catch {
+      /* sin localStorage: solo esta vez */
+    }
+  }
 
   const { data: conversaciones = [] } = useConversaciones("todas", "mias");
   const enProceso = conversaciones
     .filter((c) => c.estado === "pendiente" || c.estado === "en_proceso" || c.estado === "esperando_aprobacion")
     .sort((a, b) => b.ultima_actividad.localeCompare(a.ultima_actividad));
   const noLeidos = enProceso.reduce((n, c) => n + (c.no_leidos || 0), 0);
+  // El número de la bolita es el mismo de la barra de abajo y de la bandeja: lo que te toca +
+  // lo que tiene algo nuevo (lib/bandeja.ts). En pantalla angosta tocarla lleva a la bandeja.
+  const porAtender = useBandeja().porAtender;
+  const angosta = useBandejaAngosta();
   const visibles = soloSinLeer ? enProceso.filter((c) => c.no_leidos > 0) : enProceso;
   const chat = chatId != null
     ? enProceso.find((c) => c.id === chatId) ?? (recien?.id === chatId ? recien : null)
@@ -77,15 +129,18 @@ export default function SolicitudesEnProcesoFab() {
     if (!abierta) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (chatId != null) setChatId(null);
+      if (canalId != null) setCanalId(null);
+      else if (chatId != null) setChatId(null);
       else if (nuevo) setNuevo(false);
       else setAbierta(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [abierta, chatId, nuevo]);
+  }, [abierta, chatId, nuevo, canalId]);
 
   function abrirChat(c: Conversacion) {
+    // «Aprobar pago — …» se aprueba en Solicitudes de pago, no en el chat de la solicitud.
+    if (esSolicitudDePago(c)) { setAbierta(false); irASolicitudPago(c.pago_id); return; }
     setNuevo(false);
     setChatId(c.id);
   }
@@ -95,24 +150,89 @@ export default function SolicitudesEnProcesoFab() {
     if (chatId != null && !chat) setChatId(null);
   }, [chatId, chat]);
 
-  function cambiarTamano() {
-    setGrande((v) => {
-      try {
-        localStorage.setItem(CLAVE_GRANDE, v ? "0" : "1");
-      } catch {
-        /* sin localStorage: solo esta vez */
-      }
-      return !v;
-    });
+  // ✕ cierra y deja la burbuja en la lista; «—» solo la minimiza y conserva la conversación abierta.
+  function cerrar() {
+    setAbierta(false);
+    setChatId(null);
+    setCanalId(null);
+    setNuevo(false);
   }
 
   // Siempre visible (sirve para empezar un chat), salvo sin sesión o dentro del Centro de Mando.
-  const enCentroMando = panel === "hugo" || panel === "tickets";
+  // En el chat del equipo tampoco: la bolita tapaba el botón de enviar (el aviso sí sale).
+  const enCentroMando = panel === "hugo" || panel === "tickets" || panel === "chat-equipo";
   useEffect(() => {
     if (enCentroMando) setAbierta(false);
   }, [enCentroMando]);
-  if (!user || enCentroMando) return null;
+  if (!user) return null;
   if (typeof document === "undefined") return null;
+
+  /** Tocar el aviso abre ese grupo: en la burbuja o, dentro de la Agenda, en Mensajes → Grupos. */
+  function abrirAviso(a: AvisoMensaje) {
+    cerrarAviso();
+    if (soloAvisos) {
+      const st = useAppStore.getState();
+      st.setMobileTab("mensajes");
+      if (a.tipo === "solicitud") st.setSolicitudBoot({ abrirTicketId: a.id });
+      else window.setTimeout(() => abrirCanalEnBandeja(a.canal_id), 250);
+      return;
+    }
+    if (a.tipo === "solicitud") {
+      setCentroMandoView("mensajes");
+      setSolicitudBoot({ abrirTicketId: a.id });
+      setPanel("hugo");
+      setAbierta(false);
+      return;
+    }
+    if (enCentroMando) {
+      guardarVistaMensajes("grupos");
+      try {
+        sessionStorage.setItem("mck-chat-equipo-canal", String(a.canal_id));
+      } catch {
+        /* sin almacenamiento */
+      }
+      setPanel("chat-equipo");
+      return;
+    }
+    setVista("grupos");
+    setCanalId(a.canal_id);
+    setAbierta(true);
+  }
+
+  const esSolicitud = aviso?.tipo === "solicitud";
+  const tarjetaAviso = aviso && (
+    <div className={`mck-aviso-entra pointer-events-auto flex w-[min(calc(100vw-1.5rem),22rem)] items-start gap-2.5 rounded-paper-lg border-2 bg-surface-panel p-3 shadow-paper-lg ${
+      esSolicitud ? "border-amber-400" : "border-accent/60"}`}
+      role="status" aria-live="polite">
+      <button type="button" onClick={() => abrirAviso(aviso)} className="mck-btn-no-fx flex min-w-0 flex-1 items-start gap-2.5 text-left">
+        <span className="relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-black text-white"
+          style={{ background: colorDePersona(aviso.autor_nombre) }}>
+          {iniciales(aviso.autor_nombre)}
+          {aviso.icono && <span className="absolute -bottom-1 -right-1 text-[15px] leading-none" aria-hidden>{aviso.icono}</span>}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11px] font-bold uppercase tracking-wide text-muted">
+            {esSolicitud ? `Te pidió algo · ${aviso.canal_nombre}` : aviso.mencion ? `@ Te mencionó · ${aviso.canal_nombre}` : aviso.canal_nombre}
+          </span>
+          <span className="block truncate text-[14px] font-bold text-ink">{aviso.autor_nombre}</span>
+          <span className="line-clamp-2 block text-[13.5px] leading-snug text-ink-secondary">{aviso.texto}</span>
+        </span>
+      </button>
+      <button type="button" onClick={cerrarAviso} className="mck-btn-no-fx px-1 text-[14px] text-muted hover:text-ink" aria-label="Cerrar aviso">✕</button>
+    </div>
+  );
+
+  // Dentro de la Agenda la burbuja se oculta (el inbox ya está a la vista), pero el aviso sí sale.
+  if (enCentroMando || soloAvisos) {
+    if (!tarjetaAviso) return null;
+    return createPortal(
+      <div className="pointer-events-none fixed bottom-5 right-5 z-[900] max-md:bottom-[5.5rem] sm:bottom-6 sm:right-6"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        {tarjetaAviso}
+      </div>,
+      document.body,
+    );
+  }
 
   function irA(c?: Conversacion) {
     setCentroMandoView("mensajes");
@@ -126,18 +246,37 @@ export default function SolicitudesEnProcesoFab() {
       className="pointer-events-none fixed bottom-5 right-5 z-[900] flex flex-col items-end gap-3 max-md:bottom-[5.5rem] sm:bottom-6 sm:right-6"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
+      {!(abierta && vista === "grupos" && canalId === aviso?.canal_id) && tarjetaAviso}
       {abierta && (
         <div
-          className={`pointer-events-auto flex flex-col overflow-hidden rounded-paper-lg border-2 border-accent/50 bg-surface-panel shadow-paper-lg ${
-            grande
-              ? "h-[min(82vh,46rem)] w-[min(calc(100vw-1.5rem),38rem)]"
-              : "h-[min(70vh,32rem)] w-[min(calc(100vw-1.5rem),22rem)]"
-          }`}
+          // Siempre al tamaño máximo: todo el alto libre sobre la bolita (en el celular, sobre la barra de abajo).
+          className="pointer-events-auto flex h-[min(calc(100dvh-7rem),52rem)] w-[min(calc(100vw-1.5rem),42rem)] flex-col overflow-hidden rounded-paper-lg border-2 border-accent/50 bg-surface-panel shadow-paper-lg max-md:h-[calc(100dvh-10.5rem)]"
           role="dialog"
           aria-label="Chat del equipo"
         >
           <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-accent/10 px-2 py-1.5">
-            {chat ? (
+            {vista === "grupos" && canal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setCanalId(null)}
+                  className="rounded-lg px-1.5 py-0.5 text-lg font-black leading-none text-accent hover:bg-surface-hover"
+                  title="Volver a los grupos"
+                  aria-label="Volver a los grupos"
+                >
+                  ‹
+                </button>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[11px] font-black text-accent">
+                  {canal.nombre.slice(0, 1).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-bold text-ink">{canal.nombre}</p>
+                  <p className="truncate text-[10px] text-muted">
+                    {canal.descripcion || (canal.miembros.length ? `${canal.miembros.length} miembros` : "Todo el equipo")}
+                  </p>
+                </div>
+              </>
+            ) : vista === "solicitudes" && chat ? (
               <>
                 <button
                   type="button"
@@ -158,7 +297,7 @@ export default function SolicitudesEnProcesoFab() {
                   </p>
                 </div>
               </>
-            ) : nuevo ? (
+            ) : vista === "solicitudes" && nuevo ? (
               <>
                 <button
                   type="button"
@@ -174,33 +313,115 @@ export default function SolicitudesEnProcesoFab() {
                 </span>
               </>
             ) : (
-              <div className="flex min-w-0 flex-1 items-center gap-1.5 px-1 text-accent">
-                <Icon name="chat" size={15} weight="bold" />
-                <span className="text-[11px] font-extrabold uppercase tracking-wide">
-                  Chats ({enProceso.length})
-                </span>
+              <div className="flex min-w-0 flex-1 items-center gap-1 px-0.5" role="tablist" aria-label="Tipo de chat">
+                {([
+                  ["solicitudes", `Solicitudes (${enProceso.length})`, noLeidos],
+                  ["grupos", "Grupos", noLeidosGrupos],
+                ] as const).map(([v, texto, n]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    role="tab"
+                    aria-selected={vista === v}
+                    onClick={() => setVista(v)}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide transition ${
+                      vista === v ? "bg-accent text-white" : "text-accent hover:bg-accent/10"
+                    }`}
+                  >
+                    {texto}
+                    {n > 0 && (
+                      <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-500 px-1 text-[9.5px] text-white">
+                        {n > 99 ? "99+" : n}
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
             )}
             <button
               type="button"
-              onClick={cambiarTamano}
-              className="rounded-lg p-1 text-muted hover:bg-surface-hover hover:text-ink"
-              title={grande ? "Achicar" : "Agrandar"}
-              aria-label={grande ? "Achicar el chat" : "Agrandar el chat"}
+              onClick={() => setAbierta(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-hover hover:text-ink"
+              title="Minimizar (la conversación queda abierta)"
+              aria-label="Minimizar el chat"
             >
-              <Icon name={grande ? "collapse" : "expand"} size={15} weight="bold" />
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden>
+                <path d="M5 18h14" />
+              </svg>
             </button>
             <button
               type="button"
-              onClick={() => setAbierta(false)}
-              className="rounded-lg px-2 py-0.5 text-sm text-muted hover:bg-surface-hover hover:text-ink"
+              onClick={cerrar}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-muted hover:bg-surface-hover hover:text-ink"
+              title="Cerrar"
               aria-label="Cerrar"
             >
               ✕
             </button>
           </div>
 
-          {chat ? (
+          {vista === "grupos" ? (
+            canal ? (
+              <HiloCanal key={canal.id} canal={canal} compacto />
+            ) : (
+              <>
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  {permiso === "pendiente" && (
+                    <button type="button" onClick={() => void activarAvisos()}
+                      className="mck-btn-no-fx flex w-full items-center gap-2 border-b border-border/40 bg-accent/10 px-3 py-2 text-left text-[12px] font-bold text-accent hover:bg-accent/15">
+                      🔔 Activar avisos de mensajes en este dispositivo
+                    </button>
+                  )}
+                  {permiso === "bloqueado" && (
+                    <p className="border-b border-border/40 px-3 py-2 text-[11px] text-muted">
+                      Los avisos están bloqueados en este navegador. Para recibirlos, permite las notificaciones de bot.mckennagroup.co en la configuración del sitio.
+                    </p>
+                  )}
+                  {grupos.isLoading && <p className="px-4 py-6 text-center text-[12.5px] text-muted">Cargando grupos…</p>}
+                  {!grupos.isLoading && listaGrupos.length === 0 && (
+                    <p className="px-4 py-10 text-center text-[13px] text-muted">Todavía no hay grupos del equipo.</p>
+                  )}
+                  {listaGrupos.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => setCanalId(g.id)}
+                      className="flex w-full items-start gap-2.5 border-b border-border/40 px-3 py-2.5 text-left transition hover:bg-surface-hover"
+                    >
+                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[12px] font-black text-accent">
+                        {g.nombre.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">{g.nombre}</span>
+                          {g.ultimo && <span className="shrink-0 text-[10px] text-muted/70">{haceSeg(g.ultimo.creado_en)}</span>}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          <span className={`min-w-0 flex-1 truncate text-[12px] ${g.no_leidos > 0 ? "font-semibold text-ink" : "text-muted"}`}>
+                            {g.ultimo
+                              ? `${(g.ultimo.autor_nombre || "").split(" ")[0]}: ${g.ultimo.texto || (g.ultimo.adjunto_nombre ? "📎 adjunto" : "🔗 enlace")}`
+                              : g.descripcion || "Sin mensajes todavía"}
+                          </span>
+                          {g.no_leidos > 0 && (
+                            <span className="flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-white">
+                              {g.no_leidos > 99 ? "99+" : g.no_leidos}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { guardarVistaMensajes("grupos"); setPanel("chat-equipo"); setAbierta(false); }}
+                  className="shrink-0 border-t border-border px-3 py-2 text-center text-[12px] font-bold text-accent hover:bg-accent/5"
+                >
+                  Ver todo en Mensajes →
+                </button>
+              </>
+            )
+          ) : chat ? (
             <ChatHilo key={chat.id} conversacion={chat} onAbrirCompleto={() => irA(chat)} />
           ) : nuevo ? (
             <NuevoChat
@@ -303,26 +524,23 @@ export default function SolicitudesEnProcesoFab() {
 
       <button
         type="button"
-        onClick={() => setAbierta((v) => !v)}
+        onClick={() => (angosta && !abierta ? irA() : setAbierta((v) => !v))}
         className={`pointer-events-auto group relative flex h-14 w-14 items-center justify-center rounded-full border-2 shadow-paper-lg transition active:scale-95 ${
           abierta
             ? "border-accent bg-accent text-white"
             : "border-accent/70 bg-surface-panel text-accent hover:border-accent hover:bg-accent hover:text-white"
         }`}
-        title={noLeidos > 0 ? `${noLeidos} mensaje(s) sin leer` : "Chat del equipo"}
+        title={porAtender > 0 ? `${porAtender} por atender` : "Chat del equipo"}
         aria-label={abierta ? "Cerrar chat del equipo" : "Abrir chat del equipo"}
         aria-expanded={abierta}
       >
-        {(noLeidos > 0 || enProceso.length > 0) && (
+        {porAtender > 0 && (
           <span
             className={`absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-black text-white shadow-sm ${
-              noLeidos > 0 ? "bg-emerald-500 animate-pulse" : "bg-accent"
+              noLeidos + noLeidosGrupos > 0 ? "bg-emerald-500 animate-pulse" : "bg-accent"
             }`}
           >
-            {(() => {
-              const n = noLeidos > 0 ? noLeidos : enProceso.length;
-              return n > 99 ? "99+" : n;
-            })()}
+            {porAtender > 99 ? "99+" : porAtender}
           </span>
         )}
         <Icon name="chat" size={24} weight={abierta ? "bold" : "regular"} />
@@ -344,6 +562,7 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
   const [error, setError] = useState("");
   const finRef = useRef<HTMLDivElement>(null);
   const archivoRef = useRef<HTMLInputElement>(null);
+  const fotoRef = useRef<HTMLInputElement>(null);
 
   const items = useMemo<ItemChat[]>(() => {
     const out: ItemChat[] = [];
@@ -377,6 +596,16 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
       setArchivos([]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo enviar");
+    }
+  }
+
+  // La nota de voz sale sola al terminar de grabar; lo escrito se queda en la caja.
+  async function mandarVoz(voz: File) {
+    setError("");
+    try {
+      await enviar.mutateAsync({ ticketId: conversacion.id, texto: "", archivos: [voz] });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo enviar la nota de voz");
     }
   }
 
@@ -423,7 +652,9 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
                 <div className="max-w-[82%] space-y-0.5">
                   {!mio && <p className="px-1 text-[10px] font-bold text-muted">{autor ?? "?"}</p>}
                   {it.kind === "adjunto" ? (
-                    esImagen(it.adjunto) ? (
+                    esAudio(it.adjunto) ? (
+                      <audio src={ticketsUploadUrl(it.adjunto.nombre_archivo, token)} controls preload="metadata" className="h-10 w-60 max-w-full" />
+                    ) : esImagen(it.adjunto) ? (
                       <a href={ticketsUploadUrl(it.adjunto.nombre_archivo, token)} target="_blank" rel="noreferrer"
                         className="block overflow-hidden rounded-2xl border border-border" title="Ver imagen completa">
                         <img src={ticketsUploadUrl(it.adjunto.nombre_archivo, token)} alt={it.adjunto.nombre_original}
@@ -450,7 +681,7 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
         <div ref={finRef} />
       </div>
 
-      <div className="shrink-0 space-y-1.5 border-t border-border/60 bg-surface px-2.5 py-2">
+      <div className="shrink-0 space-y-1.5 border-t border-border/60 bg-surface px-2 py-2">
         {archivos.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {archivos.map((f, i) => (
@@ -464,49 +695,28 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
           </div>
         )}
         {error && <p className="text-[11px] text-red-500">{error}</p>}
-        <span className="block">
-          <textarea
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void mandar();
-              }
-            }}
-            onPaste={(e) => {
-              const imgs = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
-              if (imgs.length) {
-                e.preventDefault();
-                agregarArchivos(imgs);
-              }
-            }}
-            rows={2}
-            maxLength={2000}
-            placeholder="Escribe un mensaje… (Enter envía · Ctrl+V pega una foto)"
-            className="w-full resize-none rounded-xl border-2 border-border bg-surface-panel px-2.5 py-1.5 text-[13px] text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-          />
-        </span>
-        <div className="flex items-center gap-1.5">
-          <button type="button" onClick={() => archivoRef.current?.click()}
-            className="shrink-0 rounded-lg border border-border px-2 py-1 text-muted hover:border-accent hover:text-accent"
-            title="Adjuntar foto o PDF" aria-label="Adjuntar foto o PDF">
-            <Icon name="camera" size={15} />
-          </button>
-          <input ref={archivoRef} type="file" accept="image/*,.pdf,application/pdf" multiple className="sr-only"
-            onChange={(e) => { agregarArchivos(e.target.files); e.target.value = ""; }} />
-          <button type="button" onClick={onAbrirCompleto}
-            className="min-w-0 truncate text-[11px] font-bold text-accent hover:underline"
-            title="Pasos, cronómetro y cerrar la solicitud">
-            Abrir completo →
-          </button>
-          <div className="flex-1" />
-          <button type="button" onClick={() => void mandar()}
-            disabled={enviar.isPending || (!texto.trim() && archivos.length === 0)}
-            className="quest-btn-primary shrink-0 px-4 py-1.5 text-xs font-bold disabled:opacity-40">
-            {enviar.isPending ? "…" : "Enviar"}
-          </button>
-        </div>
+        <button type="button" onClick={onAbrirCompleto}
+          className="mck-btn-no-fx block px-1 text-[11px] font-bold text-accent hover:underline"
+          title="Pasos, cronómetro y cerrar la solicitud">
+          Abrir completo →
+        </button>
+        <input ref={archivoRef} type="file" accept="image/*,.pdf,application/pdf" multiple className="sr-only"
+          onChange={(e) => { agregarArchivos(e.target.files); e.target.value = ""; }} />
+        <input ref={fotoRef} type="file" accept="image/*" capture="environment" className="sr-only"
+          onChange={(e) => { agregarArchivos(e.target.files); e.target.value = ""; }} />
+        <BarraEscritura
+          texto={texto} onTexto={(t) => setTexto(t.slice(0, 2000))} onEnviar={() => void mandar()} onVoz={(f) => void mandarVoz(f)}
+          hayAdjunto={archivos.length > 0} enviando={enviar.isPending} onError={setError}
+          onPaste={(e) => {
+            const imgs = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+            if (imgs.length) {
+              e.preventDefault();
+              agregarArchivos(imgs);
+            }
+          }}
+          iconos={<BotonCaja onClick={() => archivoRef.current?.click()} titulo="Adjuntar foto o PDF"><IconoClip /></BotonCaja>}
+          iconosSinTexto={<BotonCaja onClick={() => fotoRef.current?.click()} titulo="Tomar una foto"><IconoCamara /></BotonCaja>}
+        />
       </div>
     </>
   );

@@ -18,6 +18,22 @@
       "detalle": "Mercado Pago (los bancos de las tarjetas) retiene renta 1,5 %, IVA 15 % e ICA 4,14 ‰ sobre las ventas con tarjeta, y expide certificados mensuales. Están cargados de mayo a septiembre de 2026. Ese valor es a favor de McKenna en el 350/renta, el 300 y el ICA, pero el Libro Mayor todavía no lo registra en 135515 / 135517 / 135518.",
       "pregunta": "¿Cómo los está tomando hoy en las declaraciones? ¿Los causamos mes a mes contra lo que Mercado Pago dejó de girar?",
       "calculo": "certificados_retencion"
+    },
+    {
+      "id": "efectivo-500k",
+      "creado": "2026-10-05",
+      "estado": "abierto",
+      "titulo": "Efectivo al 31-dic-2025: $499.770 que no están en el banco",
+      "detalle": "La renta 2025 declara $34.969.000 de efectivo (renglón 36). El extracto de Bancolombia al 31-dic-2025 cierra en $34.469.229,86. La diferencia es casi exactamente $500.000.",
+      "pregunta": "¿Qué son esos $500.000: caja menor, Mercado Pago, Nequi u otra cuenta?"
+    },
+    {
+      "id": "pasivos-272m",
+      "creado": "2026-10-05",
+      "estado": "abierto",
+      "titulo": "De qué se componen los $272.158.000 de pasivos de la renta 2025",
+      "detalle": "Según la DIAN, en 2025 solo $58M de compras fueron a crédito ($44,8M de MercadoLibre), así que los pasivos no son mayormente proveedores. Lo más probable: compras de los socios con tarjeta personal, impuestos y préstamos.",
+      "pregunta": "¿Nos comparte los estados financieros 2025, o al menos el detalle de esos pasivos por tercero?"
     }
   ]
 }

@@ -91,6 +91,11 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M8 15h8" />
     </>
   ),
+  ideas: (
+    <>
+      <path d="M4 12h4M8 6v12M8 6h5M8 18h5M13 3v6M13 3h7M13 9h7M13 15v6M13 15h7M13 21h7" />
+    </>
+  ),
   fichas: (
     <>
       <path d="M8 5h7a2 2 0 0 1 2 2v13H10a2 2 0 0 1-2-2V5z" />

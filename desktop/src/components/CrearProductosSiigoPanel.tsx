@@ -210,6 +210,8 @@ export default function CrearProductosSiigoPanel({
   const [ajustandoCombo, setAjustandoCombo] = useState(false);
   const [comboEditableComposicion, setComboEditableComposicion] = useState(true);
   const [avisoMovimientosCombo, setAvisoMovimientosCombo] = useState<string | null>(null);
+  /** Código con el que se cargó el combo en Ajustar: si no tiene movimientos se puede corregir. */
+  const [comboCodigoOriginal, setComboCodigoOriginal] = useState("");
 
   const [check, setCheck] = useState<CodigoCheck | null>(null);
   const [resultado, setResultado] = useState<CrearResp | null>(null);
@@ -377,8 +379,19 @@ export default function CrearProductosSiigoPanel({
   });
 
   const actualizarCombo = useMutation({
-    mutationFn: () =>
-      api.put<{
+    mutationFn: async () => {
+      // Código corregido (solo sin movimientos): primero el SKU, luego la receta con el código nuevo.
+      const original = comboCodigoOriginal.trim();
+      const nuevo = comboCodigo.trim();
+      if (original && nuevo && original.toUpperCase() !== nuevo.toUpperCase()) {
+        const r = await api.patch<{ ok: boolean; error?: string; bloqueado_movimientos?: boolean }>(
+          `/api/alegra/catalogo/${encodeURIComponent(original)}`,
+          { nuevo_codigo: nuevo },
+        );
+        if (!r.ok) return { ok: false, error: r.error || "Alegra no aceptó el código nuevo", bloqueado_movimientos: r.bloqueado_movimientos };
+        setComboCodigoOriginal(nuevo);
+      }
+      return api.put<{
         ok: boolean;
         mensaje?: string;
         error?: string;
@@ -395,7 +408,8 @@ export default function CrearProductosSiigoPanel({
             codigo: c.codigo.trim(),
             cantidad: Number(c.cantidad || 1),
           })),
-      }),
+      });
+    },
     onSuccess: (res) => {
       if (!res.ok) {
         if (res.bloqueado_movimientos) {
@@ -528,6 +542,7 @@ export default function CrearProductosSiigoPanel({
     setEditandoCodigo(null);
     setEditandoNombre("");
     setAjustandoCombo(false);
+    setComboCodigoOriginal("");
     setComboEditableComposicion(true);
     setAvisoMovimientosCombo(null);
     if (modo === "producto") {
@@ -698,6 +713,7 @@ export default function CrearProductosSiigoPanel({
     setCatalogoAbierto(false);
     setCargandoReceta(true);
     setAjustandoCombo(true);
+    setComboCodigoOriginal("");
     setAvisoMovimientosCombo(null);
     setComboEditableComposicion(true);
     setModo("combo");
@@ -725,6 +741,7 @@ export default function CrearProductosSiigoPanel({
           return;
         }
         setComboCodigo(data.codigo || origen);
+        setComboCodigoOriginal(data.codigo || origen);
         setComboNombre(
           nombreMayusculasAlegra(data.nombre || item.nombre, 100, { trimSpaces: false }),
         );
@@ -745,7 +762,7 @@ export default function CrearProductosSiigoPanel({
         setComboEditableComposicion(!bloqueado);
         if (bloqueado) {
           setAvisoMovimientosCombo(
-            "Este combo ya tiene movimientos en Alegra: no se puede cambiar la composición. Usá Duplicar para crear uno nuevo.",
+            "Este combo ya tiene movimientos en Alegra: no se puede cambiar la composición ni el código. Usá Duplicar para crear uno nuevo.",
           );
         }
         setCheck({
@@ -772,6 +789,11 @@ export default function CrearProductosSiigoPanel({
       return;
     }
     const combo = esComboSiigo(item);
+    // Un combo existente se carga con su receta (y queda bloqueado si tiene movimientos).
+    if (combo) {
+      ajustarDesdeHallazgo(item);
+      return;
+    }
     setResultado(null);
     setCatalogoAbierto(false);
     setOrigenCombo(null);
@@ -1197,7 +1219,7 @@ export default function CrearProductosSiigoPanel({
               }`}
             >
               {avisoMovimientosCombo
-                || `Modo ajustar: editá componentes/cantidades de ${comboCodigo || "este combo"} y guardá. Solo funciona si el kit no tiene movimientos en Alegra.`}
+                || `Modo ajustar: editá el código, componentes o cantidades de ${comboCodigoOriginal || comboCodigo || "este combo"} y guardá. Solo funciona si el kit no tiene movimientos en Alegra.`}
             </p>
           )}
           {origenCombo && !errorReceta && !cargandoReceta && (
@@ -1330,17 +1352,29 @@ export default function CrearProductosSiigoPanel({
                 <input
                   value={comboCodigo}
                   onChange={(e) => {
-                    if (ajustandoCombo) return;
+                    if (ajustandoCombo) {
+                      // Sin movimientos el código se corrige al guardar (el check sigue siendo el del combo cargado).
+                      if (!comboEditableComposicion || cargandoReceta) return;
+                      setComboCodigo(e.target.value.replace(/[^A-Za-z0-9._-]/g, ""));
+                      setResultado(null);
+                      return;
+                    }
                     setComboCodigo(e.target.value.replace(/\s/g, ""));
                     setCheck(null);
                     setResultado(null);
                   }}
-                  readOnly={ajustandoCombo}
+                  readOnly={ajustandoCombo && (!comboEditableComposicion || cargandoReceta)}
                   placeholder="C-PRODUCTO100g"
                   className={`w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent ${
-                    ajustandoCombo ? "opacity-80" : ""
+                    ajustandoCombo && !comboEditableComposicion ? "opacity-80" : ""
                   }`}
-                  title={ajustandoCombo ? "En modo ajustar el código no se cambia" : undefined}
+                  title={
+                    ajustandoCombo
+                      ? comboEditableComposicion
+                        ? "Sin movimientos en Alegra: puedes corregir el código; se cambia al guardar"
+                        : "Combo con movimientos: el código no se puede cambiar"
+                      : undefined
+                  }
                 />
                 <button
                   type="button"
@@ -1369,7 +1403,13 @@ export default function CrearProductosSiigoPanel({
                   <Icon name="search" size={16} weight="bold" />
                 </button>
               </div>
-              <p className="text-[10px] text-muted">Convención McKenna: prefijo C-</p>
+              {ajustandoCombo && comboCodigoOriginal && comboCodigo.trim().toUpperCase() !== comboCodigoOriginal.toUpperCase() ? (
+                <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                  Al guardar, {comboCodigoOriginal} pasa a llamarse {comboCodigo.trim() || "…"} en Alegra. Si ya está publicado en MeLi o la web con el código viejo, cámbialo allá también.
+                </p>
+              ) : (
+                <p className="text-[10px] text-muted">Convención McKenna: prefijo C-</p>
+              )}
             </label>
             <label className="block space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
@@ -1657,8 +1697,10 @@ export default function CrearProductosSiigoPanel({
             }
           >
             {actualizarCombo.isPending
-              ? "Guardando composición…"
-              : "Guardar composición en Alegra"}
+              ? "Guardando en Alegra…"
+              : comboCodigoOriginal && comboCodigo.trim().toUpperCase() !== comboCodigoOriginal.toUpperCase()
+                ? "Guardar código y composición en Alegra"
+                : "Guardar composición en Alegra"}
           </button>
         )}
         {existe && flujoComboEan && modo === "producto" && check && (

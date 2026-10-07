@@ -28,6 +28,12 @@ catálogo como vista (`_catalogo_desplegado` / `_vista_despliegue` en website.py
 rechaza SKUs fuera de la lista **y las líneas genéricas VENTA-VARIO-*** (los envíos `WEB-ENVIO-*` siempre pasan: son servicio, no combo) (`ventas_directas.fuera_de_despliegue`; la venta
 MeLi con RUT no se frena); el Árbol del producto marca «A la venta · MeLi + web». Al enlazar más SKUs: `--ampliar`.
 `tests/conftest.py` aísla el archivo real (autouse).
+**Publicaciones nuevas tras el cese (5-oct-2026):** la lista se arma con lo que pausó el cese, así que una publicación
+creada después quedaba fuera (oculta en la web, sin reactivación de stock). `despliegue_ventas.registrar_publicacion_nueva(
+meli_id, sku)` evalúa SOLO ese SKU con las mismas reglas (factura + etiqueta aprobada), lo suma a `skus` y lo anota en
+`publicadas_despues`, que `calcular()` vuelve a considerar. ⚠️ **Nunca** recalcular la lista fuera de `sincronizar()`:
+con la relación de códigos a medias (timeout de MeLi, 263 de ~480) un `calcular()+guardar()` sacó 34 SKUs buenos
+(193 → 159) el 5-oct; se restauró desde git. Primer uso: aceite de coco virgen (MCO4508059070/-134/MCO4508145372).
 
 ### AA. Chat del equipo, campana y recepción de mercancía (24-sep-2026)
 
@@ -50,6 +56,68 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
 - **Redirección**: `app/data/redireccion_panel.json` (reglas regex → aviso con enlace `/app?panel=…`, un aviso por regla
   y grupo cada 2 h). **Encendido desde el 24-sep** (el bot escribe en los grupos reales; `"activo": false` lo apaga sin reiniciar). Canales creados ese día: «Inventario y llegadas» ↔ MCKG PEDIDOS / COMPRAS y «Sede Sur» ↔ MCKG SEDE SUR (ida y vuelta), «Compras USA y China» (solo llegada).
 - Enlace directo: `/app?panel=<id>` abre esa sección (App.tsx, `PANEL_DEL_ENLACE`).
+
+### AH. Alertas sonoras y chat del equipo legible (6-oct-2026)
+
+- **Sonido por persona y por grupo** (`desktop/src/lib/alertasSonido.ts`, ajustes en `chat_equipo/AjustesSonidos.tsx`,
+  se abre desde la campana → «Sonidos de los avisos» o desde el botón 🔔 Sonido de cada grupo). Prioridad: grupo con
+  sonido propio > persona > general. Solicitud nueva que **otra persona** te hizo → tarjeta + sonido de quien la pidió
+  (`/api/mensajes/resumen` trae `solicitudes_para_mi`, `canales_internos.solicitudes_para_mi`; el panel compara ids con
+  los ya vistos, lo que existía al abrir no suena). Mensajes de grupo: `useAvisosMensajes` (ahora `novedades` trae
+  `usuario_id`). Dos avisos en < 1,5 s suenan una vez.
+- Preferencias en `usuarios.preferencias_ui.sonidos` (validadas en `tickets_db._limpiar_alertas_sonido`; ids de sonido
+  `xx_nombre` o `silencio`) + copia en `localStorage` (`mck-alertas-sonido`).
+- **Los 12 sonidos** (`desktop/src/assets/sonidos/`, ~240 KB): 9 recortes de los mp3 de Duck Hunt
+  (`public/juegos/duckhunt/statics/sounds/`) y 3 de **Circus Charlie grabados de la ROM** corriendo en jsnes desde Node
+  (sin pantalla, `onAudioSample` → WAV → ffmpeg): `cc_salida` (1,95–3,65 s tras Start), `cc_circo` (música de la etapa
+  1), `cc_tropiezo` (choque con el fuego + jingle). Uso interno, detrás de la sesión, como los juegos. Recortes con
+  `loudnorm`; los < 0,5 s quedaron fuertes y se bajaron a mano (−3 a −8 dB).
+- **Chat legible** (`HiloCanal.tsx`, `chatEquipo.css`): botón **Aa** con 3 tamaños de letra (15,5/17,5/20 px, default
+  «grande», `mck-chat-letra`), separadores por día, línea «Mensajes nuevos», mensajes seguidos del mismo autor (≤ 5 min)
+  agrupados con avatar y nombre en color estable (`lib/personaColor.ts`), formato de WhatsApp (`*negrita*`, `_cursiva_`,
+  `~tachado~`, enlaces; con límite de palabra para no romper `foto_1_2.jpg`), y si la persona subió a leer, lo nuevo no
+  la arrastra: sale «↓ N mensajes nuevos».
+- ⚠️ Con un grupo abierto la calculadora flotante se oculta (`html[data-chat-abierto]`) y la burbuja de chat no sale en
+  `chat-equipo`: tapaban el botón de enviar. Desde el 7-oct el alto del chat es flex (`chat-equipo` en
+  `PanelTransition.fillHeight`), ya no `calc(100dvh-…)`.
+
+- **Tono propio por grupo (7-oct-2026)**:
+  - `lib/alertasSonido.ts::sonidoDeCanal`: el sonido elegido para el grupo; si no hay, `tonoPropioDeGrupo(id)` (10
+    tonos cortos, fijos por id, así cada grupo se reconoce de oído).
+  - `tono_por_grupo: false` (casilla en los ajustes) vuelve a un solo sonido «general».
+  - Sin el perro: ladridos y risa no están entre los tonos de grupo (son 7 tonos; desde el grupo 8 se repiten).
+- **El perro que se ríe es solo para cerrar un flujo** (`lib/celebracionAprobado.ts::escucharMonedasDelServidor`):
+  - Sale al cerrar una tarea (estado `resuelto`, `completar-accion`) y en `RUTAS_DE_CIERRE` (`…/finalizar`, facturar).
+  - La moneda de cualquier otra misión (comentar, evidencia, paso) suena con `sonarMoneda()`, un tono corto.
+  - Los sonidos por persona quedan para las solicitudes, no para los mensajes de grupo.
+  - La fila de grupos de la bandeja muestra el ícono del tono y el globo de no leídos late.
+  - ⚠️ El aviso con sonido vive en `SolicitudesEnProcesoFab`, que solo monta el Layout: `MobileHub` lo monta con
+    `soloAvisos` (sin la bolita). Sin eso, la pestaña Mensajes de la barra de abajo no sonaba.
+
+### AI. Menciones con @ en los grupos (7-oct-2026)
+
+- **Qué cuenta como mención** (`canales_internos.detectar_menciones`, sin LLM):
+  - Formas válidas: «@Nombre Apellido», «@Nombre» (solo si nadie más del grupo se llama igual), «@usuario» y
+    «@todos/@todas/@equipo».
+  - No distingue tildes ni mayúsculas. Un correo (`a@b.co`) no cuenta y el autor nunca se nombra a sí mismo.
+  - De WhatsApp las menciones llegan como «@573001234567»: se buscan por `usuarios.telefono` (`usuario_por_telefono`).
+  - Solo se puede nombrar a los miembros del grupo; si el grupo no tiene miembros, a todo el equipo activo.
+- **Tabla `canal_menciones`**: una fila por (mensaje, persona). La mención queda **pendiente** mientras esa persona no
+  haya leído el grupo hasta ese mensaje (`canal_lecturas`): no se marca a mano.
+  - `_fila_canal` trae `menciones` (las pendientes de quien mira) y los mensajes traen `menciones` [{id, nombre, username}].
+  - `/api/mensajes/resumen` suma `menciones_pendientes`.
+  - `GET /api/canales/<id>/mencionables` da la lista del autocompletar.
+- **Avisos** (`canales_avisos`):
+  - A quien nombran le llega un push aparte («Ana te mencionó · Bodega», tag `mencion-<canal>`), sin la ventana
+    anti-spam de 120 s (sí respeta el silencio de 22:00 a 07:00).
+  - En `novedades` cada mensaje trae `mencion`; la tarjeta en pantalla dice «@ Te mencionó».
+- **Panel**:
+  - `BarraEscritura` (prop `personas`): al escribir «@» abre la lista; Enter o Tab elige, Esc la cierra. Inserta el
+    nombre completo.
+  - `HiloCanal` resalta cada @ (el tuyo más fuerte) y marca con una franja la burbuja que te nombra («@ Te nombró»).
+  - En la bandeja del celular (`lib/bandeja.ts`) un grupo con menciones pendientes pasa a **Te toca** («@ Te nombraron»).
+  - En la lista de Grupos lleva una «@» y sale primero.
+  - Helpers del cliente: `lib/menciones.ts`.
 
 ### AB. Insumos: foto de referencia, equivalencias y contador (25-sep-2026)
 

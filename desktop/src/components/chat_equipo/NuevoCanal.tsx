@@ -6,9 +6,10 @@ import type { CanalEquipo, RespCanalesEquipo } from "../../hooks/useCanalesEquip
 
 /** Crear un canal (supervisión / administración). Opcionalmente enlazado a un grupo oficial de WhatsApp. */
 export default function NuevoCanal({
-  grupos, onCreado, onCancelar,
+  grupos, modulos, onCreado, onCancelar,
 }: {
   grupos: RespCanalesEquipo["grupos_wa"];
+  modulos: RespCanalesEquipo["modulos"];
   onCreado: (c: CanalEquipo) => void;
   onCancelar: () => void;
 }) {
@@ -19,6 +20,7 @@ export default function NuevoCanal({
   const [waJid, setWaJid] = useState("");
   const [espejo, setEspejo] = useState(false);
   const [miembros, setMiembros] = useState<number[]>([]);
+  const [modulo, setModulo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -26,7 +28,7 @@ export default function NuevoCanal({
     setGuardando(true);
     setError(null);
     try {
-      const c = await api.post<CanalEquipo>("/api/canales", { nombre, descripcion, wa_jid: waJid, espejo_salida: espejo, miembros });
+      const c = await api.post<CanalEquipo>("/api/canales", { nombre, descripcion, wa_jid: waJid, espejo_salida: espejo, miembros, modulo });
       await qc.invalidateQueries({ queryKey: ["canales-equipo"] });
       onCreado(c);
     } catch (e) {
@@ -50,6 +52,15 @@ export default function NuevoCanal({
         Para qué es
         <input value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Ej. Lo que llega, fotos y cantidades"
           className="mt-1 w-full rounded-md border border-border bg-surface-input px-2 py-1.5 text-[13px]" />
+      </label>
+      <label className="text-[12px] text-ink">
+        Grupo de trabajo de
+        <select value={modulo} onChange={(e) => setModulo(e.target.value)}
+          className="mt-1 w-full rounded-md border border-border bg-surface-input px-2 py-1.5 text-[13px]">
+          <option value="">Ningún módulo (conversación general)</option>
+          {modulos.map((m) => <option key={m.clave} value={m.clave}>{m.nombre}</option>)}
+        </select>
+        <span className="mt-0.5 block text-[11px] text-ink-secondary">En los mensajes se podrán vincular elementos de ese módulo con 🔗.</span>
       </label>
       <div className="rounded-lg border border-border bg-surface-input p-3">
         <p className="text-[12px] font-bold text-ink">Enlazar a un grupo de WhatsApp (transición)</p>
