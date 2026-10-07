@@ -65,7 +65,9 @@ function Fila({ it, uid, onAbrir }: { it: ItemBandeja; uid: number; onAbrir: () 
           </span>
           <span className="bj-linea">
             <span className="bj-sub">
-              <span className="bj-chip bj-chip-grupo">Grupo</span>
+              {(g.menciones ?? 0) > 0
+                ? <span className="bj-chip bj-chip-mencion">@ Te nombraron</span>
+                : <span className="bj-chip bj-chip-grupo">Grupo</span>}
               {u ? <><b>{u.autor_nombre.split(" ")[0]}:</b> {sinFormato(u.texto) || (u.adjunto_nombre ? "📎 adjunto" : "📷 foto")}</> : "Sin mensajes"}
             </span>
             {nuevo && <span className="bj-badge">{it.noLeidos > 99 ? "99+" : it.noLeidos}</span>}

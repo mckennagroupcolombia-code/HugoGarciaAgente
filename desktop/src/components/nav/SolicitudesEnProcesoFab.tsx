@@ -199,7 +199,7 @@ export default function SolicitudesEnProcesoFab() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-bold uppercase tracking-wide text-muted">
-            {esSolicitud ? `Te pidió algo · ${aviso.canal_nombre}` : aviso.canal_nombre}
+            {esSolicitud ? `Te pidió algo · ${aviso.canal_nombre}` : aviso.mencion ? `@ Te mencionó · ${aviso.canal_nombre}` : aviso.canal_nombre}
           </span>
           <span className="block truncate text-[14px] font-bold text-ink">{aviso.autor_nombre}</span>
           <span className="line-clamp-2 block text-[13.5px] leading-snug text-ink-secondary">{aviso.texto}</span>

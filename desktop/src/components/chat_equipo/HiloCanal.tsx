@@ -5,6 +5,7 @@ import {
   useCanalesEquipo,
   useEnviarCanal,
   useMarcarCanalLeido,
+  useMencionables,
   useMensajesCanal,
   type CanalEquipo,
   type CitaMensaje,
@@ -19,6 +20,7 @@ import BarraEscritura, { BotonCaja, IconoCamara, IconoClip, IconoEnlace } from "
 import AjustesSonidos from "./AjustesSonidos";
 import { sonidoDeMensaje, sonidoPorId, useAlertasSonido, SILENCIO } from "../../lib/alertasSonido";
 import { colorDePersona, colorTextoPersona, iniciales } from "../../lib/personaColor";
+import { tramosMencion, type Persona } from "../../lib/menciones";
 import "./chatEquipo.css";
 
 type Letra = "normal" | "grande" | "enorme";
@@ -120,20 +122,42 @@ function Cita({ cita, onClick, onQuitar }: { cita: CitaMensaje; onClick?: () => 
  * mensajes que llegan de los grupos traen los asteriscos y se leían como «*Acción nueva*».
  */
 const RE_FORMATO = /(https?:\/\/[^\s]+)|(?<![\p{L}\p{N}])\*([^*\n]+)\*(?![\p{L}\p{N}])|(?<![\p{L}\p{N}])_([^_\n]+)_(?![\p{L}\p{N}])|(?<![\p{L}\p{N}])~([^~\n]+)~(?![\p{L}\p{N}])/gu;
-function TextoChat({ texto }: { texto: string }) {
+/** Un pedazo de texto plano con sus @ resaltados (el tuyo, más fuerte). */
+function conMenciones(trozo: string, menciones: Persona[], yo: number | undefined, base: number): ReactNode[] {
+  const tramos = tramosMencion(trozo, menciones);
+  if (!tramos.length) return [trozo];
+  const out: ReactNode[] = [];
+  let ultimo = 0;
+  tramos.forEach((t, j) => {
+    if (t.inicio > ultimo) out.push(trozo.slice(ultimo, t.inicio));
+    const mio = t.persona ? t.persona.id === yo : menciones.some((p) => p.id === yo);
+    out.push(
+      <span key={`m${base}-${j}`} className={`mck-mencion ${mio ? "mck-mencion-mia" : ""}`}
+            title={t.persona ? `Nombra a ${t.persona.nombre}` : undefined}>
+        {t.persona && /^@\d/.test(trozo.slice(t.inicio, t.fin)) ? `@${t.persona.nombre}` : trozo.slice(t.inicio, t.fin)}
+      </span>,
+    );
+    ultimo = t.fin;
+  });
+  if (ultimo < trozo.length) out.push(trozo.slice(ultimo));
+  return out;
+}
+
+function TextoChat({ texto, menciones = [], yo }: { texto: string; menciones?: Persona[]; yo?: number }) {
   const partes: ReactNode[] = [];
   let ultimo = 0;
   let k = 0;
+  const plano = (t: string) => (menciones.length ? conMenciones(t, menciones, yo, k++) : [t]);
   for (const m of texto.matchAll(RE_FORMATO)) {
     const i = m.index ?? 0;
-    if (i > ultimo) partes.push(texto.slice(ultimo, i));
+    if (i > ultimo) partes.push(...plano(texto.slice(ultimo, i)));
     if (m[1]) partes.push(<a key={k++} href={m[1]} target="_blank" rel="noreferrer" className="break-all font-semibold text-accent underline">{m[1]}</a>);
     else if (m[2]) partes.push(<strong key={k++} className="font-extrabold">{m[2]}</strong>);
     else if (m[3]) partes.push(<em key={k++}>{m[3]}</em>);
     else if (m[4]) partes.push(<s key={k++}>{m[4]}</s>);
     ultimo = i + m[0].length;
   }
-  if (ultimo < texto.length) partes.push(texto.slice(ultimo));
+  if (ultimo < texto.length) partes.push(...plano(texto.slice(ultimo)));
   return <>{partes}</>;
 }
 
@@ -155,13 +179,16 @@ function reportarIncidente(canal: CanalEquipo, m?: MensajeCanal) {
   st.setPanel("hugo");
 }
 
-function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, resaltado, primero }: {
+function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, resaltado, primero, yo }: {
   m: MensajeCanal; propio: boolean; token: string; modulos: ModuloCanal[];
   onIncidente: () => void; onResponder: () => void; onIrA: (id: number) => void; resaltado: boolean;
   /** Primero de una racha del mismo autor: lleva nombre y avatar. */
   primero: boolean;
+  yo?: number;
 }) {
   const url = urlAdjunto(m, token);
+  const menciones = m.menciones ?? [];
+  const meNombra = !propio && menciones.some((p) => p.id === yo);
   // Deslizar la burbuja a la derecha (celular) responde, como en WhatsApp.
   const toque = useRef<{ x: number; y: number } | null>(null);
   const [arrastre, setArrastre] = useState(0);
@@ -192,7 +219,7 @@ function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, r
           : <span className="w-9 shrink-0" aria-hidden />
       )}
       <div style={arrastre ? { transform: `translateX(${arrastre}px)` } : undefined}
-        className={`mck-burbuja min-w-0 max-w-[86%] rounded-2xl px-3.5 py-2 sm:max-w-[72%] ${arrastre ? "" : "transition-[box-shadow] duration-700"} ${resaltado ? "ring-2 ring-accent" : ""} ${
+        className={`mck-burbuja min-w-0 max-w-[86%] rounded-2xl px-3.5 py-2 sm:max-w-[72%] ${arrastre ? "" : "transition-[box-shadow] duration-700"} ${resaltado ? "ring-2 ring-accent" : ""} ${meNombra ? "mck-burbuja-mencion" : ""} ${
           propio ? `mck-burbuja-propia ${primero ? "rounded-tr-md" : ""}` : `mck-burbuja-otra ${primero ? "rounded-tl-md" : ""}`}`}>
         {!propio && primero && (
           <p className="mck-chat-autor mb-0.5 font-extrabold" style={{ color: colorTextoPersona(m.autor_nombre) }}>
@@ -214,7 +241,8 @@ function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, r
             <span className="text-[1.3em]" aria-hidden>📎</span><span className="min-w-0 truncate">{m.adjunto_nombre || "archivo"}</span>
           </a>
         )}
-        {m.texto && <p className="mck-chat-texto whitespace-pre-wrap break-words text-ink"><TextoChat texto={m.texto} /></p>}
+        {meNombra && <p className="mck-chat-meta mb-0.5 font-black uppercase tracking-wide text-accent">@ Te nombró</p>}
+        {m.texto && <p className="mck-chat-texto whitespace-pre-wrap break-words text-ink"><TextoChat texto={m.texto} menciones={menciones} yo={yo} /></p>}
         <ChipVinculo refm={m.ref} modulos={modulos} />
         <div className="mt-1 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
           <span className="mck-chat-acciones flex items-center gap-1">
@@ -236,6 +264,7 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   const token = useTicketsAuth((s) => s.token) || "";
   const yo = useTicketsAuth((s) => s.user?.id);
   const mensajes = useMensajesCanal(canal.id);
+  const mencionables = useMencionables(canal.id).data?.personas;
   const modulos = useCanalesEquipo().data?.modulos ?? [];
   const moduloCanal = modulos.find((x) => x.clave === canal.modulo) ?? null;
   const [vinculo, setVinculo] = useState<RefMensaje | null>(null);
@@ -444,7 +473,7 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
                       <span className="h-px flex-1 bg-accent-rose" />
                     </div>
                   )}
-                  <Burbuja m={m} propio={m.origen === "panel" && m.usuario_id === yo} token={token} modulos={modulos}
+                  <Burbuja m={m} propio={m.origen === "panel" && m.usuario_id === yo} token={token} modulos={modulos} yo={yo}
                     primero={nuevoDia || esNuevo || !mismaRacha(previo, m)}
                     onIncidente={() => setTareaDesde(m)} onResponder={() => responder(m)} onIrA={irA} resaltado={resaltado === m.id} />
                 </div>
@@ -496,7 +525,8 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
         <BarraEscritura
           texto={texto} onTexto={setTexto} onEnviar={() => void mandar()} onVoz={(f) => void mandarVoz(f)}
           hayAdjunto={Boolean(archivo || vinculo)} enviando={enviar.isPending} onError={setError} textareaRef={cajaRef}
-          placeholder={respondiendo ? `Responder a ${respondiendo.autor_nombre}` : undefined}
+          placeholder={respondiendo ? `Responder a ${respondiendo.autor_nombre}` : "Mensaje (@ para nombrar a alguien)"}
+          personas={mencionables}
           iconos={<>
             {modulos.length > 0 && (
               <BotonCaja onClick={() => setEligiendo((v) => !v)} activo={eligiendo || Boolean(vinculo)}

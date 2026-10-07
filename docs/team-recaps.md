@@ -1,3 +1,13 @@
+### 2026-10-07 - Menciones con @ en los grupos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Mensajes → Grupos, servidor + panel). Sin LLM.
+- **Qué se implementó:**
+  - En un grupo, escribir **«@»** abre la lista de quién se puede nombrar; al elegir, queda «@Nombre Apellido». También valen «@Nombre» (si no hay otro igual), «@usuario» y **«@todos»**. Desde WhatsApp, las menciones con número se reconocen por el teléfono registrado de cada persona.
+  - A quien nombran le llega un **aviso aparte** («Ana te mencionó · Bodega»), aunque el grupo haya avisado hace poco. En pantalla, la tarjeta dice «@ Te mencionó».
+  - El grupo donde te nombraron pasa a **Te toca** en la bandeja del celular («@ Te nombraron») y sale primero, con «@», en la lista de Grupos. Deja de «tocarte» en cuanto lees el grupo.
+  - En el chat, los @ salen resaltados (el tuyo más fuerte) y la burbuja que te nombra lleva una franja y «@ Te nombró».
+- **Archivos Modificados:** `app/services/canales_internos.py`, `app/services/canales_avisos.py`, `app/routes_canales.py`, `tests/test_canales_internos.py` (5 tests nuevos), `desktop/src/lib/menciones.ts` (nuevo), `desktop/src/lib/bandeja.ts`, `desktop/src/hooks/{useCanalesEquipo,useAvisosMensajes}.ts`, `desktop/src/components/chat_equipo/{BarraEscritura,HiloCanal,ChatEquipoPanel}.tsx`, `chatEquipo.css`, `desktop/src/components/tickets/{BandejaUnificada.tsx,bandeja.css}`, `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/agentic/modules/operacion-equipo.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - Bandeja unificada en el celular: Te toca · Enterarte · Haciendo
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Mensajes en el celular y la tableta). Sin LLM, sin cambios en el servidor.

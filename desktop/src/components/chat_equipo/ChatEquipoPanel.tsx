@@ -75,7 +75,8 @@ export default function ChatEquipoPanel({ embebido = false }: { embebido?: boole
   // Lo que tiene mensajes sin leer va primero; después, lo que se movió más reciente.
   const filtrados = canales
     .filter((c) => !q.trim() || c.nombre.toLowerCase().includes(q.trim().toLowerCase()))
-    .sort((a, b) => (b.no_leidos > 0 ? 1 : 0) - (a.no_leidos > 0 ? 1 : 0) || (b.ultimo?.creado_en ?? 0) - (a.ultimo?.creado_en ?? 0));
+    .sort((a, b) => ((b.menciones ?? 0) > 0 ? 1 : 0) - ((a.menciones ?? 0) > 0 ? 1 : 0)
+      || (b.no_leidos > 0 ? 1 : 0) - (a.no_leidos > 0 ? 1 : 0) || (b.ultimo?.creado_en ?? 0) - (a.ultimo?.creado_en ?? 0));
 
   const contenido = (
     <div className={embebido ? "flex min-h-0 w-full min-w-0 flex-1 gap-2" : "mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 gap-3"}>
@@ -119,8 +120,12 @@ export default function ChatEquipoPanel({ embebido = false }: { embebido?: boole
                     <span className={`line-clamp-1 text-[13.5px] ${sinLeer ? "font-semibold text-ink" : "text-ink-secondary"}`}>
                       {c.ultimo ? <><b className="font-bold">{c.ultimo.autor_nombre.split(" ")[0]}:</b> {sinFormato(c.ultimo.texto) || (c.ultimo.adjunto_nombre ? "📎 adjunto" : "📷 foto")}</> : "Sin mensajes"}
                     </span>
+                    {(c.menciones ?? 0) > 0 && (
+                      <span className="ml-auto flex h-6 shrink-0 items-center justify-center rounded-full border-2 border-accent px-1.5 text-[12.5px] font-black text-accent"
+                            title="Te nombraron con @">@</span>
+                    )}
                     {sinLeer && (
-                      <span className="ml-auto flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-accent px-1.5 text-[12.5px] font-black text-white">{c.no_leidos}</span>
+                      <span className={`${(c.menciones ?? 0) > 0 ? "" : "ml-auto"} flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-accent px-1.5 text-[12.5px] font-black text-white`}>{c.no_leidos}</span>
                     )}
                   </span>
                 </span>

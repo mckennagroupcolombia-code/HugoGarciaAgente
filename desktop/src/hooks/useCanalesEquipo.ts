@@ -16,6 +16,8 @@ export type CanalEquipo = {
   archivado: boolean;
   miembros: number[];
   no_leidos: number;
+  /** Menciones con @ a quien mira, todavía sin leer: el grupo le «toca» (lib/bandeja.ts). */
+  menciones?: number;
   ultimo: { id: number; texto: string; autor_nombre: string; creado_en: number; adjunto_nombre: string | null } | null;
 };
 
@@ -36,6 +38,8 @@ export type MensajeCanal = {
   /** Mensaje al que responde (del mismo grupo) y su resumen para la cita. */
   responde_a?: number | null;
   cita?: CitaMensaje | null;
+  /** A quién nombra con @ (lo decide el servidor). */
+  menciones?: { id: number; nombre: string; username?: string }[];
 };
 
 export type CitaMensaje = {
@@ -91,6 +95,16 @@ export function useCanalesEquipo(enabled = true) {
     queryFn: () => api.get("/api/canales"),
     refetchInterval: 9000,
     enabled,
+  });
+}
+
+/** Quién se puede nombrar con @ en el grupo (autocompletar de la caja de escribir). */
+export function useMencionables(canalId: number | null) {
+  return useQuery<{ personas: { id: number; nombre: string; username: string }[] }>({
+    queryKey: ["canales-mencionables", canalId],
+    queryFn: () => api.get(`/api/canales/${canalId}/mencionables`),
+    enabled: canalId != null,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -162,6 +176,8 @@ export type ResumenMensajes = {
   notificaciones_no_leidas: number;
   /** Solicitudes abiertas que otra persona me hizo (las más nuevas): para el aviso con sonido. */
   solicitudes_para_mi?: SolicitudParaMi[];
+  /** Menciones con @ sin leer en todos los grupos. */
+  menciones_pendientes?: number;
 };
 
 export function useResumenMensajes(enabled = true) {

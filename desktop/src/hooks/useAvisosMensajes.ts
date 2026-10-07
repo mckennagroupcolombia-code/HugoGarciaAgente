@@ -26,11 +26,13 @@ export type AvisoMensaje = {
   texto: string;
   /** Icono del sonido que sonó (la tarjeta lo muestra para asociar oído y vista). */
   icono?: string;
+  /** El mensaje nombra con @ a quien lo recibe. */
+  mencion?: boolean;
 };
 
 type Novedades = {
   ultimo_id: number;
-  mensajes: { id: number; canal_id: number; usuario_id: number | null; canal_nombre: string; autor_nombre: string; texto: string; adjunto_nombre: string | null }[];
+  mensajes: { id: number; canal_id: number; usuario_id: number | null; canal_nombre: string; autor_nombre: string; texto: string; adjunto_nombre: string | null; mencion?: boolean }[];
 };
 
 /** Grupos que alguien tiene abiertos en pantalla ahora (HiloCanal los anota): de esos no se avisa. */
@@ -109,11 +111,13 @@ export function useAvisosMensajes(activo: boolean, noMostrarCanal: number | null
     api.get<Novedades>(`/api/canales/novedades?desde=${ultimoId.current}`)
       .then((r) => {
         ultimoId.current = r.ultimo_id;
-        const m = r.mensajes.find((x) => x.canal_id !== noMostrarCanal && !(canalesEnPantalla.has(x.canal_id) && !document.hidden));
+        const visibles = r.mensajes.filter((x) => x.canal_id !== noMostrarCanal && !(canalesEnPantalla.has(x.canal_id) && !document.hidden));
+        // Si alguno te nombra con @, ese es el que se muestra.
+        const m = visibles.find((x) => x.mencion) ?? visibles[0];
         if (!m) return;
         const sonido = sonidoDeMensaje(useAlertasSonido.getState().ajustes, m.canal_id, m.usuario_id);
         setAviso({ id: m.id, tipo: "mensaje", canal_id: m.canal_id, canal_nombre: m.canal_nombre, autor_nombre: m.autor_nombre,
-          texto: m.texto || (m.adjunto_nombre ? "📎 Adjunto" : "Mensaje nuevo"), icono: sonidoPorId(sonido)?.icono });
+          texto: m.texto || (m.adjunto_nombre ? "📎 Adjunto" : "Mensaje nuevo"), icono: sonidoPorId(sonido)?.icono, mencion: Boolean(m.mencion) });
         if (!document.hidden) reproducirSonido(sonido);
       })
       .catch(() => {});

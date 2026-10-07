@@ -252,6 +252,9 @@ bultos AE, solicitudes como misión AF). Cese global: `python3 scripts/cese_acti
 ⚠️ Desde el 27-sep el cese se levantó con **despliegue gradual** (`despliegue_ventas.json`): MeLi, web y Cotizar/Facturar
 solo venden SKUs que se facturan; ampliar con `scripts/desplegar_ventas_facturables.py --ampliar`.
 
+**Menciones con @ en los grupos** (`operacion-equipo.md`, AI, 7-oct): `canal_menciones`. Una mención está pendiente
+hasta que la persona lee el grupo, y ese grupo pasa a «Te toca» en la bandeja del celular (`lib/bandeja.ts`).
+
 **Alertas sonoras + chat legible** (`operacion-equipo.md`, AH, 6-oct): cada quien elige sonido por persona (quién le
 pide algo) y por grupo, con recortes de Duck Hunt y de Circus Charlie grabados de la ROM; `preferencias_ui.sonidos`.
 El hilo del grupo tiene Aa (3 tamaños), separadores por día, autores con color y formato de WhatsApp.

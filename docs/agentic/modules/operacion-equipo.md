@@ -78,7 +78,33 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
   `~tachado~`, enlaces; con límite de palabra para no romper `foto_1_2.jpg`), y si la persona subió a leer, lo nuevo no
   la arrastra: sale «↓ N mensajes nuevos».
 - ⚠️ Con un grupo abierto la calculadora flotante se oculta (`html[data-chat-abierto]`) y la burbuja de chat no sale en
-  `chat-equipo`: tapaban el botón de enviar. En celular el alto del chat descuenta la barra inferior (`max-md:` 295 px).
+  `chat-equipo`: tapaban el botón de enviar. Desde el 7-oct el alto del chat es flex (`chat-equipo` en
+  `PanelTransition.fillHeight`), ya no `calc(100dvh-…)`.
+
+### AI. Menciones con @ en los grupos (7-oct-2026)
+
+- **Qué cuenta como mención** (`canales_internos.detectar_menciones`, sin LLM):
+  - Formas válidas: «@Nombre Apellido», «@Nombre» (solo si nadie más del grupo se llama igual), «@usuario» y
+    «@todos/@todas/@equipo».
+  - No distingue tildes ni mayúsculas. Un correo (`a@b.co`) no cuenta y el autor nunca se nombra a sí mismo.
+  - De WhatsApp las menciones llegan como «@573001234567»: se buscan por `usuarios.telefono` (`usuario_por_telefono`).
+  - Solo se puede nombrar a los miembros del grupo; si el grupo no tiene miembros, a todo el equipo activo.
+- **Tabla `canal_menciones`**: una fila por (mensaje, persona). La mención queda **pendiente** mientras esa persona no
+  haya leído el grupo hasta ese mensaje (`canal_lecturas`): no se marca a mano.
+  - `_fila_canal` trae `menciones` (las pendientes de quien mira) y los mensajes traen `menciones` [{id, nombre, username}].
+  - `/api/mensajes/resumen` suma `menciones_pendientes`.
+  - `GET /api/canales/<id>/mencionables` da la lista del autocompletar.
+- **Avisos** (`canales_avisos`):
+  - A quien nombran le llega un push aparte («Ana te mencionó · Bodega», tag `mencion-<canal>`), sin la ventana
+    anti-spam de 120 s (sí respeta el silencio de 22:00 a 07:00).
+  - En `novedades` cada mensaje trae `mencion`; la tarjeta en pantalla dice «@ Te mencionó».
+- **Panel**:
+  - `BarraEscritura` (prop `personas`): al escribir «@» abre la lista; Enter o Tab elige, Esc la cierra. Inserta el
+    nombre completo.
+  - `HiloCanal` resalta cada @ (el tuyo más fuerte) y marca con una franja la burbuja que te nombra («@ Te nombró»).
+  - En la bandeja del celular (`lib/bandeja.ts`) un grupo con menciones pendientes pasa a **Te toca** («@ Te nombraron»).
+  - En la lista de Grupos lleva una «@» y sale primero.
+  - Helpers del cliente: `lib/menciones.ts`.
 
 ### AB. Insumos: foto de referencia, equivalencias y contador (25-sep-2026)
 

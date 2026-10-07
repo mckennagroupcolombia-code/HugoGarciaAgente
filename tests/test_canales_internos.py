@@ -210,3 +210,63 @@ def test_preferencias_sonidos_se_validan_y_se_guardan(entorno):
     assert ok
     ok, _, merged = tickets_db.actualizar_preferencias_ui(uid, {"sonidos": {"general": "cc_tropiezo"}})
     assert ok and merged["sonidos"]["general"] == "cc_tropiezo" and merged["panel"]["mode"] == "dark"
+
+
+# ── Menciones con @ (7-oct-2026) ─────────────────────────────────────────────
+
+def _usuarios(*filas):
+    from app.services import canales_internos as CI
+
+    with CI._conn() as c:
+        for uid, nombre, usuario in filas:
+            c.execute("INSERT OR REPLACE INTO usuarios (id, nombre, username, password_hash, activo) VALUES (?,?,?,?,1)",
+                      (uid, nombre, usuario, "x"))
+
+
+def test_mencion_por_nombre_usuario_y_sin_tilde(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana Ruiz", "ana"), (2, "Sebastián García", "sebas"), (3, "Carla Díaz", "carla"))
+    canal = CI.crear_canal(ANA, "Bodega")
+    m = CI.enviar_mensaje(canal["id"], ANA, "@sebastian revisa esto y @carla.diaz no, @Carla Díaz sí")
+    assert {x["id"] for x in m["menciones"]} == {2, 3}
+    # Con correo no es mención; el autor no se menciona a sí mismo.
+    assert CI.enviar_mensaje(canal["id"], ANA, "escribe a ana@mckenna.co o @Ana")["menciones"] == []
+
+
+def test_nombre_repetido_pide_el_completo(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana Ruiz", "ana"), (2, "Victor Garcia", "victor"), (3, "Victor Gómez", "vgomez"))
+    canal = CI.crear_canal(ANA, "Sede")
+    assert [x["id"] for x in CI.enviar_mensaje(canal["id"], ANA, "@victor ven")["menciones"]] == [2]  # por usuario
+    assert [x["id"] for x in CI.enviar_mensaje(canal["id"], ANA, "@Victor Gómez ven")["menciones"]] == [3]
+
+
+def test_mencion_pendiente_hasta_leer_y_todos(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana", "ana"), (2, "Beto", "beto"), (3, "Carla", "carla"))
+    canal = CI.crear_canal(ANA, "Compras", miembros=[1, 2, 3])
+    CI.enviar_mensaje(canal["id"], ANA, "@Beto ¿llegó la factura?")
+    assert CI.obtener_canal(canal["id"], BETO)["menciones"] == 1
+    assert CI.obtener_canal(canal["id"], CARLA)["menciones"] == 0
+    assert CI.menciones_pendientes(BETO) == 1
+    CI.marcar_leido(canal["id"], BETO)
+    assert CI.menciones_pendientes(BETO) == 0
+    CI.enviar_mensaje(canal["id"], ANA, "@todos reunión a las 3")
+    assert CI.menciones_pendientes(BETO) == 1 and CI.menciones_pendientes(CARLA) == 1
+    assert CI.menciones_pendientes(ANA) == 0
+
+
+def test_mencion_desde_whatsapp_por_telefono(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana", "ana"), (2, "Stella", "stella"))
+    canal = CI.crear_canal(ANA, "Despachos", wa_jid=JID)
+    assert CI.espejar_desde_wa(jid=JID, wa_id="w1", texto="@573001112233 ya salió", from_me=True, autor="", ts=0)
+    assert CI.obtener_canal(canal["id"], BETO)["menciones"] == 1
+
+
+def test_mencionables_son_los_miembros_menos_yo(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana", "ana"), (2, "Beto", "beto"), (3, "Carla", "carla"))
+    canal = CI.crear_canal(ANA, "Privado", miembros=[1, 2])
+    assert [p["id"] for p in CI.mencionables(canal["id"], ANA)] == [2]
+    assert CI.mencionables(canal["id"], CARLA) is None

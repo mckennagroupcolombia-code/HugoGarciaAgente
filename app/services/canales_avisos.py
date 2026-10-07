@@ -10,6 +10,7 @@ La app es un chat: cuando alguien escribe en un grupo, los demás deben enterars
 
 Sin spam: un push por persona y grupo cada `_VENTANA_S` segundos, y nada entre 22:00 y
 07:00 (mismo horario de silencio que la alarma). Nunca por WhatsApp. Sin LLM.
+A quien nombran con @ (7-oct-2026) le llega aparte, sin esa ventana: «Ana te mencionó · Bodega».
 """
 from __future__ import annotations
 
@@ -45,40 +46,52 @@ def _toca(uid: int, canal_id: int, ahora: float) -> bool:
         return True
 
 
-def avisar_mensaje(canal_id: int, canal_nombre: str, autor_id: int | None, autor: str, texto: str, adjunto: bool = False) -> None:
+def avisar_mensaje(canal_id: int, canal_nombre: str, autor_id: int | None, autor: str, texto: str, adjunto: bool = False,
+                   *, mencionados: list[int] | None = None) -> None:
     """Se llama al guardar un mensaje; el envío corre en otro hilo para no frenar el chat."""
     if os.environ.get("PYTEST_CURRENT_TEST"):
         return
     threading.Thread(
-        target=_enviar, args=(canal_id, canal_nombre, autor_id, autor, texto, adjunto),
+        target=_enviar, args=(canal_id, canal_nombre, autor_id, autor, texto, adjunto, list(mencionados or [])),
         name="canal-push", daemon=True,
     ).start()
 
 
-def _enviar(canal_id: int, canal_nombre: str, autor_id: int | None, autor: str, texto: str, adjunto: bool) -> None:
+def _enviar(canal_id: int, canal_nombre: str, autor_id: int | None, autor: str, texto: str, adjunto: bool,
+            mencionados: list[int] | None = None) -> None:
     try:
         from app.services import push_scheduler as PS
 
         if not PS.push_disponible() or PS._en_horario_silencio():
             return
         ahora = time.time()
-        uids = [u for u in destinatarios(canal_id, autor_id) if _toca(u, canal_id, ahora)]
-        if not uids:
-            return
+        nombrados = set(mencionados or [])
+        # Los nombrados reciben su propio aviso (y reinician su ventana); el resto, el de siempre.
+        for u in nombrados:
+            with _lock:
+                _ultimo[(u, canal_id)] = ahora
+        uids = [u for u in destinatarios(canal_id, autor_id) if u not in nombrados and _toca(u, canal_id, ahora)]
+        cuerpo = (texto or "").strip().replace("\n", " ")[:140] or ("📎 Adjunto" if adjunto else "Mensaje nuevo")
+        base = {"type": "chat-mensaje", "cuerpo": cuerpo, "tag": f"canal-{canal_id}", "canal_id": canal_id}
+        if nombrados:
+            _empujar(PS, sorted(nombrados), {**base, "titulo": f"{autor or 'Alguien'} te mencionó · {canal_nombre}",
+                                             "tag": f"mencion-{canal_id}"})
+        if uids:
+            _empujar(PS, uids, {**base, "titulo": f"{autor or 'Alguien'} · {canal_nombre}"})
+    except Exception as exc:
+        log.warning("[canal-push] no se pudo avisar: %s", exc)
+
+
+def _empujar(PS, uids: list[int], payload: dict) -> None:
+    """Web Push a todos los dispositivos de `uids`."""
+    try:
         PS._ensure_table()
         marcas = ",".join("?" * len(uids))
         with PS._get_conn() as db:
             filas = db.execute(
                 f"SELECT endpoint, subscription_json FROM push_subscriptions WHERE usuario_id IN ({marcas})", uids
             ).fetchall()
-        cuerpo = (texto or "").strip().replace("\n", " ")[:140] or ("📎 Adjunto" if adjunto else "Mensaje nuevo")
-        datos = json.dumps({
-            "type": "chat-mensaje",
-            "titulo": f"{autor or 'Alguien'} · {canal_nombre}",
-            "cuerpo": cuerpo,
-            "tag": f"canal-{canal_id}",
-            "canal_id": canal_id,
-        }, ensure_ascii=False)
+        datos = json.dumps(payload, ensure_ascii=False)
         from pywebpush import webpush
 
         for f in filas:
@@ -133,7 +146,14 @@ def novedades(usuario: dict, desde: int, *, inicio: bool = False) -> dict:
             "ORDER BY id DESC LIMIT 5",
             (int(desde), *visibles.keys(), uid),
         ).fetchall()
+        # Los que nombran a esta persona: el panel avisa «te mencionó» y con su sonido.
+        ids = [int(f["id"]) for f in filas]
+        mios = {int(r[0]) for r in c.execute(
+            f"SELECT mensaje_id FROM canal_menciones WHERE usuario_id=? AND mensaje_id IN ({','.join('?' * len(ids))})",
+            (uid, *ids),
+        )} if ids else set()
     return {
         "ultimo_id": ultimo,
-        "mensajes": [{**dict(f), "canal_nombre": visibles.get(int(f["canal_id"]), "")} for f in filas],
+        "mensajes": [{**dict(f), "canal_nombre": visibles.get(int(f["canal_id"]), ""), "mencion": int(f["id"]) in mios}
+                     for f in filas],
     }

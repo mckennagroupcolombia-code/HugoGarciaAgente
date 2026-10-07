@@ -142,6 +142,7 @@
 .bj-estado-esperando_aprobacion { background: #c2a0ff; }
 .bj-estado-resuelto { background: #00e436; }
 .bj-estado-rechazado { background: #ff77a8; }
+.bj-chip-mencion { background: rgb(var(--mck-accent)); color: #fff; border-color: rgb(var(--mck-accent)); }
 .bj-chip-grupo { background: rgb(var(--mck-surface)); color: rgb(var(--mck-ink)); }
 .bj-badge {
   display: flex;

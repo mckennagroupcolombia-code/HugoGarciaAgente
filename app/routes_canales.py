@@ -118,6 +118,15 @@ def register_canales_routes(app):
             return jsonify({"error": "Canal no encontrado"}), 404
         return jsonify({"mensajes": msgs})
 
+    @app.route("/api/canales/<int:canal_id>/mencionables", methods=["GET"])
+    @_auth
+    def canales_mencionables(canal_id: int):
+        """A quién se puede nombrar con @ en este grupo (el autocompletar de la caja)."""
+        gente = CI.mencionables(canal_id, _u())
+        if gente is None:
+            return jsonify({"error": "Canal no encontrado"}), 404
+        return jsonify({"personas": gente})
+
     @app.route("/api/canales/vinculos", methods=["GET"])
     @_auth
     def canales_vinculos_buscar():
@@ -289,9 +298,11 @@ def register_canales_routes(app):
     def mensajes_resumen():
         """Lo que pinta la campana: una sola consulta barata cada pocos segundos."""
         u = _u()
-        out = {"canales_no_leidos": 0, "notificaciones_no_leidas": 0}
+        out = {"canales_no_leidos": 0, "notificaciones_no_leidas": 0, "menciones_pendientes": 0}
         try:
-            out["canales_no_leidos"] = CI.no_leidos_total(u)
+            canales = CI.listar_canales(u)
+            out["canales_no_leidos"] = sum(c["no_leidos"] for c in canales)
+            out["menciones_pendientes"] = sum(c.get("menciones", 0) for c in canales)
         except Exception:
             pass
         try:

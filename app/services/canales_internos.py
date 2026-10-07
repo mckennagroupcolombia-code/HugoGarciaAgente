@@ -98,6 +98,16 @@ CREATE TABLE IF NOT EXISTS canal_lecturas (
     leido_en          REAL,
     UNIQUE(canal_id, usuario_id)
 );
+-- Menciones con @ (7-oct-2026): quién fue nombrado en qué mensaje. Queda «pendiente» mientras
+-- esa persona no haya leído el grupo hasta ese mensaje (canal_lecturas): no hay que marcarla.
+CREATE TABLE IF NOT EXISTS canal_menciones (
+    mensaje_id INTEGER NOT NULL,
+    canal_id   INTEGER NOT NULL,
+    usuario_id INTEGER NOT NULL,
+    creado_en  REAL NOT NULL,
+    UNIQUE(mensaje_id, usuario_id)
+);
+CREATE INDEX IF NOT EXISTS ix_canal_menciones_usuario ON canal_menciones(usuario_id, canal_id, mensaje_id);
 """
 
 
@@ -272,6 +282,13 @@ def _fila_canal(c: sqlite3.Connection, r: sqlite3.Row, usuario_id: int | None) -
         "AND (usuario_id IS NULL OR usuario_id != ?)",
         (r["id"], leido, usuario_id or -1),
     ).fetchone()[0]
+    menciones = 0
+    if usuario_id:
+        menciones = c.execute(
+            "SELECT COUNT(*) FROM canal_menciones m JOIN canal_mensajes x ON x.id = m.mensaje_id "
+            "WHERE m.canal_id=? AND m.usuario_id=? AND m.mensaje_id>? AND x.eliminado=0",
+            (r["id"], usuario_id, leido),
+        ).fetchone()[0]
     nombre_wa = ""
     if r["wa_jid"]:
         try:
@@ -292,6 +309,8 @@ def _fila_canal(c: sqlite3.Connection, r: sqlite3.Row, usuario_id: int | None) -
         "archivado": bool(r["archivado"]),
         "miembros": _miembros(c, int(r["id"])),
         "no_leidos": int(no_leidos),
+        # Menciones a esta persona que todavía no ha leído: el grupo le «toca» (bandeja).
+        "menciones": int(menciones),
         "ultimo": dict(ultimo) if ultimo else None,
     }
 
@@ -342,7 +361,120 @@ def _fila_mensaje(r: sqlite3.Row) -> dict:
     d.pop("texto_wa", None)
     d.setdefault("responde_a", None)
     d["cita"] = None
+    d["menciones"] = []
     return d
+
+
+def _con_menciones(c: sqlite3.Connection, mensajes: list[dict]) -> list[dict]:
+    """Agrega `menciones` ([{id, nombre}]) a cada mensaje: el panel resalta los @ y el tuyo."""
+    ids = [int(m["id"]) for m in mensajes]
+    if not ids:
+        return mensajes
+    filas = c.execute(
+        f"SELECT m.mensaje_id, m.usuario_id, COALESCE(u.nombre, u.username, '') AS nombre, COALESCE(u.username, '') AS username "
+        f"FROM canal_menciones m LEFT JOIN usuarios u ON u.id = m.usuario_id "
+        f"WHERE m.mensaje_id IN ({','.join('?' * len(ids))})", tuple(ids)
+    ).fetchall()
+    por_mensaje: dict[int, list[dict]] = {}
+    for f in filas:
+        por_mensaje.setdefault(int(f["mensaje_id"]), []).append(
+            {"id": int(f["usuario_id"]), "nombre": f["nombre"] or "", "username": f["username"] or ""})
+    for m in mensajes:
+        m["menciones"] = por_mensaje.get(int(m["id"]), [])
+    return mensajes
+
+
+# ── Menciones con @ ──────────────────────────────────────────────────────────
+
+def _normalizar(t: str) -> str:
+    """Minúsculas y sin tildes: «@sebastian» encuentra a «Sebastián García»."""
+    import unicodedata
+
+    t = unicodedata.normalize("NFKD", t or "")
+    return "".join(ch for ch in t if not unicodedata.combining(ch)).lower()
+
+
+_TODOS = ("todos", "todas", "equipo")
+
+
+def _candidatos(c: sqlite3.Connection, canal_id: int) -> list[sqlite3.Row]:
+    """Quién puede ser nombrado: los miembros del grupo o, si no tiene, todo el equipo activo."""
+    miembros = _miembros(c, canal_id)
+    filas = c.execute("SELECT id, nombre, username FROM usuarios WHERE COALESCE(activo,1)=1").fetchall()
+    return [f for f in filas if not miembros or int(f["id"]) in miembros]
+
+
+def detectar_menciones(c: sqlite3.Connection, canal_id: int, texto: str, autor_id: int | None) -> list[int]:
+    """Usuarios nombrados con @ en `texto` (nunca el autor).
+
+    Vale «@Nombre Apellido», «@Nombre» (si nadie más del grupo se llama igual), «@usuario» y
+    «@todos». De WhatsApp llegan como «@573001234567»: se buscan por teléfono (usuarios.telefono).
+    """
+    if "@" not in (texto or ""):
+        return []
+    import re
+
+    candidatos = _candidatos(c, canal_id)
+    nombres = [_normalizar(str(f["nombre"] or "")).strip() for f in candidatos]
+    primeros = [n.split()[0] if n.split() else "" for n in nombres]
+    claves: list[tuple[str, int]] = []
+    for f, completo, primero in zip(candidatos, nombres, primeros):
+        uid = int(f["id"])
+        if completo:
+            claves.append((completo, uid))
+        if primero and primeros.count(primero) == 1:
+            claves.append((primero, uid))
+        usuario = _normalizar(str(f["username"] or "")).strip()
+        if usuario:
+            claves.append((usuario, uid))
+    claves.sort(key=lambda k: -len(k[0]))  # la más larga primero: «ana maria» antes que «ana»
+
+    norm = _normalizar(texto)
+    nombrados: set[int] = set()
+    for m in re.finditer(r"(?<![\w.])@", norm):
+        resto = norm[m.end():]
+        if any(re.match(rf"{t}\b", resto) for t in _TODOS):
+            nombrados.update(int(f["id"]) for f in candidatos)
+            continue
+        tel = re.match(r"\d{10,15}", resto)
+        if tel:
+            try:
+                from app.services.pagos_clientes import usuario_por_telefono
+
+                uid, _ = usuario_por_telefono(tel.group(0))
+                if uid:
+                    nombrados.add(int(uid))
+            except Exception:
+                pass
+            continue
+        for clave, uid in claves:
+            if resto.startswith(clave) and not (len(resto) > len(clave) and (resto[len(clave)].isalnum() or resto[len(clave)] == "_")):
+                nombrados.add(uid)
+                break
+    nombrados.discard(int(autor_id or -1))
+    return sorted(nombrados)
+
+
+def _guardar_menciones(c: sqlite3.Connection, canal_id: int, mensaje_id: int, uids: list[int]) -> None:
+    for uid in uids:
+        c.execute("INSERT OR IGNORE INTO canal_menciones (mensaje_id, canal_id, usuario_id, creado_en) VALUES (?,?,?,?)",
+                  (mensaje_id, canal_id, uid, time.time()))
+
+
+def mencionables(canal_id: int, usuario: dict) -> list[dict] | None:
+    """Personas que se pueden nombrar en el grupo (sin quien escribe). None si no lo ve."""
+    with _conn() as c:
+        r = _canal(c, canal_id)
+        if not r or not _puede_ver(c, r, usuario):
+            return None
+        yo = int(usuario.get("id") or -1)
+        return [{"id": int(f["id"]), "nombre": f["nombre"] or f["username"] or "", "username": f["username"] or ""}
+                for f in _candidatos(c, canal_id) if int(f["id"]) != yo]
+
+
+def menciones_pendientes(usuario: dict) -> int:
+    """Total de menciones sin leer de esta persona en los grupos que ve."""
+    return sum(c.get("menciones", 0) for c in listar_canales(usuario))
 
 
 def _con_citas(c: sqlite3.Connection, mensajes: list[dict]) -> list[dict]:
@@ -389,7 +521,7 @@ def listar_mensajes(canal_id: int, usuario: dict, *, despues_de: int = 0, antes_
                 + " ORDER BY id DESC LIMIT ?",
                 (canal_id, antes_de, limite) if antes_de else (canal_id, limite),
             ).fetchall()[::-1]
-        return _con_citas(c, [_fila_mensaje(f) for f in filas])
+        return _con_menciones(c, _con_citas(c, [_fila_mensaje(f) for f in filas]))
 
 
 def enviar_mensaje(
@@ -439,7 +571,9 @@ def enviar_mensaje(
         mid = int(cur.lastrowid)
         if usuario:
             _marcar_leido(c, canal_id, int(usuario["id"]), mid)
-        fila = _con_citas(c, [_fila_mensaje(c.execute("SELECT * FROM canal_mensajes WHERE id=?", (mid,)).fetchone())])[0]
+        nombrados = detectar_menciones(c, canal_id, texto, (usuario or {}).get("id")) if tipo == "mensaje" else []
+        _guardar_menciones(c, canal_id, mid, nombrados)
+        fila = _con_menciones(c, _con_citas(c, [_fila_mensaje(c.execute("SELECT * FROM canal_mensajes WHERE id=?", (mid,)).fetchone())]))[0]
         jid = canal["wa_jid"]
     if usuario:
         try:
@@ -452,17 +586,20 @@ def enviar_mensaje(
     if texto_wa and jid:
         _reenviar_a_wa(jid, texto_wa)
     es_voz = str((adjunto or {}).get("mime") or "").startswith("audio/")
-    _avisar(canal_id, (usuario or {}).get("id"), autor, texto or ("🎤 Nota de voz" if es_voz else ""), bool(adjunto))
+    _avisar(canal_id, (usuario or {}).get("id"), autor, texto or ("🎤 Nota de voz" if es_voz else ""), bool(adjunto),
+            mencionados=nombrados)
     return fila
 
 
-def _avisar(canal_id: int, autor_id: int | None, autor: str, texto: str, adjunto: bool) -> None:
-    """Notificación a los demás del grupo (canales_avisos: push con la app cerrada)."""
+def _avisar(canal_id: int, autor_id: int | None, autor: str, texto: str, adjunto: bool,
+            mencionados: list[int] | None = None) -> None:
+    """Notificación a los demás del grupo (canales_avisos: push con la app cerrada).
+    A quien nombraron con @ le llega siempre, sin la ventana anti-spam del grupo."""
     try:
         from app.services import canales_avisos
 
         nombre = (obtener_canal(canal_id, None, forzar=True) or {}).get("nombre") or "Grupo"
-        canales_avisos.avisar_mensaje(canal_id, nombre, autor_id, autor, texto, adjunto)
+        canales_avisos.avisar_mensaje(canal_id, nombre, autor_id, autor, texto, adjunto, mencionados=mencionados or [])
     except Exception as e:
         print(f"[canales_internos] aviso falló: {e}")
 
@@ -635,14 +772,18 @@ def espejar_desde_wa(
             except Exception:
                 uid, nombre = None, ""
         autor_nombre = nombre or ("Teléfono de McKenna" if from_me else (f"…{autor[-4:]}" if autor else "WhatsApp"))
-        c.execute(
+        cur = c.execute(
             "INSERT OR IGNORE INTO canal_mensajes (canal_id, usuario_id, autor_nombre, origen, tipo, wa_id, autor_wa, "
             "texto, wa_media_path, adjunto_mime, creado_en) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (cid, uid, autor_nombre, "wa", "mensaje", wa_id or None, autor or None,
              "" if texto == "[adjunto]" and media_path else texto, media_path or None, media_mime or None,
              float(ts or time.time())),
         )
-    _avisar(cid, uid, autor_nombre, "" if texto == "[adjunto]" else texto, bool(media_path))
+        nombrados: list[int] = []
+        if cur.lastrowid and texto and texto != "[adjunto]":
+            nombrados = detectar_menciones(c, cid, texto, uid)
+            _guardar_menciones(c, cid, int(cur.lastrowid), nombrados)
+    _avisar(cid, uid, autor_nombre, "" if texto == "[adjunto]" else texto, bool(media_path), mencionados=nombrados)
     return True
 
 

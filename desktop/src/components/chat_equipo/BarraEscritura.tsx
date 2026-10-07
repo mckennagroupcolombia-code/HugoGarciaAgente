@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ClipboardEvent, type ReactNode, type RefObject } from "react";
 import GrabadorVoz, { CLASE_BOTON_REDONDO, IconoEnviar } from "./GrabadorVoz";
+import { consultaEnCurso, sugerencias, type Persona } from "../../lib/menciones";
+import { colorDePersona } from "../../lib/personaColor";
 
 export function IconoClip() {
   return (
@@ -42,7 +44,7 @@ export function BotonCaja({ onClick, titulo, activo, children }: { onClick: () =
  */
 export default function BarraEscritura({
   texto, onTexto, onEnviar, onVoz, hayAdjunto, enviando, iconos, iconosSinTexto, onPaste, onError,
-  placeholder = "Mensaje", textareaRef,
+  placeholder = "Mensaje", textareaRef, personas,
 }: {
   texto: string;
   onTexto: (t: string) => void;
@@ -59,11 +61,27 @@ export default function BarraEscritura({
   onError?: (mensaje: string) => void;
   placeholder?: string;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
+  /** Quién se puede nombrar con @: al escribir «@» aparece la lista para elegir. */
+  personas?: Persona[];
 }) {
   const [grabando, setGrabando] = useState(false);
   const propio = useRef<HTMLTextAreaElement>(null);
   const ref = textareaRef ?? propio;
   const hayAlgo = Boolean(texto.trim()) || Boolean(hayAdjunto);
+  // Autocompletar de @: lo que va escrito tras el @ junto al cursor.
+  const [cursor, setCursor] = useState(0);
+  const consulta = personas?.length ? consultaEnCurso(texto, cursor) : null;
+  const opciones = consulta ? sugerencias(personas ?? [], consulta.q) : [];
+  const [cerrada, setCerrada] = useState<number | null>(null);
+  const abierta = Boolean(consulta && opciones.length && cerrada !== consulta.inicio);
+  const elegir = (p: Persona) => {
+    if (!consulta) return;
+    const nuevo = `${texto.slice(0, consulta.inicio)}@${p.nombre} ${texto.slice(cursor)}`;
+    const pos = consulta.inicio + p.nombre.length + 2;
+    onTexto(nuevo);
+    setCursor(pos);
+    requestAnimationFrame(() => { ref.current?.focus(); ref.current?.setSelectionRange(pos, pos); });
+  };
 
   // Crece con el texto (hasta ~6 líneas) y vuelve a una línea al enviar.
   useEffect(() => {
@@ -74,14 +92,35 @@ export default function BarraEscritura({
   }, [texto, ref]);
 
   return (
-    <div className="flex items-end gap-2">
+    <div className="relative flex items-end gap-2">
+      {abierta && (
+        <div className="absolute bottom-full left-0 z-20 mb-2 w-[min(100%,20rem)] overflow-hidden rounded-2xl border border-border bg-surface-panel shadow-paper-lg"
+             role="listbox" aria-label="Nombrar a alguien">
+          <p className="border-b border-border px-3 py-1.5 text-[11.5px] font-bold uppercase tracking-wide text-muted">Nombrar a… (le llega el aviso)</p>
+          {opciones.map((p, i) => (
+            <button key={p.id} type="button" role="option" aria-selected={i === 0}
+                    onMouseDown={(e) => { e.preventDefault(); elegir(p); }}
+                    className={`mck-btn-no-fx flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/10 ${i === 0 ? "bg-accent/5" : ""}`}>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-black text-white"
+                    style={{ background: colorDePersona(p.nombre) }} aria-hidden>{p.nombre.slice(0, 1).toUpperCase()}</span>
+              <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-ink">{p.nombre}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {!grabando && (
         <div className="flex min-h-[48px] min-w-0 flex-1 items-end rounded-[24px] border border-border bg-surface-input pl-4 pr-1 shadow-sm focus-within:border-accent/60">
           <textarea
             ref={ref}
             value={texto}
-            onChange={(e) => onTexto(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (hayAlgo && !enviando) onEnviar(); } }}
+            onChange={(e) => { onTexto(e.target.value); setCursor(e.target.selectionStart ?? e.target.value.length); }}
+            onSelect={(e) => setCursor(e.currentTarget.selectionStart ?? 0)}
+            onKeyDown={(e) => {
+              // Con la lista de @ abierta, Enter/Tab eligen a la primera persona y Esc la cierra.
+              if (abierta && (e.key === "Enter" || e.key === "Tab")) { e.preventDefault(); elegir(opciones[0]); return; }
+              if (abierta && e.key === "Escape") { e.preventDefault(); setCerrada(consulta?.inicio ?? null); return; }
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (hayAlgo && !enviando) onEnviar(); }
+            }}
             onPaste={onPaste}
             rows={1}
             placeholder={placeholder}

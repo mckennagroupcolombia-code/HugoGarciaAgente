@@ -73,12 +73,14 @@ export function useBandeja() {
         kind: "solicitud", key: `s${c.id}`, ts: tsServidor(c.ultima_actividad), noLeidos: c.no_leidos || 0, c,
       });
     }
-    // Los grupos con mensajes sin leer son para enterarse; el resto queda en «Todos los grupos».
+    // Un grupo donde te nombraron con @ te toca; con mensajes sin leer, es para enterarse;
+    // el resto queda en «Todos los grupos».
     const grupos: ItemBandeja[] = [];
     for (const g of verGrupos ? canales.data?.canales ?? [] : []) {
       if (g.archivado) continue;
       const it: ItemBandeja = { kind: "grupo", key: `g${g.id}`, ts: (g.ultimo?.creado_en ?? 0) * 1000, noLeidos: g.no_leidos || 0, g };
-      if (it.noLeidos > 0) secciones.enterarte.push(it);
+      if ((g.menciones ?? 0) > 0) secciones.te_toca.push(it);
+      else if (it.noLeidos > 0) secciones.enterarte.push(it);
       grupos.push(it);
     }
     for (const k of Object.keys(secciones) as SeccionBandeja[]) secciones[k] = ordenar(secciones[k]);

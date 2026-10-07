@@ -50,6 +50,11 @@
   to { opacity: 1; transform: none; }
 }
 
+/* Menciones con @ (7-oct-2026): el nombre resaltado; el tuyo y la burbuja que te nombra, más. */
+.mck-mencion { font-weight: 800; color: rgb(var(--mck-accent)); }
+.mck-mencion-mia { padding: 0 3px; border-radius: 4px; background: rgb(var(--mck-accent) / 0.16); }
+.mck-burbuja-mencion { box-shadow: inset 4px 0 0 rgb(var(--mck-accent)), 0 1px 3px rgb(0 0 0 / 0.06); }
+
 /* Acciones del mensaje: a la vista en táctil, al pasar el mouse en escritorio. */
 @media (hover: hover) {
   .mck-msg .mck-chat-acciones { opacity: 0; transition: opacity 120ms; }
