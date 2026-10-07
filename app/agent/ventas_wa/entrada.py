@@ -21,17 +21,74 @@ Guardas propias (además de las de routes.py: grupos, silenciados, bot global):
      ráfaga de mensajes; las peticiones de los mensajes anteriores se retiran.
   4. Anti-pisada: si el asesor escribió mientras el modelo pensaba, la respuesta
      se descarta.
+  5. Un turno a la vez por chat: lo que el cliente escribe mientras el modelo
+     piensa se atiende en el turno siguiente (_reordenar_rezagados).
 """
 
 from __future__ import annotations
 
 import os
 import re
+import threading
 import time
 
 from app.agent.ventas_wa import historial as hist
 from app.agent.ventas_wa import pedido as ped_mod
 from app.observability import log_json, spawn_thread
+
+# Auditoría 7-oct-2026: un mensaje que llegaba mientras el modelo pensaba (10-25 s)
+# se perdía si su hilo despertaba después de guardada la respuesta (quedaba ANTES de
+# ella y parecía respondido: «¿el pago es contra entrega?», «¿todavía hacen domicilio?»)
+# o se respondía dos veces si despertaba antes (dos turnos en paralelo, turnos 80/81).
+_locks_guard = threading.Lock()
+_locks: dict[str, threading.Lock] = {}
+_consumido: dict[str, float] = {}  # jid -> ts del último mensaje del cliente que entró a un turno
+_espera_envio: dict[str, bool] = {}  # jid -> el turno anterior dejó una respuesta por enviar
+_VENTANA_REZAGO_S = 600
+
+
+def _lock_de(jid: str) -> threading.Lock:
+    with _locks_guard:
+        return _locks.setdefault(jid, threading.Lock())
+
+
+def _reordenar_rezagados(jid: str, msgs: list[dict]) -> list[dict]:
+    """
+    Mensajes del cliente posteriores al último que entró a un turno pero anteriores a la
+    respuesta de Hugo: esa respuesta no los vio. Si después solo habló el bot, se mueven
+    al final para que sigan pendientes. Si habló un asesor, ya los atendió él.
+    """
+    corte = _consumido.get(jid)
+    if not corte or time.time() - corte > _VENTANA_REZAGO_S:
+        return msgs
+    pendientes = {id(m) for m in hist.pendientes_del_cliente(msgs)}
+    rezagados = [
+        m
+        for i, m in enumerate(msgs)
+        if hist._rol(m) == "cliente"
+        and float(m.get("ts") or 0) > corte
+        and id(m) not in pendientes
+        and not any(hist._rol(x) == "asesor" for x in msgs[i + 1 :])
+    ]
+    if not rezagados:
+        return msgs
+    ids = {id(m) for m in rezagados}
+    resto = [m for m in msgs if id(m) not in ids]
+    # Justo después de la última salida: quedan antes de los pendientes reales.
+    corte_idx = max((i for i, m in enumerate(resto) if hist._rol(m) != "cliente"), default=-1) + 1
+    return resto[:corte_idx] + rezagados + resto[corte_idx:]
+
+
+def _esperar_envio_previo(jid: str, timeout_s: float = 15.0) -> None:
+    """La respuesta del turno anterior la guarda el puente después de enviarla: se espera."""
+    if not _espera_envio.pop(jid, False):
+        return
+    corte = _consumido.get(jid, 0.0)
+    limite = time.time() + timeout_s
+    while time.time() < limite:
+        if any(hist._rol(m) == "hugo" and float(m.get("ts") or 0) > corte for m in hist.mensajes(jid, limite=20)):
+            return
+        time.sleep(1.0)
 
 
 def modo() -> str:
@@ -218,7 +275,22 @@ def atender(
     if esperar:
         time.sleep(max(0.0, float(os.getenv("WA_V2_AGRUPAR_S", "6"))))
 
-    msgs = hist.mensajes(jid)
+    # El puente Node corta la petición a los 120 s: la espera por el turno anterior
+    # tiene que dejar tiempo para el propio (si se agota, lo cubre el auditor de
+    # «clientes sin respuesta»).
+    lk = _lock_de(jid)
+    if not lk.acquire(timeout=60):
+        log_json("wa_v2_turno_ocupado", jid=jid[-20:])
+        return {"status": "v2_ocupado", "respuesta": None}
+    try:
+        _esperar_envio_previo(jid)
+        return _atender_turno(jid, m, wa_id=wa_id, ts_msg=ts_msg, retomando_min=retomando_min)
+    finally:
+        lk.release()
+
+
+def _atender_turno(jid: str, m: str, *, wa_id: str | None, ts_msg: float | None, retomando_min: int | None) -> dict:
+    msgs = _reordenar_rezagados(jid, hist.mensajes(jid))
     if not _debe_responder_este(msgs, wa_id, ts_msg):
         return {"status": "v2_agrupado", "respuesta": None}
     retomando = retomando_min is not None
@@ -254,6 +326,8 @@ def atender(
         if codigo and ped_mod.adoptar_pedido_web(codigo.group(0), jid):
             log_json("wa_v2_pedido_web_adoptado", jid=jid[-20:], codigo=codigo.group(0).upper())
             break
+    if pendientes:
+        _consumido[jid] = max(float(x.get("ts") or 0) for x in pendientes)
     t0 = time.time()
     res = ejecutar_turno(jid, display, msgs, modo=m, retomando_min=retomando_min)
 
@@ -288,6 +362,7 @@ def atender(
         return {"status": "v2_sombra", "respuesta": None}
     if estado in ("omitido", "descartado_asesor"):
         return {"status": f"v2_{estado}", "respuesta": None}
+    _espera_envio[jid] = bool(res.respuesta)
     return {"status": "v2_ok" if not res.error else "v2_respaldo", "respuesta": res.respuesta}
 
 

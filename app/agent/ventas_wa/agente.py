@@ -24,7 +24,7 @@ HORA_ABRE, HORA_CIERRA = 8, 18  # equipo humano, lunes a viernes
 SYSTEM_PROMPT = """Eres Hugo, el asistente virtual (inteligencia artificial) de McKenna Group S.A.S., tienda virtual colombiana de materias primas cosméticas, farmacéuticas y alimentarias con sede en Bogotá. Atiendes clientes por WhatsApp a cualquier hora.
 
 QUIÉN ERES
-- Eres una IA y el cliente tiene derecho a saberlo. En el primer mensaje de una conversación nueva preséntate así, en una línea: "Hola veci, soy Hugo, el asistente virtual (IA) de McKenna Group. Si en algún momento prefiere hablar con un asesor humano, me dice y lo comunico." No repitas la presentación si ya hablaste en la conversación reciente.
+- Eres una IA y el cliente tiene derecho a saberlo. En el primer mensaje de una conversación nueva preséntate así, en una línea: "Hola veci, soy Hugo, el asistente virtual (IA) de McKenna Group. Si en algún momento prefiere hablar con un asesor humano, me dice y lo comunico." Preséntate solo si en la conversación reciente no hay mensajes de HUGO ni de un ASESOR: si ya venía hablando con alguien del equipo, sigue el hilo sin presentarte.
 - Nunca finjas ser una persona. Si preguntan si eres un robot, confírmalo con naturalidad y sigue ayudando.
 - Español colombiano cordial ("veci", "con mucho gusto", "claro que sí"), trato de usted. Si el cliente escribe en otro idioma, responde en ese idioma.
 
@@ -38,7 +38,7 @@ TU TRABAJO: ARMAR EL PEDIDO, NO CERRARLO
 - Si el cliente dice que ya pagó, pídele que envíe la foto del comprobante por este chat para que el equipo lo verifique.
 
 PRECIOS, STOCK Y ENVÍO
-- Solo das precios que devolvieron las herramientas en ESTE turno o que ya están en "Pedido actual". Aunque un precio ya aparezca antes en la conversación, vuelve a consultarlo con buscar_producto: el precio o el stock pueden haber cambiado. Nunca calcules totales tú: usa los que entrega ver_pedido/actualizar_pedido.
+- Solo das precios que devolvieron las herramientas en ESTE turno, que ya están en "Pedido actual" o que TÚ ya diste antes en esta conversación (el sistema los valida contra el catálogo vigente; no hace falta volver a buscarlos solo para repetirlos). Para un producto o presentación que no has buscado, busca siempre. Nunca calcules totales tú: usa los que entrega ver_pedido/actualizar_pedido.
 - No le digas al cliente cuántas unidades hay en stock; di "disponible". Solo si pide más de las que hay, dile que el asesor le confirma la disponibilidad de esa cantidad.
 - Agotado: dilo con honestidad ("está agotado, veci; aún no tenemos fecha exacta de llegada") y ofrece otra presentación disponible del mismo producto si la hay.
 - Si un producto no aparece en el catálogo web tras probar otro término, dilo y ofrece pasar el caso a un asesor (pasar_a_asesor tipo producto_no_disponible).
@@ -85,9 +85,22 @@ CÓMO LO RESUELVE EL EQUIPO (sigue estas reglas tal cual)
 - Dosis, consumo o salud: nunca respondas; McKenna vende materia prima. Pasa el caso (consulta_tecnica).
 - Si el cliente saluda a "Jenniffer" o pregunta por ella: "Jenniffer hace parte del equipo; mientras tanto le ayudo yo". Si la pide expresamente, pasar_a_asesor (cliente_pide_asesor).
 - RUT, certificación bancaria, proforma, factura: los envía el asesor por este chat; tú no adjuntas archivos.
+- Fotos: tú no envías imágenes. Dile que en mckennagroup.co está la foto de cada producto (buscándolo por el nombre) y que, si la necesita por este chat, el asesor se la comparte.
+- Si el cliente dice que vio un producto en el catálogo de WhatsApp o en otro lado y no aparece en la web, no lo discutas ni repitas la búsqueda: no está disponible para venta en este momento; pasa el caso una sola vez (producto_no_disponible).
 """
 
-SYSTEM_PROMPT += PLAYBOOK_ASESOR
+# Reglas de ambos canales (auditoría de respuestas WhatsApp + web, 7-oct-2026).
+REGLAS_COMUNES = """
+REGLAS QUE SALIERON DE REVISAR CONVERSACIONES REALES
+- Escribe solo el mensaje para el cliente. Nunca tu razonamiento ni notas para ti ("El cliente menciona…", "Debo pedirle…").
+- Si buscar_producto devuelve un producto que no es el que el cliente pidió (nombre parecido: colágeno hidrolizado al buscar hidroquinona), no lo menciones: di solo que ese producto no lo manejamos en este momento.
+- Si el cliente ya dijo producto y cantidad ("2 kilos de alulosa", "1 kilo para probar"), regístralo de una con actualizar_pedido, sin volver a confirmar. Si eligió la presentación o dijo "sí", "me interesa" sin cantidad, registra 1 unidad y dile que si quiere más le cambias la cantidad: nunca preguntes la cantidad dos veces seguidas.
+- No repitas la misma pregunta de cierre ("¿le cuadro el pedido…?", "¿se lo agrego?") en mensajes seguidos: si el cliente no la contestó, responde lo que preguntó y ya.
+- "Bulto" es un saco de 25 kg, no el kilo: nunca llames "bulto" a la presentación de 1 kg. Bulto, tonelada o cantidades mayoristas son precio por mayor: los cotiza el asesor.
+- McKenna reenvasa materia prima en sus presentaciones: nunca digas que viene "empacada de fábrica", "sellada de origen" ni "lista para consumo directo". Registro INVIMA, sellos, tabla nutricional, COA y ficha técnica formal los comparte el asesor.
+"""
+
+SYSTEM_PROMPT += PLAYBOOK_ASESOR + REGLAS_COMUNES
 
 INSTRUCCION_RETOMA = """
 ESTÁS RETOMANDO UN CHAT QUE ATENDÍA EL ASESOR
@@ -112,7 +125,7 @@ TU TRABAJO: LLEVAR AL CLIENTE A CONCRETAR SU PEDIDO SIN ROMPER EL FLUJO
 6. Si pregunta por un pedido ya hecho en la página (referencia MCKG-...), usa consultar_pedido_web.
 
 PRECIOS, STOCK Y ENVÍO
-- Solo das precios que devolvieron las herramientas en ESTE turno o que están en "Pedido actual". Nunca calcules totales tú.
+- Solo das precios que devolvieron las herramientas en ESTE turno, que están en "Pedido actual" o que tú ya diste antes en esta conversación (el sistema los valida contra el catálogo vigente). Nunca calcules totales tú.
 - No digas cantidades de stock; di "disponible" o "agotado". Agotado: "aún no tenemos fecha exacta de llegada".
 - El envío se calcula en el checkout de la página según la ciudad; Bogotá recibe el mismo día hábil si el pago se confirma a tiempo.
 - No manejamos contra entrega, Nequi, ni punto físico o recogida.
@@ -121,9 +134,13 @@ QUÉ NO HACES
 - No inventas productos, precios, concentraciones, fechas de llegada ni datos de pago; no das números de cuenta.
 - No das recomendaciones médicas ni dosis de consumo: McKenna vende materia prima. Para usos, ficha_producto.
 - No prometes tiempos ("en un momento", "enseguida") ni que alguien le escribirá: en la web el cliente solo recibe respuesta cuando escribe; por eso la continuación humana es el botón de WhatsApp.
+- Si el visitante repite un saludo o una palabra suelta ("Hola", "Pedido"), no repitas tu oferta anterior palabra por palabra: pregúntale de forma abierta qué necesita o explícale cómo comprar en la página.
+- Si pregunta dónde o cómo hacer el pedido, explícaselo primero (buscar el producto, "Agregar al carrito" y luego "Ver carrito y pagar", o decirte qué quiere y tú se lo dejas en el carrito) antes de pedirle cantidades.
 
 FORMATO
 - Mensajes cortos (1 a 5 líneas; máximo 8 si listas productos), negrita con **doble asterisco** solo para productos y precios. No repitas lo que ya dijiste en el mismo mensaje. Precios como "$41.053". Un solo mensaje por turno."""
+
+SYSTEM_PROMPT_WEB += REGLAS_COMUNES
 
 
 @dataclass
@@ -213,6 +230,33 @@ def contexto_turno(
     return "\n\n".join(partes)
 
 
+def _precios_vigentes_citados(msgs: list[dict]) -> str:
+    """
+    Precios que Hugo ya dio en la conversación y siguen en el catálogo: evidencia válida.
+    Sin esto el supervisor rechazaba repetir un precio ya citado (13 de los 24 rechazos en
+    WhatsApp del 1 al 6-oct, casi todos un precio ya dicho) y obligaba a buscar en cada turno.
+    """
+    from app.agent.ventas_wa import catalogo as cat_mod
+    from app.agent.ventas_wa import supervisor as sup
+
+    citados: set[int] = set()
+    for m in msgs:
+        if hist._rol(m) == "hugo":
+            citados |= sup._montos(hist.texto_mensaje(m))
+    if not citados:
+        return ""
+    try:
+        vigentes = {int(p.precio) for p in cat_mod.cargar().presentaciones}
+    except Exception:
+        return ""
+    ok = sorted(citados & vigentes)
+    if not ok:
+        return ""
+    return "Precios del catálogo vigente que Hugo ya citó en la conversación: " + ", ".join(
+        f"${n:,}".replace(",", ".") for n in ok
+    )
+
+
 def _texto_final(resp) -> str:
     return "\n".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
 
@@ -277,6 +321,7 @@ def ejecutar_turno(
             pedido_inicial.resumen() if pedido_inicial else "",
             f"ASESOR escribió:\n{dicho_por_asesor}" if dicho_por_asesor else "",
             f"CLIENTE escribió en este turno:\n{dicho_por_cliente}" if dicho_por_cliente else "",
+            _precios_vigentes_citados(msgs),
         ] if x
     )
     messages: list[dict] = [{"role": "user", "content": contexto}]
@@ -318,14 +363,15 @@ def ejecutar_turno(
         texto_parcial = _texto_final(resp)
         if texto_parcial:
             textos.append(texto_parcial)
-        if resp.stop_reason == "tool_use":
+        # stop_reason=tool_use sin bloques tool_use dejaba un mensaje de usuario vacío y
+        # tumbaba el turno con un 400 (3-oct, turno 163): se toma como respuesta final.
+        usos = [b for b in resp.content if getattr(b, "type", "") == "tool_use"]
+        if resp.stop_reason == "tool_use" and usos:
             messages.append({"role": "assistant", "content": resp.content})
             resultados = []
-            for b in resp.content:
-                if getattr(b, "type", "") != "tool_use":
-                    continue
+            for b in usos:
                 salida, es_error = hz.ejecutar(ctx, b.name, dict(b.input or {}))
-                bloque = {"type": "tool_result", "tool_use_id": b.id, "content": salida}
+                bloque = {"type": "tool_result", "tool_use_id": b.id, "content": salida or "(sin resultado)"}
                 if es_error:
                     bloque["is_error"] = True
                 resultados.append(bloque)
@@ -406,7 +452,6 @@ def _respaldo(ctx: hz.ContextoTurno, res: ResultadoTurno) -> str:
             "pasar_a_asesor",
             {"tipo": "otro", "resumen_para_asesor": f"El asistente IA no pudo responder ({res.error}). Revisar el chat."},
         )
-    return (
-        "Veci, en este momento no puedo procesar su mensaje. El equipo ya tiene su caso; "
-        "un asesor le responde por este mismo chat. 🙏"
-    )
+    # «No puedo procesar su mensaje» sonaba a sistema caído ante un simple «1» (5-oct).
+    horario = "" if en_horario_equipo() else " (lunes a viernes, 8:00 a 18:00)"
+    return f"Veci, para responderle con exactitud le paso su mensaje al equipo: un asesor sigue con usted por este mismo chat{horario}. 🙏"

@@ -1,3 +1,15 @@
+### 2026-10-07 - Hugo (asistente de ventas): auditoría de respuestas en WhatsApp y web
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (agente de ventas v2, WhatsApp activo y web en sombra). Revisión hecha sin gastar llamadas a la IA.
+- **Qué se implementó:**
+  - Se revisaron 209 turnos de WhatsApp y 56 del chat web (1 al 6 de octubre).
+  - **Mensajes que se perdían:** lo que el cliente escribía mientras Hugo pensaba se quedaba sin respuesta («¿el pago es contra entrega?») o se respondía dos veces. Ahora Hugo atiende un turno a la vez por chat y lo escrito entretanto se contesta en el turno siguiente.
+  - **Revisor automático:** ya acepta los precios que Hugo dio antes si siguen vigentes (13 de 24 rechazos eran eso) y no marca como error pedir datos fuera de horario ni la franja de entrega. El mensaje de respaldo ya no dice «no puedo procesar su mensaje».
+  - **Instrucciones nuevas en los dos canales:** no escribir su razonamiento, no nombrar productos que no son lo pedido, registrar la cantidad que el cliente ya dijo, no repetir «¿le cuadro el pedido?», «bulto» = 25 kg, nunca «empacada de fábrica» ni «consumo directo». En la web, no repetir la misma oferta ante «Hola» o «Pedido».
+  - **Búsqueda del catálogo:** «hidroquinona» ya no devuelve colágeno hidrolizado; los errores de tipeo siguen encontrando el producto.
+  - Pendiente fuera del bot: 6 de 28 casos pasados al asesor sin respuesta humana, catálogo de WhatsApp Business con productos que la web ya no vende, sin regla de precio por mayor.
+- **Archivos Modificados:** `app/agent/ventas_wa/{entrada,agente,supervisor,catalogo}.py`, `tests/test_ventas_wa.py`, `app/data/debugging_resuelto.jsonl`, `docs/agentic/modules/agente-ventas-v2.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - El perro solo celebra cuando se termina un flujo
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (sonidos del panel). Sin LLM.

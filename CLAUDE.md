@@ -232,6 +232,8 @@ activo desde 29-sep** (web en sombra): en horario cede al asesor y retoma a los 
 cierra la venta**: arma el pedido y avisa al asesor. Base de clientes en `clientes_wa.py`; copiloto del asesor en
 `auditor_canales.revision_asesor`. ⚠️ Nunca cambiar `os.environ` en caliente para elegir la base: `pedido.usando_modo()`
 (ContextVar). ⚠️ Un envío del bot fuera del webhook debe registrarse antes en `wa_chats.guardar(enviado_por="bot")`.
+Desde la auditoría del 7-oct hay **un turno a la vez por chat** (lock por jid + `_reordenar_rezagados`: lo escrito
+mientras el modelo piensa no se pierde ni se responde dos veces) y `REGLAS_COMUNES` en ambos prompts.
 
 **R · Ventas directas / Cotizar-Facturar** (`ventas-directas.md`). ⚠️ La lista de precios de Alegra guarda el precio
 **con IVA**: no cotizar ni facturar a mano en Alegra (duplica el IVA). Facturar marca `facturando` antes de llamar a

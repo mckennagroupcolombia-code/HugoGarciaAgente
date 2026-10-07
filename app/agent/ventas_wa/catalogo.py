@@ -86,6 +86,7 @@ _SINONIMOS = {
     "hialuronico": "hialuronico",
     "glicerina": "glicerina",
     "colageno": "colageno",
+    "mantequilla": "manteca",
 }
 
 _PAT_UNIDAD = re.compile(r"^(\d+(?:[.,]\d+)?)(g|gr|grs|gramos|ml|l|lt|kg|kilo|kilos)$")
@@ -153,9 +154,14 @@ class Catalogo:
     def _coincide(w: str, nt: set[str]) -> float:
         if w in nt:
             return 1.0
-        # hidrolizado ~ hidrolizada, monohidratada ~ monohidrato
-        if len(w) >= 5 and any(x.startswith(w[:5]) for x in nt if len(x) >= 5):
-            return 0.7
+        # hidrolizado ~ hidrolizada, monohidratada ~ monohidrato: comparten casi toda la
+        # palabra. Un prefijo fijo de 5 letras hacía que "hidroquinona" encontrara
+        # "colágeno hidrolizado" (1-oct): ahora el prefijo común crece con la palabra (todo menos 5 letras: aguanta
+        # errores de tipeo como "monohidatada" o "dextrotrosa").
+        if len(w) >= 5:
+            n = max(5, len(w) - 5)
+            if any(len(x) >= n and x[:n] == w[:n] for x in nt):
+                return 0.7
         return 0.0
 
     def buscar(self, consulta: str, limite: int = 12) -> list[Presentacion]:
