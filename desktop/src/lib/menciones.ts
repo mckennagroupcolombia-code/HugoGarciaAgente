@@ -23,7 +23,8 @@ export function tramosMencion(texto: string, menciones: Persona[]): TramoMencion
   for (const p of menciones) {
     const n = normalizar(p.nombre).trim();
     if (n) claves.push({ k: n, p }, { k: n.split(/\s+/)[0], p });
-    if (p.username) claves.push({ k: normalizar(p.username), p });
+    const usuario = normalizar(p.username ?? "").replace(/^@+/, "");
+    if (usuario) claves.push({ k: usuario, p });
   }
   claves.sort((a, b) => b.k.length - a.k.length);
   const borde = (s: string, i: number) => i >= s.length || !/[\p{L}\p{N}_]/u.test(s[i]);
@@ -53,6 +54,6 @@ export function consultaEnCurso(texto: string, cursor: number): { inicio: number
 export function sugerencias(personas: Persona[], q: string, limite = 6): Persona[] {
   const n = normalizar(q);
   return personas
-    .filter((p) => !n || normalizar(p.nombre).split(/\s+/).some((w) => w.startsWith(n)) || normalizar(p.username ?? "").startsWith(n))
+    .filter((p) => !n || normalizar(p.nombre).split(/\s+/).some((w) => w.startsWith(n)) || normalizar(p.username ?? "").replace(/^@+/, "").startsWith(n))
     .slice(0, limite);
 }

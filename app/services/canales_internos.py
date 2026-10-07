@@ -398,10 +398,12 @@ _TODOS = ("todos", "todas", "equipo")
 
 
 def _candidatos(c: sqlite3.Connection, canal_id: int) -> list[sqlite3.Row]:
-    """Quién puede ser nombrado: los miembros del grupo o, si no tiene, todo el equipo activo."""
+    """Quién puede ser nombrado: los miembros del grupo o, si no tiene, todo el equipo activo.
+    Sin cuentas técnicas o de prueba (admin, Hugo IA, «prueba»…): no son personas a quien avisar."""
     miembros = _miembros(c, canal_id)
     filas = c.execute("SELECT id, nombre, username FROM usuarios WHERE COALESCE(activo,1)=1").fetchall()
-    return [f for f in filas if not miembros or int(f["id"]) in miembros]
+    tecnicas = set(tickets_db.USUARIOS_TECNICOS_O_PRUEBA)
+    return [f for f in filas if (f["username"] or "") not in tecnicas and (not miembros or int(f["id"]) in miembros)]
 
 
 def detectar_menciones(c: sqlite3.Connection, canal_id: int, texto: str, autor_id: int | None) -> list[int]:
@@ -424,7 +426,7 @@ def detectar_menciones(c: sqlite3.Connection, canal_id: int, texto: str, autor_i
             claves.append((completo, uid))
         if primero and primeros.count(primero) == 1:
             claves.append((primero, uid))
-        usuario = _normalizar(str(f["username"] or "")).strip()
+        usuario = _normalizar(str(f["username"] or "")).strip().lstrip("@")  # hay usernames como «@cynthia»
         if usuario:
             claves.append((usuario, uid))
     claves.sort(key=lambda k: -len(k[0]))  # la más larga primero: «ana maria» antes que «ana»

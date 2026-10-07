@@ -270,3 +270,11 @@ def test_mencionables_son_los_miembros_menos_yo(entorno):
     canal = CI.crear_canal(ANA, "Privado", miembros=[1, 2])
     assert [p["id"] for p in CI.mencionables(canal["id"], ANA)] == [2]
     assert CI.mencionables(canal["id"], CARLA) is None
+
+
+def test_cuentas_tecnicas_no_se_nombran_y_username_con_arroba(entorno):
+    CI, _, _ = entorno
+    _usuarios((1, "Ana", "ana"), (2, "Hugo IA", "hugo_ia_bot"), (3, "Cynthia Ruiz", "@cynthia"))
+    canal = CI.crear_canal(ANA, "Equipo")
+    assert [p["id"] for p in CI.mencionables(canal["id"], ANA)] == [3]
+    assert [x["id"] for x in CI.enviar_mensaje(canal["id"], ANA, "@Hugo @cynthia mira")["menciones"]] == [3]
