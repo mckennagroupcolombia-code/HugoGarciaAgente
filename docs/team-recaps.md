@@ -1,3 +1,11 @@
+### 2026-10-07 - Tienda web: se quitan las calcomanías de temporada
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (tienda web). Sin LLM.
+- **Qué se implementó:**
+  - Se quitaron las calcomanías de Halloween en pixel art (calabaza, bruja, fantasma, araña, murciélagos) que salían sobre el encabezado de cada página.
+  - Se borró también el archivo de Amor y Amistad, que ya no se mostraba desde el 1-oct.
+- **Archivos Modificados:** `PAGINA_WEB/site/templates/base.html`, `PAGINA_WEB/site/templates/_stickers_{halloween,amor}.html` (borrados), `docs/team-recaps.md`.
+
 ### 2026-10-07 - Checkout web: nombre y apellido obligatorios
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (tienda web, checkout). Sin LLM.
