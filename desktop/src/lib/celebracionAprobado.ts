@@ -18,7 +18,7 @@
  * Se monta sola sobre `document.body` (no depende del panel abierto: la ficha puede volver al
  * taller justo al aprobar). El silencio es el mismo interruptor 🔊 del taller.
  */
-import { sonidoActivo } from "../components/combos/sonidoMoneda";
+import { sonarMoneda, sonidoActivo } from "../components/combos/sonidoMoneda";
 import spritePerro from "../assets/duckhunt/laughing_dog.png";
 import risaPerro from "../assets/duckhunt/laughingDog.mp3";
 
@@ -218,13 +218,35 @@ export function escucharMonedasDelServidor() {
       const h = res.headers.get("X-Mck-Monedas");
       if (h) {
         const pago = JSON.parse(decodeURIComponent(h)) as PagoMision;
-        if (pago.pagada) celebrarAprobacion({ tipo: "moneda", titulo: pago.titulo || "¡Misión cumplida!", pago, sonido: !celebrada });
+        if (pago.pagada) {
+          // El perro es solo para cerrar un flujo (7-oct-2026): escribir un mensaje, subir una
+          // evidencia o marcar un paso paga su moneda con un tono corto, no con la risa.
+          celebrarAprobacion({ tipo: "moneda", titulo: pago.titulo || "¡Misión cumplida!", pago, sonido: false });
+          if (!celebrada) {
+            if (res.ok && cierraUnFlujo(args[0], args[1])) perroSeRie();
+            else sonarMoneda();
+          }
+        }
       }
     } catch {
       /* cabecera ilegible: la moneda ya quedó en el perfil */
     }
     return res;
   };
+}
+
+/** Acciones que terminan un flujo (además de cerrar una tarea): ahí sí sale el perro. */
+const RUTAS_DE_CIERRE = [
+  /\/finalizar\/?$/,                                   // corrida, misión o lote de producción
+  /^\/api\/facturacion\/(ventas-unificadas\/facturar-ahora|facturar-directo)\/?$/,
+  /^\/api\/pedidos\/web\/facturar\/?$/,
+];
+
+function cierraUnFlujo(entrada: RequestInfo | URL, init?: RequestInit): boolean {
+  if (typeof entrada !== "string" && !(entrada instanceof URL)) return false;
+  if ((init?.method ?? "GET").toUpperCase() !== "POST") return false;
+  const ruta = new URL(String(entrada), window.location.href).pathname;
+  return RUTAS_DE_CIERRE.some((r) => r.test(ruta));
 }
 
 /**

@@ -70,7 +70,7 @@ export const AJUSTES_INICIALES: AjustesSonido = {
   activo: true,
   volumen: 70,
   tono_por_grupo: true,
-  general: "dh_ladrido",
+  general: "dh_pato",
   solicitud: "dh_ronda",
   personas: {},
   canales: {},
@@ -151,12 +151,14 @@ export function sonidoPorId(id: string | null | undefined): SonidoAlerta | null 
   return CATALOGO_SONIDOS.find((s) => s.id === id) ?? null;
 }
 
-/** Tonos cortos para dar a cada grupo uno propio (sin las músicas largas). */
-const TONOS_DE_GRUPO = ["dh_pato", "dh_moneda", "cc_salida", "dh_ladrido", "dh_ronda", "dh_caida", "cc_tropiezo", "dh_ladridos", "dh_disparo", "dh_risa"];
+/** Tonos cortos para dar a cada grupo uno propio: sin las músicas largas y sin el perro
+ *  (ladridos y risa quedan para celebrar cuando se termina un flujo, no para un mensaje). */
+const TONOS_DE_GRUPO = ["dh_pato", "dh_moneda", "cc_salida", "dh_ronda", "dh_caida", "cc_tropiezo", "dh_disparo"];
 
 /** El tono característico de un grupo (7-oct-2026): fijo por su id, así cada grupo se
- *  reconoce de oído sin abrir la app. Con 10 tonos, los grupos 1–10 no se repiten. */
+ *  reconoce de oído sin abrir la app. */
 export function tonoPropioDeGrupo(canalId: number): string {
+  // 7 tonos: del grupo 8 en adelante se repiten (cada quien puede elegir otro en los ajustes).
   const n = TONOS_DE_GRUPO.length;
   return TONOS_DE_GRUPO[(((canalId - 1) % n) + n) % n];
 }

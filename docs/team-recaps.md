@@ -1,3 +1,12 @@
+### 2026-10-07 - El perro solo celebra cuando se termina un flujo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (sonidos del panel). Sin LLM.
+- **Qué se implementó:**
+  - Escribir un mensaje en una solicitud, subir una evidencia o marcar un paso ya **no** hace reír al perro: la moneda suena con un tono corto.
+  - El perro sale solo al **terminar un flujo**: cerrar una tarea o solicitud, completar una acción, finalizar una corrida o un lote, o emitir una factura.
+  - Los tonos de los grupos ya no usan ladridos ni la risa del perro: un mensaje suena solo con un tono (pato, moneda, Charlie, ronda, caída, tropiezo o disparo).
+- **Archivos Modificados:** `desktop/src/lib/{celebracionAprobado,alertasSonido}.ts`, `docs/agentic/modules/operacion-equipo.md`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - Solicitudes de pago legible en el celular
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección visual (Contabilidad → Solicitudes de pago, celular). Sin LLM.

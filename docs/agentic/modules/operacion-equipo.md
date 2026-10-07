@@ -85,6 +85,10 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
   - `lib/alertasSonido.ts::sonidoDeCanal`: el sonido elegido para el grupo; si no hay, `tonoPropioDeGrupo(id)` (10
     tonos cortos, fijos por id, así cada grupo se reconoce de oído).
   - `tono_por_grupo: false` (casilla en los ajustes) vuelve a un solo sonido «general».
+  - Sin el perro: ladridos y risa no están entre los tonos de grupo (son 7 tonos; desde el grupo 8 se repiten).
+- **El perro que se ríe es solo para cerrar un flujo** (`lib/celebracionAprobado.ts::escucharMonedasDelServidor`):
+  - Sale al cerrar una tarea (estado `resuelto`, `completar-accion`) y en `RUTAS_DE_CIERRE` (`…/finalizar`, facturar).
+  - La moneda de cualquier otra misión (comentar, evidencia, paso) suena con `sonarMoneda()`, un tono corto.
   - Los sonidos por persona quedan para las solicitudes, no para los mensajes de grupo.
   - La fila de grupos de la bandeja muestra el ícono del tono y el globo de no leídos late.
   - ⚠️ El aviso con sonido vive en `SolicitudesEnProcesoFab`, que solo monta el Layout: `MobileHub` lo monta con
