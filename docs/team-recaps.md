@@ -1,3 +1,12 @@
+### 2026-10-07 - Checkout web: nombre y apellido obligatorios
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (tienda web, checkout). Sin LLM.
+- **Qué se implementó:**
+  - El pedido MCKG-053C614F06 llegó solo con «Jonathan» y Alegra no creó el contacto: exige apellido para persona natural (HTTP 400, código 2034), así que la factura quedó en error.
+  - El apellido se tomó del titular de la tarjeta en Mercado Pago (Jonathan Parra, misma cédula) y se emitió la **FE1116**.
+  - Ahora el checkout no deja pasar un nombre de una sola palabra: el navegador lo pide y el servidor lo vuelve a revisar. Las empresas (NIT 8…/9… de 9 dígitos) pueden seguir poniendo la razón social en una palabra.
+- **Archivos Modificados:** `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/templates/checkout.html`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - Hugo (asistente de ventas): auditoría de respuestas en WhatsApp y web
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (agente de ventas v2, WhatsApp activo y web en sombra). Revisión hecha sin gastar llamadas a la IA.
