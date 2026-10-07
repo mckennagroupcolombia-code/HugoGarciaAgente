@@ -136,6 +136,10 @@ export default function HiloConversacion({
   // en la misma pantalla del chat, sin navegar a otra vista.
   const [pedirAbierto, setPedirAbierto] = useState(false);
   const [modoInter, setModoInter] = useState<"preguntar" | "pausar" | "colaborar">("pausar");
+  // Miembros del equipo en la solicitud: quien la pidió, a quien le toca y los que se sumaron.
+  const [miembrosAbierto, setMiembrosAbierto] = useState(false);
+  const [miembroOcupado, setMiembroOcupado] = useState<number | null>(null);
+  const [errorMiembro, setErrorMiembro] = useState("");
   const [interDestino, setInterDestino] = useState<number | "">("");
   const [interTexto, setInterTexto] = useState("");
   const [enviandoInter, setEnviandoInter] = useState(false);
@@ -269,6 +273,16 @@ export default function HiloConversacion({
   // pendiente. Sin esta lista aquí, el hilo mostraba ese error sin dónde marcar.
   const esCompra = esSolicitudCompraDelegada(ticket);
   const companeros = equipo.filter((u) => u.id !== user.id);
+  const participantes = ticket.participantes ?? [];
+  const idsEnSolicitud = new Set<number>([
+    ...(ticket.creado_por != null ? [ticket.creado_por] : []),
+    ...(ticket.asignado_a != null ? [ticket.asignado_a] : []),
+    ...participantes.map((p) => p.usuario_id),
+  ]);
+  const sumables = equipo.filter((u) => !idsEnSolicitud.has(u.id));
+  // Igual que `puede_gestionar_participantes` en tickets_db.py.
+  const puedeGestionarMiembros = esAsignado || esCreadoPorMi || (user.rol?.nivel ?? 1) >= 2
+    || participantes.some((p) => uidEq(p.usuario_id, user.id));
   // Entregar ≠ finalizar: si la pidió otra persona, al entregarla le llega a ella para que la
   // finalice y así se archive (criterio de `_requiere_finalizar_el_solicitante` en tickets_db.py).
   const entregaAlSolicitante = !esAccion && ticket.creado_por != null && !esCreadoPorMi && !ticket.ticket_padre_id
@@ -447,6 +461,36 @@ export default function HiloConversacion({
     qc.invalidateQueries({ queryKey: ["tickets-conversaciones"] });
   }
 
+  async function sumarMiembro(uid: number) {
+    setMiembroOcupado(uid);
+    setErrorMiembro("");
+    try {
+      await api.post(`/api/tickets/${ticketId}/participantes`, { usuario_id: uid, rol: "colaborador" });
+      const nombre = equipo.find((u) => u.id === uid)?.nombre ?? "Compañero";
+      await api.post(`/api/tickets/${ticketId}/comentarios`, { texto: `👥 ${user.nombre ?? "Alguien"} sumó a ${nombre} a esta solicitud.` });
+      invalidarTrasIntervencion();
+    } catch (e) {
+      setErrorMiembro(e instanceof Error ? e.message : "No se pudo sumar");
+    } finally {
+      setMiembroOcupado(null);
+    }
+  }
+
+  async function quitarMiembro(uid: number, nombre: string) {
+    setMiembroOcupado(uid);
+    setErrorMiembro("");
+    try {
+      await api.delete(`/api/tickets/${ticketId}/participantes/${uid}`);
+      const texto = uidEq(uid, user.id) ? `👋 ${nombre} salió de esta solicitud.` : `👥 ${user.nombre ?? "Alguien"} quitó a ${nombre} de esta solicitud.`;
+      await api.post(`/api/tickets/${ticketId}/comentarios`, { texto });
+      invalidarTrasIntervencion();
+    } catch (e) {
+      setErrorMiembro(e instanceof Error ? e.message : "No se pudo quitar");
+    } finally {
+      setMiembroOcupado(null);
+    }
+  }
+
   /** Pausa esta solicitud y crea una sub-solicitud a otro usuario (o pregunta al
    *  solicitante), o invita a alguien a colaborar en el mismo hilo sin pausar. Al
    *  resolverse la sub-solicitud, el servidor desbloquea ésta automáticamente. */
@@ -599,6 +643,72 @@ export default function HiloConversacion({
           <PrioridadBadge p={ticket.prioridad} />
         </div>
       </div>
+
+      {/* ── Miembros: quién está en la solicitud y ＋ para sumar a alguien del equipo. ── */}
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-ink/15 px-3 py-1.5">
+        <span className="text-[13px] font-bold text-ink-muted">Equipo:</span>
+        {ticket.creado_por != null && (
+          <span className="flex items-center gap-1 text-[13px]" title={`${ticket.creado_por_nombre ?? "—"} · la pidió`}>
+            <Avatar nombre={ticket.creado_por_nombre} size={6} />
+            <span className="hidden sm:inline">{(ticket.creado_por_nombre ?? "—").split(" ")[0]}</span>
+          </span>
+        )}
+        {ticket.asignado_a != null && ticket.asignado_a !== ticket.creado_por && (
+          <span className="flex items-center gap-1 text-[13px]" title={`${ticket.asignado_a_nombre ?? "—"} · le toca`}>
+            <Avatar nombre={ticket.asignado_a_nombre} size={6} />
+            <span className="hidden sm:inline">{(ticket.asignado_a_nombre ?? "—").split(" ")[0]}</span>
+          </span>
+        )}
+        {participantes.map((p) => (
+          <span key={p.usuario_id} className="flex items-center gap-1 text-[13px]" title={`${p.usuario_nombre} · se sumó`}>
+            <Avatar nombre={p.usuario_nombre} size={6} />
+            <span className="hidden sm:inline">{p.usuario_nombre.split(" ")[0]}</span>
+          </span>
+        ))}
+        {puedeGestionarMiembros && !resuelta && (
+          <button type="button" onClick={() => { setMiembrosAbierto((v) => !v); setErrorMiembro(""); }}
+            className={`hp-boton-sm !px-2 !py-0.5 !text-[13px] ${miembrosAbierto ? "activo" : ""}`}
+            title="Sumar o quitar miembros del equipo">
+            ＋ <span className="hidden sm:inline">Sumar</span>
+          </button>
+        )}
+      </div>
+      {miembrosAbierto && (
+        <div className="hp-caja m-2 max-h-[40dvh] space-y-2 overflow-y-auto p-3">
+          {participantes.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[13px] font-bold text-ink-muted">Se sumaron</p>
+              {participantes.map((p) => (
+                <div key={p.usuario_id} className="flex items-center gap-2">
+                  <Avatar nombre={p.usuario_nombre} size={7} />
+                  <span className="flex-1 truncate text-[15px] font-bold">{p.usuario_nombre}</span>
+                  <button type="button" disabled={miembroOcupado != null}
+                    onClick={() => void quitarMiembro(p.usuario_id, p.usuario_nombre)}
+                    className="hp-boton-sm !px-2 !py-0.5 !text-[13px] disabled:opacity-40">
+                    {uidEq(p.usuario_id, user.id) ? "Salirme" : "Quitar"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-[13px] font-bold text-ink-muted">Sumar a alguien del equipo (ve el hilo y puede escribir)</p>
+          {sumables.length === 0 ? (
+            <p className="text-[14px] text-ink-muted">Ya está todo el equipo.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {sumables.map((u) => (
+                <button key={u.id} type="button" disabled={miembroOcupado != null}
+                  onClick={() => void sumarMiembro(u.id)}
+                  className="hp-boton-sm !py-1 !text-[14px] disabled:opacity-40">
+                  <Avatar nombre={u.nombre} size={6} />
+                  <span>{miembroOcupado === u.id ? "Sumando…" : u.nombre}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {errorMiembro && <p className="text-[14px] font-bold text-accent-rose">{errorMiembro}</p>}
+        </div>
+      )}
 
       {/* Lo pedido y las casillas quedan FIJOS arriba: el chat baja solo al último mensaje y
           antes se llevaba la solicitud fuera de la vista («¿qué era lo que me pidieron?»). */}

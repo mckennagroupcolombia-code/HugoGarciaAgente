@@ -23,7 +23,7 @@ from app.services.tickets_db import (
     registrar_tiempo, dashboard_carga, actividad_equipo_hoy, UPLOADS_DIR,
     crear_mision, listar_misiones, get_mision, actualizar_mision, lanzar_mision,
     eliminar_mision, eliminar_ticket,
-    agregar_participante, quitar_participante,
+    agregar_participante, quitar_participante, puede_gestionar_participantes,
     listar_categorias, crear_categoria, eliminar_categoria,
     renovar_mision,
     agregar_etapa_mision, actualizar_etapa_mision, eliminar_etapa_mision,
@@ -1836,12 +1836,17 @@ def register_tickets_routes(app):
         rol = data.get("rol", "colaborador")
         if rol not in ("colaborador", "revisor", "observador"):
             return jsonify({"error": "rol debe ser colaborador, revisor u observador"}), 400
+        if not puede_gestionar_participantes(ticket_id, request.tickets_usuario):
+            return jsonify({"error": "Solo quien está en la solicitud puede sumar miembros"}), 403
         agregar_participante(ticket_id, int(usuario_id), rol)
         return jsonify(get_ticket(ticket_id, request.tickets_usuario)), 200
 
     @app.route("/api/tickets/<int:ticket_id>/participantes/<int:user_id>", methods=["DELETE"])
     @_auth
     def tickets_quitar_participante(ticket_id, user_id):
+        # Salirse uno mismo siempre se puede; quitar a otro, solo quien está en la solicitud.
+        if user_id != request.tickets_usuario["id"] and not puede_gestionar_participantes(ticket_id, request.tickets_usuario):
+            return jsonify({"error": "Solo quien está en la solicitud puede quitar miembros"}), 403
         quitar_participante(ticket_id, user_id)
         return jsonify(get_ticket(ticket_id, request.tickets_usuario)), 200
 

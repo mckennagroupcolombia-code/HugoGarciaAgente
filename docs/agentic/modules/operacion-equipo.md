@@ -181,6 +181,10 @@ quedó suelta en un grupo de WhatsApp, sin producto ni lugar. Abastecer → Rece
   jugada («▶ Lo leí · Empezar», «📷 Foto de cómo quedó» con la cámara, «★ Entregar»). Sonido de moneda al empezar
   (`sonarRevisado`); la evidencia y la entrega ya las paga/celebra el servidor (`logros_hook.py` → `X-Mck-Monedas`,
   `celebrarTareaCumplida`), no se duplica aquí.
+- **Miembros** (7-oct): fila «Equipo» bajo el cabezote del hilo (quien pidió, a quien le toca y los que se sumaron)
+  con «＋ Sumar» para agregar o quitar a alguien del equipo (`ticket_participantes`, rol colaborador; deja comentario
+  en el hilo). El sumado la ve en su bandeja y puede escribir. La API (`POST/DELETE /api/tickets/<id>/participantes`)
+  ahora exige estar en la solicitud o nivel ≥ 2 (`puede_gestionar_participantes`); salirse uno mismo siempre se puede.
 - **Fotos**: visor propio (`VisorFotos.tsx`). `target="_blank"` no abre nada en la APK / modo instalado.
 - **Bandeja** (`InboxConversaciones.tsx`): «Seguir con la que estabas» (clave `mck_hilo_actual`, la escribe el hilo),
   contadores Por hacer · En curso · Hechas que filtran (como el Mapa), «✚ Pedir algo» / «✚ Nueva tarea» en un toque,

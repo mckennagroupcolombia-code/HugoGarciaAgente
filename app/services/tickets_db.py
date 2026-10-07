@@ -3341,6 +3341,24 @@ def agregar_participante(ticket_id: int, usuario_id: int, rol: str = "colaborado
             return False
 
 
+def puede_gestionar_participantes(ticket_id: int, usuario: dict) -> bool:
+    """Suma o quita miembros quien ya está en la solicitud (la pidió, la tiene o es
+    participante) o un supervisor. Antes la ruta dejaba a cualquiera con sesión."""
+    uid = usuario.get("id")
+    if (usuario.get("rol") or {}).get("nivel", 1) >= 2:
+        return True
+    with _conn() as db:
+        t = db.execute("SELECT creado_por, asignado_a FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        if not t:
+            return False
+        if uid in (t["creado_por"], t["asignado_a"]):
+            return True
+        return db.execute(
+            "SELECT 1 FROM ticket_participantes WHERE ticket_id=? AND usuario_id=?",
+            (ticket_id, uid),
+        ).fetchone() is not None
+
+
 def quitar_participante(ticket_id: int, usuario_id: int) -> bool:
     with _conn() as db:
         db.execute(
