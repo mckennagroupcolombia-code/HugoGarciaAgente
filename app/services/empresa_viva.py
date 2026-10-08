@@ -709,7 +709,6 @@ def _detectar_transiciones(data: dict) -> None:
 # ─── Foto completa ───────────────────────────────────────────────────────────
 
 _FUENTES: tuple[tuple[str, str, Callable[[], Any]], ...] = (
-    ("personas", "presencia", _personas),
     ("preventa", "preventa MeLi", _preventa),
     ("whatsapp", "WhatsApp", _clientes_wa),
     ("meli", "pedidos MeLi", _paquetes_meli),
@@ -717,7 +716,6 @@ _FUENTES: tuple[tuple[str, str, Callable[[], Any]], ...] = (
     ("wa", "despachos WhatsApp", _paquetes_wa),
     ("proveedores", "recepciones", _proveedores),
     ("bodega", "inventario", _bodega),
-    ("interacciones", "mensajes del equipo", _interacciones),
 )
 
 
@@ -734,12 +732,10 @@ def _foto() -> dict:
     paquetes = (vals["meli"] or []) + (vals["web"] or []) + (vals["wa"] or [])
     paquetes.sort(key=lambda p: p["desde"])
     return {
-        "personas": vals["personas"] or [],
         "visitantes": visitantes,
         "paquetes": paquetes,
         "proveedores": vals["proveedores"] or [],
         "bodega": vals["bodega"],
-        "interacciones": vals["interacciones"] or [],
         "sin_senal": sin_senal,
         "generado": _iso_local(datetime.now()),
     }
@@ -754,6 +750,106 @@ def foto(refrescar: bool = False) -> dict:
         data["eventos"] = list(_eventos)
         _memo.update(t=time.time(), data=data)
         return data
+
+
+# ─── Lo vivo: cada 2 s ───────────────────────────────────────────────────────
+# Quién está, qué hace con las manos (cronómetro), qué acaba de hacer en la app y quién le
+# habla a quién. Son consultas pequeñas a SQLite: el juego las pide cada pocos segundos para
+# que los personajes reaccionen casi al instante (la foto pesada —MeLi, bodega— va aparte).
+
+_TTL_VIVO_S = 2
+_vivo_memo: dict[str, Any] = {"t": 0.0, "data": None}
+_vivo_lock = threading.Lock()
+_VIGENCIA_TAREA_H = 6   # un cronómetro olvidado no deja a nadie «cocinando» toda la noche
+
+
+def _tareas_en_curso() -> dict[int, dict]:
+    """La tarea con cronómetro andando de cada persona (la más reciente): lo que está haciendo
+    físicamente aunque no tenga el panel abierto (Victor cocinando, Stella empacando)."""
+    from app.services import rendimiento
+    from app.services.tickets_db import DB_PATH
+
+    nombres = {cid: c[1] for cid, c in rendimiento._POR_ID.items()}
+    con = _ro(Path(DB_PATH))
+    try:
+        filas = con.execute(
+            "SELECT c.usuario_id, c.ticket_id, t.titulo, COALESCE(c.reanudada_en, c.iniciada_en) AS desde "
+            "FROM ticket_corridas c JOIN tickets t ON t.id = c.ticket_id "
+            "WHERE c.estado = 'activa' AND COALESCE(c.reanudada_en, c.iniciada_en) >= datetime('now', ?) "
+            "ORDER BY desde DESC", (f"-{_VIGENCIA_TAREA_H} hours",)
+        ).fetchall()
+    finally:
+        con.close()
+    out: dict[int, dict] = {}
+    for r in filas:
+        uid = int(r["usuario_id"])
+        if uid in out:
+            continue
+        funcion = rendimiento.clasificar(r["titulo"] or "")
+        out[uid] = {"funcion": funcion or "", "hace": nombres.get(funcion, "") if funcion else "",
+                    "titulo": (r["titulo"] or "").strip()[:80], "ticket_id": r["ticket_id"], "desde": r["desde"]}
+    return out
+
+
+# Acción de la auditoría de solicitudes → lo que el juego muestra sobre la persona.
+_ACCION = {
+    "ticket_creado": "creo", "comentario_agregado": "comento", "adjunto_agregado": "adjunto",
+    "tiempo_registrado": "midio", "estado_cambiado": "estado", "reporte_ejecucion": "reporto",
+    "intervencion_resuelta": "resolvio", "zumbido": "zumbido",
+}
+
+
+def _acciones() -> list[dict]:
+    """Lo que cada quien acaba de hacer en las solicitudes (últimos 3 min)."""
+    from app.services.tickets_db import DB_PATH
+
+    con = _ro(Path(DB_PATH))
+    try:
+        ocultos = _usuarios_ocultos(con)
+        filas = con.execute(
+            "SELECT a.id, a.usuario_id, a.accion, a.valor_nuevo, a.ticket_id, t.creado_por, t.asignado_a, t.titulo, "
+            "CAST(strftime('%s', a.creado_en) AS INTEGER) AS ts FROM logs_auditoria a JOIN tickets t ON t.id = a.ticket_id "
+            "WHERE a.creado_en >= datetime('now', '-3 minutes') AND a.usuario_id IS NOT NULL ORDER BY a.id"
+        ).fetchall()
+    finally:
+        con.close()
+    out = []
+    for r in filas:
+        tipo = _ACCION.get(r["accion"])
+        if not tipo or r["usuario_id"] in ocultos:
+            continue
+        if tipo == "estado":
+            nuevo = (r["valor_nuevo"] or "").lower()
+            tipo = "resolvio" if "resuelto" in nuevo else "en_proceso" if "proceso" in nuevo else ""
+            if not tipo:
+                continue
+        out.append({"id": f"a{r['id']}", "tipo": tipo, "de": int(r["usuario_id"]), "ts": r["ts"],
+                    "ticket_id": r["ticket_id"], "titulo": (r["titulo"] or "")[:80],
+                    "partes": [x for x in (r["creado_por"], r["asignado_a"]) if x]})
+    return out[-30:]
+
+
+def vivo(refrescar: bool = False) -> dict:
+    with _vivo_lock:
+        if not refrescar and _vivo_memo["data"] is not None and time.time() - _vivo_memo["t"] < _TTL_VIVO_S:
+            return _vivo_memo["data"]
+    data: dict[str, Any] = {"sin_senal": []}
+    for clave, nombre, fuente in (("personas", "presencia", _personas), ("tareas", "cronómetros", _tareas_en_curso),
+                                  ("interacciones", "mensajes del equipo", _interacciones),
+                                  ("acciones", "solicitudes", _acciones)):
+        try:
+            data[clave] = fuente()
+        except Exception as exc:
+            data[clave] = {} if clave == "tareas" else []
+            data["sin_senal"].append({"fuente": nombre, "error": str(exc)[:160]})
+    # Quien tiene un cronómetro andando está trabajando aunque no tenga el panel abierto.
+    for p in data["personas"]:
+        t = data["tareas"].get(p["id"])
+        p["tarea"] = t
+        p["presente"] = bool(p["en_linea"] or t)
+    with _vivo_lock:
+        _vivo_memo.update(t=time.time(), data=data)
+    return data
 
 
 # ─── Lo que ve cada persona ──────────────────────────────────────────────────
@@ -773,6 +869,7 @@ def estado_para(usuario: dict, refrescar: bool = False) -> dict:
     from app.services import mapa_app
 
     d = foto(refrescar=refrescar)
+    v = vivo(refrescar=refrescar)
     cache: dict[str, bool] = {}
 
     def puede(panel: str) -> bool:
@@ -797,19 +894,30 @@ def estado_para(usuario: dict, refrescar: bool = False) -> dict:
     yo = int(usuario.get("id") or 0)
     admin = _es_admin(usuario)
     interacciones = []
-    for it in d.get("interacciones") or []:
+    for it in v.get("interacciones") or []:
         if it["privado"]:
             ve = yo == it["de"] or yo in it["para"]
         else:
             ve = admin or it.get("todos") or yo == it["de"] or yo in it["para"]
         interacciones.append({**it, "texto": it["texto"] if ve else "", "canal": it.get("canal") if ve else ""})
+    # El título de una tarea o de una solicitud lo ven quien la hace, quien participa y administración;
+    # los demás ven solo la función («Hace el almuerzo del equipo»).
+    personas = []
+    for p in v.get("personas") or []:
+        t = p.get("tarea")
+        if t and not (admin or yo == p["id"]):
+            t = {**t, "titulo": ""}
+        personas.append({**p, "tarea": t})
+    acciones = [{**a, "titulo": a["titulo"] if (admin or yo == a["de"] or yo in a["partes"]) else ""}
+                for a in v.get("acciones") or []]
     try:
         oficina = mapa_app.urgencias_para(usuario)
     except Exception:
         oficina = {"por_etapa": {}}
     return {
         "yo": usuario.get("id"),
-        "personas": d["personas"],
+        "personas": personas,
+        "acciones": acciones,
         "casas": casas(),
         "visitantes": visitantes[:_MAX_VISITANTES],
         "visitantes_mas": max(0, len(visitantes) - _MAX_VISITANTES),
@@ -820,6 +928,7 @@ def estado_para(usuario: dict, refrescar: bool = False) -> dict:
         "oficina": oficina.get("por_etapa") or {},
         "eventos": d["eventos"],
         "interacciones": interacciones,
-        "sin_senal": d["sin_senal"] if admin else [],
+        "sin_senal": (d["sin_senal"] + v["sin_senal"]) if admin else [],
+        "hora": _iso_local(datetime.now()),
         "generado": d["generado"],
     }

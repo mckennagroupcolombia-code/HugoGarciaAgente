@@ -10,6 +10,15 @@
   white-space: nowrap;
 }
 .ev-nombre-yo { background: #ffe14d; }
+/* Lo que hace cada quien, bajo el nombre. De lejos se esconde (no tapa el barrio). */
+.ev-hace {
+  display: block;
+  margin-top: -1px;
+  font: 600 9.5px/1.25 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #4a5568;
+  text-align: center;
+}
+[data-lejos="1"] .ev-hace { display: none; }
 .ev-nombre-hugo { background: #5db8ff; color: #fff; }
 
 .ev-letrero-casa {
@@ -64,6 +73,11 @@
 .ev-globo-respuesta { background: #d9fbe3; color: #0f5132; }
 .ev-globo-respuesta::after { border-top-color: #d9fbe3; }
 .ev-globo-grupo { background: #ffffff; color: #1d2b53; }
+.ev-globo-accion { background: #eef2ff; color: #312e81; }
+.ev-globo-accion::after { border-top-color: #eef2ff; }
+.ev-globo-cafe { background: #fdf0e1; color: #7c4a1e; }
+.ev-globo-cafe::after { border-top-color: #fdf0e1; }
+.ev-globo-charla { background: #ffffff; color: #1d2b53; font-size: 14px; letter-spacing: 2px; }
 .ev-globo-idea { background: #fff6bf; color: #6b4e00; }
 .ev-globo-idea::after { border-top-color: #fff6bf; }
 .ev-globo-hugo::after { border-top-color: #d6eeff; }

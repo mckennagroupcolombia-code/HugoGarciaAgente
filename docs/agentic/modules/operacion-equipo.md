@@ -295,6 +295,18 @@ modelos CC0 de KayKit y Kenney en `desktop/public/empresa/` (ver su `LEEME.md`).
   `tipo=solicitud, subtipo=pregunta`; «Compartir idea» = `POST /api/canales/<id>/mensajes` (avisa si el grupo tiene
   espejo a WhatsApp); «Mi avatar» = `preferencias_ui.empresa` {avatar, accesorio, color}, validado en
   `tickets_db._limpiar_avatar_empresa`.
+- **Dinámica en tiempo real** (8-oct, pedido: «se queda corto en las dinámicas de los personajes»):
+  - Parte rápida del estado (`empresa_viva.vivo()`, caché 2 s; el juego consulta cada 4 s): presencia, **tarea con
+    cronómetro andando** (`ticket_corridas` activa ≤6 h, clasificada con `rendimiento.clasificar`), acciones de la
+    auditoría de solicitudes (`logs_auditoria`, 3 min) e interacciones. La foto pesada (MeLi, bodega) sigue a 10 s.
+  - Quien tiene un cronómetro andando está **presente** aunque no tenga el panel abierto, y va al sitio de su tarea
+    (`barrio.TAREA`: cocina, mesa de empaque, ronda entre estantes, cultivo…). Bajo el nombre: «Cocinando», «Empacando».
+    El título de la tarea o de la solicitud ajena no se muestra (solo la función).
+  - Vida diaria (`motor.vidaDiaria`): rondas de trabajo, pausas cortas (tinto en `barrio.CAFE`, estirarse, visitar a
+    alguien de la misma casa). Pregunta a alguien de la misma casa = camina a su puesto y conversan.
+  - Barra del equipo (retratos + qué hace; tocar = la cámara lo sigue), modo «En vivo» (la cámara va a lo que pasa),
+    registro unificado (eventos + acciones + interacciones), día y noche con la hora de Bogotá.
+  - ⚠️ El juego dentro del Mapa no lleva `colab-pixel`: sus reglas (esquinas cuadradas, botones con borde) lo desfiguran.
 - **Dónde se ve:** en el Mapa (inicio), selector **Mapa · Juego** del cabezote (donde estuvo «Edificio»; se recuerda en
   `localStorage` `mck-mapa-vivo-modo`), además del panel `empresa-viva` de la Agenda. El juego se carga lazy.
 - ⚠️ **Modelos:** Flask los sirve en `/app/empresa/<ruta>` (`serve_spa_empresa`, mismo guardia de sesión que el bundle).

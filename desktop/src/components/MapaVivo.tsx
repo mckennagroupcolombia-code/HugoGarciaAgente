@@ -503,9 +503,12 @@ function Mapa() {
   };
 
   return (
-    <div ref={contenedor} className="colab-pixel mapa-vivo relative flex min-h-0 flex-1 flex-col gap-2">
+    // En modo Juego el estilo pixel envuelve solo el cabezote: el juego tiene el suyo, y las reglas
+    // del tablero (esquinas cuadradas, botones con borde) le desfiguraban la barra del equipo.
+    <div ref={contenedor} className={`${modo === "mapa" ? "colab-pixel mapa-vivo " : ""}relative flex min-h-0 flex-1 flex-col gap-2`}>
       {/* En el celular (<640 px) el HUD cabe en una fila: título corto y «⋯»
           (Sonido, Encuadrar); lo urgente flota sobre el mapa y «Rápido» queda en la barra de abajo. */}
+      <div className={modo === "juego" ? "colab-pixel mapa-vivo relative" : "contents"}>
       <div className="px-hud relative flex min-w-0 flex-wrap items-center gap-2">
         <Sprite s="control" px={2} titulo="Mapa de la aplicación" />
         <span className="px-t min-w-0 flex-1 truncate" style={{ color: "var(--ed-amarillo, #FFEC27)", fontSize: 16 }}>
@@ -556,6 +559,7 @@ function Mapa() {
             </div>
           </>
         )}
+      </div>
       </div>
       {modo === "mapa" && totalUrgente > 0 && (
         <div className="px-hud mv-urgente-flotante mv-solo-movil">

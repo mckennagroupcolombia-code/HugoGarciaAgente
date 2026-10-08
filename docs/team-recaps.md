@@ -1,3 +1,21 @@
+### 2026-10-08 15:30 - Empresa viva: los personajes hacen lo que el equipo hace, en tiempo real
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (panel `/app`, juego). Sin LLM.
+- **Qué se implementó:**
+  - **Trabajo físico:** el juego lee el cronómetro de tareas. Quien está haciendo el almuerzo, empacando, alistando pedidos, envasando o cuidando los hongos aparece en ese sitio haciéndolo, aunque no tenga el panel abierto. Antes salía dormido. Bajo cada nombre se lee qué hace («Cocinando», «Empacando», «En Facturación»).
+  - **Al instante:** el juego se actualiza cada 4 s. Resolver, comentar, crear o adjuntar en una solicitud se ve como un gesto y un globo sobre la persona.
+  - **Vida diaria y encuentros:**
+    - Rondas entre estantes al alistar.
+    - Pausas cortas: un tinto, estirarse, pasar a saludar.
+    - Al preguntarle algo a alguien de la misma casa, camina hasta su puesto y conversan.
+  - **Interfaz:**
+    - Barra del equipo con retrato y lo que hace cada uno; al tocar a alguien, la cámara lo sigue.
+    - Botón «En vivo»: la cámara va sola a donde pasa algo.
+    - Registro que junta la operación, las solicitudes y los mensajes.
+  - **Día y noche** con la hora de Bogotá: luna, ventanas y faroles encendidos.
+  - Dentro del Mapa, el juego ya no hereda el estilo pixel del tablero, que le desfiguraba los botones.
+- **Archivos Modificados:** `app/services/empresa_viva.py`, `tests/test_empresa_viva.py`, `desktop/src/components/empresa/{barrio.ts,motor.ts,escena.ts,render.ts,EmpresaViva.tsx,empresa-viva.css}`, `desktop/src/components/MapaVivo.tsx`, `desktop/dev/empresaVivaEjemplo.ts`, `docs/agentic/modules/operacion-equipo.md`, `docs/team-recaps.md`.
+
 ### 2026-10-08 14:30 - Imprimir: la casilla LOT. sale del documento técnico
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (panel `/app`, Diseño → Imprimir).

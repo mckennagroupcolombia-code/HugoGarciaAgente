@@ -90,6 +90,12 @@ export class Escena {
   private anillo: THREE.Mesh;
   private seguido: THREE.Object3D | null = null;
   private casas = new Map<CasaId, CasaViva>();
+  /** A quién sigue la cámara (se suelta al arrastrar). */
+  private camSigue: THREE.Object3D | null = null;
+  private faroles: THREE.MeshStandardMaterial[] = [];
+  private vidrios: THREE.MeshStandardMaterial[] = [];
+  private luzNoche: THREE.PointLight[] = [];
+  private horaAplicada = -1;
   readonly estantes: THREE.Group[] = [];
   onFrame: (dt: number, t: number) => void = () => {};
   onElegir: (e: Elegible | null) => void = () => {};
@@ -182,8 +188,10 @@ export class Escena {
 
   /** Ir a un punto; `zoom` como en la vista ortográfica de antes (2 ≈ una casa de cerca). */
   irA(x: number, z: number, zoom?: number) {
+    this.camSigue = null;
     this.objetivo.set(x, 0, z);
     if (zoom) this.distancia = Math.max(DIST_MIN, Math.min(DIST_MAX, 64 / zoom));
+    this.distanciaMeta = null;
     this.limitar();
     this.colocarCamara();
   }
@@ -231,6 +239,7 @@ export class Escena {
     if (!a.movio && Math.hypot(e.clientX - a.x, e.clientY - a.y) < 6) return;
     a.movio = true;
     this.seguido = null;
+    this.camSigue = null;
     // Lo que estaba bajo el dedo sigue bajo el dedo.
     this.objetivo.copy(a.obj);
     this.colocarCamara();
@@ -315,6 +324,51 @@ export class Escena {
     this.anillo.visible = Boolean(o);
   }
 
+  /** Seguir algo con la cámara (una persona). `acercar`: si está muy lejos, se acerca. */
+  seguir(o: THREE.Object3D | null, acercar = true) {
+    this.camSigue = o;
+    if (o && acercar && this.distancia > 30) this.distanciaMeta = 26;
+  }
+  get siguiendo(): THREE.Object3D | null { return this.camSigue; }
+  private distanciaMeta: number | null = null;
+
+  private moverCamara(dt: number) {
+    let mover = false;
+    if (this.camSigue) {
+      const p = this.camSigue.position;
+      const k = Math.min(1, dt * 3);
+      this.objetivo.x += (p.x - this.objetivo.x) * k;
+      this.objetivo.z += (p.z - this.objetivo.z) * k;
+      mover = true;
+    }
+    if (this.distanciaMeta !== null) {
+      this.distancia += (this.distanciaMeta - this.distancia) * Math.min(1, dt * 2.5);
+      if (Math.abs(this.distancia - this.distanciaMeta) < 0.2) this.distanciaMeta = null;
+      mover = true;
+    }
+    if (mover) this.colocarCamara();
+    // De lejos, los nombres van sin el «qué hace» (no tapan el barrio).
+    const lejos = this.distancia > 44 ? "1" : "";
+    if (this.etiquetas.domElement.dataset.lejos !== lejos) this.etiquetas.domElement.dataset.lejos = lejos;
+  }
+
+  // ─── Día y noche (hora real de Bogotá) ─────────────────────────────────────
+
+  /** Aplica la hora del día: posición y color del sol, cielo, y de noche las ventanas y los
+   *  faroles encendidos. `h` en horas decimales (0–24), hora local. */
+  aplicarHora(h: number) {
+    if (Math.abs(h - this.horaAplicada) < 0.05) return;
+    this.horaAplicada = h;
+    // Bogotá: amanece ~5:45, anochece ~18:00 casi todo el año.
+    const dia = Math.max(0, Math.min(1, Math.min((h - 5.3) / 1.2, (18.6 - h) / 1.2)));
+    const atardecer = Math.max(0, 1 - Math.abs(h - 17.6) / 1.1) * dia + Math.max(0, 1 - Math.abs(h - 6.2) / 0.9) * dia * 0.7;
+    this.amb.ponerLuz(dia, atardecer);
+    const noche = 1 - dia;
+    for (const m of this.faroles) m.emissiveIntensity = noche * 3;
+    for (const m of this.vidrios) { m.emissive.set(noche > 0.3 ? "#FFC86B" : "#2A6A8A"); m.emissiveIntensity = 0.15 + noche * 1.6; }
+    for (const l of this.luzNoche) l.intensity = noche * 6;
+  }
+
   // ─── Casas que se abren ────────────────────────────────────────────────────
 
   /** Tocar una casa: si estaba en automático o cerrada, se abre; si estaba abierta, se cierra. */
@@ -361,6 +415,7 @@ export class Escena {
     const dt = Math.min(0.05, this.reloj.getDelta());
     const t = this.reloj.elapsedTime;
     this.onFrame(dt, t);
+    this.moverCamara(dt);
     this.animarCasas(dt);
     if (this.seguido) {
       this.anillo.position.set(this.seguido.position.x, 0.14, this.seguido.position.z);
@@ -619,6 +674,7 @@ export class Escena {
   private ventana(grupo: THREE.Group, c: Casa, horizontal: boolean, x0: number, z0: number, v: number) {
     const marco = new THREE.MeshStandardMaterial({ color: "#FFFFFF", roughness: 0.6 });
     const vidrio = new THREE.MeshStandardMaterial({ color: "#9ED8F5", roughness: 0.15, metalness: 0.2, emissive: "#2A6A8A", emissiveIntensity: 0.15 });
+    this.vidrios.push(vidrio);
     const g = new THREE.Group();
     const f = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.75, 0.06), marco);
     const vi = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.07), vidrio);
@@ -803,9 +859,23 @@ export class Escena {
     }
     for (let i = 0; i < 14; i++) p(`${N}tree_single_${i % 2 ? "A" : "B"}.gltf`, -33 + i * 5, 14.2, i * 40, 2.8 + (i % 3) * 0.3);
     // Postes de luz en los dos andenes, hidrante, bancas y canecas.
+    const bombilla = new THREE.MeshStandardMaterial({ color: "#FFF4C8", emissive: "#FFC86B", emissiveIntensity: 0 });
+    this.faroles.push(bombilla);
     for (let i = 0; i < 9; i++) {
-      p(`${C}streetlight.gltf`, -32 + i * 8, ANDEN_Z + 0.35, 180, 2.7);
-      p(`${C}streetlight.gltf`, -28 + i * 8, CALLE.z1 + 0.7, 0, 2.7);
+      for (const [x, z, rot] of [[-32 + i * 8, ANDEN_Z + 0.35, 180], [-28 + i * 8, CALLE.z1 + 0.7, 0]]) {
+        p(`${C}streetlight.gltf`, x, z, rot, 2.7);
+        // El globo de luz del farol (se enciende de noche; el bloom le da el halo).
+        const b = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), bombilla);
+        b.position.set(x, 2.62, z + (rot === 180 ? 0.55 : -0.55));
+        this.scene.add(b);
+      }
+    }
+    // Pocas luces de verdad (son caras): frente a cada casa.
+    for (const c of CASAS) {
+      const l = new THREE.PointLight("#FFC86B", 0, 9, 1.6);
+      l.position.set(c.puertaFuera.x, 2.4, c.puertaFuera.z + 0.8);
+      this.scene.add(l);
+      this.luzNoche.push(l);
     }
     p(`${C}firehydrant.gltf`, -9.4, ANDEN_Z + 0.2, 0, 0.45);
     p(`${C}bench.gltf`, 14.4, ANDEN_Z, 180, 0.55);

@@ -15,10 +15,12 @@
 import * as THREE from "three";
 import type { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import {
-  ANDEN_Z, CAMION_PROVEEDOR_PARQUEO, CARRIL_IDA, CARRIL_VUELTA, CASA, ENTRADA_RECEPCION, HUGO_PUESTO,
-  LUGAR, LUGARES, MENSAJERO_PARQUEO, casaDeLugar, lugarDePanel, puestoFila, puestoPaqueteAlistado,
-  puestoPaquetePorAlistar, type Animacion, type LugarId,
+  ANDEN_Z, CAFE, CAMION_PROVEEDOR_PARQUEO, CARRIL_IDA, CARRIL_VUELTA, CASA, ENTRADA_RECEPCION, HUGO_PUESTO,
+  LUGAR, LUGARES, MENSAJERO_PARQUEO, TAREA, casaDeLugar, lugarDePanel, puestoFila, puestoPaqueteAlistado,
+  puestoPaquetePorAlistar, type Animacion, type LugarId, type Parada,
 } from "./barrio";
+import { PANEL_INFO } from "../../lib/panelInfo";
+import type { Panel } from "../../stores/app";
 import { Escena, type Elegible } from "./escena";
 import { animar, objeto, objetoAlto, personaje, ponerAccesorio, type Personaje } from "./recursos";
 
@@ -29,6 +31,14 @@ export interface AvatarElegido { avatar: string; accesorio: string; color: strin
 export interface PersonaApi {
   id: number; nombre: string; username: string; en_linea: boolean; panel: string; via: "panel" | "whatsapp" | "";
   avatar?: AvatarElegido | null; funciones?: string[];
+  /** Tarea con cronómetro andando (lo que hace con las manos ahora). */
+  tarea?: { funcion: string; hace: string; titulo: string; ticket_id: number; desde: string } | null;
+  /** En el panel, por WhatsApp o con un cronómetro andando. */
+  presente?: boolean;
+}
+export interface AccionApi {
+  id: string; tipo: "creo" | "comento" | "adjunto" | "midio" | "resolvio" | "en_proceso" | "reporto" | "zumbido";
+  de: number; ts: number; ticket_id: number; titulo: string;
 }
 export interface InteraccionApi {
   id: string; tipo: "pregunta" | "solicitud" | "respuesta" | "grupo" | "idea"; de: number; para: number[]; todos?: boolean;
@@ -68,8 +78,10 @@ export interface EstadoEmpresa {
   oficina: Record<string, { alta: number; media: number; items: Detenido[] }>;
   eventos: EventoApi[];
   interacciones?: InteraccionApi[];
+  acciones?: AccionApi[];
   sin_senal: { fuente: string; error: string }[];
   generado: string;
+  hora?: string;
 }
 
 export type Seleccion =
@@ -83,7 +95,8 @@ export type Seleccion =
 
 // ─── Entidades ───────────────────────────────────────────────────────────────
 
-type Punto = { x: number; z: number };
+/** Un punto de una ruta. Con `pausa`, al llegar se queda ese tiempo haciendo `anim`, mirando a `rot`. */
+type Punto = { x: number; z: number; pausa?: number; anim?: string; rot?: number };
 type Tipo = "persona" | "visitante" | "paquete" | "proveedor" | "mensajero" | "camion" | "furgon" | "caja" | "hugo";
 
 interface Ent {
@@ -107,6 +120,16 @@ interface Ent {
   vehiculo?: boolean;
   /** avatar|accesorio con el que se creó: si la persona lo cambia, se vuelve a crear. */
   look?: string;
+  /** Tareas que van y vienen (alistar, aseo): los puntos y por cuál va. */
+  ronda?: Parada[];
+  rondaK?: number;
+  /** Cuándo toca la próxima pausa corta (café, estirarse, visitar a alguien). */
+  vidaEn?: number;
+  presente?: boolean;
+  /** Trabaja con las manos en un sitio fijo (cronómetro): no se va de pausa tan seguido. */
+  ocupado?: boolean;
+  /** Hacia dónde mira mientras hace una pausa en una parada (radianes). */
+  giro?: number;
 }
 
 /** Un avioncito de papel volando de un avatar a otro. */
@@ -164,6 +187,10 @@ export class Motor {
   private mensajeroVuelve = 0;
   private aviones: Avion[] = [];
   private interVistas = new Set<string>();
+  private accVistas = new Set<string>();
+  private modoTV = false;
+  private relojHora = 0;
+  private tvHasta = 0;
 
   constructor(cont: HTMLElement, private op: OpcionesMotor) {
     this.reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -171,6 +198,14 @@ export class Motor {
     this.escena.onFrame = (dt, t) => this.actualizar(dt, t);
     this.escena.onElegir = (e) => this.alElegir(e);
     void this.escena.construir().then(() => {
+      // El día y la noche siguen la hora de Bogotá (también si el celular está en otro huso).
+      const hora = () => {
+        const [h, m] = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hour12: false })
+          .format(new Date()).split(":").map(Number);
+        this.escena.aplicarHora(h + m / 60);
+      };
+      hora();
+      this.relojHora = window.setInterval(hora, 60_000);
       this.crearHugo();
       this.listo = true;
       this.op.onListo?.();
@@ -179,6 +214,7 @@ export class Motor {
   }
 
   destruir() {
+    window.clearInterval(this.relojHora);
     this.escena.destruir();
   }
 
@@ -393,6 +429,7 @@ export class Motor {
     this.sincronizarBodega(est);
     this.sincronizarPilas(est);
     this.sincronizarInteracciones(est, primera, sonidos);
+    this.sincronizarAcciones(est, primera, sonidos);
 
     for (const ent of [...this.ents.values()]) {
       if (vivos.has(ent.id) || ent.sale) continue;
@@ -402,60 +439,93 @@ export class Motor {
     for (const n of sonidos) this.op.onSonido?.(n);
   }
 
+  /** Qué se lee bajo el nombre: lo que hace con las manos, o el panel donde está. */
+  private queHace(p: PersonaApi): string {
+    const t = p.tarea ? TAREA[p.tarea.funcion] : undefined;
+    if (t) return t.corto;
+    if (p.tarea?.hace) return p.tarea.hace;
+    if (!(p.presente ?? p.en_linea)) return "";
+    if (p.via === "whatsapp") return "Por WhatsApp";
+    const info = PANEL_INFO[p.panel as Panel];
+    const lugar = lugarDePanel(p.panel);
+    return info && lugar ? `En ${info.label}` : "En su puesto";
+  }
+
   private sincronizarPersonas(est: EstadoEmpresa, primera: boolean, vivos: Set<string>) {
     const cfg = est.casas?.usuarios ?? {};
-    const destinos = new Map<LugarId, PersonaApi[]>();
+    // Dónde va cada quien: 1) lo que hace con las manos (cronómetro), 2) el panel que tiene
+    // abierto, 3) su puesto de siempre; ausente, a su cuarto si vive en el barrio.
+    const conPuesto = new Map<LugarId, PersonaApi[]>();
+    const fijos: { p: PersonaApi; l: LugarId; base: Ent["base"]; ronda?: Parada[] }[] = [];
     for (const p of est.personas) {
       const c = cfg[p.username] ?? {};
+      const presente = p.presente ?? p.en_linea;
+      const t = p.tarea ? TAREA[p.tarea.funcion] : undefined;
       let l: LugarId | null;
-      if (p.en_linea) l = lugarDePanel(p.panel) ?? c.trabaja ?? (c.vive === "bunker" ? "gerencia" : "oficina_sede");
-      else l = c.cuarto ?? null; // desconectado: a su cuarto, si vive en el barrio
+      if (!presente) l = c.cuarto ?? null;
+      else l = t?.lugar ?? lugarDePanel(p.panel) ?? c.trabaja ?? (c.vive === "bunker" ? "gerencia" : "oficina_sede");
       if (!l || !LUGAR[l]) continue;
-      destinos.set(l, [...(destinos.get(l) ?? []), p]);
+      if (presente && t && t.lugar === l && (t.parada || t.ronda)) {
+        const r = t.parada ?? t.ronda![0];
+        fijos.push({ p, l, base: { x: r.x, z: r.z, rot: r.rot, anim: r.anim }, ronda: t.ronda });
+      } else conPuesto.set(l, [...(conPuesto.get(l) ?? []), p]);
     }
-    for (const [l, gente] of destinos) {
+    const ubicar = (p: PersonaApi, l: LugarId, base: Ent["base"], ronda?: Parada[]) => {
+      const id = `p${p.id}`;
+      vivos.add(id);
+      const c = cfg[p.username] ?? {};
+      const presente = p.presente ?? p.en_linea;
+      const sel: Seleccion = { tipo: "persona", datos: p, lugar: l, rol: c.rol };
+      const avatar = p.avatar?.avatar || c.avatar || est.casas?.avatar_por_defecto || "character-male-d";
+      const look = `${avatar}|${p.avatar?.accesorio ?? ""}|${p.avatar?.color ?? ""}`;
+      const extra = { ronda, ocupado: Boolean(p.tarea && TAREA[p.tarea.funcion]?.lugar), presente };
+      let ent = this.ents.get(id);
+      if (ent && !ent.sale && ent.look !== look) {
+        // Cambió de avatar: se vuelve a crear en el mismo sitio, con un saltito.
+        const donde = { x: ent.obj.position.x, z: ent.obj.position.z };
+        this.quitar(ent);
+        ent = undefined;
+        this.nacerPersona(id, p, est, avatar, look, donde, base, l, sel, false, true, extra);
+        return;
+      }
+      if (ent && !ent.sale) {
+        const cambia = ent.lugar !== l || ent.base.x !== base.x || ent.base.z !== base.z;
+        if (ent.lugar !== l) ent.ruta = this.camino(ent.lugar, l, base).slice(0, -1);
+        else if (cambia && !ent.ruta.length) ent.ruta = [];
+        const mismaRonda = Boolean(ronda) && ronda === ent.ronda;   // sigue su ronda donde iba
+        if (!mismaRonda) { ent.ronda = ronda; ent.rondaK = 0; }
+        Object.assign(ent, { lugar: l, sel, ocupado: extra.ocupado, presente });
+        if (!mismaRonda) ent.base = base;
+        this.marcarPersona(ent, p);
+        return;
+      }
+      // Quien vive en el barrio ya está en su casa; los demás llegan caminando por la calle.
+      const vive = Boolean(c.vive);
+      const desde = primera || vive ? base : { x: -37, z: ANDEN_Z };
+      this.nacerPersona(id, p, est, avatar, look, desde, base, l, sel, !primera && !vive, false, extra);
+    };
+    for (const f of fijos) ubicar(f.p, f.l, f.base, f.ronda);
+    for (const [l, gente] of conPuesto) {
       const puestos = LUGAR[l].puestos;
       gente.forEach((p, i) => {
-        const id = `p${p.id}`;
-        vivos.add(id);
         const pu = puestos[i % puestos.length];
         const extra = Math.floor(i / puestos.length);
+        const presente = p.presente ?? p.en_linea;
         // Si hay más gente que puestos, el resto se para al lado.
-        const base = { x: pu.x + extra * 0.5, z: pu.z + extra * 0.4, rot: pu.rot,
-                       anim: (p.en_linea ? pu.anim : pu.anim === "sit" ? "sit" : "idle") as Animacion };
-        const c = cfg[p.username] ?? {};
-        const sel: Seleccion = { tipo: "persona", datos: p, lugar: l, rol: c.rol };
-        const avatar = p.avatar?.avatar || c.avatar || est.casas?.avatar_por_defecto || "character-male-d";
-        const look = `${avatar}|${p.avatar?.accesorio ?? ""}|${p.avatar?.color ?? ""}`;
-        let ent = this.ents.get(id);
-        if (ent && !ent.sale && ent.look !== look) {
-          // Cambió de avatar: se vuelve a crear en el mismo sitio, con un saltito.
-          const donde = { x: ent.obj.position.x, z: ent.obj.position.z };
-          this.quitar(ent);
-          ent = undefined;
-          this.nacerPersona(id, p, est, avatar, look, donde, base, l, sel, false, true);
-          return;
-        }
-        if (ent && !ent.sale) {
-          if (ent.lugar !== l) ent.ruta = this.camino(ent.lugar, l, base).slice(0, -1);
-          ent.lugar = l; ent.base = base; ent.sel = sel;
-          this.marcarPersona(ent, p);
-          return;
-        }
-        // Quien vive en el barrio ya está en su casa; los demás llegan caminando por la calle.
-        const vive = Boolean(c.vive);
-        const desde = primera || vive ? base : { x: -37, z: ANDEN_Z };
-        this.nacerPersona(id, p, est, avatar, look, desde, base, l, sel, !primera && !vive, false);
+        ubicar(p, l, { x: pu.x + extra * 0.5, z: pu.z + extra * 0.4, rot: pu.rot,
+                       anim: (presente ? pu.anim : pu.anim === "sit" ? "sit" : "idle") as Animacion });
       });
     }
   }
 
   private nacerPersona(id: string, p: PersonaApi, est: EstadoEmpresa, avatar: string, look: string, desde: Punto,
-                       base: Ent["base"], l: LugarId, sel: Seleccion, llegaPorLaCalle: boolean, saltito: boolean) {
-    void this.crearPersonaje(id, "persona", avatar, desde, base, { lugar: l, sel, look })
+                       base: Ent["base"], l: LugarId, sel: Seleccion, llegaPorLaCalle: boolean, saltito: boolean,
+                       extra: Partial<Ent> = {}) {
+    void this.crearPersonaje(id, "persona", avatar, desde, base, { lugar: l, sel, look, ...extra, rondaK: 0,
+                                                                  vidaEn: performance.now() + 8000 + (hash(id) % 20000) })
       .then(async (e) => {
         if (!e) return;
-        e.nombre = Escena.etiqueta(esc(primerNombre(p.nombre)), p.id === est.yo ? "ev-nombre ev-nombre-yo" : "ev-nombre");
+        e.nombre = Escena.etiqueta("", p.id === est.yo ? "ev-nombre ev-nombre-yo" : "ev-nombre");
         const color = p.avatar?.color;
         if (color) (e.nombre.element.firstElementChild as HTMLElement).style.background = color;
         e.nombre.position.set(0, 1.5, 0);
@@ -473,10 +543,16 @@ export class Motor {
       });
   }
 
-  /** «zzz» para quien está en su cuarto desconectado; WA para quien trabaja por WhatsApp. */
+  /** Nombre + lo que hace; «zzz» si está ausente en su cuarto; WA si trabaja por WhatsApp. */
   private marcarPersona(ent: Ent, p: PersonaApi) {
-    if (!p.en_linea) this.ponerIcono(ent, "z<small>z</small><small>z</small>", "ev-icono ev-zzz");
-    else if (p.via === "whatsapp") this.ponerIcono(ent, "WA", "ev-icono ev-wa");
+    const presente = p.presente ?? p.en_linea;
+    const hace = this.queHace(p);
+    if (ent.nombre) {
+      const clase = ent.nombre.element.firstElementChild?.className ?? "ev-nombre";
+      Escena.cambiar(ent.nombre, `${esc(primerNombre(p.nombre))}${hace ? `<span class="ev-hace">${esc(hace)}</span>` : ""}`, clase);
+    }
+    if (!presente) this.ponerIcono(ent, "z<small>z</small><small>z</small>", "ev-icono ev-zzz");
+    else if (p.via === "whatsapp" && !p.tarea) this.ponerIcono(ent, "WA", "ev-icono ev-wa");
     else this.quitarIcono(ent);
   }
 
@@ -768,7 +844,17 @@ export class Motor {
       pregunta: `Pregunta de ${nombreDe}`, solicitud: `Solicitud de ${nombreDe}`, respuesta: `${nombreDe} te respondió`,
       grupo: it.canal ? `${nombreDe} en «${it.canal}»` : `Mensaje de ${nombreDe}`, idea: `Idea de ${nombreDe}`,
     };
+    // Pregunta o solicitud a alguien de la misma casa: camina hasta su puesto y conversan.
+    const unoSolo = para.length === 1 ? para[0] : null;
+    if ((it.tipo === "pregunta" || it.tipo === "solicitud") && unoSolo && de.lugar && unoSolo.lugar
+        && casaDeLugar(de.lugar) === casaDeLugar(unoSolo.lugar) && de.presente && unoSolo.presente
+        && !de.ruta.length && !de.ronda && !this.reducido) {
+      this.visitar(de, unoSolo, textoSale[it.tipo] ?? "…", 5500);
+      this.enfocar(de);
+      return true;
+    }
     this.ponerGlobo(de, textoSale[it.tipo] ?? "", 5000, `ev-globo ev-globo-${it.tipo}`);
+    this.enfocar(de);
     if (de.pj && !de.momento) de.momento = { anim: "interact-right", hasta: performance.now() + 1200 };
     para.slice(0, 8).forEach((destino, i) => {
       const avion = this.crearAvion(COLOR_AVION[it.tipo] ?? "#FFFFFF");
@@ -845,6 +931,7 @@ export class Motor {
     if (!p || p.sale) return;
     this.ponerGlobo(p, texto, 5500, "ev-globo ev-globo-ok");
     p.momento = { anim: "emote-yes", hasta: performance.now() + 1800 };
+    this.enfocar(p);
   }
 
   private despedir(ent: Ent, evento: Map<string, EventoApi>, sonidos: Set<string>) {
@@ -908,6 +995,7 @@ export class Motor {
       }
       if (ent.momento && ahora < ent.momento.hasta) {
         if (ent.pj) animar(ent.pj, ent.momento.anim);
+        if (ent.giro !== undefined) this.girar(o, ent.giro, dt);
         continue;
       }
       ent.momento = undefined;
@@ -916,6 +1004,7 @@ export class Motor {
         continue;
       }
       ent.pausaHasta = undefined;
+      ent.giro = undefined;
       const destino = ent.ruta[0] ?? (ent.sale ? null : ent.base);
       if (!destino) { this.quitar(ent); continue; }
       const dx = destino.x - o.position.x, dz = destino.z - o.position.z;
@@ -923,16 +1012,20 @@ export class Motor {
       const paso = ent.vel * dt;
       if (d <= paso || d < 0.01) {
         o.position.x = destino.x; o.position.z = destino.z;
-        if (ent.ruta.length) { ent.ruta.shift(); continue; }
+        if (ent.ruta.length) {
+          const parada = ent.ruta.shift()!;
+          // Una parada con pausa: se queda haciendo algo (tomar café, conversar) y sigue.
+          if (parada.pausa) {
+            ent.momento = { anim: parada.anim ?? "idle", hasta: ahora + parada.pausa };
+            if (parada.rot !== undefined) ent.giro = THREE.MathUtils.degToRad(parada.rot);
+          }
+          continue;
+        }
         if (ent.sale) { this.quitar(ent); continue; }
         // Llegó a su puesto: mira hacia donde trabaja y hace lo suyo.
-        if (!ent.vehiculo) {
-          const meta = THREE.MathUtils.degToRad(ent.base.rot);
-          let dif = meta - o.rotation.y;
-          dif = Math.atan2(Math.sin(dif), Math.cos(dif));
-          o.rotation.y += dif * Math.min(1, dt * 8);
-        }
+        if (!ent.vehiculo) this.girar(o, THREE.MathUtils.degToRad(ent.base.rot), dt);
         if (ent.pj) animar(ent.pj, ent.base.anim);
+        this.vidaDiaria(ent, ahora);
         continue;
       }
       o.position.x += (dx / d) * paso;
@@ -940,6 +1033,119 @@ export class Motor {
       o.rotation.y = Math.atan2(dx, dz);
       if (ent.pj) animar(ent.pj, ent.tipo === "proveedor" || ent.tipo === "mensajero" ? "holding-both" : "walk");
     }
+  }
+
+  private girar(o: THREE.Object3D, meta: number, dt: number) {
+    let dif = meta - o.rotation.y;
+    dif = Math.atan2(Math.sin(dif), Math.cos(dif));
+    o.rotation.y += dif * Math.min(1, dt * 8);
+  }
+
+  // ─── La vida de todos los días ─────────────────────────────────────────────
+
+  /** Quien está trabajando no se queda de piedra: hace su ronda (alistar, aseo) o, de vez en
+   *  cuando, una pausa corta — estirarse, ir por un tinto, pasar a saludar a alguien de la casa. */
+  private vidaDiaria(ent: Ent, ahora: number) {
+    if (ent.tipo !== "persona" || !ent.presente || this.reducido || !ent.lugar) return;
+    const azar = (hash(ent.id + Math.floor(ahora / 1000)) % 1000) / 1000;
+    if (ent.ronda?.length) {
+      if (ent.vidaEn && ahora < ent.vidaEn) return;
+      ent.rondaK = ((ent.rondaK ?? 0) + 1) % ent.ronda.length;
+      const r = ent.ronda[ent.rondaK];
+      ent.base = { x: r.x, z: r.z, rot: r.rot, anim: r.anim };
+      ent.vidaEn = ahora + 4500 + azar * 3500;
+      return;
+    }
+    if (!ent.vidaEn) { ent.vidaEn = ahora + 15000 + azar * 30000; return; }
+    if (ahora < ent.vidaEn) return;
+    ent.vidaEn = ahora + (ent.ocupado ? 80000 : 35000) + azar * 45000;
+    const casa = casaDeLugar(ent.lugar);
+    const companeros = [...this.ents.values()].filter((e) => e.tipo === "persona" && e !== ent && e.presente && e.lugar
+      && casaDeLugar(e.lugar) === casa && !e.ruta.length && !e.momento && !e.ronda);
+    if (azar < 0.35) {
+      ent.momento = { anim: "interact-left", hasta: ahora + 2400 };   // se estira, mira el celular
+    } else if (azar < 0.72 || !companeros.length) {
+      const c = CAFE[casa];
+      const parada: Punto = { x: c.x + (azar - 0.5) * 0.6, z: c.z, pausa: 4500, anim: "interact-right", rot: c.rot };
+      this.irYVolver(ent, c.lugar, parada);
+      this.ponerGlobo(ent, "Un tintico", 3000, "ev-globo ev-globo-cafe");
+    } else {
+      this.visitar(ent, companeros[Math.floor(azar * 997) % companeros.length], "…", 5000);
+    }
+  }
+
+  /** Ir a un punto (por las puertas), quedarse lo que diga la parada y volver al puesto. */
+  private irYVolver(ent: Ent, lugar: LugarId, parada: Punto) {
+    if (!ent.lugar) return;
+    ent.ruta = [...this.camino(ent.lugar, lugar, parada).slice(0, -1), parada,
+                ...this.camino(lugar, ent.lugar, ent.base).slice(0, -1)];
+  }
+
+  /** Pasar al puesto de alguien a conversar: los dos se miran, globos de charla, y vuelve. */
+  private visitar(ent: Ent, otro: Ent, texto: string, ms: number) {
+    if (!otro.lugar) return;
+    const ox = otro.obj.position.x, oz = otro.obj.position.z;
+    const cerca = { x: ox + 0.6, z: oz + 0.45 };
+    const rot = THREE.MathUtils.radToDeg(Math.atan2(ox - cerca.x, oz - cerca.z));
+    this.irYVolver(ent, otro.lugar, { ...cerca, pausa: ms, anim: "interact-right", rot });
+    // El otro lo atiende cuando llega (más o menos: no esperamos a medir la distancia).
+    const llegada = performance.now() + Math.min(9000, Math.hypot(ent.obj.position.x - ox, ent.obj.position.z - oz) / VEL_PERSONA * 1000);
+    window.setTimeout(() => {
+      if (!this.ents.has(otro.id) || !this.ents.has(ent.id)) return;
+      otro.momento = { anim: "interact-right", hasta: performance.now() + ms - 500 };
+      otro.giro = Math.atan2(cerca.x - ox, cerca.z - oz);
+      this.ponerGlobo(ent, texto, ms - 800, "ev-globo ev-globo-charla");
+      this.ponerGlobo(otro, "…", ms - 800, "ev-globo ev-globo-charla");
+    }, Math.max(0, llegada - performance.now()));
+  }
+
+  // ─── Lo que cada quien acaba de hacer en las solicitudes ───────────────────
+
+  private sincronizarAcciones(est: EstadoEmpresa, primera: boolean, sonidos: Set<string>) {
+    const ahora = Date.now() / 1000;
+    const TEXTO: Record<string, [string, string]> = {
+      resolvio: ["¡Resuelta!", "emote-yes"], comento: ["Comentó", "interact-right"], creo: ["Nueva solicitud", "interact-right"],
+      adjunto: ["Adjuntó un archivo", "interact-right"], midio: ["Registró su tiempo", "interact-left"],
+      en_proceso: ["¡Manos a la obra!", "pick-up"], reporto: ["Reportó avance", "interact-right"], zumbido: ["¡Bzz!", "jump"],
+    };
+    for (const a of est.acciones ?? []) {
+      if (this.accVistas.has(a.id)) continue;
+      this.accVistas.add(a.id);
+      if (primera && ahora - a.ts > 20) continue;
+      const ent = this.ents.get(`p${a.de}`);
+      const [texto, anim] = TEXTO[a.tipo] ?? ["", "idle"];
+      if (!ent || !texto) continue;
+      const detalle = a.titulo ? `: ${a.titulo.length > 30 ? `${a.titulo.slice(0, 28)}…` : a.titulo}` : "";
+      this.ponerGlobo(ent, `${texto}${detalle}`, 4500, a.tipo === "resolvio" ? "ev-globo ev-globo-ok" : "ev-globo ev-globo-accion");
+      if (!ent.ruta.length) ent.momento = { anim, hasta: performance.now() + 1800 };
+      if (a.tipo === "resolvio") sonidos.add("preparar");
+      this.enfocar(ent);
+    }
+  }
+
+  // ─── Cámara: seguir a alguien y «en vivo» ──────────────────────────────────
+
+  /** Seguir a una persona del equipo con la cámara (null = soltar). */
+  seguir(personaId: number | null): boolean {
+    const ent = personaId === null ? null : this.ents.get(`p${personaId}`);
+    this.escena.seguir(ent?.obj ?? null);
+    if (ent) { this.seleccionado = ent.id; this.escena.marcar(ent.obj); }
+    return Boolean(ent);
+  }
+
+  /** «En vivo»: la cámara va sola a donde acaba de pasar algo. */
+  enVivo(activo: boolean) {
+    // Apagarlo suelta la cámara solo si estaba encendido: si no, soltaría a quien se acaba de elegir.
+    if (!activo && this.modoTV) this.escena.seguir(null);
+    this.modoTV = activo;
+  }
+
+  private enfocar(ent: Ent) {
+    if (!this.modoTV) return;
+    const ahora = performance.now();
+    if (ahora < this.tvHasta) return;   // deja ver lo anterior unos segundos
+    this.tvHasta = ahora + 7000;
+    this.escena.seguir(ent.obj, true);
   }
 
   /** Acercar la cámara a un lugar. */

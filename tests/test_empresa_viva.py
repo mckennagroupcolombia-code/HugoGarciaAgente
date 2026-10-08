@@ -35,7 +35,9 @@ def test_lo_que_se_dicen_solo_lo_leen_quienes_participan(monkeypatch):
         {"id": "m3", "tipo": "grupo", "de": 10, "para": [], "todos": True, "canal": "Equipo", "canal_id": 8,
          "ts": 3, "texto": "Ya llegó el camión", "privado": False},
     ]
-    monkeypatch.setattr(E, "foto", lambda refrescar=False: _foto(inter))
+    monkeypatch.setattr(E, "foto", lambda refrescar=False: _foto([]))
+    monkeypatch.setattr(E, "vivo", lambda refrescar=False: {"personas": [], "tareas": {}, "interacciones": inter,
+                                                            "acciones": [], "sin_senal": []})
     monkeypatch.setattr(E, "casas", lambda: {"usuarios": {}})
     from app.services import mapa_app
     monkeypatch.setattr(mapa_app, "urgencias_para", lambda u: {"por_etapa": {}})
@@ -59,3 +61,25 @@ def test_el_juego_no_es_para_el_contador_ni_el_colaborador_externo():
     assert not E.puede_ver_juego({"id": 12, "permisos_secciones": {"contador": True}})
     assert not E.puede_ver_juego({"id": 13, "permisos_secciones": {"colaborador_externo": True}})
     assert not E.puede_ver_juego(None)
+
+
+def test_la_tarea_ajena_se_ve_por_su_funcion_no_por_su_titulo(monkeypatch):
+    tarea = {"funcion": "almuerzo", "hace": "Hace el almuerzo del equipo", "titulo": "Almuerzo: arroz con pollo",
+             "ticket_id": 1, "desde": ""}
+    vivo = {"personas": [{"id": 7, "nombre": "Victor", "username": "vitor", "en_linea": False, "panel": "", "via": "",
+                          "avatar": None, "funciones": [], "tarea": tarea, "presente": True}],
+            "tareas": {7: tarea}, "interacciones": [],
+            "acciones": [{"id": "a1", "tipo": "comento", "de": 10, "ts": 1, "ticket_id": 5, "titulo": "Factura glicerina",
+                          "partes": [8, 10]}], "sin_senal": []}
+    monkeypatch.setattr(E, "foto", lambda refrescar=False: _foto([]))
+    monkeypatch.setattr(E, "vivo", lambda refrescar=False: vivo)
+    monkeypatch.setattr(E, "casas", lambda: {"usuarios": {}})
+    from app.services import mapa_app
+    monkeypatch.setattr(mapa_app, "urgencias_para", lambda u: {"por_etapa": {}})
+    stella = {"id": 9, "permisos_secciones": {"empaque": True}, "rol": {"nivel": 1}}
+    e = E.estado_para(stella)
+    assert e["personas"][0]["tarea"]["hace"] == "Hace el almuerzo del equipo"
+    assert e["personas"][0]["tarea"]["titulo"] == ""
+    assert e["acciones"][0]["titulo"] == ""                 # no es parte de esa solicitud
+    armando = {"id": 8, "permisos_secciones": {}, "rol": {"nivel": 1}}
+    assert E.estado_para(armando)["acciones"][0]["titulo"] == "Factura glicerina"

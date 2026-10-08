@@ -25,7 +25,7 @@ import { PANEL_INFO } from "../../lib/panelInfo";
 import { ponerSonidos, sonidosActivos, tocarSonido } from "../../lib/sonidosJuego";
 import { useAppStore, type Panel } from "../../stores/app";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
-import { CASAS, LUGAR, lugarDePanel, type LugarId } from "./barrio";
+import { CASAS, LUGAR, TAREA, lugarDePanel, type LugarId } from "./barrio";
 import { CompartirEnGrupo, EditorAvatar, PreguntarA } from "./acciones";
 import { cargasFallidas } from "./recursos";
 import { Motor, type EstadoEmpresa, type EventoApi, type PersonaApi, type Seleccion } from "./motor";
@@ -90,8 +90,9 @@ export default function EmpresaViva() {
   const { data, error, isLoading } = useQuery({
     queryKey: ["empresa-viva", user?.id],
     queryFn: () => api.get<EstadoEmpresa>("/api/empresa-viva/estado"),
-    refetchInterval: 10_000,
-    staleTime: 5_000,
+    // Cada 4 s: lo vivo (quién está, qué hace, qué acaba de hacer) cuesta poco en el servidor.
+    refetchInterval: 4_000,
+    staleTime: 2_000,
   });
 
   useEffect(() => {
@@ -148,12 +149,35 @@ export default function EmpresaViva() {
       porAlistar: pq.filter((p) => p.estado === "por_alistar").length,
       alistados: pq.filter((p) => p.estado === "alistado").length,
       enRuta: pq.filter((p) => p.estado === "en_ruta").length,
-      equipo: data?.personas.filter((p) => p.en_linea).length ?? 0,
+      equipo: data?.personas.filter((p) => p.presente ?? p.en_linea).length ?? 0,
       reponer: (data?.bodega?.agotados ?? 0) + (data?.bodega?.criticos ?? 0),
     };
   }, [data]);
 
-  const eventos = useMemo(() => [...(data?.eventos ?? [])].reverse().slice(0, 4), [data]);
+  // Lo que acaba de pasar, todo junto: la operación (eventos), las solicitudes (acciones) y
+  // quién le habla a quién (interacciones), lo más nuevo arriba.
+  const enVivoLista = useMemo(() => {
+    if (!data) return [];
+    const nombre = (id: number) => primerNombre(data.personas.find((p) => p.id === id)?.nombre) || "Alguien";
+    const items: { clave: string; ts: number; texto: string }[] = [
+      ...data.eventos.map((e) => ({ clave: `e${e.seq}`, ts: e.ts, texto: textoEvento(e) })),
+      ...(data.acciones ?? []).map((a) => ({ clave: a.id, ts: a.ts, texto: textoAccion(nombre(a.de), a.tipo, a.titulo) })),
+      ...(data.interacciones ?? []).map((i) => ({ clave: i.id, ts: i.ts, texto: textoInteraccion(nombre(i.de), i.para.map(nombre), i) })),
+    ];
+    return items.filter((x) => x.texto).sort((a, b) => b.ts - a.ts).slice(0, 4);
+  }, [data]);
+  const [siguiendo, setSiguiendo] = useState<number | null>(null);
+  const [enVivo, setEnVivo] = useState(false);
+  // Al arrastrar el barrio la cámara deja de seguir: la barra del equipo se entera.
+  useEffect(() => {
+    if (siguiendo !== null && !motorRef.current?.escena.siguiendo) setSiguiendo(null);
+  }, [data, siguiendo]);
+  function seguirA(id: number) {
+    const m = motorRef.current;
+    if (!m) return;
+    if (siguiendo === id) { m.seguir(null); setSiguiendo(null); return; }
+    if (m.seguir(id)) { setSiguiendo(id); setEnVivo(false); m.enVivo(false); }
+  }
 
   function cerrar() {
     setSel(null);
@@ -199,6 +223,10 @@ export default function EmpresaViva() {
             }} titulo="Calidad gráfica: baja va mejor en celulares sencillos">Gráficos: {calidad}</BotonBarra>
           )}
           <BotonBarra onClick={cambiarSonido} titulo={sonido ? "Silenciar" : "Activar sonidos"}>{sonido ? "Sonido sí" : "Sonido no"}</BotonBarra>
+          <BotonBarra onClick={() => { const v = !enVivo; setEnVivo(v); motorRef.current?.enVivo(v); if (v) setSiguiendo(null); }}
+                      titulo="En vivo: la cámara va sola a donde acaba de pasar algo" fuerte={enVivo}>
+            {enVivo ? "● En vivo" : "En vivo"}
+          </BotonBarra>
           <BotonBarra onClick={() => setModal("avatar")} titulo="Elegir mi avatar" fuerte>Mi avatar</BotonBarra>
           <BotonBarra onClick={() => setModal("compartir")} titulo="Compartir una idea o un mensaje con un grupo del equipo" fuerte>Compartir idea</BotonBarra>
         </div>
@@ -214,11 +242,13 @@ export default function EmpresaViva() {
         )}
         {error && !data && <Aviso>No se pudo leer el estado de la empresa. ¿Se reinició el agente después de actualizar?</Aviso>}
 
-        {eventos.length > 0 && (
+        {data && <BarraEquipo data={data} siguiendo={siguiendo} onSeguir={seguirA} />}
+
+        {enVivoLista.length > 0 && (
           <div className="pointer-events-none absolute bottom-2 left-2 max-w-[min(22rem,calc(100%-1rem))] space-y-1">
-            {eventos.map((e) => (
-              <p key={e.seq} className="rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-[#1D2B53] shadow">
-                {textoEvento(e)} <span className="text-[#6B7280]">· {hace(e.ts)}</span>
+            {enVivoLista.map((e) => (
+              <p key={e.clave} className="rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-[#1D2B53] shadow">
+                {e.texto} <span className="text-[#6B7280]">· {hace(e.ts)}</span>
               </p>
             ))}
           </div>
@@ -270,6 +300,72 @@ export default function EmpresaViva() {
   );
 }
 
+function textoAccion(quien: string, tipo: string, titulo: string): string {
+  const de = titulo ? `: ${titulo}` : "";
+  switch (tipo) {
+    case "resolvio": return `${quien} resolvió una solicitud${de}`;
+    case "comento": return `${quien} comentó en una solicitud${de}`;
+    case "creo": return `${quien} creó una solicitud${de}`;
+    case "adjunto": return `${quien} adjuntó un archivo${de}`;
+    case "midio": return `${quien} registró su tiempo${de}`;
+    case "en_proceso": return `${quien} empezó${de ? ` «${titulo}»` : " una tarea"}`;
+    case "reporto": return `${quien} reportó avance${de}`;
+    case "zumbido": return `${quien} mandó un zumbido`;
+    default: return "";
+  }
+}
+
+function textoInteraccion(quien: string, para: string[], i: { tipo: string; canal?: string }): string {
+  const a = para.length === 1 ? para[0] : para.length ? `${para.length} personas` : "el equipo";
+  switch (i.tipo) {
+    case "pregunta": return `${quien} le preguntó algo a ${a}`;
+    case "solicitud": return `${quien} le pidió algo a ${a}`;
+    case "respuesta": return `${quien} le respondió a ${a}`;
+    case "idea": return `${quien} compartió una idea${i.canal ? ` en «${i.canal}»` : ""}`;
+    case "grupo": return `${quien} escribió${i.canal ? ` en «${i.canal}»` : " en un grupo"}`;
+    default: return "";
+  }
+}
+
+/** Retratos del equipo: quién está, qué hace ahora. Tocar a alguien = la cámara lo sigue. */
+function BarraEquipo({ data, siguiendo, onSeguir }: { data: EstadoEmpresa; siguiendo: number | null; onSeguir: (id: number) => void }) {
+  const BASE = `${import.meta.env.BASE_URL}empresa/personajes/previews/`;
+  const gente = [...data.personas].sort((a, b) => Number(b.presente ?? b.en_linea) - Number(a.presente ?? a.en_linea));
+  const queHace = (p: EstadoEmpresa["personas"][number]) => {
+    if (p.tarea) return TAREA[p.tarea.funcion]?.corto ?? p.tarea.hace ?? "Trabajando";
+    if (!(p.presente ?? p.en_linea)) return "Ausente";
+    if (p.via === "whatsapp") return "Por WhatsApp";
+    return PANEL_INFO[p.panel as Panel]?.label ?? "En la app";
+  };
+  return (
+    <div className="absolute left-2 right-2 top-2 z-10 flex gap-1.5 overflow-x-auto pb-1" role="list" aria-label="El equipo ahora">
+      {gente.map((p) => {
+        const presente = p.presente ?? p.en_linea;
+        const avatar = p.avatar?.avatar || data.casas?.usuarios?.[p.username]?.avatar || data.casas?.avatar_por_defecto || "character-male-d";
+        const activo = siguiendo === p.id;
+        return (
+          // Un <div> y no un <button>: los temas del panel pintan todos los botones (borde, sombra).
+          <div key={p.id} role="listitem" tabIndex={0} onClick={() => onSeguir(p.id)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSeguir(p.id); } }}
+                  aria-pressed={activo} aria-label={activo ? `Dejar de seguir a ${primerNombre(p.nombre)}` : `Seguir a ${primerNombre(p.nombre)}`}
+                  title={activo ? "Dejar de seguir" : `Seguir a ${primerNombre(p.nombre)}`}
+                  className={`flex shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-full border-2 bg-white/95 py-0.5 pl-0.5 pr-2.5 text-left shadow transition
+                    ${activo ? "border-[#FFB000] ring-2 ring-[#FFE14D]" : "border-white/0 hover:border-[#1D2B53]/20"} ${presente ? "" : "opacity-60"}`}>
+            <span className="relative">
+              <img src={`${BASE}${avatar}.png`} alt="" className="h-8 w-8 rounded-full bg-[#EAF6FF] object-contain" draggable={false} />
+              <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${presente ? "bg-[#22C55E]" : "bg-[#9CA3AF]"}`} />
+            </span>
+            <span className="leading-tight">
+              <span className="block text-xs font-bold text-[#1D2B53]">{primerNombre(p.nombre)}</span>
+              <span className="block max-w-[9rem] truncate text-[10px] text-[#4A5568]">{queHace(p)}</span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Ficha({ color, titulo, children }: { color: string; titulo: string; children: React.ReactNode }) {
   return (
     <span title={titulo} className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-[#1D2B53]/5 px-2 py-0.5 text-xs font-semibold">
@@ -316,8 +412,9 @@ function Tarjeta({ sel, data, onCerrar, abrir, puede, onPreguntar, onMiAvatar, o
       titulo = p.nombre;
       color = "#FF77A8";
       if (sel.rol) lineas.push(<i>{sel.rol}</i>);
-      if (!p.en_linea) lineas.push(<>Desconectado: está en su cuarto, en {CASA_DE_LUGAR[l.casa]}.</>);
-      else {
+      if (p.tarea) lineas.push(<><b>Ahora:</b> {TAREA[p.tarea.funcion]?.corto ?? p.tarea.hace}{p.tarea.titulo ? ` — «${p.tarea.titulo}»` : ""}</>);
+      if (!(p.presente ?? p.en_linea)) lineas.push(<>Ausente: está en su cuarto, en {CASA_DE_LUGAR[l.casa]}.</>);
+      else if (p.en_linea) {
         lineas.push(<>Está en <b>{l.titulo}</b> ({CASA_DE_LUGAR[l.casa]}){p.via === "whatsapp" ? ", desde el celular por WhatsApp" : ""}.</>);
         const info = PANEL_INFO[p.panel as Panel];
         if (info && p.via === "panel") lineas.push(<>Tiene abierto: {info.label}</>);

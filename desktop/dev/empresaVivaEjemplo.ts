@@ -19,9 +19,12 @@ export function estadoEmpresaEjemplo(yo: number) {
       avatar: { avatar: "character-male-e", accesorio: "aid-sunglasses", color: "#FFE14D" },
       funciones: ["Aprueba pagos", "Lleva el Libro Mayor y los impuestos", "Cotiza y monta solicitudes de pago"] },
     { id: 6, nombre: "Cynthia Ruiz", username: "@cynthia", en_linea: paso !== 0, panel: "etiquetas", via: "panel" },
-    { id: 7, nombre: "Victor García", username: "vitor", en_linea: paso >= 2, panel: "recepcion-mercancia", via: "panel" },
-    { id: 9, nombre: "Stella", username: "stella", en_linea: false, panel: "", via: "" },
-    { id: 10, nombre: "Jenniffer García", username: "jerry", en_linea: true, panel: paso >= 1 ? "preventa" : "empaque", via: paso === 3 ? "whatsapp" : "panel",
+    { id: 7, nombre: "Victor García", username: "vitor", en_linea: false, panel: "", via: "", presente: true,
+      tarea: { funcion: "almuerzo", hace: "Hace el almuerzo del equipo", titulo: "", ticket_id: 0, desde: "" } },
+    { id: 9, nombre: "Stella", username: "stella", en_linea: false, panel: "", via: "", presente: true,
+      tarea: { funcion: "empacar", hace: "Empaca, sella y etiqueta producto", titulo: "Empacar y etiquetar productos", ticket_id: 0, desde: "" } },
+    { id: 10, nombre: "Jenniffer García", username: "jerry", en_linea: true, panel: "facturacion", via: "panel", presente: true,
+      tarea: paso % 2 ? { funcion: "alistar", hace: "Alista los envíos de Colecta y Flex", titulo: "ALISTAR ENVIOS", ticket_id: 0, desde: "" } : null,
       avatar: { avatar: "character-female-c", accesorio: "aid-glasses", color: "" },
       funciones: ["Factura y resuelve facturas pendientes", "Atiende clientes por WhatsApp y chat web", "Alista los envíos de Colecta y Flex"] },
   ];
@@ -79,6 +82,10 @@ export function estadoEmpresaEjemplo(yo: number) {
       facturar: grupo(it("facturar", 21, "ventas de MeLi pendientes de facturar", "facturacion")),
       contar: grupo(it("contar", 117, "movimientos del banco sin clasificar", "libro-mayor", "media")),
     },
-    eventos, interacciones: inter, sin_senal: [], generado: new Date().toISOString().slice(0, 19),
+    eventos, interacciones: inter, sin_senal: [],
+    acciones: [
+      ...(paso >= 1 ? [{ id: `a${base + 1}`, tipo: "comento", de: 6, ts: ahora - 4, ticket_id: 1, titulo: "Etiqueta jabón potásico" }] : []),
+      ...(paso >= 2 ? [{ id: `a${base + 2}`, tipo: "resolvio", de: 10, ts: ahora - 2, ticket_id: 2, titulo: "Factura de la glicerina" }] : []),
+    ], generado: new Date().toISOString().slice(0, 19),
   };
 }

@@ -265,3 +265,55 @@ export function lugarDePanel(panel: string): LugarId | null {
 export function casaDeLugar(l: LugarId): CasaId {
   return LUGAR[l].casa;
 }
+
+// ─── Lo que se hace con las manos (cronómetro de tareas) ─────────────────────
+
+export interface Parada { x: number; z: number; rot: number; anim: Animacion }
+/** Dónde y cómo se ve cada función del catálogo de rendimiento (app/services/rendimiento.py).
+ *  `ronda` = la persona va y viene entre esos puntos (alistar entre estantes, hacer el aseo).
+ *  Sin `lugar`: la tarea es de escritorio y se hace en el puesto de siempre de esa persona. */
+export const TAREA: Record<string, { lugar?: LugarId; corto: string; parada?: Parada; ronda?: Parada[]; anim?: Animacion }> = {
+  almuerzo: { lugar: "oficina_sede", corto: "Cocinando", parada: { x: -2.3, z: -3.05, rot: 180, anim: "interact-right" } },
+  desayuno: { lugar: "oficina_sede", corto: "Preparando el desayuno", parada: { x: -2.3, z: -3.05, rot: 180, anim: "interact-right" } },
+  empacar: { lugar: "oficina_sede", corto: "Empacando", parada: { x: -4.4, z: -0.45, rot: 180, anim: "interact-right" } },
+  embalar: { lugar: "oficina_sede", corto: "Embalando", parada: { x: -3.0, z: -0.6, rot: 180, anim: "pick-up" } },
+  lote: { lugar: "oficina_sede", corto: "Poniendo fecha y lote", parada: { x: -4.2, z: -1.65, rot: 180, anim: "interact-right" } },
+  imprimir_et: { lugar: "oficina_sede", corto: "Imprimiendo etiquetas", parada: { x: -6, z: -2.48, rot: 180, anim: "sit" } },
+  guias: { lugar: "oficina_sede", corto: "Imprimiendo guías", parada: { x: -8, z: -2.48, rot: 180, anim: "sit" } },
+  cuaderno: { lugar: "oficina_sede", corto: "Anotando guías", parada: { x: -8, z: -2.48, rot: 180, anim: "sit" } },
+  alistar: { lugar: "bodega", corto: "Alistando pedidos", ronda: [
+    { x: 0.8, z: -5.2, rot: 180, anim: "pick-up" }, { x: 3.2, z: -7.0, rot: 180, anim: "pick-up" },
+    { x: 5.4, z: -4.8, rot: 180, anim: "pick-up" }, { x: 2.0, z: -2.4, rot: 180, anim: "holding-both" },
+  ] },
+  envasar: { lugar: "bodega", corto: "Envasando", parada: { x: 2.8, z: -1.6, rot: 180, anim: "interact-right" } },
+  preparar: { lugar: "bodega", corto: "Preparando fórmulas", parada: { x: 4.6, z: -1.6, rot: 180, anim: "interact-right" } },
+  compras: { lugar: "bodega", corto: "Revisando el stock", ronda: [
+    { x: 1.4, z: -5.2, rot: 180, anim: "idle" }, { x: 4.2, z: -7.0, rot: 180, anim: "idle" },
+  ] },
+  aseo: { lugar: "bodega", corto: "Haciendo el aseo", ronda: [
+    { x: 0.4, z: -2.0, rot: 90, anim: "walk" }, { x: 6.2, z: -2.0, rot: 90, anim: "walk" },
+    { x: 6.2, z: -8.4, rot: 0, anim: "walk" }, { x: 0.4, z: -8.4, rot: -90, anim: "walk" },
+  ] },
+  envio: { lugar: "porton", corto: "Llevando envíos", parada: { x: -3, z: 6.2, rot: 180, anim: "holding-both" } },
+  hongos: { lugar: "hongos", corto: "Cuidando los hongos", parada: { x: 2.2, z: 4.3, rot: 180, anim: "pick-up" } },
+  clientes: { lugar: "tienda", corto: "Atendiendo clientes" },
+  meli_qa: { lugar: "tienda", corto: "Respondiendo en MeLi" },
+  facturar: { corto: "Facturando" },
+  nc: { corto: "Notas crédito" },
+  aprobar: { lugar: "gerencia", corto: "Aprobando pagos" },
+  sol_pago: { lugar: "contabilidad", corto: "Solicitudes de pago" },
+  contab: { lugar: "contabilidad", corto: "Libro Mayor" },
+  analisis: { lugar: "gerencia", corto: "Analizando el negocio" },
+  exterior: { lugar: "contabilidad", corto: "Compras al exterior" },
+  diseno: { lugar: "estudio", corto: "Diseñando etiquetas" },
+  docs: { lugar: "estudio", corto: "Fichas técnicas" },
+  publica: { lugar: "estudio", corto: "Publicando" },
+  catalogo: { lugar: "estudio", corto: "Armando combos" },
+};
+
+/** Dónde se toma el café en cada casa (las pausas cortas de quien trabaja). */
+export const CAFE: Record<CasaId, { lugar: LugarId; x: number; z: number; rot: number }> = {
+  bunker: { lugar: "gerencia", x: -24.2, z: -2.2, rot: 0 },
+  sede: { lugar: "oficina_sede", x: -2.95, z: -3.0, rot: 180 },
+  tienda: { lugar: "tienda", x: 18.8, z: -4.6, rot: 0 },
+};

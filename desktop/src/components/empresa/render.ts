@@ -40,6 +40,8 @@ export class Ambiente {
   readonly scene = new THREE.Scene();
   readonly camara: THREE.PerspectiveCamera;
   readonly sol: THREE.DirectionalLight;
+  private cieloLuz: THREE.HemisphereLight;
+  private fondo!: THREE.CanvasTexture;
   private composer: EffectComposer | null = null;
   private gtao: GTAOPass | null = null;
   private pasto: THREE.InstancedMesh | null = null;
@@ -62,7 +64,8 @@ export class Ambiente {
     this.scene.background = this.cielo();
     this.scene.fog = new THREE.Fog("#CDEBFA", 70, 190);
 
-    this.scene.add(new THREE.HemisphereLight("#D8F1FF", "#6E9A3C", 1.25));
+    this.cieloLuz = new THREE.HemisphereLight("#D8F1FF", "#6E9A3C", 1.25);
+    this.scene.add(this.cieloLuz);
     this.sol = new THREE.DirectionalLight("#FFE3B8", 2.9);
     this.sol.position.set(-30, 55, 26);
     this.sol.castShadow = true;
@@ -80,16 +83,39 @@ export class Ambiente {
   private cielo(): THREE.Texture {
     const c = document.createElement("canvas");
     c.width = 4; c.height = 256;
+    this.fondo = new THREE.CanvasTexture(c);
+    this.fondo.colorSpace = THREE.SRGBColorSpace;
+    this.pintarCielo(["#6EC3F2", "#B6E2F8", "#E8F7FF"]);
+    return this.fondo;
+  }
+
+  private pintarCielo(tonos: [string, string, string]) {
+    const c = this.fondo.image as HTMLCanvasElement;
     const g = c.getContext("2d")!;
     const gr = g.createLinearGradient(0, 0, 0, 256);
-    gr.addColorStop(0, "#6EC3F2");
-    gr.addColorStop(0.6, "#B6E2F8");
-    gr.addColorStop(1, "#E8F7FF");
+    gr.addColorStop(0, tonos[0]);
+    gr.addColorStop(0.6, tonos[1]);
+    gr.addColorStop(1, tonos[2]);
     g.fillStyle = gr;
     g.fillRect(0, 0, 4, 256);
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
+    this.fondo.needsUpdate = true;
+  }
+
+  /** Luz del momento del día: `dia` 0 (noche) … 1 (pleno día); `atardecer` tiñe de naranja. */
+  ponerLuz(dia: number, atardecer: number) {
+    const mezcla = (a: string, b: string, k: number) => new THREE.Color(a).lerp(new THREE.Color(b), k);
+    // De noche, luna azulada pero con el barrio legible (como la noche de los juegos de granja).
+    this.sol.intensity = 0.9 + dia * 2.0;
+    this.sol.color.copy(mezcla("#FFE3B8", "#FF9A5A", atardecer)).lerp(new THREE.Color("#9DB2F0"), 1 - dia);
+    this.sol.position.set(-30, 22 + dia * 33, 26);
+    this.cieloLuz.intensity = 0.95 + dia * 0.3;
+    this.cieloLuz.color.copy(mezcla("#4A5C9A", "#D8F1FF", dia));
+    this.renderer.toneMappingExposure = 0.98 + dia * 0.14;
+    const arriba = mezcla("#1B2A5C", "#6EC3F2", dia).lerp(new THREE.Color("#E58A5C"), atardecer * 0.5);
+    const medio = mezcla("#2F4485", "#B6E2F8", dia).lerp(new THREE.Color("#F6B37A"), atardecer * 0.6);
+    const abajo = mezcla("#4A5F9E", "#E8F7FF", dia).lerp(new THREE.Color("#FFD9A8"), atardecer * 0.6);
+    this.pintarCielo([`#${arriba.getHexString()}`, `#${medio.getHexString()}`, `#${abajo.getHexString()}`]);
+    (this.scene.fog as THREE.Fog | null)?.color.copy(abajo);
   }
 
   private armarPostproceso() {
