@@ -533,6 +533,7 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
           hayAdjunto={Boolean(archivo || vinculo)} enviando={enviar.isPending} onError={setError} textareaRef={cajaRef}
           placeholder={respondiendo ? `Responder a ${respondiendo.autor_nombre}` : "Mensaje"}
           personas={mencionables}
+          onImagenPegada={setArchivo}
           iconos={<>
             {modulos.length > 0 && (
               <BotonCaja onClick={() => setEligiendo((v) => !v)} activo={eligiendo || Boolean(vinculo)}

@@ -998,15 +998,7 @@ export default function HiloConversacion({
             hayAdjunto={archivos.length > 0} enviando={enviar.isPending} textareaRef={draftRef}
             placeholder="Escribe aquí…"
             onError={(m) => { setMsg(m); setTimeout(() => setMsg(""), 5000); }}
-            onPaste={(e) => {
-              const item = Array.from(e.clipboardData.items).find((it) => it.type.startsWith("image/"));
-              if (!item) return;
-              e.preventDefault();
-              const file = item.getAsFile();
-              if (file) {
-                setArchivos((prev) => [...prev, new File([file], `captura-${Date.now()}.png`, { type: file.type })]);
-              }
-            }}
+            onImagenPegada={(f) => setArchivos((prev) => [...prev, f])}
             iconos={<BotonCaja onClick={() => fileRef.current?.click()} titulo="Adjuntar archivo"><IconoClip /></BotonCaja>}
             iconosSinTexto={<BotonCaja onClick={() => fotoChatRef.current?.click()} titulo="Tomar o subir una foto"><IconoCamara /></BotonCaja>}
           />

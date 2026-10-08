@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ClipboardEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { imagenDesdePortapapeles } from "../../lib/clipboardImage";
 import { Cara } from "../../lib/fotoPersona";
 import GrabadorVoz, { CLASE_BOTON_REDONDO, IconoEnviar } from "./GrabadorVoz";
 import { consultaEnCurso, sugerencias, type Persona } from "../../lib/menciones";
@@ -45,7 +46,7 @@ export function BotonCaja({ onClick, titulo, activo, children }: { onClick: () =
  * derecha y un botón redondo afuera que es 🎤 con la caja vacía y ➤ cuando hay algo que mandar.
  */
 export default function BarraEscritura({
-  texto, onTexto, onEnviar, onVoz, hayAdjunto, enviando, iconos, iconosSinTexto, onPaste, onError,
+  texto, onTexto, onEnviar, onVoz, hayAdjunto, enviando, iconos, iconosSinTexto, onImagenPegada, onError,
   placeholder = "Mensaje", textareaRef, personas,
 }: {
   texto: string;
@@ -59,7 +60,8 @@ export default function BarraEscritura({
   iconos?: ReactNode;
   /** Íconos que se esconden al escribir, como la cámara de WhatsApp. */
   iconosSinTexto?: ReactNode;
-  onPaste?: (e: ClipboardEvent<HTMLTextAreaElement>) => void;
+  /** Ctrl+V de una captura de pantalla o imagen copiada: llega como archivo listo para adjuntar. */
+  onImagenPegada?: (archivo: File) => void;
   onError?: (mensaje: string) => void;
   placeholder?: string;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
@@ -132,7 +134,13 @@ export default function BarraEscritura({
               if (abierta && e.key === "Escape") { e.preventDefault(); setCerrada(consulta?.inicio ?? null); return; }
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (hayAlgo && !enviando) onEnviar(); }
             }}
-            onPaste={onPaste}
+            onPaste={(e) => {
+              if (!onImagenPegada) return;
+              const img = imagenDesdePortapapeles(e.clipboardData);
+              if (!img) return; // texto: se pega normal
+              e.preventDefault();
+              onImagenPegada(new File([img], `captura-${Date.now()}.${(img.type.split("/")[1] || "png").replace("jpeg", "jpg")}`, { type: img.type || "image/png" }));
+            }}
             rows={1}
             placeholder={placeholder}
             className="mck-field-lg !m-0 min-w-0 flex-1 resize-none !rounded-none !border-0 !bg-transparent !px-0 !py-3 !text-[16px] !leading-snug text-ink !shadow-none !outline-none placeholder:text-muted"

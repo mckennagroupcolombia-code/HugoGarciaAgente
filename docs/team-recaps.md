@@ -1,3 +1,11 @@
+### 2026-10-08 16:30 - Chats: pegar pantallazos con Ctrl+V
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (panel `/app`, chat del equipo y solicitudes). Sin LLM.
+- **Qué se implementó:**
+  - En los **grupos del chat del equipo** (vista completa y burbuja) un pantallazo o imagen copiada se pega con Ctrl+V: queda como vista previa sobre la caja (con ✕) y sale con el siguiente ➤. Antes solo se podía con 📎 o 📷.
+  - La lógica de pegar imágenes vive ahora en la barra de escritura compartida (`onImagenPegada`); el hilo de solicitudes y la burbuja de solicitudes, que ya lo hacían cada uno a su manera, usan la misma. Pegar texto sigue igual.
+- **Archivos Modificados:** `desktop/src/components/chat_equipo/BarraEscritura.tsx`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `desktop/src/components/tickets/HiloConversacion.tsx`, `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`.
+
 ### 2026-10-08 16:00 - Solicitudes de pago: pedir cotización a un proveedor y pagarla enlazada
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + corrección (panel `/app`, Contabilidad → Solicitudes de pago). Sin LLM.

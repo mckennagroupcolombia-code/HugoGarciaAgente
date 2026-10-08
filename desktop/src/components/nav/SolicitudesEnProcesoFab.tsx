@@ -712,13 +712,7 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
         <BarraEscritura
           texto={texto} onTexto={(t) => setTexto(t.slice(0, 2000))} onEnviar={() => void mandar()} onVoz={(f) => void mandarVoz(f)}
           hayAdjunto={archivos.length > 0} enviando={enviar.isPending} onError={setError}
-          onPaste={(e) => {
-            const imgs = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
-            if (imgs.length) {
-              e.preventDefault();
-              agregarArchivos(imgs);
-            }
-          }}
+          onImagenPegada={(f) => agregarArchivos([f])}
           iconos={<BotonCaja onClick={() => archivoRef.current?.click()} titulo="Adjuntar foto o PDF"><IconoClip /></BotonCaja>}
           iconosSinTexto={<BotonCaja onClick={() => fotoRef.current?.click()} titulo="Tomar una foto"><IconoCamara /></BotonCaja>}
         />
