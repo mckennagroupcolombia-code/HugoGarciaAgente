@@ -261,6 +261,10 @@ solo venden SKUs que se facturan; ampliar con `scripts/desplegar_ventas_facturab
 **Menciones con @ en los grupos** (`operacion-equipo.md`, AI, 7-oct): `canal_menciones`. Una mención está pendiente
 hasta que la persona lee el grupo, y ese grupo pasa a «Te toca» en la bandeja del celular (`lib/bandeja.ts`).
 
+**COA por foto** (`operacion-equipo.md`, AK, 7-oct): una foto en el grupo «COA y fichas técnicas» se lee con Gemini
+Flash (`coa_canal_auto`), actualiza lote y resultados, llena las casillas vacías y corrige las que contradicen el COA (respaldo + PDF) y avisa en el grupo.
+Si no hay un documento claro no adivina. `COA_CANAL_AUTO_ACTIVO=0` lo apaga; a mano: `scripts/coa_canal_procesar.py`.
+
 **Zumbidos en solicitudes** (`operacion-equipo.md`, AJ, 7-oct): «📳 Zumbido» sacude la app de los demás miembros
 (uno cada 20 s, solo con el panel abierto; `ticket_zumbidos`, llega por `/api/mensajes/resumen`).
 
@@ -460,7 +464,7 @@ viven en el repo (nivel 2) mientras que los PNG derivados para imprimir viven fu
 | Agente de ventas v2 (P) | `docs/agentic/modules/agente-ventas-v2.md` |
 | Ventas directas (R) | `docs/agentic/modules/ventas-directas.md` |
 | Mapa, combos, EAN, canales, árbol del producto (U, W, X, Z, AD) | `docs/agentic/modules/producto-cadena.md` |
-| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión, revisión de empaques, alertas sonoras, zumbidos (Y, AA, AB, AC, AE, AF, AG, AH, AJ) | `docs/agentic/modules/operacion-equipo.md` |
+| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión, revisión de empaques, alertas sonoras, zumbidos, COA por foto (Y, AA, AB, AC, AE, AF, AG, AH, AJ, AK) | `docs/agentic/modules/operacion-equipo.md` |
 | Rendimiento, mapa de funciones, control de horas | `docs/agentic/modules/rrhh-horas.md` |
 | Colaboradores | `docs/agentic/modules/colaboradores.md` |
 | Panel React, iconografía, grabar pantalla (V, S) | `docs/agentic/modules/desktop-panel.md` |

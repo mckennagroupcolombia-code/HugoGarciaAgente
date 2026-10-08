@@ -3305,11 +3305,25 @@
           "codigo_verificacion": "KYCFQD",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "260467C",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-04-26",
+          "fecha_vencimiento": "2028-04-25",
+          "fecha_recepcion": "2026-10-08",
+          "codigo_verificacion": "NERUZR",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-08T04:31:26+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-10-08T04:31:26+00:00"
     },
     "C-PROCONSUE80PKG": {
       "ref": "C-PROCONSUE80PKG",
@@ -4397,11 +4411,25 @@
           "codigo_verificacion": "55YRHD",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-26T21:04:15+00:00"
+        },
+        {
+          "lote_numero": "D20260406C",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-04-07",
+          "fecha_vencimiento": "2028-04-06",
+          "fecha_recepcion": "2026-10-08",
+          "codigo_verificacion": "78LQ2N",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-08T04:31:28+00:00"
         }
       ],
-      "updated_at": "2026-09-26T21:04:15+00:00"
+      "updated_at": "2026-10-08T04:31:28+00:00"
     },
     "C-CREMON500G": {
       "ref": "C-CREMON500G",
@@ -4432,11 +4460,25 @@
           "codigo_verificacion": "55YRHD",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-26T21:04:15+00:00"
+        },
+        {
+          "lote_numero": "D20260406C",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-04-07",
+          "fecha_vencimiento": "2028-04-06",
+          "fecha_recepcion": "2026-10-08",
+          "codigo_verificacion": "78LQ2N",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-08T04:31:28+00:00"
         }
       ],
-      "updated_at": "2026-09-26T21:04:15+00:00"
+      "updated_at": "2026-10-08T04:31:28+00:00"
     },
     "C-CREMON250G": {
       "ref": "C-CREMON250G",
@@ -4467,11 +4509,25 @@
           "codigo_verificacion": "55YRHD",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-26T21:04:15+00:00"
+        },
+        {
+          "lote_numero": "D20260406C",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-04-07",
+          "fecha_vencimiento": "2028-04-06",
+          "fecha_recepcion": "2026-10-08",
+          "codigo_verificacion": "78LQ2N",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-08T04:31:28+00:00"
         }
       ],
-      "updated_at": "2026-09-26T21:04:15+00:00"
+      "updated_at": "2026-10-08T04:31:28+00:00"
     },
     "C-ELAHID30ML": {
       "ref": "C-ELAHID30ML",
@@ -5363,11 +5419,25 @@
           "codigo_verificacion": "55YRHD",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-26T21:04:15+00:00"
+        },
+        {
+          "lote_numero": "D20260406C",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-04-07",
+          "fecha_vencimiento": "2028-04-06",
+          "fecha_recepcion": "2026-10-08",
+          "codigo_verificacion": "78LQ2N",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-08T04:31:28+00:00"
         }
       ],
-      "updated_at": "2026-09-26T21:04:15+00:00"
+      "updated_at": "2026-10-08T04:31:28+00:00"
     },
     "C-SORPOLKG": {
       "ref": "C-SORPOLKG",
@@ -5384,11 +5454,25 @@
           "codigo_verificacion": "2DL4AA",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-27T04:36:33+00:00"
+        },
+        {
+          "lote_numero": "2026050948",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-05-09",
+          "fecha_vencimiento": "2028-05-08",
+          "fecha_recepcion": "2026-10-08",
+          "codigo_verificacion": "64LQUC",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-08T04:31:25+00:00"
         }
       ],
-      "updated_at": "2026-09-27T04:36:33+00:00"
+      "updated_at": "2026-10-08T04:31:25+00:00"
     },
     "C-CERABEREFBLA500G": {
       "ref": "C-CERABEREFBLA500G",
@@ -5965,11 +6049,25 @@
           "codigo_verificacion": "EVYEA8",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-26T21:41:45+00:00"
+        },
+        {
+          "lote_numero": "20260411",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-04-11",
+          "fecha_vencimiento": "2029-04-10",
+          "fecha_recepcion": "2026-10-08",
+          "codigo_verificacion": "ZQ46CM",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-08T04:31:24+00:00"
         }
       ],
-      "updated_at": "2026-09-26T21:41:45+00:00"
+      "updated_at": "2026-10-08T04:31:24+00:00"
     },
     "GELSINSABG": {
       "ref": "GELSINSABG",
@@ -7083,6 +7181,48 @@
         }
       ],
       "updated_at": "2026-10-06T22:30:35+00:00"
+    },
+    "C-AGAAGA100G": {
+      "ref": "C-AGAAGA100G",
+      "nombre": "AGAR AGAR",
+      "lotes": [
+        {
+          "lote_numero": "SZTK20251204",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-12-04",
+          "fecha_vencimiento": "2027-12-03",
+          "fecha_recepcion": "2026-10-08",
+          "codigo_verificacion": "NW7LMJ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-08T04:31:22+00:00"
+        }
+      ],
+      "updated_at": "2026-10-08T04:31:22+00:00"
+    },
+    "C-PROAISSOY1000G": {
+      "ref": "C-PROAISSOY1000G",
+      "nombre": "PROTEÍNA AISLADA DE SOYA",
+      "lotes": [
+        {
+          "lote_numero": "260467C",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-04-26",
+          "fecha_vencimiento": "2028-04-25",
+          "fecha_recepcion": "2026-10-08",
+          "codigo_verificacion": "NERUZR",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-08T04:31:26+00:00"
+        }
+      ],
+      "updated_at": "2026-10-08T04:31:26+00:00"
     }
   }
 }

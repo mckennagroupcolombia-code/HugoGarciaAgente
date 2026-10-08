@@ -227,3 +227,36 @@ pesos menores al contenido). MeLi cobra el flete por ese peso. La revisión crea
   se fotografían al crear y con «Releer MeLi». Base `app/data/revision_empaque.db` (gitignored). Sin LLM.
 - Banco sin backend: `/app/dev/revision.html` (Jenniffer) y `?admin=1` (Armando). Tests: `tests/test_revision_empaque.py`.
 - Crear otra revisión: `revision_empaque.crear_con_solicitud(creador_id, asignado_id)` (lee MeLi, ~20 llamadas).
+
+### AK. COA por foto → documento técnico al día (7-oct-2026)
+
+Grupo «COA y fichas técnicas» (canal 1, `modulo=documentos_tecnicos`, ↔ WhatsApp `120363045181721155@g.us`). Antes
+Jenniffer subía las fotos de los COA y alguien los pasaba a mano a Docs técnicos. Ahora `app/services/coa_canal_auto.py`:
+- **Entrada**: `canales_internos.enviar_mensaje` (foto desde el panel) y `espejar_desde_wa` (foto del grupo) llaman a
+  `_encolar_coa` si el canal es de `documentos_tecnicos`. Cola durable en `app/data/coa_canal_auto.db` (gitignored);
+  `agente_pro.py` retoma lo pendiente al arrancar.
+- **Espera** `COA_CANAL_AUTO_ESPERA_S` (90 s) de quietud: las fotos llegan de a una y un COA puede tener 2 páginas.
+- **Lectura**: el mismo extractor del panel (`documento_scan_tablas.extraer_coa_desde_imagenes`, Gemini Flash, ~2
+  llamadas por foto, con `llm_budget`). La lectura queda guardada por foto: reintentar no vuelve a pagar.
+- **Páginas**: una foto sin lote (sin nombre o con el mismo producto) se une al COA anterior.
+- **Documento**: por nombre (`_toks` de `auditar_catalogo_combos`), sin vacías ni borradores. Empate entre dos con SKU
+  distinto o sustancias en conflicto → **no adivina**, avisa con candidatos. Uno sin SKU junto a otro con SKU = ficha vieja.
+- **Escritura**: mismo lote → «ya al día», no toca nada. Otro lote → reemplaza `_coa.lote` y `_coa.parametros` (los
+  resultados solo salen del COA del proveedor) + `lote`/fechas/país sueltos; exige ≥4 filas. Respaldo en
+  `_respaldo_edicion/`, rastro en `_ediciones` (`desde: chat COA y fichas técnicas`), `registrar_lote_desde_documento`,
+  PDF completo regenerado (firmado por el perfil único) e índices de web/mapa invalidados.
+- **Casillas** (8-oct, pedido del usuario: «no solo el lote»): `cambios_desde_coa` LLENA las vacías con el COA (pH y
+  punto de fusión = la especificación, solubilidad, apariencia, olor, presentación = cantidad del lote, INS del «E-406»,
+  CAS/EINECS/INCI según el tipo de insumo, composición proximal en naturales) y CORRIGE las que lo contradicen
+  (concentración «99 %» copiada → pureza/proteína del lote, nunca «contenido de grasa»; pH con otros números; olor si
+  el COA dice inodoro; apariencia incompleta). Corre aunque el lote sea el mismo. Lo que el COA no trae lo deduce
+  `deducir_vacios` (`sugerir_campo_ficha`, máx. `COA_CANAL_AUTO_MAX_IA`=6 por documento, `COA_CANAL_AUTO_DEDUCIR=0`
+  lo apaga) con `_fuentes` «(deducido; confirmar)». **Nunca deduce** modo de uso, descripción, aplicaciones ni propiedades
+  (la IA mete dosis de suplemento: compliance), ni «No aplica» en CAS/EINECS (agar sí tiene 232-658-1), ni punto de fusión
+  a un líquido (al D-pantenol le llegó el del DL-pantenol). El aviso dice qué llenó, qué corrigió (antes → después),
+  qué dedujo y qué sigue vacío para una persona.
+- **Aviso**: mensaje «Sistema» en el grupo (respondiendo a la última foto) → sale también al WhatsApp por el espejo.
+- A mano / lo que llegó antes: `scripts/coa_canal_procesar.py --canal 1 --desde-id N [--aplicar] [--sin-aviso]`
+  (sin `--aplicar` solo muestra qué haría). `COA_CANAL_AUTO_ACTIVO=0` lo apaga.
+- Primer uso 7-oct: agar agar, colágeno hidrolizado, sorbitol polvo, proteína aislada de soya y creatina (el lote era
+  **D**20260406C, el documento decía G…) actualizados; D-pantenol y L-arginina ya estaban.

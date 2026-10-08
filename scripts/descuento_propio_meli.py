@@ -142,6 +142,17 @@ def procesar(iid: str, pct: float, aplicar: bool) -> dict:
             (c for c in (_reintentar(promociones_del_item, iid).get("candidatas") or []) if c["type"] == "PRICE_DISCOUNT"),
             None,
         )
+    if cand is None and "PRICE_DISCOUNT" in out["quitadas"]:
+        # Recién quitado el descuento propio, MeLi tarda en volver a ofrecerlo como candidato:
+        # sin esto el ítem quedaba a precio lleno (creatina, 8-oct-2026). El original es el
+        # precio de la publicación; MeLi valida el rango al inscribir.
+        try:
+            r = requests.get(f"{MELI_API}/items/{iid}", headers={"Authorization": f"Bearer {_token_cacheado()}"}, timeout=30)
+            precio_item = float((r.json() or {}).get("price") or 0)
+        except Exception:
+            precio_item = 0.0
+        if precio_item > 0:
+            cand = {"original_price": precio_item}
     if cand is None:
         out["estado"] = "sin_candidato_price_discount"
         return out
@@ -150,20 +161,29 @@ def procesar(iid: str, pct: float, aplicar: bool) -> dict:
         out["estado"] = "fuera_de_rango"
         return out
     hoy = dt.date.today()
-    try:
-        _reintentar(
-            agregar_item_a_promocion,
-            iid,
-            promotion_id="",
-            promotion_type="PRICE_DISCOUNT",
-            deal_price=precio,
-            start_date=f"{hoy}T00:00:00",
-            finish_date=f"{hoy + dt.timedelta(days=DIAS_VIGENCIA)}T23:59:59",
-        )
-        out.update(estado="ok", precio=precio, pct=pct_real, original=cand.get("original_price"))
-    except Exception as e:
-        out["errores"].append(f"agregar PRICE_DISCOUNT: {e}")
-        out["estado"] = "error"
+    # Justo después de quitar el descuento anterior MeLi responde «No candidates found for
+    # item» durante unos segundos; rendirse ahí dejaba el ítem a precio lleno (8-oct-2026).
+    ultimo = None
+    for _ in range(8):
+        try:
+            _reintentar(
+                agregar_item_a_promocion,
+                iid,
+                promotion_id="",
+                promotion_type="PRICE_DISCOUNT",
+                deal_price=precio,
+                start_date=f"{hoy}T00:00:00",
+                finish_date=f"{hoy + dt.timedelta(days=DIAS_VIGENCIA)}T23:59:59",
+            )
+            out.update(estado="ok", precio=precio, pct=pct_real, original=cand.get("original_price"))
+            return out
+        except Exception as e:
+            ultimo = e
+            if "no candidates" not in str(e).lower():
+                break
+            time.sleep(10)
+    out["errores"].append(f"agregar PRICE_DISCOUNT: {ultimo}")
+    out["estado"] = "error"
     return out
 
 
