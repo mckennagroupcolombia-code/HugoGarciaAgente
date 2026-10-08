@@ -94,6 +94,18 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
   - ⚠️ El aviso con sonido vive en `SolicitudesEnProcesoFab`, que solo monta el Layout: `MobileHub` lo monta con
     `soloAvisos` (sin la bolita). Sin eso, la pestaña Mensajes de la barra de abajo no sonaba.
 
+### AJ. Zumbidos en las solicitudes (7-oct-2026)
+
+- Botón **📳 Zumbido** en el cabezote del hilo (`HiloConversacion.tsx`) y en la burbuja de chat
+  (`SolicitudesEnProcesoFab.tsx`): a los demás miembros (quien la pidió, a quien le toca, los que se sumaron) se les
+  sacude la app, suena un zumbido y vibra el celular. Queda en el hilo como evento «📳 … envió un zumbido».
+- Backend: `tickets_db.enviar_zumbido` (`POST /api/tickets/<id>/zumbido`): solo miembros, solicitud abierta, uno cada
+  20 s por persona y solicitud (429). Tabla `ticket_zumbidos` (una fila por destinatario).
+- Llega con `/api/mensajes/resumen` → `zumbidos` (sin ver y de los últimos 10 min: uno viejo no sacude a nadie al abrir
+  el panel). `useAvisosMensajes` lo hace sonar una vez y lo marca con `POST /api/tickets/zumbidos/vistos`.
+- `lib/zumbido.tsx`: sonido sintetizado con Web Audio (respeta el interruptor y el volumen de las alertas sonoras);
+  la sacudida es `html.mck-zumbido #root` en `index.css`. Sin WhatsApp ni push: solo con el panel abierto (≤ 10 s).
+
 ### AI. Menciones con @ en los grupos (7-oct-2026)
 
 - **Qué cuenta como mención** (`canales_internos.detectar_menciones`, sin LLM):

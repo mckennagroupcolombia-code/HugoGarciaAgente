@@ -512,6 +512,18 @@ Decisión de Armando: lo que se reempaca sin transformar se vende con la tarifa 
 fija por producto, no por el empaque). En el XML DIAN: `Percent` 5 → «IVA 5 %» (id 3 en Alegra); línea sin `TaxTotal` →
 «IVA Excluido» (id 2, no «Exento»). Se aplica a la materia prima y a cada combo cuya única materia prima es esa.
 Corregidos: avena, amaranto, quinua roja (5 %); sales, dátiles, uvas pasas (excluido). El precio de lista no cambia (es
-el final); `_precio_base_con_impuesto` divide por la tarifa del ítem. ⚠️ Tras cambiar el IVA de un ítem: reiniciar
-agente-pro y webhook-meli (caché de productos) y sincronizar el catálogo (`alegra_items.iva_pct`).
-Pendiente: vitaminas y ácido giberélico de Factores y Mercadeo (sin IVA en la factura, 19 % en Alegra).
+el final); `_precio_base_con_impuesto` divide por la tarifa del ítem.
+
+**Automático desde el 7-oct (`app/services/iva_venta_compra.py`).** Cada compra que se registra con el total
+cuadrado contra el documento guarda la tarifa por SKU (`pagos_proveedor.aprender_iva_compra` → `cc_compras_iva_sku`);
+ese mismo paso llama `iva_venta_compra.al_aprender()`, que en un hilo cambia el IVA de venta en Alegra de la materia
+prima y de cada combo cuya **única** materia prima es esa (empaque = `es_empaque()` de `scripts/auditar_catalogo_combos.py`),
+relee el ítem (un PUT reemplaza: si cambió algo más que el IVA queda «para revisar») y avisa al grupo de facturación
+de ventas. No toca: fórmulas/kits con varias materias primas; un 0 % de un proveedor que nunca cobra IVA (no
+responsable; «LTDA» = «LIMITADA»); un insumo que cambia de tarifa respecto a la compra anterior (aviso, a mano).
+`IVA_VENTA_COMPRA_ACTIVO=0` deja solo el aviso. Revisión del catálogo entero: `python3 scripts/iva_venta_por_compra.py`
+(vista previa; `--aplicar`). Bitácora: `app/data/iva_venta_compra_log.jsonl`. La caché de productos de `alegra.py`
+vence a los 10 min (`ALEGRA_PRODUCTO_CACHE_TTL_S`): ya no hace falta reiniciar tras cambiar un IVA.
+Aplicado el 7-oct (XML de `facturas_descargadas/` + tabla): harinas de avena y trigo → 5 %; vitaminas A, B3/niacinamida,
+C, E, D-pantenol, urea, azufre y ácido giberélico → excluido (Interkrol también los factura sin IVA, no era error de
+Factores); 7 materias primas de Global Trading/Factores que estaban sin IVA → 19 %. Lo ya facturado se habla con el contador.

@@ -1,3 +1,13 @@
+### 2026-10-07 - IVA de venta = el que cobra el proveedor (automático) + publicación de 8 productos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Alegra, compras, facturación) + operación de catálogo (MeLi, web). Sin LLM.
+- **Qué se implementó:**
+  - Regla de Armando ahora en el sistema: lo que se reempaca se vende con el IVA de la factura de compra. Al registrar una compra con el total cuadrado, `iva_venta_compra` cambia el IVA de venta en Alegra de la materia prima y de los combos que solo la reempacan, lo relee y avisa al grupo de facturación de ventas. No toca fórmulas con varias materias primas, el 0 % de proveedores que no cobran IVA, ni un cambio de tarifa del mismo insumo (eso se avisa para revisar a mano).
+  - Aplicado hoy (26 ítems): harinas de avena y de trigo → 5 %; vitaminas A, B3/niacinamida, C, E, D-pantenol, urea, azufre y ácido giberélico → excluido (Química Interkrol también las factura sin IVA); 7 materias primas que estaban sin IVA → 19 %. El precio de lista no cambia. Lo ya facturado al 19 % se revisa con el contador.
+  - La caché de productos de Alegra ahora vence a los 10 minutos: un cambio de IVA ya no exige reiniciar los servicios.
+  - Publicados en MeLi y web: girasol 250 g/500 g, uvas pasas 250 g/500 g, goji 250 g/500 g, harina de avena 1 kg; girasol 1 kg bajó a $19.500 y se le cambió la foto de MeLi.
+- **Archivos Modificados:** `app/services/iva_venta_compra.py` (nuevo), `app/services/pagos_proveedor.py`, `app/services/alegra.py`, `scripts/iva_venta_por_compra.py` (nuevo), `scripts/auditar_catalogo_combos.py`, `tests/test_iva_venta_compra.py` (nuevo), `docs/agentic/modules/facturacion-meli-alegra.md`, `CLAUDE.md`, `.env.example`, `app/data/despliegue_ventas.json`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - Comercializadora Internacional: facturas CIV2570 y CIV2578 cuadradas con los pagos
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección contable (Libro Mayor, Solicitudes de pago, Taller de conciliación). Sin cambios de código. Sin LLM.

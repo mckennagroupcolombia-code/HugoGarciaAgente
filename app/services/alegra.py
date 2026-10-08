@@ -55,6 +55,10 @@ MAX_OBSERVACIONES_NC_ALEGRA = int(os.getenv("ALEGRA_MAX_OBSERVACIONES_NC", "500"
 
 _contacto_cache: dict[str, str] = {}  # identificacion -> alegra contact id (proceso actual)
 _producto_cache: dict[str, dict] = {}  # sku -> {"id":..., "price":...} (proceso actual)
+# Cuándo se guardó cada entrada. Sin vencimiento, un cambio de IVA hecho en Alegra (o por
+# iva_venta_compra) no llegaba a las facturas hasta reiniciar agente-pro y webhook-meli.
+_producto_cache_at: dict[str, float] = {}
+_PRODUCTO_CACHE_TTL_S = float(os.getenv("ALEGRA_PRODUCTO_CACHE_TTL_S", "600") or "600")
 
 
 def _nombre_mayusculas_alegra(nombre: str, *, max_len: int = 150) -> str:
@@ -185,7 +189,11 @@ def buscar_producto_alegra_por_referencia(sku: str):
     if not sku:
         return None
     if sku in _producto_cache:
-        return _producto_cache[sku]
+        import time as _time
+
+        # Entrada sin hora (puesta a mano, p. ej. en pruebas) = fresca.
+        if _time.time() - _producto_cache_at.get(sku, _time.time()) < _PRODUCTO_CACHE_TTL_S:
+            return _producto_cache[sku]
     headers = _alegra_headers()
     res = requests.get(
         f"{_ALEGRA_BASE}/items", headers=headers,
@@ -226,7 +234,10 @@ def buscar_producto_alegra_por_referencia(sku: str):
         "type": (item.get("type") or "").strip().lower() or "simple",
         "status": (item.get("status") or "active").strip().lower() or "active",
     }
+    import time as _time
+
     _producto_cache[sku] = out
+    _producto_cache_at[sku] = _time.time()
     return out
 
 

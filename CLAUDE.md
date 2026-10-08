@@ -235,6 +235,10 @@ cierra la venta**: arma el pedido y avisa al asesor. Base de clientes en `client
 Desde la auditoría del 7-oct hay **un turno a la vez por chat** (lock por jid + `_reordenar_rezagados`: lo escrito
 mientras el modelo piensa no se pierde ni se responde dos veces) y `REGLAS_COMUNES` en ambos prompts.
 
+**IVA de venta = el del proveedor** (`facturacion-meli-alegra.md`, 7-oct): al registrar una compra con la factura cuadrada,
+`iva_venta_compra` pasa su tarifa a la materia prima y a los combos que solo la reempacan en Alegra (no a fórmulas ni a
+un 0 % de no responsables). `scripts/iva_venta_por_compra.py` revisa todo el catálogo; `IVA_VENTA_COMPRA_ACTIVO=0` lo frena.
+
 **R · Ventas directas / Cotizar-Facturar** (`ventas-directas.md`). ⚠️ La lista de precios de Alegra guarda el precio
 **con IVA**: no cotizar ni facturar a mano en Alegra (duplica el IVA). Facturar marca `facturando` antes de llamar a
 Alegra. Venta MeLi con RUT liga la factura al pack. Comisión WhatsApp 3 %.
@@ -256,6 +260,9 @@ solo venden SKUs que se facturan; ampliar con `scripts/desplegar_ventas_facturab
 
 **Menciones con @ en los grupos** (`operacion-equipo.md`, AI, 7-oct): `canal_menciones`. Una mención está pendiente
 hasta que la persona lee el grupo, y ese grupo pasa a «Te toca» en la bandeja del celular (`lib/bandeja.ts`).
+
+**Zumbidos en solicitudes** (`operacion-equipo.md`, AJ, 7-oct): «📳 Zumbido» sacude la app de los demás miembros
+(uno cada 20 s, solo con el panel abierto; `ticket_zumbidos`, llega por `/api/mensajes/resumen`).
 
 **Alertas sonoras + chat legible** (`operacion-equipo.md`, AH, 6-oct): cada quien elige sonido por persona (quién le
 pide algo) y por grupo, con recortes de Duck Hunt y de Circus Charlie grabados de la ROM; `preferencias_ui.sonidos`.
@@ -453,7 +460,7 @@ viven en el repo (nivel 2) mientras que los PNG derivados para imprimir viven fu
 | Agente de ventas v2 (P) | `docs/agentic/modules/agente-ventas-v2.md` |
 | Ventas directas (R) | `docs/agentic/modules/ventas-directas.md` |
 | Mapa, combos, EAN, canales, árbol del producto (U, W, X, Z, AD) | `docs/agentic/modules/producto-cadena.md` |
-| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión, revisión de empaques, alertas sonoras (Y, AA, AB, AC, AE, AF, AG, AH) | `docs/agentic/modules/operacion-equipo.md` |
+| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión, revisión de empaques, alertas sonoras, zumbidos (Y, AA, AB, AC, AE, AF, AG, AH, AJ) | `docs/agentic/modules/operacion-equipo.md` |
 | Rendimiento, mapa de funciones, control de horas | `docs/agentic/modules/rrhh-horas.md` |
 | Colaboradores | `docs/agentic/modules/colaboradores.md` |
 | Panel React, iconografía, grabar pantalla (V, S) | `docs/agentic/modules/desktop-panel.md` |

@@ -1,14 +1,18 @@
 {
  "fecha": "2026-10-07",
- "gasto_usd": 0.056046,
- "llamadas": 9,
+ "gasto_usd": 0.577673,
+ "llamadas": 100,
  "por_modelo": {
-  "claude-sonnet-5": 0.049332,
-  "claude-haiku-4-5": 0.006714
+  "claude-sonnet-5": 0.50482,
+  "claude-haiku-4-5": 0.068339,
+  "gemini-2.5-flash": 0.004514
  },
  "por_contexto": {
-  "wa_ventas_v2": 0.049332,
-  "wa_ventas_v2_supervisor": 0.006714
+  "wa_ventas_v2": 0.405264,
+  "wa_ventas_v2_supervisor": 0.068339,
+  "cliente_chat": 0.07699,
+  "solicitud_lista_compras_ocr": 0.004514,
+  "auditor_canales": 0.022566
  },
  "alerta_enviada": false,
  "historial": [

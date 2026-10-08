@@ -317,4 +317,11 @@ def register_canales_routes(app):
             out["solicitudes_para_mi"] = CI.solicitudes_para_mi(int(u["id"]))
         except Exception:
             out["solicitudes_para_mi"] = []
+        try:
+            # Zumbidos que alguien de una solicitud le mandó y aún no sonaron aquí.
+            from app.services.tickets_db import zumbidos_para_mi
+
+            out["zumbidos"] = zumbidos_para_mi(int(u["id"]))
+        except Exception:
+            out["zumbidos"] = []
         return jsonify(out)

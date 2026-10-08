@@ -22,8 +22,11 @@ import { sonarRevisado } from "../combos/sonidoMoneda";
 import VisorFotos, { type FotoVisor } from "./VisorFotos";
 import RevisionEmpaqueEnSolicitud from "../revisionEmpaque/RevisionEmpaque";
 import "./hiloPixel.css";
+import { Cara } from "../../lib/fotoPersona";
+import { conEmojisPixel, soloEmojisPixel } from "../chat_equipo/emojiPixel";
 import { esSolicitudDePago, irASolicitudPago, pagoIdDeDescripcion } from "../../lib/irAPago";
 import BarraEscritura, { BotonCaja, IconoCamara, IconoClip } from "../chat_equipo/BarraEscritura";
+import { BotonZumbido } from "../../lib/zumbido";
 
 /** La solicitud/acción que la persona está atendiendo (la bandeja la ofrece como «Seguir con…»). */
 export const CLAVE_HILO_ACTUAL = "mck_hilo_actual";
@@ -76,15 +79,17 @@ function fusionarTimeline(eventos: TimelineEvento[], adjuntos: Adjunto[]): Timel
   return items;
 }
 
-/** `enLinea` se ignora: el punto de conexión se quitó el 23-sep-2026. */
-export function Avatar({ nombre, size = 8 }: { nombre: string | null | undefined; enLinea?: boolean; size?: number }) {
+/** `enLinea` se ignora: el punto de conexión se quitó el 23-sep-2026. Con `uid` (o el nombre)
+ *  muestra la foto de perfil si la persona tiene una (7-oct-2026). */
+export function Avatar({ nombre, uid, size = 8 }: { nombre: string | null | undefined; uid?: number | null; enLinea?: boolean; size?: number }) {
   return (
-    <span
-      className="relative shrink-0 flex items-center justify-center rounded-full bg-accent/15 text-[12px] font-black text-accent"
+    <Cara
+      uid={uid}
+      nombre={nombre}
+      className="shrink-0 flex items-center justify-center rounded-full bg-accent/15 text-[12px] font-black text-accent"
       style={{ width: `${size * 0.25}rem`, height: `${size * 0.25}rem` }}
-    >
-      {iniciales(nombre)}
-    </span>
+      fallback={iniciales(nombre)}
+    />
   );
 }
 
@@ -553,67 +558,48 @@ export default function HiloConversacion({
   const pasosFaltan = Math.max(0, (ticket.pasos_total ?? 0) - (ticket.pasos_completados ?? 0));
   const puedeEntregar = hacedor && !resuelta && !bloqueada && !noIniciada && ticket.estado !== "esperando_aprobacion" && !esCompra;
 
-  /** El botón grande: la siguiente jugada según la casilla en la que va. */
+  /** La siguiente jugada según la casilla en la que va: botones compactos que van en la
+   *  misma barra de los pasos (7-oct-2026; antes era una franja de lado a lado abajo). */
   function siguienteJugada() {
     if (resuelta || bloqueada) return null;
     if (esCreadoPorMi && ticket!.estado === "esperando_aprobacion") {
       return (
-        <div className="space-y-2">
-          <p className="text-center text-[15px] font-bold text-ink">
-            {ticket!.asignado_a_nombre ?? "Quien la hizo"} la entregó. Revísala y finalízala para archivarla.
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={aprobar} className="hp-boton verde">✓ Finalizar</button>
-            <button type="button" onClick={pedirCambios} className="hp-boton blanco">↺ Falta algo</button>
-          </div>
-          <button type="button" onClick={rechazar} className="w-full text-center text-[14px] font-semibold text-ink-muted underline underline-offset-2">
-            Rechazarla
-          </button>
-        </div>
+        <>
+          <button type="button" onClick={aprobar} className="hp-boton">✓ Finalizar</button>
+          <button type="button" onClick={pedirCambios} className="hp-boton blanco">↺ Falta algo</button>
+          <button type="button" onClick={rechazar} className="hp-enlace">Rechazar</button>
+        </>
       );
     }
     if (!hacedor) return null;
     if (noIniciada) {
       return (
-        <button type="button" className="hp-boton w-full"
+        <button type="button" className="hp-boton"
           onClick={() => void (esAccion ? iniciarOReanudarCrono() : iniciarSolicitud())}>
           ▶ Lo leí · Empezar
         </button>
       );
     }
     if (ticket!.estado === "esperando_aprobacion") {
-      return (
-        <p className="text-center text-[15px] font-bold text-ink">
-          ★ Entregada. Falta que {solicitanteNombre} la finalice.
-        </p>
-      );
+      return <span className="hp-nota">Falta que {solicitanteNombre.split(" ")[0]} la finalice</span>;
     }
     if (esCompra) {
-      return <p className="text-center text-[15px] font-bold text-ink">Marca cada producto de la lista de arriba: al terminar se entrega sola.</p>;
+      return <span className="hp-nota">Marca cada producto: al terminar se entrega sola</span>;
     }
     if (etapa < 3) {
       return (
-        <div className="space-y-2">
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <button type="button" className="hp-boton" disabled={subiendoFoto} onClick={() => camRef.current?.click()}>
-              {subiendoFoto ? "Subiendo…" : "📷 Foto de cómo quedó"}
-            </button>
-            <button type="button" className="hp-boton blanco" onClick={() => draftRef.current?.focus()} title="Contar con un mensaje">
-              ✎
-            </button>
-          </div>
-          {pasosFaltan > 0 && (
-            <p className="text-center text-[14px] font-bold text-ink-muted">Faltan {pasosFaltan} paso{pasosFaltan === 1 ? "" : "s"} de la lista de arriba</p>
-          )}
-          <button type="button" onClick={marcarResuelto} className="w-full text-center text-[14px] font-semibold text-ink-muted underline underline-offset-2">
-            Entregar sin foto
+        <>
+          {pasosFaltan > 0 && <span className="hp-nota">Faltan {pasosFaltan} paso{pasosFaltan === 1 ? "" : "s"}</span>}
+          <button type="button" onClick={marcarResuelto} className="hp-enlace">Entregar sin foto</button>
+          <button type="button" className="hp-boton" disabled={subiendoFoto} onClick={() => camRef.current?.click()}>
+            {subiendoFoto ? "Subiendo…" : "📷 Foto de cómo quedó"}
           </button>
-        </div>
+        </>
       );
     }
     return puedeEntregar ? (
-      <button type="button" onClick={marcarResuelto} className="hp-boton verde w-full">
-        ★ {entregaAlSolicitante ? `Entregar a ${solicitanteNombre.split(" ")[0]}` : "Entregar"} · +25
+      <button type="button" onClick={marcarResuelto} className="hp-boton">
+        ★ Entregar{entregaAlSolicitante && <span className="hidden sm:inline">a {solicitanteNombre.split(" ")[0]}</span>} · +25
       </button>
     ) : null;
   }
@@ -627,7 +613,7 @@ export default function HiloConversacion({
         {onCerrar && (
           <button type="button" onClick={onCerrar} className="hp-boton-sm lg:hidden" aria-label="Volver a la bandeja">←</button>
         )}
-        <Avatar nombre={contraparteNombre} enLinea={contraparteId != null ? enLineaIds.has(contraparteId) : undefined} size={10} />
+        <Avatar nombre={contraparteNombre} uid={contraparteId} enLinea={contraparteId != null ? enLineaIds.has(contraparteId) : undefined} size={10} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[16px] font-extrabold text-ink">
             {esCreadoPorMi ? `Para ${contraparteNombre}` : `De ${contraparteNombre}`}
@@ -638,10 +624,27 @@ export default function HiloConversacion({
             <span className="text-[13px] text-ink-muted">{ticket.numero}</span>
           </div>
         </div>
-        <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
+        <div className="hidden shrink-0 items-center gap-1.5 md:flex">
           <CategoriaBadge cat={ticket.categoria} />
           <PrioridadBadge p={ticket.prioridad} />
         </div>
+        {hacedor && !resuelta && !bloqueada && !noIniciada && (
+          <button
+            type="button"
+            onClick={() => (pedirAbierto ? setPedirAbierto(false) : abrirPedirIntervencion())}
+            className={`hp-boton-sm shrink-0 ${pedirAbierto ? "activo" : ""}`}
+            title="Preguntar, delegar o invitar a alguien"
+          >
+            <Ico e="🙋" /> <span className="hidden sm:inline">Pedir ayuda</span>
+          </button>
+        )}
+        {/* Zumbido: solo quien está en la solicitud y con alguien más en ella (tickets_db.enviar_zumbido). */}
+        {!resuelta && [...idsEnSolicitud].some((id) => uidEq(id, user.id)) && idsEnSolicitud.size > 1 && (
+          <BotonZumbido ticketId={ticketId} className="hp-boton-sm shrink-0" />
+        )}
+        {esCreadoPorMi && resuelta && (
+          <button type="button" onClick={pedirCambios} className="hp-boton-sm shrink-0">↺ <span className="hidden sm:inline">Pedir cambios</span></button>
+        )}
       </div>
 
       {/* ── Miembros: quién está en la solicitud y ＋ para sumar a alguien del equipo. ── */}
@@ -649,19 +652,19 @@ export default function HiloConversacion({
         <span className="text-[13px] font-bold text-ink-muted">Equipo:</span>
         {ticket.creado_por != null && (
           <span className="flex items-center gap-1 text-[13px]" title={`${ticket.creado_por_nombre ?? "—"} · la pidió`}>
-            <Avatar nombre={ticket.creado_por_nombre} size={6} />
+            <Avatar nombre={ticket.creado_por_nombre} uid={ticket.creado_por} size={6} />
             <span className="hidden sm:inline">{(ticket.creado_por_nombre ?? "—").split(" ")[0]}</span>
           </span>
         )}
         {ticket.asignado_a != null && ticket.asignado_a !== ticket.creado_por && (
           <span className="flex items-center gap-1 text-[13px]" title={`${ticket.asignado_a_nombre ?? "—"} · le toca`}>
-            <Avatar nombre={ticket.asignado_a_nombre} size={6} />
+            <Avatar nombre={ticket.asignado_a_nombre} uid={ticket.asignado_a} size={6} />
             <span className="hidden sm:inline">{(ticket.asignado_a_nombre ?? "—").split(" ")[0]}</span>
           </span>
         )}
         {participantes.map((p) => (
           <span key={p.usuario_id} className="flex items-center gap-1 text-[13px]" title={`${p.usuario_nombre} · se sumó`}>
-            <Avatar nombre={p.usuario_nombre} size={6} />
+            <Avatar nombre={p.usuario_nombre} uid={p.usuario_id} size={6} />
             <span className="hidden sm:inline">{p.usuario_nombre.split(" ")[0]}</span>
           </span>
         ))}
@@ -680,7 +683,7 @@ export default function HiloConversacion({
               <p className="text-[13px] font-bold text-ink-muted">Se sumaron</p>
               {participantes.map((p) => (
                 <div key={p.usuario_id} className="flex items-center gap-2">
-                  <Avatar nombre={p.usuario_nombre} size={7} />
+                  <Avatar nombre={p.usuario_nombre} uid={p.usuario_id} size={7} />
                   <span className="flex-1 truncate text-[15px] font-bold">{p.usuario_nombre}</span>
                   <button type="button" disabled={miembroOcupado != null}
                     onClick={() => void quitarMiembro(p.usuario_id, p.usuario_nombre)}
@@ -700,7 +703,7 @@ export default function HiloConversacion({
                 <button key={u.id} type="button" disabled={miembroOcupado != null}
                   onClick={() => void sumarMiembro(u.id)}
                   className="hp-boton-sm !py-1 !text-[14px] disabled:opacity-40">
-                  <Avatar nombre={u.nombre} size={6} />
+                  <Avatar nombre={u.nombre} uid={u.id} size={6} />
                   <span>{miembroOcupado === u.id ? "Sumando…" : u.nombre}</span>
                 </button>
               ))}
@@ -710,17 +713,38 @@ export default function HiloConversacion({
         </div>
       )}
 
+      {/* ── Barra de misión: los cuatro pasos (cuadritos + el nombre del actual) y, a la
+          derecha, la siguiente jugada. Una sola línea: el resto del alto es del chat. ── */}
+      <div className="hp-mision">
+        <div className="hp-pasos" aria-label={`Paso ${Math.min(etapa + 1, 4)} de 4`}>
+          {nombresPasos.map((nombre, i) => {
+            const hecho = i < etapa;
+            const actual = i === etapa && !resuelta;
+            return (
+              <span key={nombre} title={nombre}
+                className={`hp-paso ${hecho ? "hecho" : actual ? "actual" : ""} ${pasoRecien === i ? "recien" : ""}`}>
+                {hecho ? "✓" : i + 1}
+              </span>
+            );
+          })}
+          <span className={`hp-paso-nombre ${ticket.estado === "rechazado" ? "rechazo" : ""}`}>
+            {ticket.estado === "rechazado" ? "Rechazada" : etapa >= 4 ? (resuelta ? "Terminada" : "Entregada") : nombresPasos[etapa]}
+          </span>
+        </div>
+        {jugada && <div className="hp-jugada">{jugada}</div>}
+      </div>
+
       {/* Lo pedido y las casillas quedan FIJOS arriba: el chat baja solo al último mensaje y
           antes se llevaba la solicitud fuera de la vista («¿qué era lo que me pidieron?»). */}
-      <div className="hp-fijo max-h-[34dvh] shrink-0 space-y-2 overflow-y-auto border-b-2 border-ink/15 px-3 pt-2 pb-2 lg:max-h-[48vh] lg:pt-3 lg:pb-2.5">
+      <div className="hp-fijo max-h-[26dvh] shrink-0 space-y-2 overflow-y-auto border-b-2 border-ink/15 px-3 pt-2 pb-2 lg:max-h-[30vh]">
         {/* ── Lo que te piden: siempre arriba, completo, con sus fotos ── */}
         <section className="hp-pedido">
           <button type="button" onClick={() => setVerPedido((v) => !v)} className="hp-pedido-cinta w-full text-left">
             <span className="flex-1">{hacedor ? "Lo que te piden" : esCreadoPorMi ? "Lo que pediste" : "Lo que se pidió"}</span>
-            <span aria-hidden>{verPedido ? "▲ ocultar" : "▼ ver"}</span>
+            <span aria-hidden className="hp-pedido-toggle">{verPedido ? "▲ ocultar" : "▼ ver todo"}</span>
           </button>
           {verPedido ? (
-            <div className="space-y-2.5 p-3">
+            <div className="space-y-2 px-3 pb-2.5 pt-0.5">
               <p className="hp-pedido-titulo">{ticket.titulo}</p>
               {textoPedido && <p className="hp-pedido-texto">{textoPedido}</p>}
               {fotosPedido.length > 0 && (
@@ -752,30 +776,12 @@ export default function HiloConversacion({
               </p>
             </div>
           ) : (
-            <p className="truncate px-3 py-2 text-[16px] font-bold text-ink">{ticket.titulo}</p>
+            <p className="truncate px-3 pb-2 text-[16px] font-bold text-ink">{ticket.titulo}</p>
           )}
         </section>
 
         {/* Revisión de pesos y empaques: el avance y el botón que abre su propio wizard. */}
         <RevisionEmpaqueEnSolicitud ticket={ticket} />
-
-        {/* ── Wizard: cuatro casillas y la barra ── */}
-        <section className="hp-caja space-y-1.5 p-1.5 lg:space-y-2 lg:p-2.5">
-          <div className="hp-pasos">
-            {nombresPasos.map((nombre, i) => {
-              const hecho = i < etapa;
-              const actual = i === etapa && !resuelta;
-              return (
-                <div key={nombre} className={`hp-paso ${hecho ? "hecho" : actual ? "actual" : ""} ${pasoRecien === i ? "recien" : ""}`}>
-                  <span className="hp-paso-num">{hecho ? "✓" : i + 1}</span>
-                  <span>{nombre}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="hp-barra" aria-label={`${etapa} de 4`}><span style={{ width: `${(etapa / 4) * 100}%` }} /></div>
-          {ticket.estado === "rechazado" && <p className="text-[14px] font-bold text-accent-rose">Rechazada.</p>}
-        </section>
 
       </div>
 
@@ -795,28 +801,11 @@ export default function HiloConversacion({
           <p className="text-[14px] font-bold text-ink-muted">⏱ {fmtTiempo(cronometro.segundos)} · en curso de {contraparteNombre}</p>
         )}
 
-        {/* Ayuda y demás jugadas secundarias. */}
-        {(bloqueada || (hacedor && !resuelta && !noIniciada) || (esCreadoPorMi && resuelta)) && (
-          <div className="flex flex-wrap items-center gap-2">
-            {bloqueada && (
-              <span className="hp-etiqueta tipo !text-[13px] !normal-case">
-                <Ico e="🔒" /> En pausa{ticket.bloqueado_por_asignado_nombre ? ` — esperando a ${ticket.bloqueado_por_asignado_nombre}` : ""}
-                {ticket.bloqueado_por_numero ? ` (${ticket.bloqueado_por_numero})` : ""}
-              </span>
-            )}
-            {hacedor && !resuelta && !bloqueada && !noIniciada && (
-              <button
-                type="button"
-                onClick={() => (pedirAbierto ? setPedirAbierto(false) : abrirPedirIntervencion())}
-                className={`hp-boton-sm ${pedirAbierto ? "activo" : ""}`}
-              >
-                <Ico e="🙋" /> Pedir ayuda
-              </button>
-            )}
-            {esCreadoPorMi && resuelta && (
-              <button type="button" onClick={pedirCambios} className="hp-boton-sm">↺ Pedir cambios</button>
-            )}
-          </div>
+        {bloqueada && (
+          <span className="hp-etiqueta tipo !text-[13px] !normal-case">
+            <Ico e="🔒" /> En pausa{ticket.bloqueado_por_asignado_nombre ? ` — esperando a ${ticket.bloqueado_por_asignado_nombre}` : ""}
+            {ticket.bloqueado_por_numero ? ` (${ticket.bloqueado_por_numero})` : ""}
+          </span>
         )}
 
         {pedirAbierto && (
@@ -927,7 +916,7 @@ export default function HiloConversacion({
               <div key={item.id}>
                 {sep}
                 <div className={`flex items-end gap-2 ${esMio ? "justify-end" : "justify-start"}`}>
-                  {!esMio && <Avatar nombre={autorNombre} enLinea={autorId != null ? enLineaIds.has(autorId) : undefined} size={8} />}
+                  {!esMio && <Avatar nombre={autorNombre} uid={autorId} enLinea={autorId != null ? enLineaIds.has(autorId) : undefined} size={8} />}
                   <div className="max-w-[85%] space-y-1 lg:max-w-[65%]">
                     {!esMio && <p className="hp-autor px-0.5">{autorNombre}</p>}
                     {item.kind === "adjunto" ? (
@@ -954,7 +943,7 @@ export default function HiloConversacion({
                       )
                     ) : (
                       <div className={`hp-burbuja ${esMio ? "mia" : "otra"}`}>
-                        <p className="whitespace-pre-wrap">{item.ev.texto}</p>
+                        <p className={`whitespace-pre-wrap ${soloEmojisPixel(item.ev.texto) ? "mck-emoji-solo" : ""}`}>{conEmojisPixel(item.ev.texto)}</p>
                       </div>
                     )}
                     <p className={`hp-hora px-0.5 ${esMio ? "text-right" : "text-left"}`}>{horaDe(item.ts)}</p>
@@ -969,8 +958,6 @@ export default function HiloConversacion({
 
       {msg && <p className="px-4 py-1 text-[14px] font-bold text-accent-rose">{msg}</p>}
 
-      {/* ── Siguiente jugada: un solo botón grande según la casilla ── */}
-      {jugada && <div className="hp-jugada border-t-2 border-ink bg-surface-panel px-3 py-2 lg:py-2.5">{jugada}</div>}
       <input
         ref={camRef} type="file" accept="image/*" capture="environment" multiple hidden
         onChange={(e) => {

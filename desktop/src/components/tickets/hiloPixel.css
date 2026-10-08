@@ -1,9 +1,17 @@
 /*
  * Solicitudes y acciones como misión (27-sep-2026): el hilo y la bandeja con la forma pixel de
- * la app (bordes de 2 px, esquinas rectas, sombra de un bloque) y letra GRANDE. La letra sigue
- * siendo Montserrat (decisión de legibilidad del 25-sep, ver theme/skin-pixel.css): lo pixel es
- * la forma, no la fuente. Todo sale de los tokens del tema, así vale para cualquier piel.
+ * la app (bordes de 2 px, esquinas rectas, sombra de un bloque). La letra sigue siendo la del
+ * tema (decisión de legibilidad del 25-sep, ver theme/skin-pixel.css): lo pixel es la forma.
+ *
+ * 7-oct-2026: TODO el color sale de los tokens del tema (antes había verde y amarillo PICO-8 fijos
+ * que en Matrix, Peach o Bodega se veían ajenos). Texto sobre un relleno de color = el fondo del
+ * tema (--mck-surface): claro en los temas claros, oscuro en Matrix, contrasta en ambos.
  */
+
+/* Letra sobre un relleno de acento: el fondo del tema en los claros (y en Matrix, de acento
+ * verde brillante); blanca en los demás temas oscuros, cuyo acento es medio. */
+:root { --hp-sobre: var(--mck-surface); }
+html.dark:not([data-mck-skin="matrix"]) { --hp-sobre: 255 255 255; }
 
 .hp-caja {
   border: 2px solid rgb(var(--mck-ink));
@@ -14,25 +22,24 @@
 
 /* ─── Tarjeta «Lo que te piden» ─────────────────────────────────────────── */
 .hp-pedido {
-  border: 2px solid rgb(var(--mck-ink));
+  border: 2px solid rgb(var(--mck-ink) / .25);
+  border-left: 5px solid rgb(var(--mck-accent));
   background: rgb(var(--mck-surface-panel));
-  box-shadow: 4px 4px 0 rgb(var(--mck-sombra, 0 0 0));
 }
 .hp-pedido-cinta {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  background: #ffec27;
-  color: #000;
-  border-bottom: 2px solid rgb(var(--mck-ink));
-  font-size: 13px;
+  padding: 6px 12px 2px;
+  color: rgb(var(--mck-accent));
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: .08em;
   text-transform: uppercase;
 }
+.hp-pedido-toggle { color: rgb(var(--mck-ink-muted)); font-weight: 800; letter-spacing: .04em; }
 .hp-pedido-titulo {
-  font-size: 19px;
+  font-size: 18px;
   line-height: 1.3;
   font-weight: 800;
   color: rgb(var(--mck-ink));
@@ -40,7 +47,7 @@
   overflow-wrap: anywhere;
 }
 .hp-pedido-texto {
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.45;
   color: rgb(var(--mck-ink));
   white-space: pre-wrap;
@@ -48,104 +55,119 @@
 }
 .hp-foto {
   display: block;
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   object-fit: cover;
   border: 2px solid rgb(var(--mck-ink));
   box-shadow: 2px 2px 0 rgb(var(--mck-sombra, 0 0 0));
   image-rendering: auto;
 }
 
-/* ─── Wizard: cuatro casillas como las piezas del taller ───────────────── */
-.hp-pasos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.hp-paso {
+/* ─── Barra de misión: pasos + siguiente jugada en una línea ───────────── */
+.hp-mision {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
-  padding: 6px 2px 5px;
-  border: 2px solid rgb(var(--mck-ink) / .35);
-  background: rgb(var(--mck-surface));
-  color: rgb(var(--mck-ink-muted));
-  font-size: 13px;
-  font-weight: 800;
-  text-align: center;
-  line-height: 1.1;
+  gap: 6px 12px;
+  padding: 6px 12px;
+  border-bottom: 2px solid rgb(var(--mck-ink) / .15);
+  background: rgb(var(--mck-surface-panel));
 }
-.hp-paso-num {
+.hp-pasos { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.hp-paso {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: 2px solid currentColor;
-  font-size: 14px;
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgb(var(--mck-ink) / .3);
+  background: rgb(var(--mck-surface));
+  color: rgb(var(--mck-ink-muted));
+  font-size: 11px;
   font-weight: 900;
+  line-height: 1;
 }
 .hp-paso.hecho {
-  border-color: rgb(var(--mck-ink));
-  background: #00e436;
-  color: #000;
-  box-shadow: 2px 2px 0 rgb(var(--mck-sombra, 0 0 0));
+  border-color: rgb(var(--mck-accent));
+  background: rgb(var(--mck-accent));
+  color: rgb(var(--hp-sobre));
 }
 .hp-paso.actual {
-  border-color: rgb(var(--mck-ink));
-  background: #ffec27;
-  color: #000;
-  box-shadow: 2px 2px 0 rgb(var(--mck-sombra, 0 0 0));
+  border-color: rgb(var(--mck-accent));
+  background: rgb(var(--mck-accent) / .15);
+  color: rgb(var(--mck-accent));
   animation: hp-late 1.2s steps(2, end) infinite;
 }
 .hp-paso.recien { animation: hp-salta 480ms steps(4, end); }
+.hp-paso-nombre {
+  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: rgb(var(--mck-ink));
+  white-space: nowrap;
+}
+.hp-paso-nombre.rechazo { color: rgb(var(--mck-danger, var(--mck-accent-rose))); }
 @keyframes hp-late { 50% { transform: translateY(-2px); } }
 @keyframes hp-salta { 0% { transform: scale(.7); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
 
-.hp-barra { height: 12px; border: 2px solid rgb(var(--mck-ink)); background: rgb(var(--mck-surface)); }
-.hp-barra > span {
-  display: block;
-  height: 100%;
-  background: repeating-linear-gradient(90deg, #00e436 0 10px, #008751 10px 12px);
-  transition: width 400ms steps(6, end);
+.hp-jugada {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px 10px;
+}
+.hp-nota { font-size: 13px; font-weight: 700; color: rgb(var(--mck-ink-muted)); }
+.hp-enlace {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgb(var(--mck-ink-muted));
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-/* ─── Botón de la siguiente jugada ─────────────────────────────────────── */
+/* ─── Botones ──────────────────────────────────────────────────────────── */
 .hp-boton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 52px;
-  padding: 10px 16px;
-  border: 2px solid #000;
-  box-shadow: 4px 4px 0 #000;
-  font-size: 18px;
-  font-weight: 900;
-  letter-spacing: .02em;
-  text-transform: uppercase;
-  color: #000;
-  background: #ffec27;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 2px solid rgb(var(--mck-sombra, 0 0 0));
+  box-shadow: 3px 3px 0 rgb(var(--mck-sombra, 0 0 0));
+  font-size: 15px;
+  font-weight: 800;
+  color: rgb(var(--hp-sobre));
+  background: rgb(var(--mck-accent));
+  white-space: nowrap;
   transition: transform 80ms steps(2, end), box-shadow 80ms steps(2, end);
 }
-.hp-boton:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #000; }
+.hp-boton:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: none; }
 .hp-boton:disabled { opacity: .45; }
-.hp-boton.verde { background: #00e436; }
-.hp-boton.azul { background: rgb(var(--mck-accent)); color: #fff; }
-.hp-boton.rosa { background: #ff77a8; }
+.hp-boton.verde { background: rgb(var(--mck-success, var(--mck-accent))); }
+.hp-boton.azul { background: rgb(var(--mck-accent)); }
+.hp-boton.rosa { background: rgb(var(--mck-danger, var(--mck-accent-rose))); }
 .hp-boton.blanco { background: rgb(var(--mck-surface-panel)); color: rgb(var(--mck-ink)); }
 .hp-boton-sm {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  padding: 6px 12px;
+  min-height: 34px;
+  padding: 4px 10px;
   border: 2px solid rgb(var(--mck-ink));
   box-shadow: 2px 2px 0 rgb(var(--mck-sombra, 0 0 0));
   background: rgb(var(--mck-surface-panel));
   color: rgb(var(--mck-ink));
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
 }
 .hp-boton-sm:active { transform: translate(2px, 2px); box-shadow: none; }
-.hp-boton-sm.activo { background: rgb(var(--mck-accent)); color: #fff; }
+.hp-boton-sm.activo { background: rgb(var(--mck-accent)); color: rgb(var(--hp-sobre)); }
 
 /* ─── Chat ─────────────────────────────────────────────────────────────── */
 .hp-burbuja {
@@ -156,7 +178,7 @@
   box-shadow: 3px 3px 0 rgb(var(--mck-sombra, 0 0 0));
   overflow-wrap: anywhere;
 }
-.hp-burbuja.mia { background: rgb(var(--mck-accent)); color: #fff; }
+.hp-burbuja.mia { background: rgb(var(--mck-accent)); color: rgb(var(--hp-sobre)); }
 .hp-burbuja.otra { background: rgb(var(--mck-surface-panel)); color: rgb(var(--mck-ink)); }
 .hp-autor { font-size: 14px; font-weight: 800; color: rgb(var(--mck-ink-secondary)); }
 .hp-hora { font-size: 13px; color: rgb(var(--mck-ink-muted)); }
@@ -190,24 +212,54 @@
 .hp-campo:focus { outline: none; box-shadow: 3px 3px 0 rgb(var(--mck-accent)); }
 
 /* ─── Bandeja ──────────────────────────────────────────────────────────── */
-.hp-contador {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: 8px 10px;
+/* Montones (Por hacer · En curso · Hechas): una barra segmentada; el número al lado. */
+.hp-montones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border: 2px solid rgb(var(--mck-ink));
+  box-shadow: 2px 2px 0 rgb(var(--mck-sombra, 0 0 0));
   background: rgb(var(--mck-surface-panel));
-  box-shadow: 3px 3px 0 rgb(var(--mck-sombra, 0 0 0));
-  color: rgb(var(--mck-ink));
-  text-align: left;
 }
-.hp-contador b { font-size: 26px; line-height: 1; font-weight: 900; }
-.hp-contador span { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-.hp-contador.activo { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgb(var(--mck-sombra, 0 0 0)); }
-.hp-contador.amarillo.activo { background: #ffec27; color: #000; }
-.hp-contador.azul.activo { background: #29adff; color: #000; }
-.hp-contador.verde.activo { background: #00e436; color: #000; }
+.hp-montones > button {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 4px;
+  color: rgb(var(--mck-ink));
+  white-space: nowrap;
+}
+.hp-montones > button + button { border-left: 2px solid rgb(var(--mck-ink) / .25); }
+.hp-montones b { font-size: 17px; line-height: 1; font-weight: 900; }
+.hp-montones span { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; }
+.hp-montones > button:hover { background: rgb(var(--mck-accent) / .08); }
+.hp-montones > button.activo { background: rgb(var(--mck-accent)); color: rgb(var(--hp-sobre)); }
+
+/* Quién (Me toca · Pedí yo · …): pestañas de texto subrayadas, pegadas al borde de abajo. */
+.hp-pestanas { display: flex; align-items: flex-end; gap: 2px; margin: 0 -4px; }
+.hp-pestanas > button {
+  padding: 6px 7px 5px;
+  border-bottom: 3px solid transparent;
+  font-size: 14px;
+  font-weight: 800;
+  color: rgb(var(--mck-ink-muted));
+  white-space: nowrap;
+}
+.hp-pestanas > button:hover { color: rgb(var(--mck-ink)); }
+.hp-pestanas > button.activo { color: rgb(var(--mck-ink)); border-bottom-color: rgb(var(--mck-accent)); }
+.hp-pestanas > .hp-pestana-lupa { margin-left: auto; font-size: 18px; line-height: 1; }
+
+.hp-noleidos {
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 2px solid rgb(var(--mck-accent));
+  background: rgb(var(--mck-accent));
+  color: rgb(var(--hp-sobre));
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
 
 .hp-fila {
   display: flex;
@@ -220,8 +272,8 @@
   border-left: 6px solid transparent;
 }
 .hp-fila.activa { background: rgb(var(--mck-accent) / .10); }
-.hp-fila.encurso { border-left-color: #ffec27; }
-.hp-fila.pendiente { border-left-color: #ffa300; }
+.hp-fila.encurso { border-left-color: rgb(var(--mck-accent)); }
+.hp-fila.pendiente { border-left-color: rgb(var(--mck-warning, var(--mck-accent-sun))); }
 .hp-fila-titulo {
   font-size: 16px;
   line-height: 1.3;
@@ -233,38 +285,45 @@
   overflow: hidden;
   overflow-wrap: anywhere;
 }
+
+/* Etiquetas de estado: tinte suave del color de estado del tema + su borde; la letra, la tinta. */
 .hp-etiqueta {
+  --hp-tono: var(--mck-ink);
   display: inline-flex;
   align-items: center;
   gap: 3px;
   padding: 1px 6px;
-  border: 2px solid rgb(var(--mck-ink));
+  border: 2px solid rgb(var(--hp-tono));
+  background: rgb(var(--hp-tono) / .16);
   font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: .03em;
-  color: #000;
+  color: rgb(var(--mck-ink));
 }
-.hp-etiqueta.pendiente { background: #ffa300; }
-.hp-etiqueta.en_proceso { background: #ffec27; }
-.hp-etiqueta.esperando_aprobacion { background: #c2a0ff; }
-.hp-etiqueta.resuelto { background: #00e436; }
-.hp-etiqueta.rechazado { background: #ff77a8; }
-.hp-etiqueta.tipo { background: rgb(var(--mck-surface)); color: rgb(var(--mck-ink)); border-color: rgb(var(--mck-ink) / .4); }
+.hp-etiqueta.pendiente { --hp-tono: var(--mck-warning, var(--mck-accent-sun)); }
+.hp-etiqueta.en_proceso { --hp-tono: var(--mck-accent); }
+.hp-etiqueta.esperando_aprobacion { --hp-tono: var(--mck-accent-plum, var(--mck-accent)); }
+.hp-etiqueta.resuelto { --hp-tono: var(--mck-success, var(--mck-accent)); }
+.hp-etiqueta.rechazado { --hp-tono: var(--mck-danger, var(--mck-accent-rose)); }
+.hp-etiqueta.tipo { background: rgb(var(--mck-surface)); border-color: rgb(var(--mck-ink) / .4); }
 
 .hp-seguir {
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 2px solid #000;
-  background: #ffec27;
-  color: #000;
-  box-shadow: 4px 4px 0 #000;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 2px solid rgb(var(--mck-ink) / .25);
+  border-left: 5px solid rgb(var(--mck-accent));
+  background: rgb(var(--mck-accent) / .08);
+  color: rgb(var(--mck-ink));
+  font-size: 14px;
+  font-weight: 700;
   text-align: left;
 }
-.hp-seguir:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #000; }
+.hp-seguir > span:nth-child(2) { font-size: 11px; color: rgb(var(--mck-accent)); }
+.hp-seguir:hover { background: rgb(var(--mck-accent) / .15); }
 
 /* ─── Visor de fotos ───────────────────────────────────────────────────── */
 .hp-visor {
@@ -281,27 +340,12 @@
   .hp-paso.actual, .hp-paso.recien { animation: none; }
 }
 
-/* ─── Celular (28-sep-2026): el chat y el cuadro de escribir mandan ────────
- * Antes las casillas, el botón grande y el pedido desplegado se comían la pantalla y el
- * cuadro de escribir quedaba cortado abajo. En pantallas angostas todo eso se compacta. */
+/* ─── Celular: el chat y el cuadro de escribir mandan ──────────────────── */
 @media (max-width: 1023px) {
-  .hp-fijo .hp-pedido-titulo { font-size: 17px; }
-  .hp-fijo .hp-pedido-texto { font-size: 16px; }
-  .hp-fijo .hp-foto { width: 56px; height: 56px; }
-  .hp-pasos { gap: 4px; }
-  .hp-paso {
-    flex-direction: row;
-    justify-content: center;
-    gap: 4px;
-    padding: 3px 2px;
-    font-size: 12px;
-  }
-  .hp-paso-num { width: 18px; height: 18px; font-size: 11px; border-width: 1.5px; }
-  .hp-barra { height: 8px; }
-  .hp-jugada .hp-boton { min-height: 44px; padding: 8px 12px; font-size: 16px; box-shadow: 3px 3px 0 #000; }
-  .hp-burbuja { font-size: 17px; }
-}
-@media (max-width: 340px) {
-  /* Muy angosto: solo el número/✓, el nombre del paso se lee en la barra. */
-  .hp-paso > span:last-child { display: none; }
+  .hp-fijo .hp-pedido-titulo { font-size: 16px; }
+  .hp-fijo .hp-pedido-texto { font-size: 15px; }
+  .hp-fijo .hp-foto { width: 52px; height: 52px; }
+  .hp-mision { padding: 5px 10px; }
+  .hp-boton { min-height: 34px; padding: 4px 12px; font-size: 14px; }
+  /* El tamaño mínimo táctil de 44 px del móvil no aplica a los cuadritos (no son botones). */
 }

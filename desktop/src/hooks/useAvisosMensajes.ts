@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { isMcKennaAndroidApp, webNotificationsAvailable } from "../lib/androidApp";
 import { reproducirSonido, sonidoDeMensaje, sonidoDeSolicitud, sonidoPorId, useAlertasSonido } from "../lib/alertasSonido";
+import { recibirZumbido } from "../lib/zumbido";
 import { useResumenMensajes } from "./useCanalesEquipo";
 
 /**
@@ -12,14 +13,16 @@ import { useResumenMensajes } from "./useCanalesEquipo";
  *    hook registra la suscripción del dispositivo en /api/canales/push.
  *  - Solicitud nueva que otra persona te hizo (`solicitudes_para_mi` del resumen): tarjeta
  *    y el sonido elegido para quien la pidió.
+ *  - Zumbido de una solicitud (`zumbidos` del resumen): la pantalla tiembla, zumba y sale
+ *    la tarjeta; se marca visto para que no vuelva a sonar (lib/zumbido.tsx).
  * El sonido sale de las alertas sonoras de cada quien (lib/alertasSonido.ts): por grupo,
  * por persona o el general, con recortes de Duck Hunt y Circus Charlie.
  */
 
 export type AvisoMensaje = {
   id: number;
-  /** "solicitud": `id` es el del ticket y `canal_id` va en 0. */
-  tipo?: "mensaje" | "solicitud";
+  /** "solicitud" y "zumbido": `id` es el del ticket y `canal_id` va en 0. */
+  tipo?: "mensaje" | "solicitud" | "zumbido";
   canal_id: number;
   canal_nombre: string;
   autor_nombre: string;
@@ -90,6 +93,20 @@ export function useAvisosMensajes(activo: boolean, noMostrarCanal: number | null
     if (!document.hidden) reproducirSonido(sonido);
   }, [solicitudes]);
 
+  // Zumbidos: suenan una vez (aunque la app esté en otra pestaña, así se nota al volver).
+  const zumbidos = resumen.data?.zumbidos;
+  const zumbidosVistos = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    const nuevos = (zumbidos ?? []).filter((z) => !zumbidosVistos.current.has(z.id));
+    if (!nuevos.length) return;
+    nuevos.forEach((z) => zumbidosVistos.current.add(z.id));
+    const z = nuevos[0];
+    recibirZumbido();
+    setAviso({ id: z.ticket_id, tipo: "zumbido", canal_id: 0, canal_nombre: z.numero, autor_nombre: z.de_nombre || "Alguien",
+      texto: z.titulo, icono: "📳" });
+    api.post("/api/tickets/zumbidos/vistos", { ids: nuevos.map((x) => x.id) }).catch(() => {});
+  }, [zumbidos]);
+
   // Punto de partida: lo que ya existía al abrir la app no se avisa.
   useEffect(() => {
     if (!activo) return;
@@ -126,7 +143,7 @@ export function useAvisosMensajes(activo: boolean, noMostrarCanal: number | null
   // La tarjeta se va sola.
   useEffect(() => {
     if (!aviso) return;
-    const t = setTimeout(() => setAviso(null), aviso.tipo === "solicitud" ? 15000 : 9000);
+    const t = setTimeout(() => setAviso(null), aviso.tipo === "mensaje" ? 9000 : 15000);
     return () => clearTimeout(t);
   }, [aviso]);
 

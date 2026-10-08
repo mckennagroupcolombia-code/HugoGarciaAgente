@@ -1850,6 +1850,26 @@ def register_tickets_routes(app):
         quitar_participante(ticket_id, user_id)
         return jsonify(get_ticket(ticket_id, request.tickets_usuario)), 200
 
+    # ── ZUMBIDOS ──────────────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/<int:ticket_id>/zumbido", methods=["POST"])
+    @_auth
+    def tickets_zumbido(ticket_id):
+        from app.services.tickets_db import enviar_zumbido
+
+        out, err = enviar_zumbido(ticket_id, request.tickets_usuario)
+        if err:
+            return jsonify({"error": err}), 429 if err.startswith("Espera") else 400
+        return jsonify(out), 200
+
+    @app.route("/api/tickets/zumbidos/vistos", methods=["POST"])
+    @_auth
+    def tickets_zumbidos_vistos():
+        from app.services.tickets_db import marcar_zumbidos_vistos
+
+        ids = (request.get_json(silent=True) or {}).get("ids") or []
+        return jsonify({"marcados": marcar_zumbidos_vistos(int(request.tickets_usuario["id"]), list(ids))}), 200
+
     # ── PASOS DE TICKET ───────────────────────────────────────────────────────
 
     @app.route("/api/tickets/<int:ticket_id>/pasos", methods=["GET"])

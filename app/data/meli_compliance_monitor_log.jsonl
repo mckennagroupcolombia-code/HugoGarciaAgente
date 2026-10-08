@@ -119,3 +119,19 @@
 {"tipo": "registro_seguimiento", "item_id": "MCO4508151626", "sku": "C-ALBSEC250g", "origen": "desde_cero", "ts": "2026-10-06T00:54:41"}
 {"tipo": "publicacion_nueva", "item_id": "MCO4508151626", "sku": "C-ALBSEC250g", "origen": "", "ts": "2026-10-06T00:54:43"}
 {"tipo": "revision_diaria", "revisadas": 24, "alertas": 0, "activas": 16, "problemas": 7, "ts": "2026-10-06T08:30:25"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2263916107", "sku": "C-SEMGIR250g", "origen": "desde_cero", "ts": "2026-10-07T14:16:03"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2263916107", "sku": "C-SEMGIR250g", "origen": "", "ts": "2026-10-07T14:16:03"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4513198382", "sku": "C-SEMGIR500g", "origen": "desde_cero", "ts": "2026-10-07T14:46:04"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4513198382", "sku": "C-SEMGIR500g", "origen": "", "ts": "2026-10-07T14:46:04"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2263965637", "sku": "C-SEMGIRKg", "origen": "desde_cero", "ts": "2026-10-07T15:00:25"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2263965637", "sku": "C-SEMGIRKg", "origen": "", "ts": "2026-10-07T15:00:25"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2263979657", "sku": "C-UVAPASFLA250g", "origen": "desde_cero", "ts": "2026-10-07T15:21:18"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2263979657", "sku": "C-UVAPASFLA250g", "origen": "", "ts": "2026-10-07T15:21:18"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4513499894", "sku": "C-UVAPASFLA500g", "origen": "desde_cero", "ts": "2026-10-07T18:05:03"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4513499894", "sku": "C-UVAPASFLA500g", "origen": "", "ts": "2026-10-07T18:05:04"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4513507746", "sku": "C-BAYGOJ250g", "origen": "desde_cero", "ts": "2026-10-07T19:37:00"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4513507746", "sku": "C-BAYGOJ250g", "origen": "", "ts": "2026-10-07T19:37:00"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4513547774", "sku": "C-BAYGOJ500g", "origen": "desde_cero", "ts": "2026-10-07T19:52:11"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4513547774", "sku": "C-BAYGOJ500g", "origen": "", "ts": "2026-10-07T19:52:12"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2264296293", "sku": "C-AVEMOLKg", "origen": "desde_cero", "ts": "2026-10-07T21:32:47"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2264296293", "sku": "C-AVEMOLKg", "origen": "", "ts": "2026-10-07T21:32:48"}

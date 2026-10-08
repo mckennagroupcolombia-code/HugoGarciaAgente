@@ -2864,3 +2864,16 @@ html[data-mck-skin="barbie"].dark textarea:focus {
   .mck-titila-rojo { animation: none; background-color: #ff004d; box-shadow: 0 0 0 3px rgb(255 0 77 / 0.45); }
   .mck-titila-rojo-borde { animation: none; }
 }
+
+/* Zumbido de una solicitud (lib/zumbido.tsx): la app tiembla como en Messenger. */
+html.mck-zumbido #root { animation: mck-zumbido 0.7s cubic-bezier(.36, .07, .19, .97) both; }
+@keyframes mck-zumbido {
+  10%, 90% { transform: translate3d(-3px, 1px, 0); }
+  20%, 80% { transform: translate3d(6px, -2px, 0); }
+  30%, 50%, 70% { transform: translate3d(-10px, 2px, 0); }
+  40%, 60% { transform: translate3d(10px, -1px, 0); }
+}
+.mck-zumbido-enviado { animation: mck-zumbido 0.4s both; }
+@media (prefers-reduced-motion: reduce) {
+  html.mck-zumbido #root, .mck-zumbido-enviado { animation: none; }
+}

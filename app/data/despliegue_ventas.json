@@ -1,8 +1,8 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-06T17:18:49",
- "actualizado_por": "@cynthia",
+ "actualizado": "2026-10-07T21:33:13",
+ "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
   "GTRVDR10ML12UN": {
@@ -1870,6 +1870,78 @@
    "meli_ids": [
     "MCO4508151626"
    ]
+  },
+  "C-SEMGIR250G": {
+   "nombre": "SEMILLA DE GIRASOL 250g",
+   "titulo_meli": "Semilla De Girasol Pelada 250g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2263916107"
+   ]
+  },
+  "C-SEMGIR500G": {
+   "nombre": "SEMILLA GIRASOL 500g",
+   "titulo_meli": "Semilla De Girasol Pelada 500g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4513198382"
+   ]
+  },
+  "C-SEMGIRKG": {
+   "nombre": "SEMILLA GIRASOL KG",
+   "titulo_meli": "Semilla De Girasol Pelada 1kg Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2263965637"
+   ]
+  },
+  "C-UVAPASFLA250G": {
+   "nombre": "UVAS PASAS FLAME 250g",
+   "titulo_meli": "Uvas Pasas Flame 250g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2263979657"
+   ]
+  },
+  "C-UVAPASFLA500G": {
+   "nombre": "UVAS PASAS FLAME 500g",
+   "titulo_meli": "Uvas Pasas Flame 500g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4513499894"
+   ]
+  },
+  "C-BAYGOJ250G": {
+   "nombre": "BAYAS DE GOJI BERRY 250g",
+   "titulo_meli": "Bayas De Goji Deshidratadas 250g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4513507746"
+   ]
+  },
+  "C-BAYGOJ500G": {
+   "nombre": "BAYAS DE GOJI BERRY 500g",
+   "titulo_meli": "Bayas De Goji Deshidratadas 500g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4513547774"
+   ]
+  },
+  "C-AVEMOLKG": {
+   "nombre": "AVENA MOLIDA KG",
+   "titulo_meli": "Harina De Avena 1kg Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2264296293"
+   ]
   }
  },
  "excluidas": [
@@ -2009,8 +2081,7 @@
    "meli_id": "MCO980071251",
    "sku": "C-ACISAL50G",
    "titulo": "Ácido Salicílico 50gr Todo Tipo De Piel",
-   "motivo": "etiqueta sin aprobar",
-   "por_etiqueta": true
+   "motivo": "código inactivo en Alegra"
   },
   {
    "meli_id": "MCO605845399",
@@ -2106,8 +2177,7 @@
    "meli_id": "MCO1929017874",
    "sku": "C-ACISAL50G",
    "titulo": "Ácido Salicílico 50gr",
-   "motivo": "etiqueta sin aprobar",
-   "por_etiqueta": true
+   "motivo": "código inactivo en Alegra"
   },
   {
    "meli_id": "MCO1335735933",
@@ -2253,6 +2323,54 @@
    "sku": "C-ALBSEC250G",
    "titulo": "Albaricoque Deshidratado 250g  Materia Prima",
    "desde": "2026-10-06T00:55:06",
+   "por": "armando"
+  },
+  "MCO2263916107": {
+   "sku": "C-SEMGIR250G",
+   "titulo": "Semilla De Girasol Pelada 250g Materia Prima",
+   "desde": "2026-10-07T14:16:19",
+   "por": "armando"
+  },
+  "MCO4513198382": {
+   "sku": "C-SEMGIR500G",
+   "titulo": "Semilla De Girasol Pelada 500g Materia Prima",
+   "desde": "2026-10-07T14:46:15",
+   "por": "armando"
+  },
+  "MCO2263965637": {
+   "sku": "C-SEMGIRKG",
+   "titulo": "Semilla De Girasol Pelada 1kg Materia Prima",
+   "desde": "2026-10-07T15:00:35",
+   "por": "armando"
+  },
+  "MCO2263979657": {
+   "sku": "C-UVAPASFLA250G",
+   "titulo": "Uvas Pasas Flame 250g Materia Prima",
+   "desde": "2026-10-07T15:21:34",
+   "por": "armando"
+  },
+  "MCO4513499894": {
+   "sku": "C-UVAPASFLA500G",
+   "titulo": "Uvas Pasas Flame 500g Materia Prima",
+   "desde": "2026-10-07T18:05:18",
+   "por": "armando"
+  },
+  "MCO4513507746": {
+   "sku": "C-BAYGOJ250G",
+   "titulo": "Bayas De Goji Deshidratadas 250g Materia Prima",
+   "desde": "2026-10-07T19:37:19",
+   "por": "armando"
+  },
+  "MCO4513547774": {
+   "sku": "C-BAYGOJ500G",
+   "titulo": "Bayas De Goji Deshidratadas 500g Materia Prima",
+   "desde": "2026-10-07T19:52:27",
+   "por": "armando"
+  },
+  "MCO2264296293": {
+   "sku": "C-AVEMOLKG",
+   "titulo": "Harina De Avena 1kg Materia Prima",
+   "desde": "2026-10-07T21:33:13",
    "por": "armando"
   }
  }

@@ -178,7 +178,11 @@ export type ResumenMensajes = {
   solicitudes_para_mi?: SolicitudParaMi[];
   /** Menciones con @ sin leer en todos los grupos. */
   menciones_pendientes?: number;
+  /** Zumbidos de una solicitud que aún no sonaron aquí (lib/zumbido.tsx). */
+  zumbidos?: ZumbidoParaMi[];
 };
+
+export type ZumbidoParaMi = { id: number; ticket_id: number; de_usuario: number; de_nombre: string; numero: string; titulo: string; creado_en: number };
 
 export function useResumenMensajes(enabled = true) {
   return useQuery<ResumenMensajes>({
