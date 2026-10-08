@@ -239,10 +239,6 @@
   "familia": "ACISALg",
   "nombre": "ÁCIDO SALICÍLICO"
  },
- "C-ACISAL50G": {
-  "familia": "ACISALg",
-  "nombre": "ÁCIDO SALICÍLICO"
- },
  "C-ACISORKG": {
   "familia": "ACISORg",
   "nombre": "ALULOSA"
@@ -740,7 +736,7 @@
   "nombre": "GLICERINA VEGETAL"
  },
  "C-GLIVEGLT": {
-  "familia": "glicerina-vegetal",
+  "familia": "GLIVEGg",
   "nombre": "GLICERINA VEGETAL"
  },
  "C-GLU100G": {
@@ -1176,7 +1172,7 @@
   "nombre": "TEGO BETAÍNA DE COCO"
  },
  "C-TEGBETLT": {
-  "familia": "c-tegbetlt",
+  "familia": "TEGBETg",
   "nombre": "TEGO BETAÍNA DE COCO"
  },
  "C-TENSCI100G": {

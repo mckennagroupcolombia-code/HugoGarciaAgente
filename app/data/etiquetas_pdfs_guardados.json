@@ -1,6 +1,48 @@
 {
   "archivos": [
     {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_20261007_120003.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_20261007_120003.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_20261007_120003.pdf",
+      "subido_at": "2026-10-07T12:00:03",
+      "bytes": 184419
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_20261007_115950.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_20261007_115950.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_20261007_115950.pdf",
+      "subido_at": "2026-10-07T11:59:50",
+      "bytes": 184419
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_20261007_114924.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_20261007_114924.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_20261007_114924.pdf",
+      "subido_at": "2026-10-07T11:49:24",
+      "bytes": 182433
+    },
+    {
+      "nombre": "AVENA_HOJUELAS_KG_20261007_114640.pdf",
+      "ruta": "Etiquetas McKenna/AVENA_HOJUELAS_KG_20261007_114640.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AVENA_HOJUELAS_KG_20261007_114640.pdf",
+      "subido_at": "2026-10-07T11:46:40",
+      "bytes": 177272
+    },
+    {
+      "nombre": "AVENA_HOJUELAS_KG_20261007_114627.pdf",
+      "ruta": "Etiquetas McKenna/AVENA_HOJUELAS_KG_20261007_114627.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AVENA_HOJUELAS_KG_20261007_114627.pdf",
+      "subido_at": "2026-10-07T11:46:27",
+      "bytes": 177272
+    },
+    {
+      "nombre": "AVENA_HOJUELAS_KG.pdf",
+      "ruta": "Etiquetas McKenna/AVENA_HOJUELAS_KG.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AVENA_HOJUELAS_KG.pdf",
+      "subido_at": "2026-10-07T11:46:04",
+      "bytes": 177272
+    },
+    {
       "nombre": "SHAROMIX_705_50mL_20261006_131039.pdf",
       "ruta": "Etiquetas McKenna/SHAROMIX_705_50mL_20261006_131039.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_20261006_131039.pdf",
@@ -1357,48 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g.pdf",
       "subido_at": "2026-09-29T09:30:58",
       "bytes": 181893
-    },
-    {
-      "nombre": "NUEZ_DEL_BRASIL_500g_20260929_092610.pdf",
-      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_20260929_092610.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_20260929_092610.pdf",
-      "subido_at": "2026-09-29T09:26:10",
-      "bytes": 162054
-    },
-    {
-      "nombre": "NUEZ_DEL_BRASIL_500g.pdf",
-      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_500g.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_500g.pdf",
-      "subido_at": "2026-09-29T09:25:59",
-      "bytes": 162054
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_20260929_092355.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_20260929_092355.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_20260929_092355.pdf",
-      "subido_at": "2026-09-29T09:23:55",
-      "bytes": 185528
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_20260929_092144.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_20260929_092144.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_20260929_092144.pdf",
-      "subido_at": "2026-09-29T09:21:45",
-      "bytes": 185528
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g.pdf",
-      "subido_at": "2026-09-29T09:18:27",
-      "bytes": 185528
-    },
-    {
-      "nombre": "PSYLLIUM_EN_ESCAMAS_250g_20260929_091602.pdf",
-      "ruta": "Etiquetas McKenna/PSYLLIUM_EN_ESCAMAS_250g_20260929_091602.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PSYLLIUM_EN_ESCAMAS_250g_20260929_091602.pdf",
-      "subido_at": "2026-09-29T09:16:02",
-      "bytes": 172354
     }
   ]
 }

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ClipboardEvent, type ReactNode, type RefObject } from "react";
+import { Cara } from "../../lib/fotoPersona";
 import GrabadorVoz, { CLASE_BOTON_REDONDO, IconoEnviar } from "./GrabadorVoz";
 import { consultaEnCurso, sugerencias, type Persona } from "../../lib/menciones";
 import { colorDePersona } from "../../lib/personaColor";
+import { SelectorEmojiPixel } from "./emojiPixel";
 
 export function IconoClip() {
   return (
@@ -83,6 +85,15 @@ export default function BarraEscritura({
     requestAnimationFrame(() => { ref.current?.focus(); ref.current?.setSelectionRange(pos, pos); });
   };
 
+  // Emoji pixel: entra donde está el cursor (se envía como el emoji Unicode de siempre).
+  const insertarEmoji = (e: string) => {
+    const pos = Math.min(cursor, texto.length);
+    onTexto(`${texto.slice(0, pos)}${e}${texto.slice(pos)}`);
+    const nueva = pos + e.length;
+    setCursor(nueva);
+    requestAnimationFrame(() => { ref.current?.focus(); ref.current?.setSelectionRange(nueva, nueva); });
+  };
+
   // Crece con el texto (hasta ~6 líneas) y vuelve a una línea al enviar.
   useEffect(() => {
     const el = ref.current;
@@ -101,8 +112,8 @@ export default function BarraEscritura({
             <button key={p.id} type="button" role="option" aria-selected={i === 0}
                     onMouseDown={(e) => { e.preventDefault(); elegir(p); }}
                     className={`mck-btn-no-fx flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/10 ${i === 0 ? "bg-accent/5" : ""}`}>
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-black text-white"
-                    style={{ background: colorDePersona(p.nombre) }} aria-hidden>{p.nombre.slice(0, 1).toUpperCase()}</span>
+              <Cara uid={p.id} nombre={p.nombre} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-black text-white"
+                    style={{ background: colorDePersona(p.nombre) }} fallback={p.nombre.slice(0, 1).toUpperCase()} />
               <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-ink">{p.nombre}</span>
             </button>
           ))}
@@ -128,6 +139,7 @@ export default function BarraEscritura({
             style={{ minHeight: 46, maxHeight: 150 }}
           />
           <div className="flex shrink-0 items-center self-end pb-[3px]">
+            <SelectorEmojiPixel onElegir={insertarEmoji} />
             {iconos}
             {!texto.trim() && iconosSinTexto}
           </div>

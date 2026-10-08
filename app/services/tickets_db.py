@@ -3,6 +3,7 @@ import json
 import re
 import sqlite3
 import secrets
+import time
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -1269,6 +1270,18 @@ def init_db():
                 ultima_vista_en TEXT NOT NULL,
                 PRIMARY KEY (ticket_id, usuario_id)
             );
+            -- Zumbidos (7-oct-2026): quien está en una solicitud sacude la pantalla de los
+            -- demás miembros. Una fila por destinatario; `visto_en` se llena cuando su panel
+            -- ya lo hizo sonar (ver `zumbidos_para_mi`).
+            CREATE TABLE IF NOT EXISTS ticket_zumbidos (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id    INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+                de_usuario   INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                para_usuario INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                creado_en    INTEGER NOT NULL,
+                visto_en     INTEGER
+            );
+            CREATE INDEX IF NOT EXISTS idx_zumbidos_para ON ticket_zumbidos(para_usuario, visto_en);
         """)
         db.executescript("""
             CREATE TABLE IF NOT EXISTS notas_personales (
@@ -1935,6 +1948,27 @@ def _limpiar_alertas_sonido(raw) -> dict | None:
     return out
 
 
+# Avatares del barrio: los modelos que hay en desktop/public/empresa/personajes/.
+AVATARES_EMPRESA = tuple(f"character-{g}-{l}" for g in ("female", "male") for l in "abcdef")
+ACCESORIOS_EMPRESA = ("", "aid-glasses", "aid-sunglasses")
+
+
+def _limpiar_avatar_empresa(valor) -> dict | None:
+    """{avatar, accesorio, color} validado; None si algo no es de la lista."""
+    import re as _re
+
+    if not isinstance(valor, dict):
+        return None
+    avatar = str(valor.get("avatar") or "")
+    accesorio = str(valor.get("accesorio") or "")
+    color = str(valor.get("color") or "")
+    if avatar not in AVATARES_EMPRESA or accesorio not in ACCESORIOS_EMPRESA:
+        return None
+    if color and not _re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+        return None
+    return {"avatar": avatar, "accesorio": accesorio, "color": color}
+
+
 def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, str | None, dict | None]:
     """Guarda tema del panel asociado al usuario (JSON validado)."""
     import json as _json
@@ -2041,6 +2075,13 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             return False, "sonidos inválido", None
         clean["sonidos"] = son
 
+    # Empresa viva (desktop/src/components/empresa): el avatar de cada quien en el barrio.
+    if "empresa" in preferencias:
+        emp = _limpiar_avatar_empresa(preferencias.get("empresa"))
+        if emp is None:
+            return False, "empresa inválido", None
+        clean["empresa"] = emp
+
     if not clean:
         return False, "Nada que guardar", None
 
@@ -2065,6 +2106,8 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             merged["estilo_v"] = clean["estilo_v"]
         if "sonidos" in clean:
             merged["sonidos"] = clean["sonidos"]
+        if "empresa" in clean:
+            merged["empresa"] = clean["empresa"]
         db.execute(
             "UPDATE usuarios SET preferencias_ui=? WHERE id=?",
             (_json.dumps(merged), user_id),
@@ -3341,6 +3384,98 @@ def agregar_participante(ticket_id: int, usuario_id: int, rol: str = "colaborado
             return False
 
 
+def puede_gestionar_participantes(ticket_id: int, usuario: dict) -> bool:
+    """Suma o quita miembros quien ya está en la solicitud (la pidió, la tiene o es
+    participante) o un supervisor. Antes la ruta dejaba a cualquiera con sesión."""
+    uid = usuario.get("id")
+    if (usuario.get("rol") or {}).get("nivel", 1) >= 2:
+        return True
+    with _conn() as db:
+        t = db.execute("SELECT creado_por, asignado_a FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        if not t:
+            return False
+        if uid in (t["creado_por"], t["asignado_a"]):
+            return True
+        return db.execute(
+            "SELECT 1 FROM ticket_participantes WHERE ticket_id=? AND usuario_id=?",
+            (ticket_id, uid),
+        ).fetchone() is not None
+
+
+# ── ZUMBIDOS ──────────────────────────────────────────────────────────────────
+
+ZUMBIDO_ESPERA_S = 20       # entre dos zumbidos de la misma persona en la misma solicitud
+ZUMBIDO_VIGENCIA_S = 600    # uno que no sonó en 10 min (panel cerrado) ya no sacude a nadie
+
+
+def enviar_zumbido(ticket_id: int, usuario: dict) -> tuple[dict | None, str | None]:
+    """Sacude la pantalla de los demás miembros de la solicitud (quien la pidió, a quien le
+    toca y los que se sumaron). Solo quien está en ella; uno cada `ZUMBIDO_ESPERA_S`.
+    Queda en el hilo como evento («… envió un zumbido»). Sin LLM ni WhatsApp."""
+    uid = int(usuario["id"])
+    ahora = int(time.time())
+    with _conn() as db:
+        t = db.execute("SELECT creado_por, asignado_a, estado FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        if not t:
+            return None, "Solicitud no encontrada"
+        if t["estado"] in ("resuelto", "rechazado"):
+            return None, "La solicitud ya está cerrada"
+        miembros = {t["creado_por"], t["asignado_a"]} | {
+            r["usuario_id"] for r in db.execute(
+                "SELECT usuario_id FROM ticket_participantes WHERE ticket_id=?", (ticket_id,))
+        }
+        miembros.discard(None)
+        if uid not in miembros:
+            return None, "Solo quien está en la solicitud puede enviar zumbidos"
+        para = sorted(int(m) for m in miembros if int(m) != uid)
+        if not para:
+            return None, "No hay nadie más en la solicitud"
+        ultimo = db.execute(
+            "SELECT MAX(creado_en) AS ts FROM ticket_zumbidos WHERE ticket_id=? AND de_usuario=?",
+            (ticket_id, uid),
+        ).fetchone()["ts"]
+        if ultimo and ahora - int(ultimo) < ZUMBIDO_ESPERA_S:
+            return None, f"Espera {ZUMBIDO_ESPERA_S - (ahora - int(ultimo))} s para otro zumbido"
+        db.executemany(
+            "INSERT INTO ticket_zumbidos (ticket_id, de_usuario, para_usuario, creado_en) VALUES (?,?,?,?)",
+            [(ticket_id, uid, p, ahora) for p in para],
+        )
+        _log(db, ticket_id, uid, "zumbido")
+        db.execute("UPDATE tickets SET actualizado_en=datetime('now') WHERE id=?", (ticket_id,))
+        db.commit()
+    return {"ok": True, "para": para}, None
+
+
+def zumbidos_para_mi(usuario_id: int) -> list[dict]:
+    """Zumbidos que aún no sonaron en el panel de esta persona (los de los últimos 10 min).
+    La campana los consulta con `/api/mensajes/resumen`; el panel los marca vistos al sonar."""
+    with _conn() as db:
+        filas = db.execute(
+            "SELECT z.id, z.ticket_id, z.de_usuario, z.creado_en, t.numero, t.titulo, "
+            "COALESCE(u.nombre, '') AS de_nombre "
+            "FROM ticket_zumbidos z JOIN tickets t ON t.id = z.ticket_id "
+            "LEFT JOIN usuarios u ON u.id = z.de_usuario "
+            "WHERE z.para_usuario=? AND z.visto_en IS NULL AND z.creado_en >= ? "
+            "ORDER BY z.id DESC LIMIT 10",
+            (int(usuario_id), int(time.time()) - ZUMBIDO_VIGENCIA_S),
+        ).fetchall()
+    return [dict(f) for f in filas]
+
+
+def marcar_zumbidos_vistos(usuario_id: int, ids: list[int]) -> int:
+    ids = [int(i) for i in ids if str(i).isdigit()][:50]
+    if not ids:
+        return 0
+    with _conn() as db:
+        cur = db.execute(
+            f"UPDATE ticket_zumbidos SET visto_en=? WHERE para_usuario=? AND visto_en IS NULL "
+            f"AND id IN ({','.join('?' * len(ids))})",
+            (int(time.time()), int(usuario_id), *ids),
+        )
+        db.commit()
+        return cur.rowcount
+
+
 def quitar_participante(ticket_id: int, usuario_id: int) -> bool:
     with _conn() as db:
         db.execute(
@@ -4420,7 +4555,7 @@ def marcar_ticket_visto(ticket_id: int, usuario_id: int) -> None:
 
 _TIMELINE_SISTEMA_ACCIONES = (
     "ticket_creado", "estado_cambiado", "asignado", "adjunto_agregado",
-    "ticket_renovado", "intervencion_resuelta", "compras_delegadas",
+    "ticket_renovado", "intervencion_resuelta", "compras_delegadas", "zumbido",
 )
 
 _TIMELINE_SISTEMA_VERBOS = {
@@ -4496,6 +4631,8 @@ def timeline_ticket(ticket_id: int) -> list:
             texto = f"{autor} resolvió una intervención"
         elif accion == "compras_delegadas":
             texto = f"{autor} delegó las compras"
+        elif accion == "zumbido":
+            texto = f"📳 {autor} envió un zumbido"
         else:
             verbo = _TIMELINE_SISTEMA_VERBOS.get((accion, e["valor_nuevo"]), "actualizó el estado")
             texto = f"{autor} {verbo}"

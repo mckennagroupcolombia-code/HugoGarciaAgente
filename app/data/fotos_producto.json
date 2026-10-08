@@ -517,6 +517,182 @@
      "bytes": 2408017
     }
    ]
+  },
+  "C-SEMGIR250G": {
+   "web": [
+    {
+     "archivo": "C-SEMGIR250G_20261007-135706_0d1b.png",
+     "subido_at": "2026-10-07T13:57:06",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2034447
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-SEMGIR250G_20261007-140335_8344.png",
+     "subido_at": "2026-10-07T14:03:35",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2215491
+    }
+   ]
+  },
+  "C-SEMGIR500G": {
+   "web": [
+    {
+     "archivo": "C-SEMGIR500G_20261007-143727_5c20.png",
+     "subido_at": "2026-10-07T14:37:27",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2252338
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-SEMGIR500G_20261007-144141_9f3f.png",
+     "subido_at": "2026-10-07T14:41:41",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2213556
+    }
+   ]
+  },
+  "C-SEMGIRKG": {
+   "web": [
+    {
+     "archivo": "C-SEMGIRKG_20261007-145448_30ba.png",
+     "subido_at": "2026-10-07T14:54:48",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2472536
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-SEMGIRKG_20261007-174116_70de.png",
+     "subido_at": "2026-10-07T17:41:16",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2545493
+    }
+   ]
+  },
+  "C-UVAPASFLA250G": {
+   "web": [
+    {
+     "archivo": "C-UVAPASFLA250G_20261007-151512_490d.png",
+     "subido_at": "2026-10-07T15:15:12",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2415271
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-UVAPASFLA250G_20261007-151807_3365.png",
+     "subido_at": "2026-10-07T15:18:07",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2392770
+    }
+   ]
+  },
+  "C-UVAPASFLA500G": {
+   "web": [
+    {
+     "archivo": "C-UVAPASFLA500G_20261007-180004_a53c.png",
+     "subido_at": "2026-10-07T18:00:04",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2410708
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-UVAPASFLA500G_20261007-180411_7583.png",
+     "subido_at": "2026-10-07T18:04:11",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2364811
+    }
+   ]
+  },
+  "C-BAYGOJ250G": {
+   "web": [
+    {
+     "archivo": "C-BAYGOJ250G_20261007-193034_b903.png",
+     "subido_at": "2026-10-07T19:30:34",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2389252
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-BAYGOJ250G_20261007-193307_bf85.png",
+     "subido_at": "2026-10-07T19:33:07",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2520379
+    }
+   ]
+  },
+  "C-BAYGOJ500G": {
+   "web": [
+    {
+     "archivo": "C-BAYGOJ500G_20261007-194233_620e.png",
+     "subido_at": "2026-10-07T19:42:33",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2540300
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-BAYGOJ500G_20261007-194355_96f1.png",
+     "subido_at": "2026-10-07T19:43:55",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2502883
+    }
+   ]
+  },
+  "C-AVEMOLKG": {
+   "web": [
+    {
+     "archivo": "C-AVEMOLKG_20261007-213048_a4ee.png",
+     "subido_at": "2026-10-07T21:30:48",
+     "por": "@cynthia",
+     "ancho": 1024,
+     "alto": 1536,
+     "bytes": 2691296
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-AVEMOLKG_20261007-211744_7798.png",
+     "subido_at": "2026-10-07T21:17:44",
+     "por": "@cynthia",
+     "ancho": 1024,
+     "alto": 1536,
+     "bytes": 2619615
+    }
+   ]
   }
  }
 }

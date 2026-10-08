@@ -463,7 +463,7 @@ function RiskBadge({ nivel, score }: { nivel: string; score: number }) {
 function ChecklistGrid({ checklist }: { checklist: Record<string, boolean> }) {
   const labels: Record<string, string> = {
     titulo_nombre_quimico_correcto: "Nombre químico correcto",
-    titulo_incluye_materia_prima:   "Título incluye 'Materia Prima'",
+    titulo_sin_materia_prima:       "Título sin 'Materia Prima'",
     sin_claims_salud:               "Sin claims de salud",
     incluye_res_2674:               "Incluye Res. 2674",
     domain_correcto:                "Domain MCO-SUPPLEMENTS",

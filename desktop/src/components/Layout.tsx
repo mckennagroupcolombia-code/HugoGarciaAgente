@@ -65,7 +65,7 @@ export default function Layout({
   const volverAlTaller = useAppStore((st) => st.volverAlTaller);
   const enOrigen = panel === "hugo" || panel === "tickets";
   // La Agenda y lo que vive dentro de ella: llevan sus vistas como pestañas propias.
-  const enFamiliaAgenda = enOrigen || panel === "colaboradores" || panel === "juegos" || panel === "chat-equipo";
+  const enFamiliaAgenda = enOrigen || panel === "colaboradores" || panel === "juegos" || panel === "empresa-viva" || panel === "chat-equipo";
   const puedeVerMapa = Boolean(user && puedeVerSeccionPanel(user, "mapa-vivo"));
   const ubicacion = ubicacionDe(panel);
   // El color de la etapa donde queda este módulo (la piel pixel lo dibuja en la losa y las tablas).
@@ -321,6 +321,7 @@ export default function Layout({
               panel === "colaboradores" ||
               panel === "mapa-vivo" ||
               panel === "juegos" ||
+              panel === "empresa-viva" ||
               panel === "chat-equipo" ||
               studioEtiquetasFill ? (
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

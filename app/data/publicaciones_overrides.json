@@ -745,5 +745,53 @@
   "C-GOMGUA500g": {
     "meli_item_id": "MCO2251559089",
     "updated_at": "2026-10-02T04:32:56.645891"
+  },
+  "C-SEMGIR250g": {
+    "imagenes_web": [
+      "C-SEMGIR250g.png"
+    ],
+    "updated_at": "2026-10-07T14:16:43.047528"
+  },
+  "C-SEMGIR500g": {
+    "imagenes_web": [
+      "C-SEMGIR500g.png"
+    ],
+    "updated_at": "2026-10-07T14:46:16.733601"
+  },
+  "C-SEMGIRKg": {
+    "imagenes_web": [
+      "C-SEMGIRKg.png"
+    ],
+    "updated_at": "2026-10-07T15:00:36.142571"
+  },
+  "C-UVAPASFLA250g": {
+    "imagenes_web": [
+      "C-UVAPASFLA250g.png"
+    ],
+    "updated_at": "2026-10-07T15:21:36.149702"
+  },
+  "C-UVAPASFLA500g": {
+    "imagenes_web": [
+      "C-UVAPASFLA500g.png"
+    ],
+    "updated_at": "2026-10-07T18:05:19.876149"
+  },
+  "C-BAYGOJ250g": {
+    "imagenes_web": [
+      "C-BAYGOJ250g.png"
+    ],
+    "updated_at": "2026-10-07T19:37:20.651922"
+  },
+  "C-BAYGOJ500g": {
+    "imagenes_web": [
+      "C-BAYGOJ500g.png"
+    ],
+    "updated_at": "2026-10-07T19:52:28.876132"
+  },
+  "C-AVEMOLKg": {
+    "imagenes_web": [
+      "C-AVEMOLKg.png"
+    ],
+    "updated_at": "2026-10-07T21:33:13.844161"
   }
 }

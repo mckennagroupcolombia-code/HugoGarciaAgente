@@ -5,6 +5,7 @@ import { useBandeja, type ItemBandeja, type SeccionBandeja } from "../../lib/ban
 import { colorDePersona } from "../../lib/personaColor";
 import { sonidoDeCanal, sonidoPorId, SILENCIO, useAlertasSonido } from "../../lib/alertasSonido";
 import HiloConversacion from "./HiloConversacion";
+import { Cara } from "../../lib/fotoPersona";
 import HiloCanal from "../chat_equipo/HiloCanal";
 import { ESTADO_LABEL, iniciales, tiempoRelativo, uidEq } from "./ticketsFormat";
 import { irAVistaMensajes } from "../chat_equipo/SelectorMensajes";
@@ -89,9 +90,8 @@ function Fila({ it, uid, onAbrir }: { it: ItemBandeja; uid: number; onAbrir: () 
   const autor = c.ultimo_texto ? (propio ? "Tú: " : c.ultimo_autor ? `${c.ultimo_autor.split(" ")[0]}: ` : "") : "";
   return (
     <button type="button" onClick={onAbrir} className={`bj-fila ${nuevo ? "bj-nuevo" : ""}`}>
-      <span className="bj-avatar" style={{ background: colorDePersona(c.contraparte_nombre || "?") }} aria-hidden>
-        {iniciales(c.contraparte_nombre)}
-      </span>
+      <Cara uid={c.contraparte_id} nombre={c.contraparte_nombre} className="bj-avatar"
+        style={{ background: colorDePersona(c.contraparte_nombre || "?") }} fallback={iniciales(c.contraparte_nombre)} />
       <span className="min-w-0 flex-1">
         <span className="bj-linea">
           <span className="bj-titulo">{c.titulo}</span>

@@ -1,3 +1,80 @@
+### 2026-10-08 12:10 - Empresa viva: la operación de McKenna como juego 3D (estilo FarmVille 3)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (panel `/app`, Agenda). Sin LLM.
+- **Qué se implementó:**
+  - Agenda → **Empresa viva**: el barrio real de la empresa en 3D, con el Búnker Suba (Armando y Cynthia), la Sede McKenna Sur (Victor y Stella) y la Tienda digital. Convive con el Mapa y no lo reemplaza.
+  - Cada persona camina al lugar del panel que tiene abierto; desconectada, duerme en su cuarto.
+  - Lo que se ve sale de la operación real:
+    - Preguntas de MeLi y chats de WhatsApp sin responder hacen fila en la tienda y se van con «¡Gracias, …!» cuando alguien responde.
+    - Las ventas son cajas que se alistan y el mensajero se lleva.
+    - Las recepciones abiertas traen el camión del proveedor.
+    - La bodega muestra lo agotado y lo crítico, con la lista de qué reponer.
+    - Lo detenido del Mapa aparece como pilas de papeles en cada oficina.
+  - **Quién le habla a quién:** las preguntas y solicitudes entre personas y los mensajes de los grupos del equipo vuelan como avioncitos de papel. El contenido solo lo ve quien participa.
+  - **Acciones**, siempre por los caminos de siempre:
+    - «Preguntarle algo» crea una solicitud de tipo pregunta.
+    - «Compartir idea» publica en el chat del equipo y avisa si el grupo sale también a WhatsApp.
+    - «Mi avatar» ofrece 12 personajes, accesorios y color del nombre.
+  - **Motor gráfico** con referencia en FarmVille 3:
+    - Three.js con cámara en perspectiva, luz cálida, oclusión ambiental, brillo y pasto que se mece.
+    - Casas con techo que se levanta al acercarse.
+    - Calidad alta, media o baja; el celular arranca en una más liviana.
+    - Modelos CC0 de KayKit y Kenney (5,2 MB).
+  - **Roles** sacados de la revisión de funciones, permisos y paneles más usados, en `app/data/empresa_viva_casas.json`. El contador y los colaboradores externos no aparecen.
+- **Archivos Modificados:** `app/services/empresa_viva.py` (nuevo), `app/routes_mapa_sistema.py`, `app/services/tickets_db.py` (avatar en `preferencias_ui`), `app/data/empresa_viva_casas.json` (nuevo), `desktop/src/components/empresa/*` (nuevo), `desktop/public/empresa/` (modelos), `desktop/package.json` (`three`), registro del panel (`App.tsx`, `Layout.tsx`, `panelAccess.ts`, `panelInfo.ts`, `flujoApp.ts`, `navStructure.ts`, `InicioNavTabs.tsx`, `mapaComun.tsx`, `PanelTransition.tsx`, `panels.tsx`, `stores/app.ts`), `desktop/dev/` (banco de pruebas), `tests/test_empresa_viva.py` (nuevo), `docs/agentic/modules/operacion-equipo.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
+### 2026-10-07 - IVA de venta = el que cobra el proveedor (automático) + publicación de 8 productos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Alegra, compras, facturación) + operación de catálogo (MeLi, web). Sin LLM.
+- **Qué se implementó:**
+  - Regla de Armando ahora en el sistema: lo que se reempaca se vende con el IVA de la factura de compra. Al registrar una compra con el total cuadrado, `iva_venta_compra` cambia el IVA de venta en Alegra de la materia prima y de los combos que solo la reempacan, lo relee y avisa al grupo de facturación de ventas. No toca fórmulas con varias materias primas, el 0 % de proveedores que no cobran IVA, ni un cambio de tarifa del mismo insumo (eso se avisa para revisar a mano).
+  - Aplicado hoy (26 ítems): harinas de avena y de trigo → 5 %; vitaminas A, B3/niacinamida, C, E, D-pantenol, urea, azufre y ácido giberélico → excluido (Química Interkrol también las factura sin IVA); 7 materias primas que estaban sin IVA → 19 %. El precio de lista no cambia. Lo ya facturado al 19 % se revisa con el contador.
+  - La caché de productos de Alegra ahora vence a los 10 minutos: un cambio de IVA ya no exige reiniciar los servicios.
+  - Publicados en MeLi y web: girasol 250 g/500 g, uvas pasas 250 g/500 g, goji 250 g/500 g, harina de avena 1 kg; girasol 1 kg bajó a $19.500 y se le cambió la foto de MeLi.
+  - Los títulos de MeLi ya no llevan «Materia Prima» (decisión de Armando): el prompt del generador lo exigía y se corrigió. Como MeLi no deja editar el título de una publicación con nombre de familia, se republicaron las 13 (las de hoy, avena en hojuelas 1 kg, coco virgen 250 g/500 g/1 kg y albaricoque 250 g) con el mismo precio, stock, fotos, EAN y atributos, y se cerraron las viejas.
+- **Archivos Modificados:** `app/services/iva_venta_compra.py` (nuevo), `app/tools/meli_compliance.py`, `desktop/src/components/MeliComplianceTab.tsx`, `app/services/pagos_proveedor.py`, `app/services/alegra.py`, `scripts/iva_venta_por_compra.py` (nuevo), `scripts/auditar_catalogo_combos.py`, `tests/test_iva_venta_compra.py` (nuevo), `docs/agentic/modules/facturacion-meli-alegra.md`, `CLAUDE.md`, `.env.example`, `app/data/despliegue_ventas.json`, `docs/team-recaps.md`.
+
+### 2026-10-07 - Comercializadora Internacional: facturas CIV2570 y CIV2578 cuadradas con los pagos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección contable (Libro Mayor, Solicitudes de pago, Taller de conciliación). Sin cambios de código. Sin LLM.
+- **Qué se implementó:**
+  - Las dos facturas del 5-oct no cuadraban con lo registrado. **CIV2570** ($539.070) corresponde a la solicitud #65 y coincide al peso. **CIV2578** ($589.050, 2500 papeles 20×30, sin retención) corresponde a la #68.
+  - **#65:** el banco giró **$425.455**, pero el libro registraba $525.455 porque el valor «montado» no se comparó con el comprobante. El asiento #9251 (Alegra AC-181) corrige Bancos y deja $100.000 por pagar. La línea del extracto del 1-oct quedó conciliada.
+  - **#68:** se había registrado con la cotización, que repetía los 1000 doypacks de CIV2570 y traía una retención que no correspondía (la base está por debajo de 10 UVT). El asiento #9252 (Alegra AC-182) la deja como CIV2578 y con el giro del 5-oct cubre los $100.000 de CIV2570.
+  - **Quedan $415.370 a favor de McKenna** (cuenta 133005). Se descuentan del próximo pedido a este proveedor.
+  - Se revisó el correo: desde agosto solo hay 4 facturas de este proveedor (CIV2336, CIV2539, CIV2570, CIV2578) y las cuatro cuadran con el libro. El inventario de insumos ya cuenta 3000 papeles 20×30 y 1000 doypacks 16×24.
+  - Pendiente: el panel sigue aceptando un valor «montado» distinto al del comprobante del banco.
+- **Archivos Modificados:** `docs/team-recaps.md` (los ajustes viven en `app/data/contabilidad.db`, fuera de git, y en Alegra).
+
+### 2026-10-07 - Tienda web: se quitan las calcomanías de temporada
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (tienda web). Sin LLM.
+- **Qué se implementó:**
+  - Se quitaron las calcomanías de Halloween en pixel art (calabaza, bruja, fantasma, araña, murciélagos) que salían sobre el encabezado de cada página.
+  - Se borró también el archivo de Amor y Amistad, que ya no se mostraba desde el 1-oct.
+- **Archivos Modificados:** `PAGINA_WEB/site/templates/base.html`, `PAGINA_WEB/site/templates/_stickers_{halloween,amor}.html` (borrados), `docs/team-recaps.md`.
+
+### 2026-10-07 - Checkout web: nombre y apellido obligatorios
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (tienda web, checkout). Sin LLM.
+- **Qué se implementó:**
+  - El pedido MCKG-053C614F06 llegó solo con «Jonathan» y Alegra no creó el contacto: exige apellido para persona natural (HTTP 400, código 2034), así que la factura quedó en error.
+  - El apellido se tomó del titular de la tarjeta en Mercado Pago (Jonathan Parra, misma cédula) y se emitió la **FE1116**.
+  - Ahora el checkout no deja pasar un nombre de una sola palabra: el navegador lo pide y el servidor lo vuelve a revisar. Las empresas (NIT 8…/9… de 9 dígitos) pueden seguir poniendo la razón social en una palabra.
+- **Archivos Modificados:** `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/templates/checkout.html`, `docs/team-recaps.md`.
+
+### 2026-10-07 - Hugo (asistente de ventas): auditoría de respuestas en WhatsApp y web
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (agente de ventas v2, WhatsApp activo y web en sombra). Revisión hecha sin gastar llamadas a la IA.
+- **Qué se implementó:**
+  - Se revisaron 209 turnos de WhatsApp y 56 del chat web (1 al 6 de octubre).
+  - **Mensajes que se perdían:** lo que el cliente escribía mientras Hugo pensaba se quedaba sin respuesta («¿el pago es contra entrega?») o se respondía dos veces. Ahora Hugo atiende un turno a la vez por chat y lo escrito entretanto se contesta en el turno siguiente.
+  - **Revisor automático:** ya acepta los precios que Hugo dio antes si siguen vigentes (13 de 24 rechazos eran eso) y no marca como error pedir datos fuera de horario ni la franja de entrega. El mensaje de respaldo ya no dice «no puedo procesar su mensaje».
+  - **Instrucciones nuevas en los dos canales:** no escribir su razonamiento, no nombrar productos que no son lo pedido, registrar la cantidad que el cliente ya dijo, no repetir «¿le cuadro el pedido?», «bulto» = 25 kg, nunca «empacada de fábrica» ni «consumo directo». En la web, no repetir la misma oferta ante «Hola» o «Pedido».
+  - **Búsqueda del catálogo:** «hidroquinona» ya no devuelve colágeno hidrolizado; los errores de tipeo siguen encontrando el producto.
+  - Pendiente fuera del bot: 6 de 28 casos pasados al asesor sin respuesta humana, catálogo de WhatsApp Business con productos que la web ya no vende, sin regla de precio por mayor.
+- **Archivos Modificados:** `app/agent/ventas_wa/{entrada,agente,supervisor,catalogo}.py`, `tests/test_ventas_wa.py`, `app/data/debugging_resuelto.jsonl`, `docs/agentic/modules/agente-ventas-v2.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - El perro solo celebra cuando se termina un flujo
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (sonidos del panel). Sin LLM.

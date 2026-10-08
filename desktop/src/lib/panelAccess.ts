@@ -55,6 +55,9 @@ export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string):
   if (seccion === "mapa-vivo") return true;
   // Juegos: un rato de descanso para todo el equipo interno (no para contador ni colaborador externo).
   if (seccion === "juegos") return true;
+  // Empresa viva: la operación de ahora como juego, para todo el equipo interno. Los detalles
+  // de cada cosa los recorta el servidor por permisos (app/services/empresa_viva.py).
+  if (seccion === "empresa-viva") return true;
   // El chat del equipo es de todo el equipo interno (cada canal filtra sus miembros en la API).
   if (seccion === "chat-equipo") return true;
   if (seccion === "etiquetas") return true;

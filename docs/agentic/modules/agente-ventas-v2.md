@@ -123,3 +123,28 @@ los dígitos de la respuesta y marcaba «datos de pago» en cualquier lista de p
   — el servidor es multihilo y otro hilo podría leer "activo" y responderle de verdad a un cliente.
 - `wa_bot_detect.parece_respuesta_bot` ya no marca como bot los mensajes con "veci": el asesor
   también lo escribe, y ese falso positivo hacía creer que nadie humano atendía el chat.
+
+### Auditoría de respuestas WhatsApp + web (7-oct-2026)
+
+209 turnos de WhatsApp (activo) y 56 de web (sombra), 1–6 oct. Qué se corrigió:
+
+- **Ráfagas (`entrada.py`)**: lo que el cliente escribía mientras el modelo pensaba se perdía
+  (quedaba antes de la respuesta y parecía respondido: «¿el pago es contra entrega?») o generaba
+  dos turnos en paralelo (respuesta doble, turnos 80/81). Ahora hay **un turno a la vez por chat**
+  (lock por jid); `_consumido[jid]` guarda el último mensaje que entró al turno y
+  `_reordenar_rezagados` deja pendientes los posteriores si después solo habló el bot (si habló un
+  asesor, son suyos). `_esperar_envio_previo` espera a que el puente guarde la respuesta anterior.
+  Estado en memoria: un reinicio lo pierde (vuelve al comportamiento previo, sin romper nada).
+- **Supervisor**: 13 de 24 rechazos eran precios que Hugo ya había dado → `_precios_vigentes_citados`
+  los suma a la evidencia si siguen en el catálogo. El revisor IA ya no marca como error pedir datos
+  fuera de horario, omitir un resultado irrelevante ni los hechos del playbook (franja, Interrapidísimo).
+- **Respaldo**: ya no dice «no puedo procesar su mensaje» (sonaba a caída ante un «1»).
+- **`REGLAS_COMUNES`** (ambos prompts): sin razonamiento en el texto, no nombrar resultados que no
+  son lo pedido, cantidad dicha = registrar sin confirmar (sin cantidad → 1), no repetir la pregunta
+  de cierre, «bulto» = 25 kg (asesor), nunca «empacada de fábrica» ni «consumo directo» (reenvasado).
+  Web: no repetir la oferta ante «Hola»/«Pedido», explicar cómo comprar.
+- **Catálogo**: prefijo común proporcional (`max(5, len-5)`): «hidroquinona» ya no trae colágeno
+  hidrolizado; probado con 1080 palabras reales (typos como «monohidatada» siguen encontrando).
+
+Pendiente fuera del bot: 6 de 28 derivaciones sin respuesta humana; el catálogo de WhatsApp Business
+muestra productos que la web ya no vende (albúmina de huevo); no hay regla de precio por volumen.

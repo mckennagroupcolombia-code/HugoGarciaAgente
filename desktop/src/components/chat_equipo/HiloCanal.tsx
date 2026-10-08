@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Cara } from "../../lib/fotoPersona";
+import { nodosConEmojisPixel, soloEmojisPixel } from "./emojiPixel";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
 import { useAppStore } from "../../stores/app";
 import {
@@ -147,7 +149,7 @@ function TextoChat({ texto, menciones = [], yo }: { texto: string; menciones?: P
   const partes: ReactNode[] = [];
   let ultimo = 0;
   let k = 0;
-  const plano = (t: string) => (menciones.length ? conMenciones(t, menciones, yo, k++) : [t]);
+  const plano = (t: string) => nodosConEmojisPixel(menciones.length ? conMenciones(t, menciones, yo, k++) : [t], `p${k++}-`);
   for (const m of texto.matchAll(RE_FORMATO)) {
     const i = m.index ?? 0;
     if (i > ultimo) partes.push(...plano(texto.slice(ultimo, i)));
@@ -217,8 +219,9 @@ function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, r
       onTouchEnd={() => { if (arrastre > 55) onResponder(); toque.current = null; setArrastre(0); }}>
       {!propio && (
         primero
-          ? <span className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center self-start rounded-full text-[13px] font-black text-white shadow-sm"
-              style={{ background: colorDePersona(m.autor_nombre) }} aria-hidden>{iniciales(m.autor_nombre)}</span>
+          ? <Cara uid={m.origen === "panel" ? m.usuario_id : null} nombre={m.autor_nombre}
+              className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center self-start rounded-full text-[13px] font-black text-white shadow-sm"
+              style={{ background: colorDePersona(m.autor_nombre) }} fallback={iniciales(m.autor_nombre)} />
           : <span className="w-9 shrink-0" aria-hidden />
       )}
       <div style={arrastre ? { transform: `translateX(${arrastre}px)` } : undefined}
@@ -245,7 +248,7 @@ function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, r
           </a>
         )}
         {meNombra && <p className="mck-chat-meta mb-0.5 font-black uppercase tracking-wide text-accent">@ Te nombró</p>}
-        {m.texto && <p className="mck-chat-texto whitespace-pre-wrap break-words text-ink"><TextoChat texto={m.texto} menciones={menciones} yo={yo} /></p>}
+        {m.texto && <p className={`mck-chat-texto whitespace-pre-wrap break-words text-ink ${soloEmojisPixel(m.texto) ? "mck-emoji-solo" : ""}`}><TextoChat texto={m.texto} menciones={menciones} yo={yo} /></p>}
         <ChipVinculo refm={m.ref} modulos={modulos} />
         <div className="mt-1 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
           <span className="mck-chat-acciones flex items-center gap-1">

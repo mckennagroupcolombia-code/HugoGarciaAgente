@@ -115,7 +115,15 @@
     "196022391283853@lid",
     "573134604659@c.us",
     "573208127621@c.us",
-    "98161678897158@lid"
+    "98161678897158@lid",
+    "573246814799@c.us",
+    "261563575443569@lid",
+    "196185650384914@lid",
+    "573185222595@c.us",
+    "250628555161713@lid",
+    "573118128764@c.us",
+    "573117732917@c.us",
+    "49800263262388@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -234,7 +242,15 @@
     "196022391283853@lid": 1791302827.577846,
     "573134604659@c.us": 1791302827.577846,
     "573208127621@c.us": 1791321310.546351,
-    "98161678897158@lid": 1791321310.546351
+    "98161678897158@lid": 1791321310.546351,
+    "573246814799@c.us": 1791389875.3289943,
+    "261563575443569@lid": 1791389875.3289943,
+    "196185650384914@lid": 1791389881.7924638,
+    "573185222595@c.us": 1791389881.7924638,
+    "250628555161713@lid": 1791391273.739284,
+    "573118128764@c.us": 1791391273.739284,
+    "573117732917@c.us": 1791398256.0017226,
+    "49800263262388@lid": 1791398256.0017226
   },
   "bot_auto_pausados": {
     "web-475bce52-9b21-4dd9-90e0-df9626c3e8fe": {
@@ -816,6 +832,46 @@
       "timestamp": 1791321310.546351,
       "razon": "operador desde panel de chats",
       "ultimo_mensaje": "\u2728 Gracias por escribirnos \ud83d\ude4f. En Isa&Mar creemos que cada persona merece resaltar su belleza. En este momento estamos fuera de horario, pero muy pronto responderemos tu mensaje con todo el gusto. Nuestro horario de atenci\u00f3n es de 9:00 a.m. a 7:00 p.m. \ud83d\udc96"
+    },
+    "573246814799@c.us": {
+      "timestamp": 1791389875.3289943,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "261563575443569@lid": {
+      "timestamp": 1791389875.3289943,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "196185650384914@lid": {
+      "timestamp": 1791389881.7924638,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573185222595@c.us": {
+      "timestamp": 1791389881.7924638,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "250628555161713@lid": {
+      "timestamp": 1791391273.739284,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573118128764@c.us": {
+      "timestamp": 1791391273.739284,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573117732917@c.us": {
+      "timestamp": 1791398256.0017226,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "49800263262388@lid": {
+      "timestamp": 1791398256.0017226,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
     }
   },
   "bot_global_activo": true,

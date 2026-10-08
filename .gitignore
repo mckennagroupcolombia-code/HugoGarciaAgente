@@ -151,6 +151,7 @@ renders_etiquetas/
 app/data/tickets.db
 app/data/oauth_states_panel.json
 app/data/wa_chats.db
+app/data/coa_canal_auto.db
 app/data/wa_chats.db-wal
 app/data/wa_chats.db-shm
 app/data/postventa_stats.db

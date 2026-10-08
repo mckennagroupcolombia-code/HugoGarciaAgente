@@ -587,6 +587,8 @@ def enviar_mensaje(
             pass
     if texto_wa and jid:
         _reenviar_a_wa(jid, texto_wa)
+    if usuario and adjunto and canal["modulo"] == "documentos_tecnicos":
+        _encolar_coa(canal_id, mid, os.path.join(UPLOADS_DIR, str(adjunto.get("archivo") or "")), adjunto.get("mime"))
     es_voz = str((adjunto or {}).get("mime") or "").startswith("audio/")
     _avisar(canal_id, (usuario or {}).get("id"), autor, texto or ("🎤 Nota de voz" if es_voz else ""), bool(adjunto),
             mencionados=nombrados)
@@ -748,7 +750,7 @@ def espejar_desde_wa(
 ) -> bool:
     """Un mensaje nuevo de un grupo enlazado aparece en su canal. True si se insertó."""
     with _conn() as c:
-        canal = c.execute("SELECT id FROM canales_internos WHERE wa_jid=? AND archivado=0", (jid,)).fetchone()
+        canal = c.execute("SELECT id, modulo FROM canales_internos WHERE wa_jid=? AND archivado=0", (jid,)).fetchone()
         if not canal:
             return False
         cid = int(canal["id"])
@@ -786,7 +788,25 @@ def espejar_desde_wa(
             nombrados = detectar_menciones(c, cid, texto, uid)
             _guardar_menciones(c, cid, int(cur.lastrowid), nombrados)
     _avisar(cid, uid, autor_nombre, "" if texto == "[adjunto]" else texto, bool(media_path), mencionados=nombrados)
+    if cur.lastrowid and media_path and canal["modulo"] == "documentos_tecnicos":
+        try:
+            from app.services.wa_chats import resolver_media_absoluto
+
+            _encolar_coa(cid, int(cur.lastrowid), resolver_media_absoluto(media_path) or "", media_mime)
+        except Exception as e:
+            print(f"[canales_internos] COA automático: {e}")
     return True
+
+
+def _encolar_coa(canal_id: int, mensaje_id: int, ruta: str, mime: str | None) -> None:
+    """Foto en el grupo de documentos técnicos → lectura del COA y documento al día (coa_canal_auto)."""
+    try:
+        from app.services import coa_canal_auto
+
+        if coa_canal_auto.es_imagen(mime) and ruta and os.path.isfile(ruta):
+            coa_canal_auto.encolar(canal_id, mensaje_id, ruta, str(mime))
+    except Exception as e:
+        print(f"[canales_internos] COA automático: {e}")
 
 
 def media_wa_de_mensaje(mensaje_id: int, usuario: dict) -> str | None:

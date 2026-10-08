@@ -6010,6 +6010,14 @@ def checkout_pagar():
     bill_city     = request.form.get("bill_city", buyer_city).strip() or buyer_city
     bill_addr     = request.form.get("bill_address", buyer_addr).strip() or buyer_addr
     bill_email    = request.form.get("bill_email", buyer_email).strip() or buyer_email
+    # Alegra rechaza una persona natural sin apellido (HTTP 400, código 2034) y
+    # la factura del pedido queda en error: MCKG-053C614F06 llegó como «Jonathan»
+    # (7-oct-2026). Un NIT de empresa (9 dígitos, 8…/9…) sí puede ser una sola palabra.
+    bill_nit_digits = "".join(ch for ch in bill_nit if ch.isdigit())
+    es_empresa = len(bill_nit_digits) == 9 and bill_nit_digits[:1] in ("8", "9")
+    if len(buyer_name.split()) < 2 or (not es_empresa and len(bill_name.split()) < 2):
+        flash("Escribe nombre y apellido: la factura electrónica los exige.", "error")
+        return redirect(url_for("checkout"))
     # Envío — el valor del formulario es solo referencia visual; el costo real
     # se recalcula en servidor con la tabla Interrapidísimo 2026 y el peso del carrito
     # (evita cobrar de menos por tarifas viejas cacheadas o formularios manipulados).

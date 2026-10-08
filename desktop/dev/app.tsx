@@ -8,6 +8,8 @@
  *
  *   /app/dev/app.html?perfil=admin|despachos&panel_guardado=hugo
  */
+import { estadoEmpresaEjemplo } from "./empresaVivaEjemplo";
+
 const q = new URLSearchParams(location.search);
 const PERFILES: Record<string, Record<string, unknown>> = {
   admin: { id: 8, nombre: "Armando García", username: "armando", activo: 1, rol: { nivel: 3, nombre: "admin" }, departamento: null, permisos_secciones: null },
@@ -45,6 +47,15 @@ const recorrido: string[] = [];
 if (q.has("medir")) setTimeout(() => {
   if (!errores.length) document.title = `SIN-ERRORES|panel=${panelActual()}|${recorrido.join(" ; ")}`;
 }, 3500 + recorrido.length * 2000 + ((q.get("tocar") ?? "").split(",").filter(Boolean).length) * 2000);
+
+// ?anchos: el ancho de cada contenedor del panel, de adentro hacia afuera, al <title> (para --dump-dom).
+if (q.has("anchos")) setInterval(() => {
+  let el: HTMLElement | null = document.querySelector("canvas");
+  const xs: string[] = [];
+  while (el && xs.length < 14) { xs.push(`${el.tagName.toLowerCase()}.${String(el.className).split(" ")[0] || "-"}:${el.clientWidth}/${el.scrollWidth}`); el = el.parentElement; }
+  const anim = document.querySelector(".mck-animate-enter") as HTMLElement | null;
+  document.title = `ANCHOS|canvas=${Boolean(document.querySelector("canvas"))}|op=${anim ? getComputedStyle(anim).opacity : "-"}|tr=${anim ? getComputedStyle(anim).transform : "-"}|${xs.slice(0, 3).join(" < ")}`;
+}, 1000);
 
 const fetchReal = window.fetch.bind(window);
 window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
@@ -100,6 +111,13 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
       contab: [P(5, "Andrés", 38)], analisis: [P(4, "Marta", 41)],
     } });
   }
+  // El juego de la empresa, con un ciclo de EJEMPLO que cambia cada 10 s (dev/empresaVivaEjemplo.ts).
+  if (ruta === "/api/empresa-viva/estado") return json(estadoEmpresaEjemplo(Number(usuario.id)));
+  if (ruta === "/api/canales" && (init?.method ?? "GET") === "GET") return json({ canales: [
+    { id: 8, nombre: "HORMIGUITAS DE MCKENNA", descripcion: "", miembros: [], espejo_salida: false, wa_jid: "", wa_nombre: "" },
+    { id: 2, nombre: "Sede Sur", descripcion: "", miembros: [7, 9, 10], espejo_salida: true, wa_jid: "x@g.us", wa_nombre: "MCKG SEDE SUR" },
+  ] });
+  if (/^\/api\/canales\/\d+\/mensajes$/.test(ruta) && init?.method === "POST") return json({ id: Date.now() % 100000 }, 201);
   if (ruta === "/api/status") return json({ status: "activo", servicios: {} });
   // Pedidos Web con datos de EJEMPLO (inventados): sin ellos el panel solo muestra su estado vacío.
   if (ruta === "/api/pedidos/web") {

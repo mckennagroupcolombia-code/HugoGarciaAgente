@@ -30,6 +30,7 @@ export type Panel =
   | "colaboradores"
   | "mapa-vivo"
   | "juegos"
+  | "empresa-viva"
   | "arquitectura"
   | "combos"
   | "publicaciones"

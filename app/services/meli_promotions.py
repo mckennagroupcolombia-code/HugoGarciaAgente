@@ -477,18 +477,18 @@ def quitar_item_de_promocion(
     meli_id = (meli_id or "").strip().upper()
     promotion_id = (promotion_id or "").strip()
     promotion_type = (promotion_type or "").strip().upper()
-    if not meli_id or not promotion_id or not promotion_type:
+    # El descuento propio (PRICE_DISCOUNT) no tiene id de campaña: MeLi lo borra solo con el
+    # tipo. Exigir el id dejaba imposible cambiar su % (creatina, 8-oct-2026).
+    if not meli_id or not promotion_type or (not promotion_id and promotion_type != "PRICE_DISCOUNT"):
         raise ValueError("meli_id, promotion_id y promotion_type son requeridos")
 
     token = refrescar_token_meli()
     if not token:
         raise RuntimeError("Token MeLi no disponible")
 
-    params: dict[str, str] = {
-        "app_version": "v2",
-        "promotion_id": promotion_id,
-        "promotion_type": promotion_type,
-    }
+    params: dict[str, str] = {"app_version": "v2", "promotion_type": promotion_type}
+    if promotion_id:
+        params["promotion_id"] = promotion_id
     if offer_id:
         params["offer_id"] = offer_id.strip()
 

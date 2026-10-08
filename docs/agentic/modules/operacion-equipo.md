@@ -94,6 +94,18 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
   - ⚠️ El aviso con sonido vive en `SolicitudesEnProcesoFab`, que solo monta el Layout: `MobileHub` lo monta con
     `soloAvisos` (sin la bolita). Sin eso, la pestaña Mensajes de la barra de abajo no sonaba.
 
+### AJ. Zumbidos en las solicitudes (7-oct-2026)
+
+- Botón **📳 Zumbido** en el cabezote del hilo (`HiloConversacion.tsx`) y en la burbuja de chat
+  (`SolicitudesEnProcesoFab.tsx`): a los demás miembros (quien la pidió, a quien le toca, los que se sumaron) se les
+  sacude la app, suena un zumbido y vibra el celular. Queda en el hilo como evento «📳 … envió un zumbido».
+- Backend: `tickets_db.enviar_zumbido` (`POST /api/tickets/<id>/zumbido`): solo miembros, solicitud abierta, uno cada
+  20 s por persona y solicitud (429). Tabla `ticket_zumbidos` (una fila por destinatario).
+- Llega con `/api/mensajes/resumen` → `zumbidos` (sin ver y de los últimos 10 min: uno viejo no sacude a nadie al abrir
+  el panel). `useAvisosMensajes` lo hace sonar una vez y lo marca con `POST /api/tickets/zumbidos/vistos`.
+- `lib/zumbido.tsx`: sonido sintetizado con Web Audio (respeta el interruptor y el volumen de las alertas sonoras);
+  la sacudida es `html.mck-zumbido #root` en `index.css`. Sin WhatsApp ni push: solo con el panel abierto (≤ 10 s).
+
 ### AI. Menciones con @ en los grupos (7-oct-2026)
 
 - **Qué cuenta como mención** (`canales_internos.detectar_menciones`, sin LLM):
@@ -181,6 +193,10 @@ quedó suelta en un grupo de WhatsApp, sin producto ni lugar. Abastecer → Rece
   jugada («▶ Lo leí · Empezar», «📷 Foto de cómo quedó» con la cámara, «★ Entregar»). Sonido de moneda al empezar
   (`sonarRevisado`); la evidencia y la entrega ya las paga/celebra el servidor (`logros_hook.py` → `X-Mck-Monedas`,
   `celebrarTareaCumplida`), no se duplica aquí.
+- **Miembros** (7-oct): fila «Equipo» bajo el cabezote del hilo (quien pidió, a quien le toca y los que se sumaron)
+  con «＋ Sumar» para agregar o quitar a alguien del equipo (`ticket_participantes`, rol colaborador; deja comentario
+  en el hilo). El sumado la ve en su bandeja y puede escribir. La API (`POST/DELETE /api/tickets/<id>/participantes`)
+  ahora exige estar en la solicitud o nivel ≥ 2 (`puede_gestionar_participantes`); salirse uno mismo siempre se puede.
 - **Fotos**: visor propio (`VisorFotos.tsx`). `target="_blank"` no abre nada en la APK / modo instalado.
 - **Bandeja** (`InboxConversaciones.tsx`): «Seguir con la que estabas» (clave `mck_hilo_actual`, la escribe el hilo),
   contadores Por hacer · En curso · Hechas que filtran (como el Mapa), «✚ Pedir algo» / «✚ Nueva tarea» en un toque,
@@ -211,3 +227,75 @@ pesos menores al contenido). MeLi cobra el flete por ese peso. La revisión crea
   se fotografían al crear y con «Releer MeLi». Base `app/data/revision_empaque.db` (gitignored). Sin LLM.
 - Banco sin backend: `/app/dev/revision.html` (Jenniffer) y `?admin=1` (Armando). Tests: `tests/test_revision_empaque.py`.
 - Crear otra revisión: `revision_empaque.crear_con_solicitud(creador_id, asignado_id)` (lee MeLi, ~20 llamadas).
+
+### AK. COA por foto → documento técnico al día (7-oct-2026)
+
+Grupo «COA y fichas técnicas» (canal 1, `modulo=documentos_tecnicos`, ↔ WhatsApp `120363045181721155@g.us`). Antes
+Jenniffer subía las fotos de los COA y alguien los pasaba a mano a Docs técnicos. Ahora `app/services/coa_canal_auto.py`:
+- **Entrada**: `canales_internos.enviar_mensaje` (foto desde el panel) y `espejar_desde_wa` (foto del grupo) llaman a
+  `_encolar_coa` si el canal es de `documentos_tecnicos`. Cola durable en `app/data/coa_canal_auto.db` (gitignored);
+  `agente_pro.py` retoma lo pendiente al arrancar.
+- **Espera** `COA_CANAL_AUTO_ESPERA_S` (90 s) de quietud: las fotos llegan de a una y un COA puede tener 2 páginas.
+- **Lectura**: el mismo extractor del panel (`documento_scan_tablas.extraer_coa_desde_imagenes`, Gemini Flash, ~2
+  llamadas por foto, con `llm_budget`). La lectura queda guardada por foto: reintentar no vuelve a pagar.
+- **Páginas**: una foto sin lote (sin nombre o con el mismo producto) se une al COA anterior.
+- **Documento**: por nombre (`_toks` de `auditar_catalogo_combos`), sin vacías ni borradores. Empate entre dos con SKU
+  distinto o sustancias en conflicto → **no adivina**, avisa con candidatos. Uno sin SKU junto a otro con SKU = ficha vieja.
+- **Escritura**: mismo lote → «ya al día», no toca nada. Otro lote → reemplaza `_coa.lote` y `_coa.parametros` (los
+  resultados solo salen del COA del proveedor) + `lote`/fechas/país sueltos; exige ≥4 filas. Respaldo en
+  `_respaldo_edicion/`, rastro en `_ediciones` (`desde: chat COA y fichas técnicas`), `registrar_lote_desde_documento`,
+  PDF completo regenerado (firmado por el perfil único) e índices de web/mapa invalidados.
+- **Casillas** (8-oct, pedido del usuario: «no solo el lote»): `cambios_desde_coa` LLENA las vacías con el COA (pH y
+  punto de fusión = la especificación, solubilidad, apariencia, olor, presentación = cantidad del lote, INS del «E-406»,
+  CAS/EINECS/INCI según el tipo de insumo, composición proximal en naturales) y CORRIGE las que lo contradicen
+  (concentración «99 %» copiada → pureza/proteína del lote, nunca «contenido de grasa»; pH con otros números; olor si
+  el COA dice inodoro; apariencia incompleta). Corre aunque el lote sea el mismo. Lo que el COA no trae lo deduce
+  `deducir_vacios` (`sugerir_campo_ficha`, máx. `COA_CANAL_AUTO_MAX_IA`=6 por documento, `COA_CANAL_AUTO_DEDUCIR=0`
+  lo apaga) con `_fuentes` «(deducido; confirmar)». **Nunca deduce** modo de uso, descripción, aplicaciones ni propiedades
+  (la IA mete dosis de suplemento: compliance), ni «No aplica» en CAS/EINECS (agar sí tiene 232-658-1), ni punto de fusión
+  a un líquido (al D-pantenol le llegó el del DL-pantenol). El aviso dice qué llenó, qué corrigió (antes → después),
+  qué dedujo y qué sigue vacío para una persona.
+- **Aviso**: mensaje «Sistema» en el grupo (respondiendo a la última foto) → sale también al WhatsApp por el espejo.
+- A mano / lo que llegó antes: `scripts/coa_canal_procesar.py --canal 1 --desde-id N [--aplicar] [--sin-aviso]`
+  (sin `--aplicar` solo muestra qué haría). `COA_CANAL_AUTO_ACTIVO=0` lo apaga.
+- Primer uso 7-oct: agar agar, colágeno hidrolizado, sorbitol polvo, proteína aislada de soya y creatina (el lote era
+  **D**20260406C, el documento decía G…) actualizados; D-pantenol y L-arginina ya estaban.
+
+### AL. Empresa viva — la operación como juego de gestión (8-oct-2026)
+Agenda → **Empresa viva** (panel `empresa-viva`, `desktop/src/components/empresa/`). Convive con el Mapa: el Mapa es la
+app por etapas; esto es la operación de ahora como juego 3D (Three.js, `three` en `package.json`, chunk lazy), con
+modelos CC0 de KayKit y Kenney en `desktop/public/empresa/` (ver su `LEEME.md`).
+- **Motor gráfico** (`render.ts`, referencia: tráiler de FarmVille 3, pedida por el usuario el 8-oct; el pixel art 2D y el
+  isométrico plano con Kenney fueron rechazados por «no parecerse a FarmVille»): cámara en perspectiva de lente larga,
+  sol cálido + cielo, GTAO + bloom + saturación + SMAA, pasto instanciado que se mece (shader) y margaritas. Calidad
+  alta/media/baja (celular arranca en media o baja; «Gráficos» en la barra). Se evaluó Babylon.js, PlayCanvas, Unity
+  WebGL y Godot: se queda Three.js (ya integrado, liviano, la brecha era de arte y luz, no del motor).
+- **Pueblo moderno, techo que se levanta** (decisión del usuario): las casas se arman en `escena.ts` (muros, ventanas,
+  techo aparte — teja a dos aguas en la Sede, plano con paneles solares en el Búnker, plano con toldo en la Tienda). De
+  lejos cerradas; al acercarse (o tocar el techo) el techo sube y se desvanece y los muros del frente bajan. «Casas:
+  auto/abiertas/cerradas» en la barra. Muebles: catálogo `MUEBLE` (nombre lógico de `barrio.ts` → modelo); KayKit va con
+  UNA escala (0,5), escalar por altura deforma lo plano (pasó con la estufa y el entrepaño de pared).
+- **El barrio** (`barrio.ts`): Búnker Suba (cuartos de Armando y Cynthia, gerencia, contabilidad, estudio de diseño),
+  Sede McKenna Sur (cuartos de Victor y Stella, oficina con cocina, bodega, recepción, portón, cultivo de hongos) y
+  Tienda digital. Quién vive dónde, su cuarto, dónde trabaja por defecto y su rol: `app/data/empresa_viva_casas.json`
+  (roles sacados el 8-oct de `rendimiento.quien_hace`, permisos y paneles más usados).
+- **Cada persona** camina al lugar del panel que tiene abierto (`lugarDePanel`, sale de `flujoApp` + precisiones);
+  con la Agenda o el Mapa, a su puesto; desconectada, a su cuarto («zzz») si vive en el barrio. Contador, colaborador
+  externo y cuentas genéricas no aparecen (`ocultos`).
+- **Lo vivo** (`app/services/empresa_viva.py`, `GET /api/empresa-viva/estado`, token personal, sin LLM): preguntas de
+  preventa y chats de WhatsApp sin respuesta = fila en la tienda; órdenes MeLi pagadas (API, en segundo plano, caché
+  60 s / 5 min por envío) + pedidos web + despachos = cajas por alistar → alistadas (foto de Empaque o envío impreso)
+  → el mensajero se las lleva; recepciones abiertas = camión del proveedor; bodega = estantes por la caché del Control
+  de inventario + lista «por reponer»; lo detenido del Mapa = pilas de papeles. Las transiciones se detectan comparando
+  fotos y se atribuyen con `panel_eventos_operativos` (quién respondió, quién alistó, quién registró).
+- **Quién le habla a quién**: solicitudes/preguntas entre personas, sus respuestas y los mensajes del chat del equipo
+  de los últimos 20 min = avioncitos de papel de un avatar a otro. El avioncito lo ve todo el equipo; el texto solo
+  quien participa (o los miembros del grupo; un grupo sin miembros es de todos).
+- **Acciones** (`acciones.tsx`), siempre por los caminos de siempre: «Preguntarle algo» = `POST /api/tickets/`
+  `tipo=solicitud, subtipo=pregunta`; «Compartir idea» = `POST /api/canales/<id>/mensajes` (avisa si el grupo tiene
+  espejo a WhatsApp); «Mi avatar» = `preferencias_ui.empresa` {avatar, accesorio, color}, validado en
+  `tickets_db._limpiar_avatar_empresa`.
+- ⚠️ Nada de puntajes, rankings ni tiempos por persona (RRHH). El juego no escribe nada por su cuenta: tocar algo abre
+  el panel real. Banco de pruebas: `/app/dev/app.html?tocar=Empresa%20viva` (datos de `dev/empresaVivaEjemplo.ts`); en
+  `npm run dev` el motor queda en `window.__empresaViva` para mover la cámara desde DevTools. ⚠️ Capturas sin interfaz:
+  `--virtual-time-budget` congela la decodificación de texturas (sale en blanco); usar CDP con tiempo real.

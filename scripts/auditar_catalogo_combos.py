@@ -47,6 +47,9 @@ _EMPAQUE_INICIO = {
     # La copa dosificadora iba en 19 recetas como segunda «materia prima»: con dos, el combo
     # no sabía a cuál pertenece su documento y no dejaba unirlo (2026-09-21).
     "COPA", "DOSIFICADOR", "BALA", "SCOOP",
+    # «BOTERO GLICERINA LT» es la botella de la glicerina de litro: salía como segunda materia
+    # prima y el IVA por compra (iva_venta_compra) la tomaba por mezcla (2026-10-07).
+    "BOTELLA", "BOTERO",
 }
 _NO_MATERIA = {"OPERATIVOS", "ENVIO", "DOMICILIO", "FLETE", "SERVICIO", "GENERICO"}
 _STOP = {"DE", "DEL", "LA", "EL", "EN", "Y", "G", "GR", "ML", "KG", "LT", "UN", "X", "MG", "L", "CON", "SIN"}

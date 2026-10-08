@@ -232,6 +232,12 @@ activo desde 29-sep** (web en sombra): en horario cede al asesor y retoma a los 
 cierra la venta**: arma el pedido y avisa al asesor. Base de clientes en `clientes_wa.py`; copiloto del asesor en
 `auditor_canales.revision_asesor`. ⚠️ Nunca cambiar `os.environ` en caliente para elegir la base: `pedido.usando_modo()`
 (ContextVar). ⚠️ Un envío del bot fuera del webhook debe registrarse antes en `wa_chats.guardar(enviado_por="bot")`.
+Desde la auditoría del 7-oct hay **un turno a la vez por chat** (lock por jid + `_reordenar_rezagados`: lo escrito
+mientras el modelo piensa no se pierde ni se responde dos veces) y `REGLAS_COMUNES` en ambos prompts.
+
+**IVA de venta = el del proveedor** (`facturacion-meli-alegra.md`, 7-oct): al registrar una compra con la factura cuadrada,
+`iva_venta_compra` pasa su tarifa a la materia prima y a los combos que solo la reempacan en Alegra (no a fórmulas ni a
+un 0 % de no responsables). `scripts/iva_venta_por_compra.py` revisa todo el catálogo; `IVA_VENTA_COMPRA_ACTIVO=0` lo frena.
 
 **R · Ventas directas / Cotizar-Facturar** (`ventas-directas.md`). ⚠️ La lista de precios de Alegra guarda el precio
 **con IVA**: no cotizar ni facturar a mano en Alegra (duplica el IVA). Facturar marca `facturando` antes de llamar a
@@ -254,6 +260,19 @@ solo venden SKUs que se facturan; ampliar con `scripts/desplegar_ventas_facturab
 
 **Menciones con @ en los grupos** (`operacion-equipo.md`, AI, 7-oct): `canal_menciones`. Una mención está pendiente
 hasta que la persona lee el grupo, y ese grupo pasa a «Te toca» en la bandeja del celular (`lib/bandeja.ts`).
+
+**COA por foto** (`operacion-equipo.md`, AK, 7-oct): una foto en el grupo «COA y fichas técnicas» se lee con Gemini
+Flash (`coa_canal_auto`), actualiza lote y resultados, llena las casillas vacías y corrige las que contradicen el COA (respaldo + PDF) y avisa en el grupo.
+Si no hay un documento claro no adivina. `COA_CANAL_AUTO_ACTIVO=0` lo apaga; a mano: `scripts/coa_canal_procesar.py`.
+
+**Empresa viva** (`operacion-equipo.md`, AL, 8-oct): Agenda → Empresa viva = el barrio real (Búnker Suba, Sede Sur,
+Tienda digital) como juego 3D estilo FarmVille 3 (Three.js + `render.ts` + modelos CC0 KayKit/Kenney en
+`desktop/public/empresa/`); casas con techo que se levanta. Cada avatar va al lugar del panel que tiene abierto;
+clientes, paquetes, mensajero y proveedores salen de la operación real (`empresa_viva.py`, sin LLM).
+Preguntar a alguien = solicitud `subtipo=pregunta`; compartir idea = chat del equipo. Casas y roles: `empresa_viva_casas.json`.
+
+**Zumbidos en solicitudes** (`operacion-equipo.md`, AJ, 7-oct): «📳 Zumbido» sacude la app de los demás miembros
+(uno cada 20 s, solo con el panel abierto; `ticket_zumbidos`, llega por `/api/mensajes/resumen`).
 
 **Alertas sonoras + chat legible** (`operacion-equipo.md`, AH, 6-oct): cada quien elige sonido por persona (quién le
 pide algo) y por grupo, con recortes de Duck Hunt y de Circus Charlie grabados de la ROM; `preferencias_ui.sonidos`.
@@ -451,7 +470,7 @@ viven en el repo (nivel 2) mientras que los PNG derivados para imprimir viven fu
 | Agente de ventas v2 (P) | `docs/agentic/modules/agente-ventas-v2.md` |
 | Ventas directas (R) | `docs/agentic/modules/ventas-directas.md` |
 | Mapa, combos, EAN, canales, árbol del producto (U, W, X, Z, AD) | `docs/agentic/modules/producto-cadena.md` |
-| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión, revisión de empaques, alertas sonoras (Y, AA, AB, AC, AE, AF, AG, AH) | `docs/agentic/modules/operacion-equipo.md` |
+| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión, revisión de empaques, alertas sonoras, zumbidos, COA por foto, Empresa viva (Y, AA, AB, AC, AE, AF, AG, AH, AJ, AK, AL) | `docs/agentic/modules/operacion-equipo.md` |
 | Rendimiento, mapa de funciones, control de horas | `docs/agentic/modules/rrhh-horas.md` |
 | Colaboradores | `docs/agentic/modules/colaboradores.md` |
 | Panel React, iconografía, grabar pantalla (V, S) | `docs/agentic/modules/desktop-panel.md` |

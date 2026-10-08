@@ -358,7 +358,8 @@ def test_sin_presupuesto_no_inventa_y_avisa(catalogo, monkeypatch):
 
     monkeypatch.setattr("app.services.llm_budget.permitir_llamada", lambda m, contexto="": (False, "tope"))
     res = agente.ejecutar_turno("573000000006@c.us", "x", [_m(1, "cliente", "hola")], modo="sombra", cliente=_ClaudeFalso())
-    assert "El equipo ya tiene su caso" in res.respuesta and res.handoff and res.llamadas == 0
+    assert "un asesor sigue con usted" in res.respuesta and res.handoff and res.llamadas == 0
+    assert "no puedo procesar" not in res.respuesta  # sonaba a sistema caído (5-oct)
 
 
 def test_filtro_quita_promesas_de_tiempo():
@@ -409,6 +410,96 @@ def test_supervisor_corrige_una_vez_y_luego_respaldo(catalogo, monkeypatch):
     g2 = _ClaudeGuion(["Vale $30.000.", "Vale $31.000."])
     res2 = agente.ejecutar_turno("573000000008@c.us", "x", [_m(1, "cliente", "creatina?")], cliente=g2)
     assert "$3" not in res2.respuesta and res2.error.startswith("supervisor") and res2.handoff
+
+
+def test_precio_ya_citado_por_hugo_es_evidencia_si_sigue_vigente(catalogo, monkeypatch):
+    from app.agent.ventas_wa import agente
+
+    monkeypatch.setattr("app.services.llm_budget.permitir_llamada", lambda m, contexto="": (True, ""))
+    monkeypatch.setattr("app.services.llm_budget.registrar_llamada", lambda m, **kw: None)
+    msgs = [
+        _m(1, "cliente", "creatina?", 120),
+        _m(2, "hugo", "La *creatina 500g* vale $41.053 y la de kilo $65.700. Antes estaba a $39.000.", 100),
+        _m(3, "cliente", "y la de 500 cuánto era?", 5),
+    ]
+    # Repetir un precio vigente ya dicho no exige buscarlo otra vez...
+    g = _ClaudeGuion(["La de 500 g quedó en $41.053, veci."])
+    assert agente.ejecutar_turno("573000000020@c.us", "x", msgs, modo="sombra", cliente=g).respuesta.endswith("$41.053, veci.")
+    # ...pero una cifra que ya no está en el catálogo sí se rechaza aunque Hugo la haya dicho.
+    assert "$39.000" not in agente._precios_vigentes_citados(msgs)
+
+
+def test_tool_use_sin_bloques_no_manda_mensaje_vacio(catalogo, monkeypatch):
+    from app.agent.ventas_wa import agente
+
+    monkeypatch.setattr("app.services.llm_budget.permitir_llamada", lambda m, contexto="": (True, ""))
+    monkeypatch.setattr("app.services.llm_budget.registrar_llamada", lambda m, **kw: None)
+
+    class _Raro(_ClaudeGuion):
+        def create(self, **kw):
+            r = super().create(**kw)
+            return SimpleNamespace(stop_reason="tool_use", content=r.content, usage=r.usage)
+
+    res = agente.ejecutar_turno("573000000021@c.us", "x", [_m(1, "cliente", "buenos días")], modo="sombra", cliente=_Raro(["Buenos días, veci."]))
+    assert res.respuesta == "Buenos días, veci." and res.llamadas == 1
+
+
+def test_mensaje_que_llega_mientras_hugo_piensa_no_se_pierde(monkeypatch):
+    jid = "573000000022@c.us"
+    a = _m(1, "cliente", "Hola, quiero ordenar alginato 50g", 30)
+    b = _m(2, "cliente", "¿Todavía hacen domicilio a esta hora?", 25)  # llegó con el modelo pensando
+    respuesta = _m(3, "hugo", "Confirmo el alginato a $22.410. ¿Cuántas unidades?", 20)
+    msgs = [a, b, respuesta]
+    assert hist.pendientes_del_cliente(msgs) == []  # antes: B parecía respondido y se perdía
+    monkeypatch.setitem(entrada._consumido, jid, a["ts"])  # el turno anterior solo vio A
+    orden = entrada._reordenar_rezagados(jid, msgs)
+    assert [m["id"] for m in hist.pendientes_del_cliente(orden)] == [2]
+    monkeypatch.setattr(hist, "id_por_wa_id", lambda w: 2)
+    assert entrada._debe_responder_este(orden, "b", None)
+    # Si después respondió un asesor, el rezagado ya es suyo.
+    con_asesor = msgs + [_m(4, "asesor", "a esta hora no hay domicilios", 10)]
+    assert hist.pendientes_del_cliente(entrada._reordenar_rezagados(jid, con_asesor)) == []
+    # Y un mensaje nuevo después de la respuesta queda detrás del rezagado.
+    nuevo = _m(5, "cliente", "1", 2)
+    assert [m["id"] for m in hist.pendientes_del_cliente(entrada._reordenar_rezagados(jid, msgs + [nuevo]))] == [2, 5]
+
+
+def test_un_turno_a_la_vez_por_chat(monkeypatch):
+    """Dos hilos del mismo chat no corren turnos en paralelo (doble respuesta, turnos 80/81)."""
+    import threading
+
+    activos, maximo = [0], [0]
+
+    def _turno(*a, **kw):
+        activos[0] += 1
+        maximo[0] = max(maximo[0], activos[0])
+        time.sleep(0.2)
+        activos[0] -= 1
+        return {"status": "v2_ok", "respuesta": None}
+
+    monkeypatch.setattr(entrada, "_atender_turno", _turno)
+    hilos = [threading.Thread(target=entrada.atender, args=("573000000023@c.us",), kwargs={"esperar": False}) for _ in range(3)]
+    for h in hilos:
+        h.start()
+    for h in hilos:
+        h.join()
+    assert maximo[0] == 1
+
+
+def test_busqueda_no_confunde_hidroquinona_con_hidrolizado(monkeypatch):
+    data = {"sections": [{"name": "Nutrición", "products": [
+        {"name": "Colágeno Hidrolizado 500g", "ref": "C-COLHID500g", "precio_num": 53100, "stock": 4},
+    ]}], "combos": []}
+    c = cat_mod.construir_desde_dict(data, {})
+    assert c.buscar("hidroquinona") == []
+    assert c.buscar("colageno hidrolizada")  # la variante de género sigue encontrando
+
+
+def test_prompts_llevan_reglas_de_la_auditoria():
+    from app.agent.ventas_wa import agente
+
+    for p in (agente.SYSTEM_PROMPT, agente.SYSTEM_PROMPT_WEB):
+        assert "Bulto" in p and "razonamiento" in p and "empacada de fábrica" in p
 
 
 def test_web_carrito_y_continuacion_whatsapp(catalogo, monkeypatch):

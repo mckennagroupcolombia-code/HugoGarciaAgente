@@ -720,11 +720,15 @@ def aprender_iva_compra(items: list[dict], *, proveedor: str = "", fecha: str = 
     import app.services.contabilidad_core as cc
 
     n = 0
+    aprendidos: list[dict] = []
     with cc._conn() as con:
         for it in items or []:
             sku = str(it.get("sku") or "").strip()
             if not sku:
                 continue
+            previo = con.execute("SELECT iva_pct FROM cc_compras_iva_sku WHERE sku=?", (sku,)).fetchone()
+            aprendidos.append({"sku": sku, "iva_pct": round(float(it.get("iva_pct") or 0), 2),
+                               "previo": None if previo is None else float(previo["iva_pct"])})
             con.execute(
                 "INSERT INTO cc_compras_iva_sku (sku, iva_pct, veces, ultimo_proveedor, ultima_fecha)"
                 " VALUES (?,?,1,?,?)"
@@ -734,6 +738,16 @@ def aprender_iva_compra(items: list[dict], *, proveedor: str = "", fecha: str = 
                 (sku, round(float(it.get("iva_pct") or 0), 2), proveedor, fecha),
             )
             n += 1
+    # Regla de Armando (6/7-oct-2026): lo que se reempaca se vende con el IVA que cobra el
+    # proveedor. La tarifa recién probada pasa al IVA de venta en Alegra (materia prima y
+    # combos que solo la reempacan). En hilo: Alegra no puede frenar la solicitud de pago.
+    if aprendidos:
+        try:
+            from app.services import iva_venta_compra
+
+            iva_venta_compra.al_aprender(aprendidos, proveedor=proveedor, fecha=fecha)
+        except Exception as e:
+            print(f"⚠️ IVA de venta por compra: {e}", flush=True)
     return n
 
 

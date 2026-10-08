@@ -1,4 +1,5 @@
 import { Ico } from "../../icons/Ico";
+import { Cara } from "../../lib/fotoPersona";
 import { useEffect, useMemo, useState } from "react";
 import type { TicketsUser } from "../../stores/ticketsAuth";
 import {
@@ -55,14 +56,14 @@ interface PersonaGrupo {
 function PersonaRow({ p, onClick }: { p: PersonaGrupo; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="hp-fila">
-      <Avatar nombre={p.nombre} size={10} />
+      <Avatar nombre={p.nombre} uid={p.id} size={10} />
       <div className="min-w-0 flex-1">
         <p className="hp-fila-titulo">{p.nombre}</p>
         <p className="truncate text-[14px] text-ink-muted">
           {p.items.length} conversaci{p.items.length === 1 ? "ón" : "ones"} · {tiempoRelativo(p.ultimaActividad)}
         </p>
       </div>
-      {p.noLeidos > 0 && <span className="hp-etiqueta resuelto">{p.noLeidos > 99 ? "99+" : p.noLeidos}</span>}
+      {p.noLeidos > 0 && <span className="hp-noleidos">{p.noLeidos > 99 ? "99+" : p.noLeidos}</span>}
     </button>
   );
 }
@@ -79,7 +80,7 @@ function ConversacionRow({
   ].join(" ");
   return (
     <button type="button" onClick={onClick} className={cls}>
-      <Avatar nombre={c.contraparte_nombre} size={10} />
+      <Avatar nombre={c.contraparte_nombre} uid={c.contraparte_id} size={10} />
       <div className="min-w-0 flex-1 space-y-1">
         <p className="hp-fila-titulo">{c.titulo}</p>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -87,7 +88,9 @@ function ConversacionRow({
             {miaEnCurso ? "▶ Estás en esta" : (ESTADO_LABEL[c.estado] ?? c.estado)}
           </span>
           <span className="hp-etiqueta tipo">{c.tipo === "accion" ? "Acción" : "Solicitud"}</span>
-          <span className="min-w-0 max-w-[10rem] truncate text-[14px] text-ink-muted">{c.contraparte_nombre}</span>
+          {!(c.ultimo_texto && previewAutor) && (
+            <span className="min-w-0 max-w-[10rem] truncate text-[13px] text-ink-muted">{c.contraparte_nombre}</span>
+          )}
           {c.adjuntos_total > 0 && <span className="text-[14px] text-ink-muted"><Ico e="📎" />{c.adjuntos_total}</span>}
         </div>
         {c.ultimo_texto && (
@@ -99,7 +102,7 @@ function ConversacionRow({
       <div className="flex shrink-0 flex-col items-end gap-1">
         <span className="text-[13px] text-ink-muted">{tiempoRelativo(c.ultima_actividad)}</span>
         {c.no_leidos > 0 && (
-          <span className="hp-etiqueta resuelto">{c.no_leidos > 99 ? "99+" : c.no_leidos}</span>
+          <span className="hp-noleidos">{c.no_leidos > 99 ? "99+" : c.no_leidos}</span>
         )}
       </div>
     </button>
@@ -292,53 +295,47 @@ function InboxEscritorio({
     />
   );
 
-  const chip = (activo: boolean) => `hp-boton-sm shrink-0 !min-h-[36px] !text-[14px] ${activo ? "activo" : ""}`;
-
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className={`flex w-full flex-col border-r-2 border-ink lg:w-[400px] lg:shrink-0 ${selectedId != null ? "hidden lg:flex" : "flex"}`}>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="hp-bandeja-cabeza space-y-3 border-b-2 border-ink p-3 max-sm:space-y-2 max-sm:p-2">
-            {/* Crear en un toque: sin pasar por pestañas. */}
+          {/* Cabeza compacta (7-oct-2026): antes crear + «seguir con» + tres contadores grandes +
+              filtros + buscador se llevaban ~320 px antes de la primera solicitud. */}
+          <div className="hp-bandeja-cabeza space-y-2 border-b-2 border-ink px-3 pb-0 pt-2.5">
             {(onCrearSolicitud && verSolicitudes) || (onCrearAccion && verAcciones) ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex gap-2">
                 {onCrearSolicitud && verSolicitudes && (
-                  <button type="button" onClick={onCrearSolicitud} className="hp-boton azul !min-h-[48px] !text-[15px]">
-                    ✚ Pedir algo
-                  </button>
+                  <button type="button" onClick={onCrearSolicitud} className="hp-boton flex-1">✚ Pedir algo</button>
                 )}
                 {onCrearAccion && verAcciones && (
-                  <button type="button" onClick={onCrearAccion} className="hp-boton blanco !min-h-[48px] !text-[15px]">
-                    ✚ Nueva tarea
-                  </button>
+                  <button type="button" onClick={onCrearAccion} className="hp-boton blanco flex-1">✚ Nueva tarea</button>
                 )}
               </div>
             ) : null}
 
-            {/* Volver a la que estaba atendiendo. */}
-            {seguirCon && (
-              <button type="button" onClick={() => setSelectedId(seguirCon.id)} className="hp-seguir">
-                <span className="text-[24px]" aria-hidden>▶</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[12px] font-black uppercase tracking-wider">Seguir con la que estabas</span>
-                  <span className="block truncate text-[16px] font-extrabold">{seguirCon.titulo}</span>
-                </span>
+            {/* Volver a la que estaba atendiendo: una línea. */}
+            {seguirCon && seguirCon.id !== selectedId && (
+              <button type="button" onClick={() => setSelectedId(seguirCon.id)} className="hp-seguir" title={seguirCon.titulo}>
+                <span aria-hidden>▶</span>
+                <span className="shrink-0 font-black uppercase tracking-wider">Seguir con</span>
+                <span className="min-w-0 flex-1 truncate">{seguirCon.titulo}</span>
               </button>
             )}
 
             {/* Como el Mapa: cuánto hay en cada montón; tocar uno filtra. */}
             {!mostrandoListaPersonas && (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="hp-montones">
                 {([
-                  ["por_hacer", "Por hacer", "amarillo"],
-                  ["en_curso", "En curso", "azul"],
-                  ["hechas", "Hechas", "verde"],
-                ] as const).map(([clave, label, color]) => (
+                  ["por_hacer", "Por hacer"],
+                  ["en_curso", "En curso"],
+                  ["hechas", "Hechas"],
+                ] as const).map(([clave, label]) => (
                   <button
                     key={clave}
                     type="button"
                     onClick={() => setMonton(monton === clave ? null : clave)}
-                    className={`hp-contador ${color} ${monton === clave ? "activo" : ""}`}
+                    className={monton === clave ? "activo" : ""}
+                    aria-pressed={monton === clave}
                   >
                     <b>{cuenta[clave]}</b>
                     <span>{label}</span>
@@ -347,27 +344,42 @@ function InboxEscritorio({
               </div>
             )}
 
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              <button type="button" className={`${chip(buscando || busqueda.trim() !== "")} sm:hidden`} aria-label="Buscar"
-                      aria-expanded={buscando} onClick={() => setBuscando((v) => !v)}>⌕</button>
-              <button type="button" className={chip(quien === "me_toca")} onClick={() => setQuien("me_toca")}>Me toca</button>
-              <button type="button" className={chip(quien === "pedi")} onClick={() => setQuien("pedi")}>Pedí yo</button>
-              <button type="button" className={chip(quien === "todo")} onClick={() => setQuien("todo")}>Todo</button>
-              <button type="button" className={chip(quien === "persona")} onClick={() => setQuien("persona")}>Por persona</button>
+            <div className="hp-pestanas">
+              {([
+                ["me_toca", "Me toca"],
+                ["pedi", "Pedí yo"],
+                ["todo", "Todo"],
+                ["persona", "Por persona"],
+              ] as const).map(([clave, label]) => (
+                <button key={clave} type="button" className={quien === clave ? "activo" : ""} onClick={() => setQuien(clave)}>
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                className={`hp-pestana-lupa ${buscando || busqueda.trim() !== "" ? "activo" : ""}`}
+                aria-label="Buscar"
+                aria-expanded={buscando}
+                onClick={() => setBuscando((v) => !v)}
+              >
+                ⌕
+              </button>
             </div>
-            <div className={`flex items-center gap-1.5 ${buscando || busqueda.trim() || (verAmbos && tipo !== "todas") ? "" : "max-sm:hidden"}`}>
+          </div>
+          {(buscando || busqueda.trim() || (verAmbos && tipo !== "todas")) && (
+            <div className="flex items-center gap-1.5 border-b-2 border-ink/15 px-3 py-2">
               <input
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 placeholder="Buscar…"
                 autoFocus={buscando}
-                className="hp-campo min-w-0 flex-1 px-3 py-2 !text-[16px]"
+                className="hp-campo min-w-0 flex-1 px-3 py-1.5 !text-[15px]"
               />
               {verAmbos && (
                 <select
                   value={tipo}
                   onChange={(e) => setTipo(e.target.value as TipoFiltro)}
-                  className="hp-campo shrink-0 px-2 py-2 !text-[15px]"
+                  className="hp-campo shrink-0 px-2 py-1.5 !text-[14px]"
                   aria-label="Tipo"
                 >
                   <option value="todas">Todas</option>
@@ -376,7 +388,7 @@ function InboxEscritorio({
                 </select>
               )}
             </div>
-          </div>
+          )}
 
           {isLoading && todas.length === 0 && !isError && (
             <p className="p-4 text-center text-[15px] text-ink-muted">Cargando…</p>

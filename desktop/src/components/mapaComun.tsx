@@ -48,7 +48,7 @@ export type DatosOrigen = { nombre: string; pedidas: number; urgentes: number; r
 
 /** Lo que antes estaba en el menú de arriba con la Agenda abierta: sus vistas y los espacios
  *  que viven dentro de ella (no son etapas del negocio). Se abren desde Inicio. */
-const DENTRO_DE_LA_AGENDA: Panel[] = ["chat-equipo", "colaboradores", "juegos"];
+const DENTRO_DE_LA_AGENDA: Panel[] = ["chat-equipo", "colaboradores", "empresa-viva", "juegos"];
 
 /** Las acciones de Inicio (Mi agenda, Mensajes, los espacios del equipo) con la regla de permisos
  *  de la Agenda. `abrir` decide CÓMO se llega (en el tablero la cámara se acerca). */

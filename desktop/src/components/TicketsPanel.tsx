@@ -90,6 +90,7 @@ import InboxConversaciones from "./tickets/InboxConversaciones";
 import MensajesConGrupos from "./chat_equipo/MensajesConGrupos";
 import DondeEsta from "./bultos/DondeEsta";
 import RevisionEmpaqueEnSolicitud from "./revisionEmpaque/RevisionEmpaque";
+import { BotonZumbido } from "../lib/zumbido";
 
 // ── API helper ────────────────────────────────────────────────────────────────
 
@@ -5796,6 +5797,12 @@ export function TicketDetailView({
           <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/30 px-2.5 py-0.5 text-xs font-bold text-accent">
             ⏱ {fmtHoras(ticket.total_horas!)}
           </span>
+        )}
+        {!["resuelto", "rechazado"].includes(ticket.estado)
+          && (esAsignadoDetalle || esCreadoPorMiDetalle || (ticket.participantes ?? []).some((p) => uidEq(p.usuario_id, user.id)))
+          && new Set([ticket.creado_por, ticket.asignado_a, ...(ticket.participantes ?? []).map((p) => p.usuario_id)].filter((x) => x != null)).size > 1 && (
+          <BotonZumbido ticketId={ticket.id}
+            className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-ink transition hover:border-accent hover:text-accent" />
         )}
         <span className="ml-auto rounded-full bg-accent/10 border border-accent/30 px-2.5 py-0.5 text-[10px] font-bold text-accent">
           ▶ Ejecución

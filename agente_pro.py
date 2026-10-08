@@ -366,6 +366,14 @@ if __name__ == "__main__":
     # Esto permite que el menú y el servidor web funcionen al mismo tiempo.
     cli_thread = threading.Thread(target=iniciar_cli, daemon=True)
     cli_thread.start()
+
+    # Fotos de COA que quedaron en cola antes de un reinicio (grupo «COA y fichas técnicas»).
+    try:
+        from app.services.coa_canal_auto import retomar_pendientes
+
+        retomar_pendientes()
+    except Exception as e:
+        print(f"⚠️ COA automático no retomó la cola: {e}")
     
     # Iniciar el servidor Flask.
     # Se ejecuta en el puerto 8081 y es accesible desde la red local.

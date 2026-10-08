@@ -519,7 +519,7 @@ REGLAS ESTRICTAS:
 - NO mencionar: dosis, consumo, absorción, salud ósea/muscular/cardiovascular, farmacológico, Ph.Eur, USP, INVIMA, laxante, antiácido, magnesio elemental, % elemental
 - NO usar frases tipo "sal de magnesio/sal de calcio/sal de zinc" (usar "citrato de X", "compuesto de X con citrato" o "materia prima mineral")
 - SÍ incluir: "materia prima", "insumo para formulación", "Res. 2674/2013 Art. 37-3", "no es suplemento terminado"
-- Título MeLi máx 60 chars, formato: "{{Ingrediente}} En Polvo Puro {{presentación}} — Materia Prima"
+- Título MeLi máx 60 chars, formato: "{{Ingrediente}} {{forma (En Polvo, Pelada, Deshidratada…)}} {{presentación}}". NUNCA "Materia Prima" en el título (decisión de Armando, 7-oct-2026): eso va solo en la descripción
 - LINE MeLi: "{perfil_info['linea_meli']}"
 - domain_id: "{perfil_info['domain_meli']}"
 - category_id: "{perfil_info['categoria_meli']}" (formato MCO + números, NUNCA un domain tipo MCO-ALGO)
@@ -656,9 +656,8 @@ def _evaluar_checklist(titulo: str, descripcion: str, atributos: dict) -> dict:
     return {
         "titulo_nombre_quimico_correcto": "sal de" not in titulo.lower(),
         "descripcion_sin_sal_de": "sal de" not in descripcion.lower(),
-        "titulo_incluye_materia_prima": any(
-            kw in titulo.lower() for kw in ["materia prima", "insumo"]
-        ),
+        # Antes se exigía «Materia Prima» en el título; desde el 7-oct-2026 no va ahí (Armando).
+        "titulo_sin_materia_prima": "materia prima" not in titulo.lower(),
         "sin_claims_salud": not any(
             kw in texto for kw in ["salud", "absorci", "terapéutic", "laxante", "antiácido"]
         ),

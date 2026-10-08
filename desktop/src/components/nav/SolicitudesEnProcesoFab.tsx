@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Cara } from "../../lib/fotoPersona";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPortal } from "react-dom";
 import { useAppStore } from "../../stores/app";
@@ -23,6 +24,7 @@ import { colorDePersona } from "../../lib/personaColor";
 import { useBandeja, useBandejaAngosta } from "../../lib/bandeja";
 import { esSolicitudDePago, irASolicitudPago } from "../../lib/irAPago";
 import { abrirCanalEnBandeja } from "../tickets/BandejaUnificada";
+import { BotonZumbido } from "../../lib/zumbido";
 
 /**
  * Burbuja de chat global (portal a body, mismo patrón que CrearSiigoFab): mensajería
@@ -173,11 +175,11 @@ export default function SolicitudesEnProcesoFab({ soloAvisos = false }: { soloAv
     if (soloAvisos) {
       const st = useAppStore.getState();
       st.setMobileTab("mensajes");
-      if (a.tipo === "solicitud") st.setSolicitudBoot({ abrirTicketId: a.id });
+      if (a.tipo === "solicitud" || a.tipo === "zumbido") st.setSolicitudBoot({ abrirTicketId: a.id });
       else window.setTimeout(() => abrirCanalEnBandeja(a.canal_id), 250);
       return;
     }
-    if (a.tipo === "solicitud") {
+    if (a.tipo === "solicitud" || a.tipo === "zumbido") {
       setCentroMandoView("mensajes");
       setSolicitudBoot({ abrirTicketId: a.id });
       setPanel("hugo");
@@ -199,20 +201,19 @@ export default function SolicitudesEnProcesoFab({ soloAvisos = false }: { soloAv
     setAbierta(true);
   }
 
-  const esSolicitud = aviso?.tipo === "solicitud";
+  const esSolicitud = aviso?.tipo === "solicitud" || aviso?.tipo === "zumbido";
   const tarjetaAviso = aviso && (
     <div className={`mck-aviso-entra pointer-events-auto flex w-[min(calc(100vw-1.5rem),22rem)] items-start gap-2.5 rounded-paper-lg border-2 bg-surface-panel p-3 shadow-paper-lg ${
       esSolicitud ? "border-amber-400" : "border-accent/60"}`}
       role="status" aria-live="polite">
       <button type="button" onClick={() => abrirAviso(aviso)} className="mck-btn-no-fx flex min-w-0 flex-1 items-start gap-2.5 text-left">
-        <span className="relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-black text-white"
-          style={{ background: colorDePersona(aviso.autor_nombre) }}>
-          {iniciales(aviso.autor_nombre)}
-          {aviso.icono && <span className="absolute -bottom-1 -right-1 text-[15px] leading-none" aria-hidden>{aviso.icono}</span>}
-        </span>
+        <Cara nombre={aviso.autor_nombre}
+          className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-black text-white"
+          style={{ background: colorDePersona(aviso.autor_nombre) }} fallback={iniciales(aviso.autor_nombre)}
+          extra={aviso.icono && <span className="absolute -bottom-1 -right-1 text-[15px] leading-none" aria-hidden>{aviso.icono}</span>} />
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-bold uppercase tracking-wide text-muted">
-            {esSolicitud ? `Te pidió algo · ${aviso.canal_nombre}` : aviso.mencion ? `@ Te mencionó · ${aviso.canal_nombre}` : aviso.canal_nombre}
+            {aviso.tipo === "zumbido" ? `📳 Te envió un zumbido · ${aviso.canal_nombre}` : esSolicitud ? `Te pidió algo · ${aviso.canal_nombre}` : aviso.mencion ? `@ Te mencionó · ${aviso.canal_nombre}` : aviso.canal_nombre}
           </span>
           <span className="block truncate text-[14px] font-bold text-ink">{aviso.autor_nombre}</span>
           <span className="line-clamp-2 block text-[13.5px] leading-snug text-ink-secondary">{aviso.texto}</span>
@@ -296,6 +297,10 @@ export default function SolicitudesEnProcesoFab({ soloAvisos = false }: { soloAv
                     {chat.contraparte_nombre ?? "Sin asignar"} · {ESTADO_LABEL[chat.estado] ?? chat.estado}
                   </p>
                 </div>
+                {chat.contraparte_id != null && (
+                  <BotonZumbido ticketId={chat.id} conTexto={false}
+                    className="rounded-lg px-1.5 py-0.5 text-[15px] leading-none hover:bg-surface-hover" />
+                )}
               </>
             ) : vista === "solicitudes" && nuevo ? (
               <>

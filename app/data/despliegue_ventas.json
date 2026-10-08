@@ -1,8 +1,8 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-06T17:18:49",
- "actualizado_por": "@cynthia",
+ "actualizado": "2026-10-07T23:54:29",
+ "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
   "GTRVDR10ML12UN": {
@@ -1832,7 +1832,7 @@
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
-    "MCO4508059070"
+    "MCO4514104026"
    ]
   },
   "C-ACECOCVIR500G": {
@@ -1841,7 +1841,7 @@
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
-    "MCO4508059134"
+    "MCO4514104046"
    ]
   },
   "C-ACECOCVIRKG": {
@@ -1850,7 +1850,7 @@
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
-    "MCO4508145372"
+    "MCO4514104058"
    ]
   },
   "C-AVEHOJKG": {
@@ -1859,7 +1859,7 @@
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
-    "MCO4508050280"
+    "MCO4514113610"
    ]
   },
   "C-ALBSEC250G": {
@@ -1868,7 +1868,79 @@
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
-    "MCO4508151626"
+    "MCO4514117118"
+   ]
+  },
+  "C-SEMGIR250G": {
+   "nombre": "SEMILLA DE GIRASOL 250g",
+   "titulo_meli": "Semilla De Girasol Pelada 250g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514139712"
+   ]
+  },
+  "C-SEMGIR500G": {
+   "nombre": "SEMILLA GIRASOL 500g",
+   "titulo_meli": "Semilla De Girasol Pelada 500g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514113544"
+   ]
+  },
+  "C-SEMGIRKG": {
+   "nombre": "SEMILLA GIRASOL KG",
+   "titulo_meli": "Semilla De Girasol Pelada 1kg Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514126682"
+   ]
+  },
+  "C-UVAPASFLA250G": {
+   "nombre": "UVAS PASAS FLAME 250g",
+   "titulo_meli": "Uvas Pasas Flame 250g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514100548"
+   ]
+  },
+  "C-UVAPASFLA500G": {
+   "nombre": "UVAS PASAS FLAME 500g",
+   "titulo_meli": "Uvas Pasas Flame 500g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514100554"
+   ]
+  },
+  "C-BAYGOJ250G": {
+   "nombre": "BAYAS DE GOJI BERRY 250g",
+   "titulo_meli": "Bayas De Goji Deshidratadas 250g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514113580"
+   ]
+  },
+  "C-BAYGOJ500G": {
+   "nombre": "BAYAS DE GOJI BERRY 500g",
+   "titulo_meli": "Bayas De Goji Deshidratadas 500g Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514139792"
+   ]
+  },
+  "C-AVEMOLKG": {
+   "nombre": "AVENA MOLIDA KG",
+   "titulo_meli": "Harina De Avena 1kg Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514126730"
    ]
   }
  },
@@ -2009,8 +2081,7 @@
    "meli_id": "MCO980071251",
    "sku": "C-ACISAL50G",
    "titulo": "Ácido Salicílico 50gr Todo Tipo De Piel",
-   "motivo": "etiqueta sin aprobar",
-   "por_etiqueta": true
+   "motivo": "código inactivo en Alegra"
   },
   {
    "meli_id": "MCO605845399",
@@ -2106,8 +2177,7 @@
    "meli_id": "MCO1929017874",
    "sku": "C-ACISAL50G",
    "titulo": "Ácido Salicílico 50gr",
-   "motivo": "etiqueta sin aprobar",
-   "por_etiqueta": true
+   "motivo": "código inactivo en Alegra"
   },
   {
    "meli_id": "MCO1335735933",
@@ -2225,34 +2295,82 @@
   }
  ],
  "publicadas_despues": {
-  "MCO4508059070": {
-   "sku": "C-ACECOCVIR250G",
-   "titulo": "Aceite De Coco Virgen Orgánico",
-   "desde": "2026-10-05T23:18:59",
+  "MCO4514139712": {
+   "sku": "C-SEMGIR250G",
+   "titulo": "Semilla De Girasol Pelada 250g",
+   "desde": "2026-10-07T23:13:13",
    "por": "armando"
   },
-  "MCO4508059134": {
-   "sku": "C-ACECOCVIR500G",
-   "titulo": "Aceite De Coco Virgen Orgánico",
-   "desde": "2026-10-05T23:19:00",
+  "MCO4514113544": {
+   "sku": "C-SEMGIR500G",
+   "titulo": "Semilla De Girasol Pelada 500g",
+   "desde": "2026-10-07T23:13:14",
    "por": "armando"
   },
-  "MCO4508145372": {
-   "sku": "C-ACECOCVIRKG",
-   "titulo": "Aceite De Coco Virgen Orgánico",
-   "desde": "2026-10-05T23:19:01",
+  "MCO4514126682": {
+   "sku": "C-SEMGIRKG",
+   "titulo": "Semilla De Girasol Pelada 1kg",
+   "desde": "2026-10-07T23:13:15",
    "por": "armando"
   },
-  "MCO4508050280": {
+  "MCO4514100548": {
+   "sku": "C-UVAPASFLA250G",
+   "titulo": "Uvas Pasas Flame 250g",
+   "desde": "2026-10-07T23:13:16",
+   "por": "armando"
+  },
+  "MCO4514100554": {
+   "sku": "C-UVAPASFLA500G",
+   "titulo": "Uvas Pasas Flame 500g",
+   "desde": "2026-10-07T23:13:17",
+   "por": "armando"
+  },
+  "MCO4514113580": {
+   "sku": "C-BAYGOJ250G",
+   "titulo": "Bayas De Goji Deshidratadas 250g",
+   "desde": "2026-10-07T23:13:18",
+   "por": "armando"
+  },
+  "MCO4514139792": {
+   "sku": "C-BAYGOJ500G",
+   "titulo": "Bayas De Goji Deshidratadas 500g",
+   "desde": "2026-10-07T23:13:19",
+   "por": "armando"
+  },
+  "MCO4514126730": {
+   "sku": "C-AVEMOLKG",
+   "titulo": "Harina De Avena 1kg",
+   "desde": "2026-10-07T23:13:20",
+   "por": "armando"
+  },
+  "MCO4514113610": {
    "sku": "C-AVEHOJKG",
-   "titulo": "Avena En Hojuelas Entera 1kg  Materia Prima",
-   "desde": "2026-10-06T00:23:05",
+   "titulo": "Avena En Hojuelas Entera 1kg",
+   "desde": "2026-10-07T23:13:21",
    "por": "armando"
   },
-  "MCO4508151626": {
+  "MCO4514104026": {
+   "sku": "C-ACECOCVIR250G",
+   "titulo": "Aceite De Coco Virgen Orgánico 250g",
+   "desde": "2026-10-07T23:54:26",
+   "por": "armando"
+  },
+  "MCO4514104046": {
+   "sku": "C-ACECOCVIR500G",
+   "titulo": "Aceite De Coco Virgen Orgánico 500g",
+   "desde": "2026-10-07T23:54:27",
+   "por": "armando"
+  },
+  "MCO4514104058": {
+   "sku": "C-ACECOCVIRKG",
+   "titulo": "Aceite De Coco Virgen Orgánico 1kg",
+   "desde": "2026-10-07T23:54:28",
+   "por": "armando"
+  },
+  "MCO4514117118": {
    "sku": "C-ALBSEC250G",
-   "titulo": "Albaricoque Deshidratado 250g  Materia Prima",
-   "desde": "2026-10-06T00:55:06",
+   "titulo": "Albaricoque Deshidratado 250g",
+   "desde": "2026-10-07T23:54:29",
    "por": "armando"
   }
  }

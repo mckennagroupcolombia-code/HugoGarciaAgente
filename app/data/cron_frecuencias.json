@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-10-06T07:20:16"
+    "ultima_ejecucion": "2026-10-07T07:21:57"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -21,7 +21,7 @@
   },
   "resumen_actividad_sede_sur": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-06T18:00:01"
+    "ultima_ejecucion": "2026-10-07T18:00:01"
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
@@ -45,11 +45,11 @@
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-10-06T07:05:31"
+    "ultima_ejecucion": "2026-10-07T07:04:38"
   },
   "cobertura_meli": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-06T06:50:18"
+    "ultima_ejecucion": "2026-10-07T06:51:09"
   },
   "competencia_precios": {
     "intervalo_horas": 168,
@@ -57,23 +57,23 @@
   },
   "recordatorio_pago_contador": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-06T09:02:01"
+    "ultima_ejecucion": "2026-10-07T09:02:30"
   },
   "recordatorio_pago_nomina": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-06T09:05:01"
+    "ultima_ejecucion": "2026-10-07T09:05:01"
   },
   "reintentar_avisos_pedidos_web": {
     "intervalo_horas": 1,
-    "ultima_ejecucion": "2026-10-07T01:30:01"
+    "ultima_ejecucion": "2026-10-08T01:30:01"
   },
   "contabilidad_autopost": {
     "intervalo_horas": 6,
-    "ultima_ejecucion": "2026-10-07T00:10:33"
+    "ultima_ejecucion": "2026-10-08T00:10:33"
   },
   "revision_facturacion": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-06T07:40:22"
+    "ultima_ejecucion": "2026-10-07T07:53:16"
   },
   "anulaciones_ra": {
     "intervalo_horas": 168,
@@ -81,15 +81,15 @@
   },
   "recuperacion_compra": {
     "intervalo_horas": 1.0,
-    "ultima_ejecucion": "2026-10-07T01:10:01"
+    "ultima_ejecucion": "2026-10-08T01:10:01"
   },
   "precios_trm": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-06T08:40:02"
+    "ultima_ejecucion": "2026-10-07T08:40:02"
   },
   "entregas_flex": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-10-06T23:15:08"
+    "ultima_ejecucion": "2026-10-07T23:15:06"
   },
   "adjuntar_soportes": {
     "intervalo_horas": 168,
@@ -97,6 +97,6 @@
   },
   "facturar_entregadas_48h": {
     "intervalo_horas": 3.5,
-    "ultima_ejecucion": "2026-10-06T17:07:41"
+    "ultima_ejecucion": "2026-10-07T17:33:45"
   }
 }
