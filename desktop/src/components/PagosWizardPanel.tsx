@@ -101,6 +101,8 @@ type Solicitud = {
                    retencion?: number; fecha?: string };
   /** Diferencia conocida pendiente de corregir en el asiento (6-oct-2026). */
   por_arreglar?: string; por_arreglar_at?: string; arreglado_at?: string; arreglo_nota?: string;
+  /** La cotización pedida desde este panel que este pago salda (8-oct-2026). */
+  cotizacion_proveedor_id?: number | null; cotizacion_numero?: string;
 };
 
 type Yo = { puede: boolean; usuario: string; usuario_id?: number | null; nivel?: number };
@@ -167,6 +169,9 @@ export default function PagosWizardPanel() {
   // El borrador del servidor que se está corrigiendo en el formulario.
   const [editando, setEditando] = useState<Solicitud | null>(null);
   const [verGuia, setVerGuia] = useState(false);
+  // Cotizaciones a proveedores: pedir una nueva, o pagar una ya cotizada.
+  const [pidiendoCot, setPidiendoCot] = useState(false);
+  const [pagarCot, setPagarCot] = useState<Cotizacion | null>(null);
   // Anticipos girados sin factura: plata a favor sin soporte hasta legalizarlos.
   const anticiposQ = useQuery<{ anticipos: Solicitud[] }>({
     queryKey: ["pagos-solicitudes", "anticipos"],
@@ -199,7 +204,7 @@ export default function PagosWizardPanel() {
   const listaQ = useQuery<{ solicitudes: Solicitud[]; resumen: { pendientes: Cuenta; aprobadas: Cuenta; por_estado?: Record<string, Cuenta> } }>({
     queryKey: ["pagos-solicitudes", filtro],
     queryFn: () => api.get(
-      `/api/pagos/solicitudes${filtro && filtro !== "por_hacer" && filtro !== "anticipos" && filtro !== "por_arreglar" ? `?estado=${filtro}` : ""}`,
+      `/api/pagos/solicitudes${filtro && !["por_hacer", "anticipos", "por_arreglar", "cotizaciones"].includes(filtro) ? `?estado=${filtro}` : ""}`,
     ),
   });
 
@@ -240,6 +245,10 @@ export default function PagosWizardPanel() {
                 className="rounded-lg border border-border px-3 py-2 text-sm font-bold text-ink hover:border-accent hover:text-accent">
           ▶ Guía animada
         </button>
+        <button type="button" onClick={() => { setPidiendoCot((v) => !v); setFiltro("cotizaciones"); }}
+                className="rounded-lg border border-accent px-3 py-2 text-sm font-bold text-accent hover:bg-accent/10">
+          {pidiendoCot ? "Cerrar cotización" : "Pedir cotización"}
+        </button>
         <button
           type="button"
           onClick={() => {
@@ -253,6 +262,17 @@ export default function PagosWizardPanel() {
         </div>
       </header>
       {verGuia && <GuiaAnimadaPagos onCerrar={() => setVerGuia(false)} />}
+      {pidiendoCot && (
+        <PedirCotizacion
+          onCerrar={() => setPidiendoCot(false)}
+          onError={(t) => setMsg({ tipo: "error", texto: t })}
+          onCreada={(c) => {
+            setPidiendoCot(false); setFiltro("cotizaciones");
+            void qc.invalidateQueries({ queryKey: ["pagos-cotizaciones"] });
+            setMsg({ tipo: "ok", texto: `${c.numero} creada. Descarga el PDF o copia el texto y mándaselo a ${c.tercero?.nombre ?? "el proveedor"}.` });
+          }}
+        />
+      )}
 
       {porArreglar.length > 0 && (
         <button type="button" onClick={() => setFiltro("por_arreglar")}
@@ -308,6 +328,19 @@ export default function PagosWizardPanel() {
           void qc.invalidateQueries({ queryKey: ["pagos-solicitudes"] });
         };
         const error = (texto: string) => setMsg({ tipo: "error", texto });
+        if (pagarCot) {
+          return (
+            <PagarCotizacion
+              c={pagarCot} clave={clave}
+              onCerrar={() => { setPagarCot(null); cerrar(); }}
+              onCreada={(t) => {
+                setPagarCot(null); creada(t);
+                void qc.invalidateQueries({ queryKey: ["pagos-cotizaciones"] });
+              }}
+              onError={error}
+            />
+          );
+        }
         if (editando) {
           return (
             <EditarBorrador
@@ -332,7 +365,7 @@ export default function PagosWizardPanel() {
 
       {/* Una fila que se desplaza de lado: en el celular los 11 filtros se aplastaban («Po ha», «Pe»…). */}
       <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 text-sm">
-        {[["por_hacer", "Por hacer"], ["pendiente", "Pendientes"], ["aprobada", "Por girar"], ["en_banco", "En el banco"], ["pagada", "Giradas"], ["borrador", "Borradores"], ["anticipos", "Anticipos sin factura"], ["por_arreglar", "Por arreglar"], ["rechazada", "Rechazadas"], ["plantilla", "Recurrentes"], ["", "Todas"]].map(([v, l]) => (
+        {[["por_hacer", "Por hacer"], ["pendiente", "Pendientes"], ["aprobada", "Por girar"], ["en_banco", "En el banco"], ["pagada", "Giradas"], ["borrador", "Borradores"], ["cotizaciones", "Cotizaciones"], ["anticipos", "Anticipos sin factura"], ["por_arreglar", "Por arreglar"], ["rechazada", "Rechazadas"], ["plantilla", "Recurrentes"], ["", "Todas"]].map(([v, l]) => (
           <button
             key={v} type="button" onClick={() => setFiltro(v)}
             className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1 font-bold ${filtro === v ? "bg-accent text-white" : "bg-surface text-muted"}`}
@@ -340,7 +373,19 @@ export default function PagosWizardPanel() {
         ))}
       </div>
 
-      {filtro === "plantilla" ? (
+      {filtro === "cotizaciones" ? (
+        <ListaCotizaciones
+          onMensaje={setMsg}
+          onPagar={(c) => {
+            if (leerBorrador(clave) && !window.confirm(
+              "Tienes una solicitud de pago a medio llenar en este equipo. ¿Reemplazarla por el pago de esta cotización?",
+            )) return;
+            setEditando(null); setAvanzado(false); setCatInicial(null);
+            setPagarCot(c); setAbierto(true);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+      ) : filtro === "plantilla" ? (
         <ListaPlantillas onMensaje={setMsg} />
       ) : (
         <>
@@ -395,6 +440,8 @@ type BorradorSimple = {
   /** Qué documento del proveedor se tiene en la mano (6-oct-2026): con cotización a
    *  un proveedor obligado a facturar, el giro queda como anticipo en 133005. */
   documentoTipo?: "cotizacion" | "factura";
+  /** El pago sale de una cotización pedida desde este panel (8-oct-2026). */
+  cotizacion?: { id: number; numero: string; total: number } | null;
 };
 
 function claveBorrador(usuario: string | undefined): string {
@@ -428,7 +475,7 @@ function borrarBorrador(clave: string) {
 // ver contra qué cuenta va sigue siendo firmar a ciegas.
 
 function WizardSimple({
-  onCerrar, onCreada, onError, onAvanzado, clave, onDescartar, inicial, editarId,
+  onCerrar, onCreada, onError, onAvanzado, clave, onDescartar, inicial, editarId, desdeCero = false,
 }: {
   onCerrar: () => void;
   onCreada: (texto: string) => void;
@@ -440,6 +487,9 @@ function WizardSimple({
   inicial?: BorradorSimple;
   /** El borrador que se corrige: guardar lo actualiza en vez de crear otra solicitud. */
   editarId?: number;
+  /** `inicial` es un punto de partida nuevo (pago de una cotización), no algo que
+   *  el usuario ya ajustó: la ficha del proveedor y la cuenta ponen sus casillas. */
+  desdeCero?: boolean;
 }) {
   // Se lee una sola vez, al montar: es el punto de partida, no un estado vivo.
   const [ini] = useState(() => inicial ?? leerBorrador(clave));
@@ -452,9 +502,9 @@ function WizardSimple({
   // Los efectos de abajo ponen las casillas desde la ficha del tercero y la
   // cuenta. Al restaurar un borrador esa primera pasada pisaría lo que el
   // usuario ya había cambiado, así que se salta una vez.
-  const saltarProveedor = useRef<number | null>(ini?.proveedor?.id ?? null);
-  const saltarConcepto = useRef(Boolean(ini));
-  const saltarPerfil = useRef(Boolean(ini));
+  const saltarProveedor = useRef<number | null>(desdeCero ? null : ini?.proveedor?.id ?? null);
+  const saltarConcepto = useRef(Boolean(ini) && !desdeCero);
+  const saltarPerfil = useRef(Boolean(ini) && !desdeCero);
   // Quién asume la retención. Lo pactado con un prestador de servicios suele
   // ser «te pago X libre de retención»: ese valor es lo que RECIBE, no la base.
   // Tomarlo como base le recorta la retención y después la reclama (pasó con
@@ -489,6 +539,9 @@ function WizardSimple({
   // como combo y 0% como insumo).
   const [totalDocumento, setTotalDocumento] = useState(ini?.totalDocumento ?? "");
   const [documentoTipo, setDocumentoTipo] = useState<"cotizacion" | "factura">(ini?.documentoTipo ?? "cotizacion");
+  // Pago de una cotización pedida desde este panel: el backend la valida (mismo
+  // proveedor, mismo total) y la deja enlazada a la solicitud.
+  const [cotizacion, setCotizacion] = useState(ini?.cotizacion ?? null);
   const [contrato, setContrato] = useState(ini?.contrato ?? "");
   const [monto, setMonto] = useState(ini?.monto ?? "");
   const [detalle, setDetalle] = useState(ini?.detalle ?? "");
@@ -515,7 +568,7 @@ function WizardSimple({
         v: 1, guardado: new Date().toISOString(), proveedor, fecha, medioPagoId, concepto,
         retencionModo, cuentaDebito, icaActivo, icaPorMil, gmf, ajustarImpuestos, asumeRenta,
         asumeIca, items, totalDocumento, contrato, monto, detalle, pagaTodo, pagoAhora,
-        cruceAnticipo, cruceCxp, documentoTipo,
+        cruceAnticipo, cruceCxp, documentoTipo, cotizacion,
       };
       try {
         localStorage.setItem(clave, JSON.stringify(b));
@@ -525,7 +578,7 @@ function WizardSimple({
     return () => window.clearTimeout(t);
   }, [clave, proveedor, fecha, medioPagoId, concepto, retencionModo, cuentaDebito, icaActivo,
       icaPorMil, gmf, ajustarImpuestos, asumeRenta, asumeIca, items, totalDocumento, contrato,
-      monto, detalle, pagaTodo, pagoAhora, cruceAnticipo, cruceCxp, documentoTipo, editarId]);
+      monto, detalle, pagaTodo, pagoAhora, cruceAnticipo, cruceCxp, documentoTipo, cotizacion, editarId]);
 
   const catsQ = useQuery<{ categorias: Categoria[] }>({
     queryKey: ["pagos-categorias"],
@@ -669,6 +722,7 @@ function WizardSimple({
     monto: hayItems ? Math.round(totProd.total) : valor,
     ...(hayItems && num(totalDocumento) > 0 ? { total_documento: num(totalDocumento) } : {}),
     ...(hayItems ? { documento_tipo: documentoTipo } : {}),
+    ...(hayItems && cotizacion ? { cotizacion_proveedor_id: cotizacion.id } : {}),
     ...(hayItems ? { items: items.map((it) => ({
       sku: it.sku, nombre: it.nombre, unidad: it.unidad,
       cantidad: num(it.cantidad), precio: num(it.precio), iva_pct: num(it.iva_pct),
@@ -690,7 +744,7 @@ function WizardSimple({
   }), [concepto, valor, conceptoTexto, fecha, proveedor, medioPagoId, esPublico, contrato,
        llevaRetencion, retencionModo, icaActivo, icaPorMil, cuentaDebito, gmf, permiteParcial,
        pagaTodo, pagoAhora, hayItems, items, totProd.total, totalDocumento, asumeRenta, asumeIca,
-       cruceAnticipo, cruceCxp, documentoTipo]);
+       cruceAnticipo, cruceCxp, documentoTipo, cotizacion]);
 
   const faltaProveedor = Boolean(cat?.requiere_tercero) && !proveedor?.id;
   // La solicitud de una compra es copia fiel de la cotización o proforma (24-sep-2026):
@@ -801,6 +855,15 @@ function WizardSimple({
         <button type="button" onClick={onCerrar} className="text-sm text-muted">✕</button>
       </div>
       {avisoBorrador}
+      {cotizacion && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm">
+          <span><Ico e="📝" /> Pago de la cotización <b>{cotizacion.numero}</b> · {cop(cotizacion.total)}</span>
+          <span className="text-xs text-muted">el proveedor y el total tienen que coincidir con ella</span>
+          <button type="button" onClick={() => setCotizacion(null)} className="ml-auto text-xs font-bold text-accent underline">
+            Quitar enlace
+          </button>
+        </div>
+      )}
 
       <div>
         <p className="mb-1 text-xs font-bold uppercase text-muted">
@@ -2147,10 +2210,12 @@ function PasoProveedor({
  * combos (`kit`): el combo es lo que McKenna arma y vende, no lo que compra.
  */
 function TablaProductos({
-  items, setItems, tot,
+  items, setItems, tot, soloCantidad = false,
 }: {
   items: ItemLinea[]; setItems: (v: ItemLinea[]) => void;
   tot: { subtotal: number; iva: number; total: number };
+  /** Pedir una cotización: todavía no hay precio ni IVA, solo qué y cuánto. */
+  soloCantidad?: boolean;
 }) {
   const [q, setQ] = useState("");
   const prodQ = useQuery<{ productos: ProductoCat[] }>({
@@ -2232,8 +2297,12 @@ function TablaProductos({
             <thead className="bg-surface text-xs uppercase text-muted">
               <tr>
                 <th className="px-2 py-1.5">Referencia</th><th className="px-2 py-1.5">Materia prima</th>
-                <th className="px-2 py-1.5 text-right">Cant.</th><th className="px-2 py-1.5 text-right">Precio sin IVA</th>
-                <th className="px-2 py-1.5 text-right">IVA %</th><th className="px-2 py-1.5 text-right">Subtotal</th><th />
+                <th className="px-2 py-1.5 text-right">Cant.</th>
+                {!soloCantidad && <>
+                  <th className="px-2 py-1.5 text-right">Precio sin IVA</th>
+                  <th className="px-2 py-1.5 text-right">IVA %</th><th className="px-2 py-1.5 text-right">Subtotal</th>
+                </>}
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -2244,6 +2313,7 @@ function TablaProductos({
                   </td>
                   <td className="px-2 py-1 text-ink">{it.nombre}{it.unidad ? <span className="text-muted"> · {it.unidad}</span> : null}</td>
                   <td className="px-2 py-1 text-right"><input type="number" min="0" step="1" value={it.cantidad} onChange={(e) => editar(i, "cantidad", e.target.value)} className="w-24 rounded border border-border bg-surface-input px-1 py-0.5 text-right" /></td>
+                  {!soloCantidad && <>
                   <td className="px-2 py-1 text-right"><input type="number" min="0" step="0.01" value={it.precio} onChange={(e) => editar(i, "precio", e.target.value)} className="w-28 rounded border border-border bg-surface-input px-1 py-0.5 text-right" /></td>
                   <td className="px-2 py-1 text-right">
                     <select value={it.iva_pct} onChange={(e) => editar(i, "iva_pct", e.target.value)} className="rounded border border-border bg-surface-input px-1 py-0.5">
@@ -2251,19 +2321,23 @@ function TablaProductos({
                     </select>
                   </td>
                   <td className="px-2 py-1 text-right tabular-nums text-ink">{cop(num(it.cantidad) * num(it.precio))}</td>
+                  </>}
                   <td className="px-2 py-1"><button type="button" onClick={() => setItems(items.filter((_, j) => j !== i))} className="text-muted hover:text-red-500">✕</button></td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="text-sm">
+            {!soloCantidad && <tfoot className="text-sm">
               <tr className="border-t border-border"><td colSpan={5} className="px-2 py-1 text-right text-muted">Subtotal (va a inventario 1435)</td><td className="px-2 py-1 text-right tabular-nums">{cop(tot.subtotal)}</td><td /></tr>
               <tr><td colSpan={5} className="px-2 py-1 text-right text-muted">IVA descontable (240810)</td><td className="px-2 py-1 text-right tabular-nums">{cop(tot.iva)}</td><td /></tr>
               <tr className="font-bold"><td colSpan={5} className="px-2 py-1 text-right">Total de la cotización</td><td className="px-2 py-1 text-right tabular-nums text-ink">{cop(tot.total)}</td><td /></tr>
-            </tfoot>
+            </tfoot>}
           </table>
         </div>
       )}
-      {!items.length && <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">Busca y agrega las materias primas de la cotización. Cada línea queda como un renglón del asiento.</p>}
+      {!items.length && <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+        {soloCantidad ? "Busca y agrega las materias primas que le vas a pedir al proveedor, con su cantidad."
+          : "Busca y agrega las materias primas de la cotización. Cada línea queda como un renglón del asiento."}
+      </p>}
     </div>
   );
 }
@@ -2735,6 +2809,12 @@ function FichaSolicitud({
           <span className="text-amber-500">sin espejar en Alegra</span>
         )}
         {s.ticket_id && <span><Ico e="🎫" /> ticket #{s.ticket_id}</span>}
+        {s.cotizacion_numero && (
+          <span className="rounded bg-accent/10 px-1.5 py-0.5 font-bold text-accent"
+                title="Cotización pedida al proveedor desde Solicitudes de pago">
+            <Ico e="📝" /> {s.cotizacion_numero}
+          </span>
+        )}
         {s.items && s.items.length > 0 && <span><Ico e="📦" /> {s.items.length} producto(s)</span>}
         {Boolean(s.es_anticipo) && (s.legalizacion_movimiento_id ? (
           <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-bold text-emerald-600"
@@ -3578,5 +3658,374 @@ function Mini({ label, valor, acento }: { label: string; valor: string; acento?:
       <p className="text-xs font-bold uppercase text-muted">{label}</p>
       <p className={`mt-0.5 text-base font-extrabold tabular-nums ${acento ? "text-accent" : "text-ink"}`}>{valor}</p>
     </div>
+  );
+}
+
+// ─── Cotizaciones pedidas a proveedores (8-oct-2026) ────────────────────────
+//
+// Se pide desde aquí, se le manda al proveedor como PDF o texto (el sistema no
+// la envía), se registra lo que cotizó con su documento y de ahí sale la
+// solicitud de pago, enlazada. Ver app/services/cotizaciones_proveedor.py.
+
+type Cotizacion = {
+  id: number; numero: string; estado: "solicitada" | "recibida" | "usada" | "descartada";
+  tercero_id: number;
+  tercero: { id: number; nombre: string; identificacion: string; email?: string; telefono?: string } | null;
+  items: Array<{ sku: string; nombre: string; unidad?: string; cantidad: number }>;
+  items_cotizados: Array<{ sku: string; nombre: string; unidad?: string; cantidad: number; precio: number; iva_pct: number; total: number }>;
+  total_documento: number; numero_documento: string; valida_hasta: string;
+  archivo: string; archivo_nombre: string; notas: string; fecha_requerida: string;
+  created_at: string; recibida_at: string; descartada_motivo: string;
+  solicitud_pago_id: number | null; solicitud: { id: number; estado: string; monto: number } | null;
+  disponible: boolean;
+};
+
+const ESTADO_COT: Record<Cotizacion["estado"], { label: string; cls: string }> = {
+  solicitada: { label: "Esperando respuesta del proveedor", cls: "bg-amber-500/15 text-amber-600" },
+  recibida: { label: "Cotizada — lista para pagar", cls: "bg-sky-500/15 text-sky-600" },
+  usada: { label: "En una solicitud de pago", cls: "bg-emerald-500/15 text-emerald-500" },
+  descartada: { label: "Descartada", cls: "bg-surface text-muted" },
+};
+
+function abrirArchivo(path: string) {
+  void fetchAuthBlobUrl(path).then((u) => { if (u) window.open(u, "_blank"); });
+}
+
+/** Pedir una cotización nueva o, con `editar`, corregir el pedido de una que no
+ *  se ha pagado ni descartado (el proveedor solo mientras no haya respondido). */
+function PedirCotizacion({
+  onCerrar, onCreada, onError, editar,
+}: {
+  onCerrar: () => void; onCreada: (c: Cotizacion) => void; onError: (t: string) => void;
+  editar?: Cotizacion;
+}) {
+  const [proveedor, setProveedor] = useState<Proveedor | null>(() => editar?.tercero
+    ? { id: editar.tercero_id, nombre: editar.tercero.nombre, identificacion: editar.tercero.identificacion,
+        saldo_2205: 0, en_libro: true, alegra_id: null }
+    : null);
+  const [items, setItems] = useState<ItemLinea[]>(() => (editar?.items ?? []).map((it) => ({
+    sku: it.sku, nombre: it.nombre, unidad: it.unidad, cantidad: String(it.cantidad), precio: "", iva_pct: "",
+  })));
+  const [fechaReq, setFechaReq] = useState(editar?.fecha_requerida ?? "");
+  const [notas, setNotas] = useState(editar?.notas ?? "");
+  // Lo que cotizó es del proveedor que respondió: para otro, otra cotización.
+  const proveedorFijo = editar?.estado === "recibida";
+  const crear = useMutation({
+    mutationFn: () => {
+      const body = {
+        tercero_id: proveedor?.id,
+        items: items.map((it) => ({ sku: it.sku, nombre: it.nombre, unidad: it.unidad, cantidad: num(it.cantidad) })),
+        fecha_requerida: fechaReq, notas,
+      };
+      return editar
+        ? api.put<Cotizacion & { error?: string }>(`/api/pagos/cotizaciones/${editar.id}`, body)
+        : api.post<Cotizacion & { error?: string }>("/api/pagos/cotizaciones", body);
+    },
+    onSuccess: (c) => (c.error ? onError(c.error) : onCreada(c)),
+    onError: (e) => onError((e as Error).message),
+  });
+  const listo = Boolean(proveedor?.id) && items.length > 0 && items.every((it) => num(it.cantidad) > 0);
+  return (
+    <div className={editar ? "mt-3 space-y-4 rounded-xl border-2 border-dashed border-accent/40 p-3"
+                           : "space-y-4 rounded-2xl border-2 border-accent/40 bg-surface-panel p-5"}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-accent">
+            {editar ? `Editar el pedido ${editar.numero}` : "Pedir cotización a un proveedor"}
+          </p>
+          <p className="text-xs text-muted">
+            {editar
+              ? editar.estado === "recibida"
+                ? "El proveedor ya respondió: esto corrige lo que se le pidió. Lo que cotizó se corrige con «Corregir lo cotizado»."
+                : "Al guardar, el PDF y el texto salen con el pedido corregido: vuelve a mandárselo al proveedor."
+              : "Se genera el pedido en PDF y en texto para que se lo mandes. Cuando responda, registras lo que cotizó y desde ahí solicitas el pago."}
+          </p>
+        </div>
+        <button type="button" onClick={onCerrar} className="text-sm text-muted">✕</button>
+      </div>
+      <div>
+        <p className="mb-1 text-xs font-bold uppercase text-muted">Proveedor</p>
+        {proveedor ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm">
+            <span className="font-bold text-ink">{proveedor.nombre}</span>
+            <span className="text-xs text-muted">{proveedor.identificacion || "sin identificación"}</span>
+            {!proveedorFijo && (
+              <button type="button" onClick={() => setProveedor(null)} className="ml-auto text-xs font-bold text-accent">Cambiar</button>
+            )}
+          </div>
+        ) : (
+          <ListaProveedores proveedor={proveedor} onElegir={setProveedor} autoFocus />
+        )}
+      </div>
+      <div>
+        <p className="mb-1 text-xs font-bold uppercase text-muted">Qué se le pide</p>
+        <TablaProductos items={items} setItems={setItems} tot={{ subtotal: 0, iva: 0, total: 0 }} soloCantidad />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Campo label="La necesitamos para (opcional)">
+          <input type="date" value={fechaReq} onChange={(e) => setFechaReq(e.target.value)} className={inputCls} />
+        </Campo>
+        <Campo label="Nota para el proveedor (opcional)">
+          <input value={notas} onChange={(e) => setNotas(e.target.value)}
+                 placeholder="Entrega en Suba, presentación en bulto de 25 kg…" className={inputCls} />
+        </Campo>
+      </div>
+      <button type="button" disabled={!listo || crear.isPending} onClick={() => crear.mutate()}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-40">
+        {crear.isPending ? (editar ? "Guardando…" : "Creando…") : editar ? "Guardar cambios" : "Crear solicitud de cotización"}
+      </button>
+    </div>
+  );
+}
+
+function ListaCotizaciones({
+  onPagar, onMensaje,
+}: {
+  onPagar: (c: Cotizacion) => void;
+  onMensaje: (m: { tipo: "ok" | "error"; texto: string }) => void;
+}) {
+  const q = useQuery<{ cotizaciones: Cotizacion[] }>({
+    queryKey: ["pagos-cotizaciones"],
+    queryFn: () => api.get("/api/pagos/cotizaciones"),
+  });
+  const [verDescartadas, setVerDescartadas] = useState(false);
+  const todas = q.data?.cotizaciones ?? [];
+  const lista = todas.filter((c) => verDescartadas || c.estado !== "descartada");
+  if (q.isLoading) return <p className="text-sm text-muted">Cargando…</p>;
+  return (
+    <div className="space-y-2">
+      {!lista.length && (
+        <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+          No hay cotizaciones pedidas. Usa «Pedir cotización» arriba.
+        </p>
+      )}
+      {lista.map((c) => <TarjetaCotizacion key={c.id} c={c} onPagar={onPagar} onMensaje={onMensaje} />)}
+      {todas.some((c) => c.estado === "descartada") && (
+        <button type="button" onClick={() => setVerDescartadas((v) => !v)} className="text-xs font-bold text-accent underline">
+          {verDescartadas ? "Ocultar descartadas" : "Ver descartadas"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TarjetaCotizacion({
+  c, onPagar, onMensaje,
+}: {
+  c: Cotizacion;
+  onPagar: (c: Cotizacion) => void;
+  onMensaje: (m: { tipo: "ok" | "error"; texto: string }) => void;
+}) {
+  const qc = useQueryClient();
+  const [respondiendo, setRespondiendo] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const badge = ESTADO_COT[c.estado];
+  const editable = c.estado === "solicitada" || c.estado === "recibida";
+
+  async function copiarTexto() {
+    try {
+      const r = await api.get<{ texto: string }>(`/api/pagos/cotizaciones/${c.id}/texto`);
+      await navigator.clipboard.writeText(r.texto);
+      onMensaje({ tipo: "ok", texto: `Texto de ${c.numero} copiado: pégalo en WhatsApp o en el correo del proveedor.` });
+    } catch (e) {
+      onMensaje({ tipo: "error", texto: (e as Error).message || "No se pudo copiar" });
+    }
+  }
+  async function descartar() {
+    const motivo = window.prompt(`¿Por qué se descarta ${c.numero}?`);
+    if (motivo == null) return;
+    try {
+      await api.post(`/api/pagos/cotizaciones/${c.id}/descartar`, { motivo });
+      void qc.invalidateQueries({ queryKey: ["pagos-cotizaciones"] });
+    } catch (e) {
+      onMensaje({ tipo: "error", texto: (e as Error).message });
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-panel p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-mono text-sm font-bold text-accent">{c.numero}</span>
+        <span className="font-bold text-ink">{c.tercero?.nombre ?? "—"}</span>
+        <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${badge.cls}`}>{badge.label}</span>
+        {c.total_documento > 0 && <span className="ml-auto font-bold tabular-nums text-ink">{cop(c.total_documento)}</span>}
+      </div>
+      <p className="mt-1 text-xs text-muted">
+        Pedida el {c.created_at.slice(0, 10)} · {c.items.map((it) => `${it.nombre} × ${it.cantidad.toLocaleString("es-CO")}${it.unidad ? ` ${it.unidad}` : ""}`).join(" · ")}
+        {c.fecha_requerida ? ` · para el ${c.fecha_requerida}` : ""}
+      </p>
+      {c.estado !== "solicitada" && c.numero_documento && (
+        <p className="text-xs text-muted">
+          Documento del proveedor {c.numero_documento}{c.valida_hasta ? ` · válida hasta ${c.valida_hasta}` : ""}
+        </p>
+      )}
+      {c.estado === "descartada" && c.descartada_motivo && <p className="text-xs text-muted">Descartada: {c.descartada_motivo}</p>}
+      {c.estado === "usada" && c.solicitud && (
+        <p className="text-xs font-bold text-emerald-600">
+          Solicitud de pago #{c.solicitud.id} · {ESTADO_BADGE[c.solicitud.estado]?.label ?? c.solicitud.estado}
+        </p>
+      )}
+      <div className="mt-2 flex flex-wrap gap-2 text-sm">
+        <button type="button" onClick={() => abrirArchivo(`/api/pagos/cotizaciones/${c.id}/pdf`)}
+                className="rounded-lg border border-border px-2.5 py-1 font-bold text-ink hover:border-accent">
+          <Ico e="📄" /> PDF del pedido
+        </button>
+        <button type="button" onClick={() => void copiarTexto()}
+                className="rounded-lg border border-border px-2.5 py-1 font-bold text-ink hover:border-accent">
+          <Ico e="📋" /> Copiar texto
+        </button>
+        {c.archivo && (
+          <button type="button" onClick={() => abrirArchivo(`/api/pagos/cotizaciones/${c.id}/archivo`)}
+                  className="rounded-lg border border-border px-2.5 py-1 font-bold text-ink hover:border-accent">
+            <Ico e="📎" /> Lo que cotizó
+          </button>
+        )}
+        {editable && (
+          <button type="button" onClick={() => { setEditando((v) => !v); setRespondiendo(false); }}
+                  className="rounded-lg border border-border px-2.5 py-1 font-bold text-ink hover:border-accent">
+            <Ico e="✏️" /> {editando ? "Cerrar edición" : "Editar pedido"}
+          </button>
+        )}
+        {editable && (
+          <button type="button" onClick={() => { setRespondiendo((v) => !v); setEditando(false); }}
+                  className="rounded-lg border border-accent px-2.5 py-1 font-bold text-accent">
+            {c.estado === "solicitada" ? "Registrar lo que cotizó" : "Corregir lo cotizado"}
+          </button>
+        )}
+        {c.disponible && (
+          <button type="button" onClick={() => onPagar(c)}
+                  className="rounded-lg bg-accent px-2.5 py-1 font-bold text-white">
+            Solicitar el pago →
+          </button>
+        )}
+        {editable && (
+          <button type="button" onClick={() => void descartar()} className="ml-auto text-xs font-bold text-muted hover:text-red-500">
+            Descartar
+          </button>
+        )}
+      </div>
+      {editando && (
+        <PedirCotizacion
+          editar={c}
+          onCerrar={() => setEditando(false)}
+          onError={(t) => onMensaje({ tipo: "error", texto: t })}
+          onCreada={() => {
+            setEditando(false);
+            void qc.invalidateQueries({ queryKey: ["pagos-cotizaciones"] });
+            onMensaje({ tipo: "ok", texto: `${c.numero} quedó corregida.` });
+          }}
+        />
+      )}
+      {respondiendo && (
+        <RespuestaCotizacion c={c} onListo={() => {
+          setRespondiendo(false);
+          void qc.invalidateQueries({ queryKey: ["pagos-cotizaciones"] });
+          onMensaje({ tipo: "ok", texto: `${c.numero} quedó cotizada. Ya puedes solicitar el pago.` });
+        }} />
+      )}
+    </div>
+  );
+}
+
+function RespuestaCotizacion({ c, onListo }: { c: Cotizacion; onListo: () => void }) {
+  // Parte de lo que ya cotizó (si se corrige) o de lo que se pidió. El proveedor
+  // puede no tener un producto o cotizar otra cantidad: manda su documento.
+  const [items, setItems] = useState<ItemLinea[]>(() => (c.items_cotizados.length ? c.items_cotizados : c.items).map((it) => ({
+    sku: it.sku, nombre: it.nombre, unidad: it.unidad, cantidad: String(it.cantidad),
+    precio: "precio" in it ? String(it.precio) : "", iva_pct: "iva_pct" in it ? String(it.iva_pct) : "19",
+  })));
+  const [total, setTotal] = useState(c.total_documento > 0 ? String(c.total_documento) : "");
+  const [numero, setNumero] = useState(c.numero_documento);
+  const [validaHasta, setValidaHasta] = useState(c.valida_hasta);
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [err, setErr] = useState("");
+  const tot = totalesItems(items);
+  const cuadra = num(total) > 0 && Math.abs(tot.total - num(total)) <= 1;
+  const guardar = useMutation({
+    mutationFn: () => {
+      const fd = new FormData();
+      fd.append("datos", JSON.stringify({
+        items: items.map((it) => ({ sku: it.sku, nombre: it.nombre, unidad: it.unidad,
+          cantidad: num(it.cantidad), precio: num(it.precio), iva_pct: num(it.iva_pct) })),
+        total_documento: num(total), numero_documento: numero, valida_hasta: validaHasta,
+      }));
+      if (archivo) fd.append("archivo", archivo);
+      return api.upload<Cotizacion & { error?: string }>(`/api/pagos/cotizaciones/${c.id}/respuesta`, fd, { timeoutMs: 60_000 });
+    },
+    onSuccess: (r) => (r.error ? setErr(r.error) : onListo()),
+    onError: (e) => setErr((e as Error).message),
+  });
+  return (
+    <div className="mt-3 space-y-3 rounded-xl border-2 border-dashed border-border p-3">
+      <p className="text-sm font-bold text-ink">Lo que cotizó {c.tercero?.nombre}</p>
+      <TablaProductos items={items} setItems={setItems} tot={tot} />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Campo label="Total con IVA del documento">
+          <input type="number" min="0" step="0.01" inputMode="decimal" value={total}
+                 onChange={(e) => setTotal(e.target.value)} className={inputCls} />
+        </Campo>
+        <Campo label="Número de la cotización del proveedor">
+          <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="PRE0032001" className={inputCls} />
+        </Campo>
+        <Campo label="Válida hasta (opcional)">
+          <input type="date" value={validaHasta} onChange={(e) => setValidaHasta(e.target.value)} className={inputCls} />
+        </Campo>
+      </div>
+      <Campo label={c.archivo ? `Documento del proveedor (ya hay uno: ${c.archivo_nombre}; adjunta otro solo para reemplazarlo)` : "Documento del proveedor"}>
+        <input type="file" accept=".pdf,.xml,.zip,.png,.jpg,.jpeg,.webp,.xlsx"
+               onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} className={inputCls} />
+      </Campo>
+      {num(total) > 0 && (
+        cuadra
+          ? <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">✓ Los renglones suman el total del documento.</p>
+          : <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+              <Ico e="⚠️" /> Los renglones suman {cop(tot.total)} y el documento dice {cop(num(total))}: revisa cantidades, precios y tarifas de IVA.
+            </p>
+      )}
+      {err && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm font-bold text-red-500">{err}</p>}
+      <button type="button" disabled={!cuadra || (!archivo && !c.archivo) || guardar.isPending}
+              onClick={() => { setErr(""); guardar.mutate(); }}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-40">
+        {guardar.isPending ? "Guardando…" : "Guardar lo cotizado"}
+      </button>
+    </div>
+  );
+}
+
+/** La solicitud de pago de una cotización: el wizard simple con todo puesto. */
+function PagarCotizacion({
+  c, clave, onCerrar, onCreada, onError,
+}: {
+  c: Cotizacion; clave: string;
+  onCerrar: () => void; onCreada: (texto: string) => void; onError: (texto: string) => void;
+}) {
+  // La ficha completa del proveedor (régimen, ICA, cuenta habitual), como al elegirlo a mano.
+  const provQ = useQuery<{ proveedores: Proveedor[] }>({
+    queryKey: ["pagos-proveedores", c.tercero?.nombre ?? ""],
+    queryFn: () => api.get(`/api/pagos/proveedores?q=${encodeURIComponent(c.tercero?.nombre ?? "")}`),
+  });
+  if (provQ.isLoading) return <p className="text-sm text-muted">Preparando el pago de {c.numero}…</p>;
+  const prov = (provQ.data?.proveedores ?? []).find((p) => p.id === c.tercero_id)
+    ?? { id: c.tercero_id, nombre: c.tercero?.nombre ?? "", identificacion: c.tercero?.identificacion ?? "",
+         saldo_2205: 0, en_libro: true, alegra_id: null };
+  const inicial: BorradorSimple = {
+    v: 1, guardado: new Date().toISOString(), proveedor: prov, fecha: hoy(), medioPagoId: "",
+    concepto: "productos", retencionModo: "beneficiario", cuentaDebito: "",
+    icaActivo: false, icaPorMil: "", gmf: false, ajustarImpuestos: false, asumeRenta: false, asumeIca: false,
+    items: c.items_cotizados.map((it) => ({
+      sku: it.sku, nombre: it.nombre, unidad: it.unidad, cantidad: String(it.cantidad),
+      precio: String(it.precio), iva_pct: String(it.iva_pct),
+    })),
+    totalDocumento: String(c.total_documento), contrato: "", monto: "",
+    detalle: `Cotización ${c.numero_documento || c.numero}`,
+    pagaTodo: true, pagoAhora: "", documentoTipo: "cotizacion",
+    cotizacion: { id: c.id, numero: c.numero, total: c.total_documento },
+  };
+  return (
+    <WizardSimple
+      key={`cot-${c.id}`} clave={clave} inicial={inicial} desdeCero
+      onCerrar={onCerrar} onCreada={onCreada} onError={onError}
+      onAvanzado={() => {}} onDescartar={onCerrar}
+    />
   );
 }

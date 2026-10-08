@@ -446,6 +446,9 @@ def init_db() -> None:
             ("arreglado_por", "INTEGER"),
             ("arreglado_at", "TEXT NOT NULL DEFAULT ''"),
             ("arreglo_nota", "TEXT NOT NULL DEFAULT ''"),
+            # La cotización pedida al proveedor desde este mismo panel que este
+            # pago salda (8-oct-2026, app/services/cotizaciones_proveedor.py).
+            ("cotizacion_proveedor_id", "INTEGER"),
         ):
             if col not in cols:
                 con.execute(f"ALTER TABLE cc_solicitudes_pago ADD COLUMN {col} {ddl}")
@@ -1798,7 +1801,18 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                     "La factura no es fiel copia de lo solicitado. Corrige los productos o explica la diferencia "
                     "para que el aprobador la vea"
                 )
-    factura_numero = str(payload.get("factura_numero") or verificacion.get("numero_documento") or "").strip()
+    # Pago de una cotización pedida desde este panel: se valida ANTES de guardar
+    # (recibida, mismo proveedor, mismo total, sin otro pago vivo).
+    cotizacion = None
+    cot_id = int(payload.get("cotizacion_proveedor_id") or 0)
+    if cot_id:
+        from app.services import cotizaciones_proveedor
+
+        cotizacion = cotizaciones_proveedor.validar_para_solicitud(
+            cot_id, (prev["tercero"] or {}).get("id"), prev.get("total_documento") or 0,
+        )
+    factura_numero = str(payload.get("factura_numero") or verificacion.get("numero_documento")
+                         or (cotizacion or {}).get("numero_documento") or "").strip()
     verificacion_guardar = {**verificacion, "motivo_diferencia": str(payload.get("verificacion_motivo") or "").strip()} if verificacion else {}
 
     with _conn() as con:
@@ -1856,6 +1870,22 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
             ),
         )
         sid = int(cur.lastrowid)
+    if cotizacion:
+        from app.services import cotizaciones_proveedor
+
+        if not cotizaciones_proveedor.vincular(cot_id, sid):
+            # Otra solicitud la tomó entre la validación y este punto.
+            with _conn() as con:
+                con.execute("UPDATE cc_solicitudes_pago SET estado='anulada',"
+                            " notas=TRIM(notas || ' | Anulada: la cotización ya estaba en otro pago') WHERE id=?",
+                            (sid,))
+            raise ValueError(f"La cotización {cotizacion['numero']} acaba de quedar en otra solicitud de pago")
+        with _conn() as con:
+            con.execute("UPDATE cc_solicitudes_pago SET cotizacion_proveedor_id=? WHERE id=?", (cot_id, sid))
+            # Sin otro documento adjunto, el de la cotización es el soporte del pago.
+            if not archivo_tmp and cotizacion.get("archivo"):
+                con.execute("UPDATE cc_solicitudes_pago SET factura_archivo=?, factura_nombre=? WHERE id=?",
+                            (cotizacion["archivo"], cotizacion.get("archivo_nombre") or "", sid))
     # El total cuadró contra el documento: las tarifas de IVA de cada línea
     # quedaron PROBADAS (total = base + IVA; una mal puesta no daría), así que se
     # aprenden por SKU para la próxima compra de ese insumo. Es lo único que
@@ -2414,6 +2444,11 @@ def obtener(sid: int) -> dict | None:
     # Quién firmó cada paso: el panel tiene que poder decir «espera a que
     # Cynthia lo prepare» en vez de mostrarle a todos el mismo botón.
     d["firmas"] = {k: _nombre_usuario(d.get(k)) for k in ("creada_por", "aprobada_por", "montado_por", "pagado_por")}
+    if d.get("cotizacion_proveedor_id"):
+        with _conn() as con:
+            c = con.execute("SELECT numero FROM cc_cotizaciones_proveedor WHERE id=?",
+                            (d["cotizacion_proveedor_id"],)).fetchone()
+        d["cotizacion_numero"] = c["numero"] if c else ""
     if d.get("tercero_id"):
         t = cc.obtener_tercero(d["tercero_id"])
         d["tercero"] = {"id": t["id"], "nombre": t["nombre"], "identificacion": t["identificacion"]} if t else None

@@ -1,3 +1,13 @@
+### 2026-10-08 16:00 - Solicitudes de pago: pedir cotización a un proveedor y pagarla enlazada
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección (panel `/app`, Contabilidad → Solicitudes de pago). Sin LLM.
+- **Qué se implementó:**
+  - **«Pedir cotización»:** se elige el proveedor y las materias primas del catálogo de Alegra con su cantidad → nace `COTP-0001`. Se descarga el **PDF** (misma estética del comprobante de egreso; media carta si cabe en una hoja) o se **copia el texto** para mandarlo por WhatsApp o correo. El sistema no envía nada.
+  - Pestaña **«Cotizaciones»:** registrar lo que cotizó el proveedor (precio, IVA, total cuadrado al peso y su documento), corregirlo o descartarla.
+  - **«Solicitar el pago →»:** abre la solicitud de pago ya llena y la deja enlazada (insignia 📝 COTP en la solicitud). Exige mismo proveedor y mismo total. Una cotización se paga una sola vez; si ese pago se rechaza o se anula, vuelve a quedar disponible.
+  - **Corrección:** el buscador de proveedores tardaba hasta 2 minutos cada vez que vencía la copia de contactos de Alegra, y no se podía elegir proveedor. Ahora responde al instante y la copia se renueva en segundo plano.
+- **Archivos Modificados:** `app/services/cotizaciones_proveedor.py` (nuevo), `app/services/pagos_wizard.py`, `app/services/pagos_proveedor.py`, `app/routes.py`, `desktop/src/components/PagosWizardPanel.tsx`, `tests/test_cotizaciones_proveedor.py`, `docs/agentic/modules/pagos-solicitudes.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-08 15:30 - Empresa viva: los personajes hacen lo que el equipo hace, en tiempo real
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora (panel `/app`, juego). Sin LLM.

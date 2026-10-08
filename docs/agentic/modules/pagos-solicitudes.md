@@ -707,3 +707,30 @@ Entregar de una solicitud común, que no hacían nada con el pago.
 - **Dónde aplica:** bandeja del celular (etiqueta «Pago · aprobar»), inbox del computador y burbuja de chat. Si se
   llega al hilo por otro lado, `HiloConversacion` muestra solo el botón «Abrir en Solicitudes de pago».
 
+
+### Cotización pedida al proveedor → solicitud de pago (8-oct-2026)
+
+**Por qué.** La cotización entraba al wizard como archivo suelto: se pedía por WhatsApp o correo y no quedaba
+registro de qué se pidió, a quién, ni si ya se había pagado. Decisión del usuario: **todo vive en Solicitudes de
+pago** y el sistema **no envía nada** al proveedor (genera PDF/texto y el operador lo manda).
+
+`app/services/cotizaciones_proveedor.py`, tabla `cc_cotizaciones_proveedor` en `contabilidad.db`, sin LLM:
+`solicitada → recibida → usada | descartada`.
+- **Pedir** («Pedir cotización» en el encabezado): proveedor (`ListaProveedores`) + materias primas del catálogo
+  de Alegra con cantidad (`TablaProductos soloCantidad`; mismas reglas que `validar_compra`: sin `C-`, sin kit) →
+  `COTP-0001`. `GET …/cotizaciones/<id>/pdf` (**siempre media carta horizontal**, 21,6 × 14 cm, cabecera compacta y
+  datos en dos columnas; un pedido largo sigue en otra hoja de media carta, nunca pasa a carta) y `…/texto` (con NIT de `empresa.py`).
+- **Editar el pedido** («✏ Editar pedido», `PUT …/cotizaciones/<id>` → `editar()`): materias primas, cantidades,
+  fecha y nota mientras esté `solicitada` o `recibida`; el **proveedor** solo mientras esté `solicitada` (lo cotizado es
+  de quien respondió: otro proveedor = otra cotización). No toca lo cotizado (eso es «Corregir lo cotizado»).
+- **Respuesta** («Registrar lo que cotizó»): renglones con precio e IVA, total del documento cuadrado al peso
+  (`validar_compra`) y el archivo del proveedor (obligatorio) en `comprobantes/cotizaciones_proveedor/`.
+- **Pagar** («Solicitar el pago →»): abre el wizard simple con todo puesto (`PagarCotizacion`, `desdeCero` para
+  que la ficha del proveedor y la cuenta pongan sus casillas). `crear_solicitud` recibe `cotizacion_proveedor_id`,
+  exige **mismo proveedor y mismo total** (`validar_para_solicitud`), guarda `cc_solicitudes_pago.cotizacion_proveedor_id`
+  y usa el documento de la cotización como soporte si no se adjuntó otro. Las reglas de siempre siguen: con
+  cotización a un obligado a facturar el pago es **anticipo** y se legaliza con la factura.
+- **Se paga una sola vez**: `vincular()` es condicional. Si esa solicitud se **rechaza o anula**, la cotización
+  vuelve a «recibida» (se deriva al leer; `rechazar()`/`borrar_borrador()` no se tocaron).
+Rutas `/api/pagos/cotizaciones[/<id>` (PUT) `/<id>/{texto,pdf,respuesta,archivo,descartar}]` (permiso `pagos` por prefijo).
+Tests: `tests/test_cotizaciones_proveedor.py`.

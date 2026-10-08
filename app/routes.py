@@ -12999,6 +12999,137 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    # ── Cotizaciones pedidas a proveedores → solicitud de pago (8-oct-2026) ──
+    # Ver app/services/cotizaciones_proveedor.py. El sistema no envía nada al
+    # proveedor: genera el PDF / texto y el operador lo manda.
+
+    @app.route("/api/pagos/cotizaciones", methods=["GET"])
+    @app.route("/app/api/pagos/cotizaciones", methods=["GET"])
+    def api_pagos_cotizaciones():
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.cotizaciones_proveedor import listar
+            return jsonify({"cotizaciones": listar(
+                (request.args.get("estado") or "").strip() or None,
+                int(request.args.get("tercero_id") or 0) or None,
+            )})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/cotizaciones", methods=["POST"])
+    @app.route("/app/api/pagos/cotizaciones", methods=["POST"])
+    def api_pagos_cotizacion_crear():
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.cotizaciones_proveedor import crear
+            return jsonify(crear(request.get_json(silent=True) or {}, creada_por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/cotizaciones/<int:cid>", methods=["PUT"])
+    @app.route("/app/api/pagos/cotizaciones/<int:cid>", methods=["PUT"])
+    def api_pagos_cotizacion_editar(cid: int):
+        """Corrige el pedido: tercero_id, items, fecha_requerida, notas."""
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.cotizaciones_proveedor import editar
+            return jsonify(editar(cid, request.get_json(silent=True) or {}, por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/cotizaciones/<int:cid>/texto", methods=["GET"])
+    @app.route("/app/api/pagos/cotizaciones/<int:cid>/texto", methods=["GET"])
+    def api_pagos_cotizacion_texto(cid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.cotizaciones_proveedor import texto
+            return jsonify({"texto": texto(cid)})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+
+    @app.route("/api/pagos/cotizaciones/<int:cid>/pdf", methods=["GET"])
+    @app.route("/app/api/pagos/cotizaciones/<int:cid>/pdf", methods=["GET"])
+    def api_pagos_cotizacion_pdf(cid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            import io as _io
+            from flask import send_file
+            from app.services.cotizaciones_proveedor import obtener, pdf
+            c = obtener(cid)
+            if not c:
+                return jsonify({"error": "Cotización no encontrada"}), 404
+            return send_file(_io.BytesIO(pdf(cid)), mimetype="application/pdf",
+                             download_name=f"Solicitud_cotizacion_{c['numero']}.pdf")
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/cotizaciones/<int:cid>/respuesta", methods=["POST"])
+    @app.route("/app/api/pagos/cotizaciones/<int:cid>/respuesta", methods=["POST"])
+    def api_pagos_cotizacion_respuesta(cid: int):
+        """Multipart: `datos` (JSON: items, total_documento, numero_documento, valida_hasta)
+        + `archivo` (el documento del proveedor; opcional si ya se había adjuntado)."""
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            import json as _json
+            from app.services.cotizaciones_proveedor import registrar_respuesta
+            datos = _json.loads(request.form.get("datos") or "{}")
+            f = request.files.get("archivo")
+            archivo = None
+            if f and f.filename:
+                contenido = f.read()
+                if len(contenido) > 15 * 1024 * 1024:
+                    return jsonify({"error": "Archivo mayor a 15 MB"}), 400
+                archivo = (contenido, f.filename)
+            return jsonify(registrar_respuesta(cid, datos, archivo, por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/cotizaciones/<int:cid>/archivo", methods=["GET"])
+    @app.route("/app/api/pagos/cotizaciones/<int:cid>/archivo", methods=["GET"])
+    def api_pagos_cotizacion_archivo(cid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        from flask import send_file
+        from app.services.cotizaciones_proveedor import ruta_archivo
+        p = ruta_archivo(cid)
+        if not p:
+            return jsonify({"error": "Sin documento del proveedor"}), 404
+        return send_file(str(p), download_name=p.name)
+
+    @app.route("/api/pagos/cotizaciones/<int:cid>/descartar", methods=["POST"])
+    @app.route("/app/api/pagos/cotizaciones/<int:cid>/descartar", methods=["POST"])
+    def api_pagos_cotizacion_descartar(cid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.cotizaciones_proveedor import descartar
+            d = request.get_json(silent=True) or {}
+            return jsonify(descartar(cid, str(d.get("motivo") or ""), por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/pagos/verificar-factura", methods=["POST"])
     @app.route("/app/api/pagos/verificar-factura", methods=["POST"])
     def api_pagos_verificar_factura():

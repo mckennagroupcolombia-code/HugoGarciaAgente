@@ -27,6 +27,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 import unicodedata
 import zipfile
@@ -59,10 +60,42 @@ def _contactos_alegra(forzar: bool = False) -> list[dict]:
     try:
         if not forzar and _CACHE_CONTACTOS.exists():
             data = json.loads(_CACHE_CONTACTOS.read_text(encoding="utf-8"))
-            if time.time() - float(data.get("ts") or 0) < _CACHE_TTL:
-                return data.get("contactos", [])
+            if time.time() - float(data.get("ts") or 0) >= _CACHE_TTL:
+                # Vencida: se responde YA con lo que hay y se renueva en segundo
+                # plano. Bajarla dentro de la petición tardaba 30-117 s (8-oct-2026)
+                # y el buscador de proveedores quedaba vacío: no se podía pedir una
+                # cotización ni solicitar un pago.
+                _renovar_en_segundo_plano()
+            return data.get("contactos", [])
     except Exception:
         pass
+    if not _DESCARGA_LOCK.acquire(timeout=150):
+        return []
+    try:
+        return _descargar_contactos()
+    finally:
+        _DESCARGA_LOCK.release()
+
+
+# Una sola descarga a la vez: con la cache vencida, cada tecla del buscador
+# disparaba su propia paginación completa contra Alegra.
+_DESCARGA_LOCK = threading.Lock()
+
+
+def _renovar_en_segundo_plano() -> None:
+    if not _DESCARGA_LOCK.acquire(blocking=False):
+        return   # ya hay una en curso
+
+    def _run():
+        try:
+            _descargar_contactos()
+        finally:
+            _DESCARGA_LOCK.release()
+
+    threading.Thread(target=_run, daemon=True, name="alegra-contactos").start()
+
+
+def _descargar_contactos() -> list[dict]:
     contactos: list[dict] = []
     try:
         import requests
@@ -171,9 +204,11 @@ def proveedores(q: str = "") -> list[dict]:
         })
     de_alegra = _filtrar_contactos(_contactos_alegra(), qn, vistos_ident)
     # Quien acaba de crear el tercero en Alegra lo busca enseguida: si la búsqueda no
-    # encuentra nada, la cache puede estar vieja; se vuelve a bajar (máx. 1 vez por minuto).
+    # encuentra nada, la cache puede estar vieja; se renueva (máx. 1 vez por minuto) en
+    # segundo plano — dentro de la petición, una letra mal tecleada congelaba el
+    # buscador hasta dos minutos. La siguiente búsqueda ya lo encuentra.
     if qn and not out and not de_alegra and not _cache_reciente():
-        de_alegra = _filtrar_contactos(_contactos_alegra(forzar=True), qn, vistos_ident)
+        _renovar_en_segundo_plano()
     out.extend(de_alegra)
     out.sort(key=lambda x: (not x["en_libro"], -abs(x["saldo_2205"]), x["nombre"].lower()))
     return out[:60]
