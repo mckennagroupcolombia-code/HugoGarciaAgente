@@ -83,3 +83,19 @@ def test_la_tarea_ajena_se_ve_por_su_funcion_no_por_su_titulo(monkeypatch):
     assert e["acciones"][0]["titulo"] == ""                 # no es parte de esa solicitud
     armando = {"id": 8, "permisos_secciones": {}, "rol": {"nivel": 1}}
     assert E.estado_para(armando)["acciones"][0]["titulo"] == "Factura glicerina"
+
+
+def test_con_clientes_en_la_tienda_y_un_administrador(monkeypatch):
+    """8-oct: `v` (lo vivo) quedaba pisado por el ciclo de visitantes y daba 500 con clientes en la tienda."""
+    foto = _foto([])
+    foto["visitantes"] = [{"id": "q1", "tipo": "preventa", "desde": "", "producto": "Glicerina", "texto": "¿Envían?",
+                           "panel": "preventa"}]
+    monkeypatch.setattr(E, "foto", lambda refrescar=False: foto)
+    monkeypatch.setattr(E, "vivo", lambda refrescar=False: {"personas": [], "tareas": {}, "interacciones": [],
+                                                            "acciones": [], "sin_senal": []})
+    monkeypatch.setattr(E, "casas", lambda: {"usuarios": {}})
+    from app.services import mapa_app
+    monkeypatch.setattr(mapa_app, "urgencias_para", lambda u: {"por_etapa": {}})
+    admin = {"id": 8, "permisos_secciones": {}, "rol": {"nivel": 3}}
+    e = E.estado_para(admin)
+    assert e["visitantes"][0]["texto"] == "¿Envían?" and e["sin_senal"] == []

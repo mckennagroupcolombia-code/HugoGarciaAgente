@@ -869,7 +869,7 @@ def estado_para(usuario: dict, refrescar: bool = False) -> dict:
     from app.services import mapa_app
 
     d = foto(refrescar=refrescar)
-    v = vivo(refrescar=refrescar)
+    vivos = vivo(refrescar=refrescar)
     cache: dict[str, bool] = {}
 
     def puede(panel: str) -> bool:
@@ -894,7 +894,7 @@ def estado_para(usuario: dict, refrescar: bool = False) -> dict:
     yo = int(usuario.get("id") or 0)
     admin = _es_admin(usuario)
     interacciones = []
-    for it in v.get("interacciones") or []:
+    for it in vivos.get("interacciones") or []:
         if it["privado"]:
             ve = yo == it["de"] or yo in it["para"]
         else:
@@ -903,13 +903,13 @@ def estado_para(usuario: dict, refrescar: bool = False) -> dict:
     # El título de una tarea o de una solicitud lo ven quien la hace, quien participa y administración;
     # los demás ven solo la función («Hace el almuerzo del equipo»).
     personas = []
-    for p in v.get("personas") or []:
+    for p in vivos.get("personas") or []:
         t = p.get("tarea")
         if t and not (admin or yo == p["id"]):
             t = {**t, "titulo": ""}
         personas.append({**p, "tarea": t})
     acciones = [{**a, "titulo": a["titulo"] if (admin or yo == a["de"] or yo in a["partes"]) else ""}
-                for a in v.get("acciones") or []]
+                for a in vivos.get("acciones") or []]
     try:
         oficina = mapa_app.urgencias_para(usuario)
     except Exception:
@@ -928,7 +928,7 @@ def estado_para(usuario: dict, refrescar: bool = False) -> dict:
         "oficina": oficina.get("por_etapa") or {},
         "eventos": d["eventos"],
         "interacciones": interacciones,
-        "sin_senal": (d["sin_senal"] + v["sin_senal"]) if admin else [],
+        "sin_senal": (d["sin_senal"] + vivos["sin_senal"]) if admin else [],
         "hora": _iso_local(datetime.now()),
         "generado": d["generado"],
     }
