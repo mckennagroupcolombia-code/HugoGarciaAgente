@@ -1,3 +1,12 @@
+### 2026-10-08 14:30 - Imprimir: la casilla LOT. sale del documento técnico
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (panel `/app`, Diseño → Imprimir).
+- **Qué se implementó:**
+  - La casilla **LOT.** (y EXP.) de Imprimir se llena con el lote del documento técnico (FT/COA) del SKU. Si el documento no tiene lote, queda vacía para escribirla a mano.
+  - Antes tomaba el lote vigente del historial, que incluía lotes autogenerados (tipo `JUL543`) y el lote por defecto viejo de etiquetas: 96 SKUs imprimían un lote inventado.
+  - `GET /api/lotes/<sku>` devuelve además `lote_documento` (o `null`). El selector de lotes del historial sigue disponible para elegir a mano.
+- **Archivos Modificados:** `app/routes.py`, `desktop/src/components/EtiquetasPanel.tsx`, `docs/team-recaps.md`.
+
 ### 2026-10-08 13:00 - Empresa viva: personas y muebles en producción + selector Mapa · Juego
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección y mejora (panel `/app`).

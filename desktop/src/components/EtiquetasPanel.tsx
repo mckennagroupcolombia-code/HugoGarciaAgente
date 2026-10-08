@@ -115,6 +115,12 @@ interface LoteRegistrado {
   fabricante?: string;
 }
 
+/** GET /api/lotes/<sku>: historial + el lote declarado en el documento técnico (o null). */
+interface LotesRespuesta {
+  lotes?: LoteRegistrado[];
+  lote_documento?: { lote_numero?: string; fecha_vencimiento?: string } | null;
+}
+
 const CODIGOS_INSTALAR_IMPRESORA = new Set([
   "no_registrada",
   "deshabilitada",
@@ -5446,23 +5452,19 @@ function TabImprimir({
       guardado = null;
     }
 
-    // Lote vigente de Fichas Técnicas / COA (historial por SKU). Prioridad sobre
-    // defaults legacy de etiquetas_datos.json para que el lote registrado en la
-    // ficha completa se refleje al imprimir.
+    // La casilla LOT se enlaza con el lote del documento técnico (FT/COA).
+    // Si el documento no lo tiene diligenciado, queda vacía para llenarla a
+    // mano: ni lotes autogenerados (NAT455) ni defaults viejos de etiquetas.
     let loteVigenteNum = "";
     let vencVigente = "";
     try {
-      const rLote = await api.get<{ lotes: LoteRegistrado[] }>(
-        `/api/lotes/${encodeURIComponent(fila.sku)}`,
-      );
-      const lotes = rLote.lotes ?? [];
-      setLotesRegistrados(lotes);
-      const vigente = lotes.find((l) => l.vigente) ?? lotes[0];
-      loteVigenteNum = vigente?.lote_numero ?? "";
-      vencVigente = vigente?.fecha_vencimiento ?? "";
+      const rLote = await api.get<LotesRespuesta>(`/api/lotes/${encodeURIComponent(fila.sku)}`);
+      setLotesRegistrados(rLote.lotes ?? []);
+      loteVigenteNum = rLote.lote_documento?.lote_numero ?? "";
+      vencVigente = rLote.lote_documento?.fecha_vencimiento ?? "";
     } catch {
       setLotesRegistrados([]);
-      /* sin lote registrado o error de red: se usa el default legacy */
+      /* sin lote en el documento o error de red: se llena a mano */
     }
     setMatchEanPng(
       loteVigenteNum
@@ -5471,8 +5473,8 @@ function TabImprimir({
     );
 
     const base = studioDatosDesdeCatalogo(fila, guardado);
-    const loteFinal = loteVigenteNum || datos.lote_defecto || base.lote;
-    const vencFinal = vencVigente || datos.vencimiento_defecto || base.vencimiento;
+    const loteFinal = loteVigenteNum;
+    const vencFinal = vencVigente;
     setStudioDatos({ ...base, lote: loteFinal, vencimiento: vencFinal });
 
     const tipo = datos.tipo_etiqueta || fila.tipo_etiqueta || base.tipo_etiqueta;
@@ -5540,12 +5542,10 @@ function TabImprimir({
       setSkuActivoImpresion(match.sku);
       setMatchEanPng(match);
       try {
-        const r = await api.get<{ lotes: LoteRegistrado[] }>(
-          `/api/lotes/${encodeURIComponent(match.sku)}`,
-        );
-        const lotes = r.lotes ?? [];
-        setLotesRegistrados(lotes);
-        const vigente = lotes.find((l) => l.vigente) ?? lotes[0];
+        const r = await api.get<LotesRespuesta>(`/api/lotes/${encodeURIComponent(match.sku)}`);
+        setLotesRegistrados(r.lotes ?? []);
+        // Solo el lote del documento técnico; sin él, la casilla queda a mano.
+        const vigente = r.lote_documento;
         if (vigente?.lote_numero) {
           loteDelMatch = vigente.lote_numero;
           setLote(conPrefijoLote(vigente.lote_numero));
@@ -6124,12 +6124,12 @@ function TabImprimir({
               <div className="flex h-full w-full flex-col items-center gap-2">
                 {matchEanPng === "sin-match" ? (
                   <p className="w-full px-1 text-[11px] text-amber-600">
-                    <Ico e="⚠️" /> Sin lote registrado para este SKU — el lote no se autocompletó. Regístralo en Fichas
-                    Técnicas (COA) → «Registrar este lote en el historial».
+                    <Ico e="⚠️" /> El documento técnico de este SKU no tiene lote — escríbelo a mano en la casilla
+                    LOT. o diligéncialo en Docs técnicos para que se llene solo.
                   </p>
                 ) : matchEanPng ? (
                   <p className="w-full px-1 text-[11px] text-emerald-600">
-                    ✅ Lote vigente autocompletado para <strong>{skuActivoImpresion}</strong>
+                    ✅ Lote tomado del documento técnico de <strong>{skuActivoImpresion}</strong>
                   </p>
                 ) : null}
                 <EtiquetaMckennaPreview

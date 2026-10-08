@@ -7301,11 +7301,21 @@ def register_routes(app):
             # Trae el lote real de la ficha técnica (p. ej. 10032026 de Lactato)
             # aunque el historial tenga uno autogenerado (NAT455) o la ficha use
             # una ref genérica (LACCALg) distinta del SKU de la etiqueta.
+            # Imprimir solo autocompleta la casilla LOT con `lote_documento`:
+            # si el documento técnico no tiene lote, queda para llenar a mano.
+            lote_doc = None
             try:
-                sincronizar_lote_ficha_para_sku(ref)
+                lote_doc = sincronizar_lote_ficha_para_sku(ref)
             except Exception:
                 pass
-            return jsonify({"ref": ref.strip().upper(), "lotes": listar_lotes(ref)})
+            return jsonify({
+                "ref": ref.strip().upper(),
+                "lotes": listar_lotes(ref),
+                "lote_documento": {
+                    "lote_numero": lote_doc.get("lote_numero") or "",
+                    "fecha_vencimiento": lote_doc.get("fecha_vencimiento") or "",
+                } if lote_doc else None,
+            })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
