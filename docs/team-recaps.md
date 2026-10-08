@@ -1,3 +1,12 @@
+### 2026-10-08 13:00 - Empresa viva: personas y muebles en producción + selector Mapa · Juego
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección y mejora (panel `/app`).
+- **Qué se implementó:**
+  - En producción el barrio salía vacío: sin personas, muebles ni estantes. Flask no tenía ruta para los modelos 3D (`/app/empresa/…`), así que caían al comodín de `/app` y llegaban como la página de la app. Ahora se sirven con el mismo guardia de sesión que el resto del panel, y una prueba evita que vuelva a pasar.
+  - Si algún modelo no carga, el juego lo avisa en pantalla en vez de mostrar casas vacías.
+  - El juego vuelve al nivel del Mapa: el cabezote tiene **Mapa · Juego** (donde estaba «Edificio»), en el computador y en el celular, y se recuerda la última vista.
+- **Archivos Modificados:** `app/routes.py`, `tests/test_acceso_panel.py`, `desktop/src/components/MapaVivo.tsx`, `desktop/src/components/empresa/{recursos.ts,EmpresaViva.tsx}`, `docs/agentic/modules/operacion-equipo.md`, `docs/team-recaps.md`.
+
 ### 2026-10-08 12:10 - Empresa viva: la operación de McKenna como juego 3D (estilo FarmVille 3)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (panel `/app`, Agenda). Sin LLM.

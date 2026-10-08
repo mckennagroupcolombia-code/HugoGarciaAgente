@@ -26,7 +26,7 @@ import {
   type Edge, type EdgeProps, type Node, type NodeChange, type NodeProps, type Viewport,
 } from "@xyflow/react";
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import { Icon, PanelIcon } from "../icons";
 import { ETAPAS_APP, ORIGEN_APP, type EtapaApp, type TramoApp } from "../lib/flujoApp";
@@ -44,6 +44,9 @@ import {
 } from "./mapaComun";
 import { BotonMiFicha } from "./MiRendimiento";
 import AccesosRapidos from "./nav/AccesosRapidos";
+
+/** La vista de juego (Empresa viva): se descarga solo cuando alguien la elige (trae Three.js). */
+const EmpresaViva = lazy(() => import("./empresa/EmpresaViva"));
 
 // ─── Datos vivos ─────────────────────────────────────────────────────────────
 
@@ -65,6 +68,9 @@ const CLAVE_VISTA = "mck-mapa-vivo-vista";
 /** Siempre se muestra TODO lo que cada quien puede abrir (26-sep-2026: se quitaron los niveles
  *  Etapas · Cotidiano · Operación · Todo). Las descripciones de cada panel van en el título al pasar. */
 const NIVEL = 2;
+/** «mapa» (el tablero) o «juego» (Empresa viva: el barrio en 3D). Reemplaza al «edificio» que se
+ *  retiró el 7-oct; un «edificio» guardado de antes abre el mapa. */
+const CLAVE_MODO = "mck-mapa-vivo-modo";
 
 function leer(clave: string): string | null {
   try { return localStorage.getItem(clave); } catch { return null; }
@@ -286,6 +292,13 @@ function Mapa() {
   // En el celular la secuencia va de arriba abajo: se lee con el pulgar.
   const vertical = ancho < 700;
 
+  const [modo, setModo] = useState<"mapa" | "juego">(() => (leer(CLAVE_MODO) === "juego" ? "juego" : "mapa"));
+  const cambiarModo = (m: "mapa" | "juego") => {
+    if (m === modo) return;
+    setModo(m);
+    guardar(CLAVE_MODO, m);
+    tocarSonido("vista");
+  };
   const [sonido, setSonido] = useState(sonidosActivos);
   const [menuMas, setMenuMas] = useState(false);
   const alternarSonido = () => {
@@ -501,6 +514,13 @@ function Mapa() {
         <span className="px-t mv-solo-ancho" style={{ fontSize: 11, color: "var(--ed-gris, #C2C3C7)" }}>
           {participa} de {cartas.length} etapas son tuyas
         </span>
+        <div className="flex shrink-0 gap-1" role="group" aria-label="Cómo ver la aplicación">
+          <button type="button" aria-pressed={modo === "mapa"} onClick={() => cambiarModo("mapa")} data-sin-sonido
+                  className={`mv-nivel ${modo === "mapa" ? "mv-nivel-on" : ""}`} title="El tablero: la secuencia del negocio">Mapa</button>
+          <button type="button" aria-pressed={modo === "juego"} onClick={() => cambiarModo("juego")} data-sin-sonido
+                  className={`mv-nivel ${modo === "juego" ? "mv-nivel-on" : ""}`}
+                  title="El juego: el barrio de McKenna en vivo, con el equipo, los clientes y los paquetes">Juego</button>
+        </div>
         <div className="mv-solo-ancho flex shrink-0 items-center gap-2">
           <button type="button" className={`mv-nivel ${sonido ? "" : "mv-silencio"}`} aria-pressed={sonido} onClick={alternarSonido} data-sin-sonido
                   title={sonido ? "Silenciar los sonidos al tocar los apartados" : "Activar los sonidos al tocar los apartados"}>
@@ -508,14 +528,16 @@ function Mapa() {
           </button>
           {/* Accesos rápidos (Ctrl+K) viven aquí en el mapa, no en el cabezote de la app. */}
           <AccesosRapidos enMapa />
-          {totalUrgente > 0 && (
+          {modo === "mapa" && totalUrgente > 0 && (
             <button type="button" className="mv-nivel mv-ir-urgente" onClick={irALoUrgente}
                     title="Llevar la cámara a lo que necesita atención ya">
               ¡Ir a lo urgente! ({totalUrgente})
             </button>
           )}
-          <button type="button" className="mv-nivel" title="Ver todo el mapa"
-                  onClick={() => void rf.fitView({ padding: 0.08, duration: 300 })}>Encuadrar</button>
+          {modo === "mapa" && (
+            <button type="button" className="mv-nivel" title="Ver todo el mapa"
+                    onClick={() => void rf.fitView({ padding: 0.08, duration: 300 })}>Encuadrar</button>
+          )}
         </div>
         <button type="button" className={`mv-nivel mv-solo-movil ${menuMas ? "mv-nivel-on" : ""}`}
                 aria-expanded={menuMas} aria-label="Más opciones" onClick={() => setMenuMas((v) => !v)}>⋯</button>
@@ -527,13 +549,15 @@ function Mapa() {
                       onClick={() => { alternarSonido(); setMenuMas(false); }}>
                 {sonido ? "♪ Silenciar" : "♪ Activar sonido"}
               </button>
-              <button type="button" role="menuitem" className="mv-nivel"
-                      onClick={() => { setMenuMas(false); void rf.fitView({ padding: 0.08, duration: 300 }); }}>⤢ Encuadrar</button>
+              {modo === "mapa" && (
+                <button type="button" role="menuitem" className="mv-nivel"
+                        onClick={() => { setMenuMas(false); void rf.fitView({ padding: 0.08, duration: 300 }); }}>⤢ Encuadrar</button>
+              )}
             </div>
           </>
         )}
       </div>
-      {totalUrgente > 0 && (
+      {modo === "mapa" && totalUrgente > 0 && (
         <div className="px-hud mv-urgente-flotante mv-solo-movil">
           <button type="button" className="mv-nivel mv-ir-urgente" onClick={irALoUrgente}
                   title="Llevar la cámara a lo que necesita atención ya">
@@ -541,6 +565,13 @@ function Mapa() {
           </button>
         </div>
       )}
+      {modo === "juego" ? (
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-sm">
+          <Suspense fallback={<p className="mv-aviso">Abriendo el juego…</p>}>
+            <EmpresaViva />
+          </Suspense>
+        </div>
+      ) : (
       <div className="px-lienzo relative min-h-0 min-w-0 flex-1 overflow-hidden">
         <svg width="0" height="0" className="absolute" aria-hidden="true">
           <defs>
@@ -573,6 +604,7 @@ function Mapa() {
           <p className="mv-aviso">No se pudieron traer tus pendientes; el mapa sigue funcionando.</p>
         )}
       </div>
+      )}
     </div>
   );
 }

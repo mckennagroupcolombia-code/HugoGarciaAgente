@@ -13,13 +13,22 @@ import { clone as clonarEsqueleto } from "three/examples/jsm/utils/SkeletonUtils
 const BASE = `${import.meta.env.BASE_URL}empresa/`;
 const cargador = new GLTFLoader();
 const cache = new Map<string, Promise<GLTF>>();
+let fallidas = 0;
+/** Cuántos modelos no cargaron (el panel avisa: un barrio sin muebles no puede pasar en silencio). */
+export function cargasFallidas(): number {
+  return fallidas;
+}
 
 export function cargar(ruta: string): Promise<GLTF> {
   let p = cache.get(ruta);
   if (!p) {
     // Kenney viene en .glb; KayKit en .gltf (+ .bin + textura al lado): la ruta puede traer extensión.
     const archivo = /\.(gltf|glb)$/.test(ruta) ? ruta : `${ruta}.glb`;
-    p = cargador.loadAsync(`${BASE}${archivo}`).then((g) => {
+    p = cargador.loadAsync(`${BASE}${archivo}`).catch((e) => {
+      fallidas++;
+      cache.delete(ruta); // que un reintento (otra visita al panel) vuelva a pedirlo
+      throw e;
+    }).then((g) => {
       g.scene.traverse((o) => {
         const m = o as THREE.Mesh;
         if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; }

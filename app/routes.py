@@ -17491,6 +17491,30 @@ def register_routes(app):
         resp.headers["Content-Type"] = "application/javascript"
         return resp
 
+    # Empresa viva (desktop/src/components/empresa): los modelos 3D del barrio (CC0, ver
+    # desktop/public/empresa/LEEME.md). Sin esta ruta caían al comodín de /app y llegaban como
+    # index.html: el barrio salía sin personas, muebles ni estantes (8-oct-2026). Mismo guardia
+    # que el bundle; los .gltf piden su .bin y su textura al lado, por eso va la carpeta entera.
+    _TIPOS_MODELO = {".gltf": "model/gltf+json", ".glb": "model/gltf-binary", ".bin": "application/octet-stream"}
+
+    @app.route("/app/empresa/<path:ruta>", methods=["GET", "HEAD"])
+    def serve_spa_empresa(ruta):
+        from app import spa_sesion
+
+        usuario = spa_sesion.usuario_de_cookie()
+        if spa_sesion.gate_activo() and not usuario:
+            return jsonify({"error": "Sesión requerida"}), 403
+        if spa_sesion.es_colaborador(usuario):
+            return jsonify({"error": "No encontrado"}), 404
+        resp = send_from_directory(os.path.join(_SPA_DIR, "empresa"), ruta)
+        tipo = _TIPOS_MODELO.get(os.path.splitext(ruta)[1].lower())
+        if tipo:
+            resp.headers["Content-Type"] = tipo
+        resp.headers["X-Content-Type-Options"] = "nosniff"
+        # Sin hash en los nombres: revalidar (ETag), pero sin volver a bajar 5 MB cada vez.
+        resp.headers["Cache-Control"] = "private, no-cache"
+        return resp
+
     # Agenda → Juegos. El panel los carga en <iframe sandbox="allow-scripts"> (origen opaco:
     # no ven el token del panel en localStorage ni sus cookies). La CSP repite el sandbox por
     # si alguien abre la URL directa, y les quita la red. Solo la página exige sesión: desde un

@@ -295,6 +295,12 @@ modelos CC0 de KayKit y Kenney en `desktop/public/empresa/` (ver su `LEEME.md`).
   `tipo=solicitud, subtipo=pregunta`; «Compartir idea» = `POST /api/canales/<id>/mensajes` (avisa si el grupo tiene
   espejo a WhatsApp); «Mi avatar» = `preferencias_ui.empresa` {avatar, accesorio, color}, validado en
   `tickets_db._limpiar_avatar_empresa`.
+- **Dónde se ve:** en el Mapa (inicio), selector **Mapa · Juego** del cabezote (donde estuvo «Edificio»; se recuerda en
+  `localStorage` `mck-mapa-vivo-modo`), además del panel `empresa-viva` de la Agenda. El juego se carga lazy.
+- ⚠️ **Modelos:** Flask los sirve en `/app/empresa/<ruta>` (`serve_spa_empresa`, mismo guardia de sesión que el bundle).
+  Sin esa ruta caían al comodín de `/app` y llegaban como `index.html` con 200: el barrio salía sin personas, muebles ni
+  estantes (8-oct, ya en producción; Vite en `npm run dev` no lo muestra). Un archivo nuevo en `desktop/public/` que no
+  sea `assets/`, `juegos/` o `empresa/` necesita su ruta. Si un modelo no carga, el juego lo avisa en pantalla.
 - ⚠️ Nada de puntajes, rankings ni tiempos por persona (RRHH). El juego no escribe nada por su cuenta: tocar algo abre
   el panel real. Banco de pruebas: `/app/dev/app.html?tocar=Empresa%20viva` (datos de `dev/empresaVivaEjemplo.ts`); en
   `npm run dev` el motor queda en `window.__empresaViva` para mover la cámara desde DevTools. ⚠️ Capturas sin interfaz:

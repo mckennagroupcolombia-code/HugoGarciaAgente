@@ -27,6 +27,7 @@ import { useAppStore, type Panel } from "../../stores/app";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
 import { CASAS, LUGAR, lugarDePanel, type LugarId } from "./barrio";
 import { CompartirEnGrupo, EditorAvatar, PreguntarA } from "./acciones";
+import { cargasFallidas } from "./recursos";
 import { Motor, type EstadoEmpresa, type EventoApi, type PersonaApi, type Seleccion } from "./motor";
 
 function hace(desde: string | number): string {
@@ -77,6 +78,7 @@ export default function EmpresaViva() {
   const [sonido, setSonido] = useState(sonidosActivos);
   const [cargado, setCargado] = useState(false);
   const [fallo3d, setFallo3d] = useState(false);
+  const [modelosFallidos, setModelosFallidos] = useState(0);
   const [modal, setModal] = useState<null | "avatar" | "compartir" | { preguntar: PersonaApi }>(null);
   const [aviso, setAviso] = useState("");
   const [modoCasas, setModoCasas] = useState<"auto" | "abierta" | "cerrada">("auto");
@@ -97,7 +99,11 @@ export default function EmpresaViva() {
     if (!c) return;
     let m: Motor;
     try {
-      m = new Motor(c, { onSelect: setSel, onSonido: (n) => tocarSonido(n), onListo: () => setCargado(true) });
+      m = new Motor(c, {
+        onSelect: setSel, onSonido: (n) => tocarSonido(n),
+        // Los personajes y paquetes cargan después del barrio: se revisa otra vez a los 8 s.
+        onListo: () => { setCargado(true); setModelosFallidos(cargasFallidas()); window.setTimeout(() => setModelosFallidos(cargasFallidas()), 8000); },
+      });
     } catch {
       setFallo3d(true); // sin WebGL (navegador viejo o aceleración apagada)
       return;
@@ -203,6 +209,9 @@ export default function EmpresaViva() {
 
         {(!cargado || isLoading) && !fallo3d && <Aviso>Abriendo el barrio…</Aviso>}
         {fallo3d && <Aviso>Este navegador no puede dibujar en 3D (WebGL apagado o no disponible).</Aviso>}
+        {modelosFallidos > 0 && (
+          <Aviso>No cargaron {modelosFallidos} modelos 3D (personas, muebles o estantes). Recarga la página; si sigue, avisa a sistemas.</Aviso>
+        )}
         {error && !data && <Aviso>No se pudo leer el estado de la empresa. ¿Se reinició el agente después de actualizar?</Aviso>}
 
         {eventos.length > 0 && (
