@@ -16,7 +16,7 @@ import DocumentoGeneradorTab, {
   textoDesdeFilasTres,
 } from "./documentos/DocumentoGeneradorTab";
 import { TablaComposicion } from "./documentos/TablaComposicion";
-import { ComposicionDesdeFormula } from "./documentos/ComposicionDesdeFormula";
+import { ComposicionDesdeFormula, FormulaDelDocumento } from "./documentos/ComposicionDesdeFormula";
 import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
 import CargarDocumentosWebButton, { type CargarDocumentosWebResult } from "./documentos/CargarDocumentosWebButton";
@@ -2060,6 +2060,8 @@ function DocumentoCompletoTabContent({
   const [nombre, setNombre] = useState("");
   const desdeTaller = useAppStore((st) => Boolean(st.tallerRetorno));
   const [referencia, setReferencia] = useState("");
+  /** Fórmula (Diseño de producto → Fórmulas) de la que sale la Composición; "" = por SKU o ninguna. */
+  const [formulaId, setFormulaId] = useState("");
   const [cas, setCas] = useState("");
   const [nombreComercial, setNombreComercial] = useState("");
   const [inci, setInci] = useState("");
@@ -2200,6 +2202,7 @@ function DocumentoCompletoTabContent({
     const inciVal = String(datos.inci || coaIdent.nombre_inci || "");
     if (inciVal) setInci(inciVal);
     setTipoInsumo(esTipoInsumo(datos.tipo_insumo) ? datos.tipo_insumo : "");
+    setFormulaId(String(datos.formula_id || ""));
     setIns(String(datos.ins || ""));
 
 
@@ -2359,6 +2362,7 @@ function DocumentoCompletoTabContent({
     const ft = { ...buildFtRef.current() } as Record<string, unknown>;
     ft.cas = casGuardar;
     ft.tipo_insumo = tipoInsumo;
+    if (formulaId) ft.formula_id = formulaId;
     ft.ins = insGuardar;
     if (casillas.formula) {
       ft.caracteristicas_fisicas = {
@@ -2611,6 +2615,7 @@ function DocumentoCompletoTabContent({
           placeholder="Ej. Ácido cítrico"
         />
         <ReferenciaEnlazada titulo={nombre} referencia={referencia} onReferencia={setReferencia} />
+        <FormulaDelDocumento titulo={nombre} referencia={referencia} formulaId={formulaId} onFormulaId={setFormulaId} />
         <div className="space-y-1.5">
           <p className="text-xs text-muted">Tipo de insumo</p>
           <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
@@ -2858,6 +2863,8 @@ function DocumentoCompletoTabContent({
         <ComposicionDesdeFormula
           titulo={nombre}
           referencia={referencia}
+          formulaId={formulaId}
+          onFormulaId={setFormulaId}
           value={coaComposicion}
           onChange={setCoaComposicion}
         />

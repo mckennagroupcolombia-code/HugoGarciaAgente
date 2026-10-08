@@ -262,6 +262,26 @@ def _nombre_componente(texto: str) -> str:
     return t[:1].upper() + t[1:].lower() if t.isupper() else t
 
 
+def resumen() -> list[dict]:
+    """Solo id, nombre y SKU de cada fórmula: para elegir a cuál se enlaza un documento
+    técnico sin exponer la receta a quien no tiene el permiso `formulas`."""
+    return [{"id": f.get("id") or "", "nombre": f.get("nombre") or "", "sku": f.get("sku_alegra") or ""}
+            for f in sorted(_load(), key=lambda f: (f.get("nombre") or "").lower())]
+
+
+def existe(formula_id: str) -> bool:
+    fid = (formula_id or "").strip()
+    return bool(fid) and any(f.get("id") == fid for f in _load())
+
+
+def composicion_por_id(formula_id: str) -> dict | None:
+    """Como `composicion_por_sku`, para el documento enlazado a mano a una fórmula
+    (`formula_id` en su YAML) aunque su referencia no sea el SKU de la fórmula."""
+    fid = (formula_id or "").strip()
+    formula = next((x for x in _load() if fid and x.get("id") == fid), None)
+    return _composicion(formula, formula.get("sku_alegra") or "") if formula else None
+
+
 def composicion_por_sku(sku: str) -> dict | None:
     """La fórmula cuyo `sku_alegra` es `sku`, con sus ingredientes como filas de la
     Composición del documento técnico: [componente, porcentaje, CAS]. El nombre y el
@@ -270,8 +290,10 @@ def composicion_por_sku(sku: str) -> dict | None:
     if not ref:
         return None
     formula = next((x for x in _load() if (x.get("sku_alegra") or "").strip().upper() == ref), None)
-    if not formula:
-        return None
+    return _composicion(formula, ref) if formula else None
+
+
+def _composicion(formula: dict, ref: str) -> dict:
     try:
         from app.services.ficha_tecnica import DATOS_DIR, cargar_datos_desde_archivo
         from app.services.mapa_producto import _auditoria

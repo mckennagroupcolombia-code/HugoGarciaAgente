@@ -471,6 +471,16 @@ def register_mapa_sistema_routes(app):
         except ValueError as exc:
             return jsonify({"ok": False, "error": str(exc)}), 400
 
+    @_dual(app, "/api/mapa-sistema/documentos/fijar-formula", methods=["POST"])
+    @_auth_escritura
+    def mapa_sistema_fijar_formula():
+        """Enlaza el documento técnico a una fórmula (su Composición sale de ella); "" lo quita."""
+        body = request.get_json(silent=True) or {}
+        try:
+            return jsonify(M.fijar_formula_documento(body.get("archivo"), body.get("formula_id") or ""))
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+
     @_dual(app, "/api/mapa-sistema/documentos/fijar-sku", methods=["POST"])
     @_auth_escritura
     def mapa_sistema_fijar_sku():

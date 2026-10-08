@@ -954,6 +954,58 @@ def quitar_sku_documento(archivo: str, sku: str) -> dict:
     return {"ok": True, "archivo": archivo, "sku": sku, "quitado": True}
 
 
+def fijar_formula_documento(archivo: str, formula_id: str) -> dict:
+    """Enlaza el documento a una fórmula de Diseño de producto → Fórmulas escribiendo
+    `formula_id: <id>` en su YAML ("" lo quita). Así su Composición sale de esa fórmula
+    aunque la referencia del documento no sea el SKU de la fórmula (un documento de
+    materia prima que también se vende formulado). Misma edición de UNA línea y mismas
+    salvaguardas que `fijar_sku_documento`."""
+    import shutil
+
+    import yaml
+
+    from app.services import ficha_tecnica as ft
+    from app.services import formulas_db
+
+    archivo = (archivo or "").strip()
+    fid = (formula_id or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,120}\.yaml", archivo):
+        raise ValueError("Nombre de documento inválido")
+    if fid and (not re.fullmatch(r"[0-9a-f]{6,40}", fid) or not formulas_db.existe(fid)):
+        raise ValueError("Esa fórmula no existe")
+    ruta = ft.DATOS_DIR / archivo
+    if not ruta.is_file():
+        raise ValueError("Ese documento no existe")
+    texto = ruta.read_text(encoding="utf-8")
+    antes = yaml.safe_load(texto) or {}
+    actual = str(antes.get("formula_id") or "").strip()
+    if actual == fid:
+        return {"ok": True, "archivo": archivo, "formula_id": fid, "sin_cambios": True}
+
+    if re.search(r"^formula_id:.*$", texto, flags=re.M):
+        if fid:
+            nuevo = re.sub(r"^formula_id:.*$", f"formula_id: '{fid}'", texto, count=1, flags=re.M)
+        else:
+            nuevo = re.sub(r"^formula_id:.*\n?", "", texto, count=1, flags=re.M)
+    else:
+        m = re.search(r"^referencia:.*$", texto, flags=re.M) or re.search(r"^(nombre_producto|titulo):.*$", texto, flags=re.M)
+        if not m:
+            raise ValueError("El documento no tiene `titulo` ni `nombre_producto` donde anclar la fórmula")
+        nuevo = texto[: m.end()] + f"\nformula_id: '{fid}'" + texto[m.end():]
+
+    despues = yaml.safe_load(nuevo) or {}
+    if {k: v for k, v in despues.items() if k != "formula_id"} != {k: v for k, v in antes.items() if k != "formula_id"} \
+            or str(despues.get("formula_id") or "") != fid:
+        raise ValueError("La edición habría cambiado algo más que lo pedido: no se escribió")
+
+    respaldo = ft.DATOS_DIR / "_respaldo_referencia"
+    respaldo.mkdir(exist_ok=True)
+    shutil.copy2(ruta, respaldo / f"{ruta.stem}.{time.strftime('%Y%m%d_%H%M%S')}.yaml")
+    ruta.write_text(nuevo, encoding="utf-8")
+    invalidar()
+    return {"ok": True, "archivo": archivo, "formula_id": fid, "antes": actual}
+
+
 def referencia_documento(titulo: str) -> dict:
     """A qué SKU está unido el documento de ese título (el archivo sale del título, igual
     que al generarlo: «FT COA SDS {titulo}» → `ft_coa_sds_{slug}.yaml`)."""
@@ -964,11 +1016,11 @@ def referencia_documento(titulo: str) -> dict:
 
     slug = re.sub(r"[^a-z0-9_]+", "_", ft._normalizar(titulo or "").lower()).strip("_")
     if not slug:
-        return {"archivo": "", "existe": False, "referencia": "", "equivalentes": [], "nombres": {}}
+        return {"archivo": "", "existe": False, "referencia": "", "equivalentes": [], "nombres": {}, "formula_id": ""}
     archivo = f"ft_coa_sds_{slug}.yaml"
     ruta = ft.DATOS_DIR / archivo
     if not ruta.is_file():
-        return {"archivo": archivo, "existe": False, "referencia": "", "equivalentes": [], "nombres": {}}
+        return {"archivo": archivo, "existe": False, "referencia": "", "equivalentes": [], "nombres": {}, "formula_id": ""}
     datos = yaml.safe_load(ruta.read_text(encoding="utf-8")) or {}
     ref = str(datos.get("referencia") or "").strip()
     equiv = datos.get("referencias_equivalentes") or []
@@ -978,10 +1030,11 @@ def referencia_documento(titulo: str) -> dict:
         if s:
             it = ac.obtener_item(s)
             nombres[s] = (it or {}).get("name") or ""
-    return {"archivo": archivo, "existe": True, "referencia": ref, "equivalentes": equiv, "nombres": nombres}
+    return {"archivo": archivo, "existe": True, "referencia": ref, "equivalentes": equiv, "nombres": nombres,
+            "formula_id": str(datos.get("formula_id") or "").strip()}
 
 
-_DOC_OCULTOS = {"imagen_b64", "color_acento", "identidad", "titulo", "nombre_producto"}
+_DOC_OCULTOS = {"formula_id", "imagen_b64", "color_acento", "identidad", "titulo", "nombre_producto"}
 _DOC_NOMBRES = {
     "cas": "CAS", "ins": "INS", "ph": "pH", "einces": "EINECS", "numero_ce": "Número CE", "nombre_inci": "Nombre INCI",
     "pais_origen": "País de origen", "fecha_revision": "Fecha de revisión", "modo_uso": "Modo de uso",
@@ -999,7 +1052,7 @@ def _doc_nombre(clave: str) -> str:
 
 # Lo que NO se edita desde el taller: el enlace con la materia prima (va por `fijar_sku_documento`,
 # que valida el SKU contra Alegra), el nombre (de él salen el archivo y el emparejamiento) y las imágenes.
-_DOC_NO_EDITABLES = {"referencia", "referencia_interna", "titulo", "nombre_producto", "imagen_b64", "color_acento"}
+_DOC_NO_EDITABLES = {"referencia", "referencia_interna", "formula_id", "titulo", "nombre_producto", "imagen_b64", "color_acento"}
 
 
 def _doc_bloques(datos: dict, base: list | None = None) -> tuple[list[dict], int]:

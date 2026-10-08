@@ -5679,14 +5679,31 @@ def register_routes(app):
         del documento: el formulario los integra en su Composición."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        from app.services.formulas_db import composicion_por_sku
+        from app.services.formulas_db import composicion_por_id, composicion_por_sku
 
+        # Enlazado a mano (`formula_id` en el documento) manda sobre la coincidencia por SKU.
+        fid = (request.args.get("formula_id") or "").strip()
+        if fid:
+            formula = composicion_por_id(fid)
+            if formula:
+                return jsonify({"formula": {**formula, "por": "enlace"}})
         # «C-FOR-X,FOR-X»: la referencia del documento y sus equivalentes; gana la primera con fórmula.
         for ref in sku.split(","):
             formula = composicion_por_sku(ref)
             if formula:
-                return jsonify({"formula": formula})
+                return jsonify({"formula": {**formula, "por": "sku"}})
         return jsonify({"formula": None})
+
+    @app.route("/app/api/fichas/formulas", methods=["GET"])
+    @app.route("/api/fichas/formulas", methods=["GET"])
+    def api_fichas_formulas():
+        """Fórmulas a las que se puede enlazar un documento técnico: solo nombre y SKU
+        (la receta sigue detrás del permiso `formulas`)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.formulas_db import resumen
+
+        return jsonify({"formulas": resumen()})
 
     @app.route("/app/api/fichas/datos/<slug>", methods=["GET"])
     @app.route("/api/fichas/datos/<slug>", methods=["GET"])

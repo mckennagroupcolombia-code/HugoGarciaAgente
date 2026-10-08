@@ -1,3 +1,12 @@
+### 2026-10-08 16:50 - Docs técnicos: seleccionar una fórmula registrada dentro del documento
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (panel `/app`, Docs técnicos). Sin LLM.
+- **Qué se implementó:**
+  - Campo **«Fórmula registrada»** en Identificación del producto (debajo de «Referencia enlazada»): buscador de las fórmulas de Diseño de producto → Fórmulas, vista de sus ingredientes con % y CAS, Cambiar y Quitar.
+  - Al elegirla, la **Composición** del COA se llena con los ingredientes de la fórmula (conserva nombres y CAS ya escritos) y se puede deshacer. Antes solo pasaba si la referencia del documento era el SKU de la fórmula; eso sigue funcionando.
+  - El enlace queda como `formula_id` en el YAML del documento (una línea, con respaldo). La lista solo muestra nombre y SKU: la receta sigue detrás del permiso `formulas`.
+- **Archivos Modificados:** `app/services/formulas_db.py`, `app/services/mapa_producto.py`, `app/routes.py`, `app/routes_mapa_sistema.py`, `desktop/src/components/documentos/ComposicionDesdeFormula.tsx`, `desktop/src/components/FichasTecnicasPanel.tsx`, `tests/test_formula_documento.py`, `docs/agentic/modules/producto-cadena.md`, `docs/team-recaps.md`.
+
 ### 2026-10-08 16:30 - Chats: pegar pantallazos con Ctrl+V
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (panel `/app`, chat del equipo y solicitudes). Sin LLM.

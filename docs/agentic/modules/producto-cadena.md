@@ -143,6 +143,17 @@ combo van aparte (no hay producto de venta que dibujar) con salida a Crear en Al
 ⚠️ `index.css` fuerza `position: relative; overflow: hidden` en **todos** los `button` de `#root`: un botón con `absolute`
 se queda en el flujo. Posicionar un `div` y meter el botón dentro.
 
+**Documento técnico enlazado a una fórmula (8-oct-2026).** Antes la Composición solo salía de una fórmula
+(Diseño de producto → Fórmulas) si la `referencia` del documento (o una equivalente) era el `sku_alegra` de la
+fórmula. Ahora el campo **«Fórmula registrada»** de Identificación del producto (`FormulaDelDocumento`, debajo de
+«Referencia enlazada»: buscador, vista de ingredientes, Cambiar/Quitar) escribe `formula_id: '<id>'` en el YAML
+(`mapa_producto.fijar_formula_documento`: una línea, respaldo en `_respaldo_referencia`, «Quitar enlace» la borra)
+y la Composición se integra sola con «Deshacer» (`ComposicionDesdeFormula`, mismo hook
+`useFormulaDelDocumento`). `GET /api/fichas/composicion-formula/<refs>?formula_id=` da prioridad al enlace (`por: "enlace"`) sobre la
+coincidencia por SKU (`por: "sku"`). La lista para elegir (`GET /api/fichas/formulas`) solo da id, nombre y SKU: la
+receta sigue detrás del permiso `formulas`. Documento nuevo: el enlace viaja en el `ft` al guardar o generar.
+`formula_id` no se edita desde el taller (`_DOC_NO_EDITABLES`). Tests: `tests/test_formula_documento.py`.
+
 **Unir un documento a su materia prima (corregido 21-sep-2026).** El documento describe la materia prima y el combo lo
 hereda; el enlace firme es `referencia: <SKU>` en el YAML. Tres fallos impedían hacerlo desde el taller:
 (1) hay recetas cuyos componentes llegan **sin nombre** en la copia local de Alegra → nada parecía empaque, el kit quedaba
