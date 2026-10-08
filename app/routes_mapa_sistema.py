@@ -286,6 +286,35 @@ def register_mapa_sistema_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         return jsonify(mapa_app.urgencias_para(usuario))
 
+    @_dual(app, "/api/empresa-viva/estado", methods=["GET"])
+    def empresa_viva_estado():
+        """El juego de la empresa (panel «empresa-viva»): personas, visitantes en la tienda,
+        paquetes, proveedores y lo que acaba de pasar (app/services/empresa_viva.py).
+
+        Necesita a la PERSONA (token personal): los detalles se recortan a sus permisos.
+        CHAT_API_TOKEN sin persona no tiene a quién dibujar: 401. Solo lectura, sin LLM.
+        """
+        from app.api_auth import bearer_token_from_request
+        from app.services import empresa_viva
+        from app.services.tickets_db import aplicar_privilegios_admin_cynthia, get_usuario_by_token
+
+        usuario = None
+        for tok in ((request.headers.get("X-Tickets-Token") or "").strip(), bearer_token_from_request()):
+            if tok:
+                try:
+                    usuario = aplicar_privilegios_admin_cynthia(get_usuario_by_token(tok))
+                except Exception:
+                    usuario = None
+                if usuario:
+                    break
+        if not usuario:
+            return jsonify({"error": "No autorizado"}), 401
+        if not empresa_viva.puede_ver_juego(usuario):
+            return jsonify({"error": "No autorizado"}), 403
+        # ?refrescar=1 tras una acción del propio juego (preguntar, compartir, cambiar avatar):
+        # que se vea ya, sin esperar los 10 s del caché.
+        return jsonify(empresa_viva.estado_para(usuario, refrescar=request.args.get("refrescar") == "1"))
+
     @_dual(app, "/api/mapa-sistema/quien-hace", methods=["GET"])
     def mapa_sistema_quien_hace():
         """Quién hace cada función de la operación (el Edificio del Mapa pone a cada persona en

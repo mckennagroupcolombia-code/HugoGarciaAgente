@@ -1,0 +1,112 @@
+/* Etiquetas HTML pegadas al mundo 3D (CSS2DRenderer): nombres, letreros, globos e íconos.
+   Colores fijos (no del tema): viven sobre la escena del juego, que es igual en claro y oscuro. */
+.ev-nombre {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1d2b53;
+  font: 700 11px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+.ev-nombre-yo { background: #ffe14d; }
+.ev-nombre-hugo { background: #5db8ff; color: #fff; }
+
+.ev-letrero-casa {
+  padding: 4px 12px;
+  border-radius: 10px;
+  background: #fff7e6;
+  border: 2px solid #8a6a4a;
+  color: #5a3d22;
+  font: 800 14px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-shadow: 0 3px 0 #8a6a4a, 0 6px 10px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+.ev-letrero-lugar {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(29, 43, 83, 0.72);
+  color: #fff;
+  font: 700 10px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  white-space: nowrap;
+}
+
+.ev-globo {
+  position: relative;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: #fff;
+  color: #1d2b53;
+  font: 800 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  animation: ev-salta 0.45s ease-out;
+}
+.ev-globo::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-bottom: 0;
+  border-top-color: #fff;
+}
+.ev-globo-ok { background: #d9fbe3; color: #0f5132; }
+.ev-globo-ok::after { border-top-color: #d9fbe3; }
+.ev-globo-venta { background: #fff3b0; color: #6b4e00; }
+.ev-globo-venta::after { border-top-color: #fff3b0; }
+.ev-globo-hugo { background: #d6eeff; color: #0b4a7a; }
+.ev-globo-pregunta { background: #ffe8c7; color: #7a3e00; }
+.ev-globo-pregunta::after { border-top-color: #ffe8c7; }
+.ev-globo-solicitud { background: #dcefff; color: #0b4a7a; }
+.ev-globo-solicitud::after { border-top-color: #dcefff; }
+.ev-globo-respuesta { background: #d9fbe3; color: #0f5132; }
+.ev-globo-respuesta::after { border-top-color: #d9fbe3; }
+.ev-globo-grupo { background: #ffffff; color: #1d2b53; }
+.ev-globo-idea { background: #fff6bf; color: #6b4e00; }
+.ev-globo-idea::after { border-top-color: #fff6bf; }
+.ev-globo-hugo::after { border-top-color: #d6eeff; }
+
+.ev-icono {
+  min-width: 20px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  text-align: center;
+  font: 900 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  animation: ev-flota 1.6s ease-in-out infinite;
+}
+.ev-pide-meli { background: #ffe600; color: #2d3277; }
+.ev-pide-wa { background: #25d366; color: #fff; }
+.ev-wa { background: #25d366; color: #fff; font-size: 9px; }
+.ev-zzz { background: transparent; box-shadow: none; color: #4a5a8a; font-size: 13px; }
+.ev-zzz small { font-size: 0.75em; margin-left: 1px; }
+
+.ev-aviso {
+  padding: 3px 10px;
+  border-radius: 10px;
+  background: #fff;
+  color: #1d2b53;
+  font: 700 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+.ev-aviso-rojo { background: #ffe1e1; color: #9b1c1c; animation: ev-flota 2.2s ease-in-out infinite; }
+
+.ev-pila {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #ffa300;
+  color: #fff;
+  text-align: center;
+  font: 900 11px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.ev-pila-alta { background: #ff4d4d; }
+.ev-oculto { display: none; }
+
+@keyframes ev-flota { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes ev-salta { 0% { transform: scale(0.4); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ev-icono, .ev-aviso-rojo, .ev-globo { animation: none; } }

@@ -181,6 +181,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "core",
     category: "inventario",
   },
+  "empresa-viva": {
+    emoji: "🏘️",
+    label: "Empresa viva",
+    description:
+      "La operación de ahora mismo como un juego de gestión: cada persona del equipo en el edificio donde está trabajando, los clientes esperando en la tienda, los paquetes por alistar, el camión y los proveedores en el muelle.",
+    tips: [
+      "Toca un muñeco, un paquete o un edificio para ver qué es y abrir el panel donde se resuelve.",
+      "Arrastra para moverte; rueda del mouse o dos dedos para acercar. «Toda» vuelve a encuadrar.",
+      "Cuando alguien responde o alista algo, el muñeco se va con un globo que dice quién fue.",
+    ],
+    tier: "core",
+    category: "inicio",
+  },
   juegos: {
     emoji: "🎮",
     label: "Juegos",

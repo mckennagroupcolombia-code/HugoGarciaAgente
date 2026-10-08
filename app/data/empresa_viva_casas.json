@@ -1,0 +1,57 @@
+{
+  "_doc": "Empresa viva (Agenda → Empresa viva): quién vive en qué casa del barrio, en qué cuarto, dónde trabaja cuando tiene abierta la Agenda o el Mapa, y con qué avatar (desktop/public/empresa/personajes/<avatar>.glb). Clave = username del panel. Lugares: gerencia, contabilidad, estudio, cuarto_bunker_1, cuarto_bunker_2, oficina_sede, bodega, recepcion, porton, hongos, cuarto_sede_1, cuarto_sede_2, tienda. Quien no está aquí llega desde la calle cuando se conecta y se va cuando se desconecta. Los roles salen de la revisión del 8-oct-2026 (catálogo de funciones de rendimiento, permisos y paneles más usados); el juego muestra además las funciones vivas de cada quien.",
+  "usuarios": {
+    "armando": {
+      "vive": "bunker",
+      "cuarto": "cuarto_bunker_1",
+      "trabaja": "gerencia",
+      "avatar": "character-male-e",
+      "rol": "Gerente general, fundador y representante legal. Administra la aplicación, aprueba pagos y lleva el Libro Mayor"
+    },
+    "@cynthia": {
+      "vive": "bunker",
+      "cuarto": "cuarto_bunker_2",
+      "trabaja": "estudio",
+      "avatar": "character-female-b",
+      "rol": "Diseño de producto: etiquetas, fichas técnicas, publicaciones y catálogo"
+    },
+    "vitor": {
+      "vive": "sede",
+      "cuarto": "cuarto_sede_1",
+      "trabaja": "hongos",
+      "avatar": "character-male-b",
+      "rol": "Sede Sur: línea de hongos, envasado, envíos a la transportadora y el almuerzo del equipo"
+    },
+    "stella": {
+      "vive": "sede",
+      "cuarto": "cuarto_sede_2",
+      "trabaja": "oficina_sede",
+      "avatar": "character-female-e",
+      "rol": "Sede Sur: empaque, alistamiento de envíos, fórmulas y aseo"
+    },
+    "jerry": {
+      "trabaja": "oficina_sede",
+      "avatar": "character-female-c",
+      "rol": "Facturación, notas crédito, atención a clientes por WhatsApp y alistamiento de envíos"
+    },
+    "sebastian.garcia": {
+      "trabaja": "oficina_sede",
+      "avatar": "character-male-f"
+    }
+  },
+  "ocultos": [
+    "admin",
+    "prueba",
+    "hugo_ia_bot"
+  ],
+  "avatar_por_defecto": "character-male-d",
+  "clientes": [
+    "character-female-a",
+    "character-male-a",
+    "character-female-d",
+    "character-male-c",
+    "character-female-f"
+  ],
+  "proveedor": "character-male-d",
+  "mensajero": "character-male-a"
+}

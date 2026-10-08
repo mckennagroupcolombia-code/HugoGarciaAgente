@@ -16,6 +16,7 @@ export function PanelTransition({ children }: { children: ReactNode }) {
     panel === "colaboradores" ||
     panel === "mapa-vivo" ||
     panel === "juegos" ||
+    panel === "empresa-viva" ||
     panel === "chat-equipo" ||
     (panel === "etiquetas" && etiquetasStudioInmersivo);
   // Misma key en todo el hub Contabilidad: si no, cada pestaña remonta el árbol

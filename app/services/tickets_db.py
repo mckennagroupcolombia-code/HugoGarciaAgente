@@ -1948,6 +1948,27 @@ def _limpiar_alertas_sonido(raw) -> dict | None:
     return out
 
 
+# Avatares del barrio: los modelos que hay en desktop/public/empresa/personajes/.
+AVATARES_EMPRESA = tuple(f"character-{g}-{l}" for g in ("female", "male") for l in "abcdef")
+ACCESORIOS_EMPRESA = ("", "aid-glasses", "aid-sunglasses")
+
+
+def _limpiar_avatar_empresa(valor) -> dict | None:
+    """{avatar, accesorio, color} validado; None si algo no es de la lista."""
+    import re as _re
+
+    if not isinstance(valor, dict):
+        return None
+    avatar = str(valor.get("avatar") or "")
+    accesorio = str(valor.get("accesorio") or "")
+    color = str(valor.get("color") or "")
+    if avatar not in AVATARES_EMPRESA or accesorio not in ACCESORIOS_EMPRESA:
+        return None
+    if color and not _re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+        return None
+    return {"avatar": avatar, "accesorio": accesorio, "color": color}
+
+
 def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, str | None, dict | None]:
     """Guarda tema del panel asociado al usuario (JSON validado)."""
     import json as _json
@@ -2054,6 +2075,13 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             return False, "sonidos inválido", None
         clean["sonidos"] = son
 
+    # Empresa viva (desktop/src/components/empresa): el avatar de cada quien en el barrio.
+    if "empresa" in preferencias:
+        emp = _limpiar_avatar_empresa(preferencias.get("empresa"))
+        if emp is None:
+            return False, "empresa inválido", None
+        clean["empresa"] = emp
+
     if not clean:
         return False, "Nada que guardar", None
 
@@ -2078,6 +2106,8 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             merged["estilo_v"] = clean["estilo_v"]
         if "sonidos" in clean:
             merged["sonidos"] = clean["sonidos"]
+        if "empresa" in clean:
+            merged["empresa"] = clean["empresa"]
         db.execute(
             "UPDATE usuarios SET preferencias_ui=? WHERE id=?",
             (_json.dumps(merged), user_id),

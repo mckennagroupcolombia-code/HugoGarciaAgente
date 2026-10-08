@@ -260,3 +260,42 @@ Jenniffer subía las fotos de los COA y alguien los pasaba a mano a Docs técnic
   (sin `--aplicar` solo muestra qué haría). `COA_CANAL_AUTO_ACTIVO=0` lo apaga.
 - Primer uso 7-oct: agar agar, colágeno hidrolizado, sorbitol polvo, proteína aislada de soya y creatina (el lote era
   **D**20260406C, el documento decía G…) actualizados; D-pantenol y L-arginina ya estaban.
+
+### AL. Empresa viva — la operación como juego de gestión (8-oct-2026)
+Agenda → **Empresa viva** (panel `empresa-viva`, `desktop/src/components/empresa/`). Convive con el Mapa: el Mapa es la
+app por etapas; esto es la operación de ahora como juego 3D (Three.js, `three` en `package.json`, chunk lazy), con
+modelos CC0 de KayKit y Kenney en `desktop/public/empresa/` (ver su `LEEME.md`).
+- **Motor gráfico** (`render.ts`, referencia: tráiler de FarmVille 3, pedida por el usuario el 8-oct; el pixel art 2D y el
+  isométrico plano con Kenney fueron rechazados por «no parecerse a FarmVille»): cámara en perspectiva de lente larga,
+  sol cálido + cielo, GTAO + bloom + saturación + SMAA, pasto instanciado que se mece (shader) y margaritas. Calidad
+  alta/media/baja (celular arranca en media o baja; «Gráficos» en la barra). Se evaluó Babylon.js, PlayCanvas, Unity
+  WebGL y Godot: se queda Three.js (ya integrado, liviano, la brecha era de arte y luz, no del motor).
+- **Pueblo moderno, techo que se levanta** (decisión del usuario): las casas se arman en `escena.ts` (muros, ventanas,
+  techo aparte — teja a dos aguas en la Sede, plano con paneles solares en el Búnker, plano con toldo en la Tienda). De
+  lejos cerradas; al acercarse (o tocar el techo) el techo sube y se desvanece y los muros del frente bajan. «Casas:
+  auto/abiertas/cerradas» en la barra. Muebles: catálogo `MUEBLE` (nombre lógico de `barrio.ts` → modelo); KayKit va con
+  UNA escala (0,5), escalar por altura deforma lo plano (pasó con la estufa y el entrepaño de pared).
+- **El barrio** (`barrio.ts`): Búnker Suba (cuartos de Armando y Cynthia, gerencia, contabilidad, estudio de diseño),
+  Sede McKenna Sur (cuartos de Victor y Stella, oficina con cocina, bodega, recepción, portón, cultivo de hongos) y
+  Tienda digital. Quién vive dónde, su cuarto, dónde trabaja por defecto y su rol: `app/data/empresa_viva_casas.json`
+  (roles sacados el 8-oct de `rendimiento.quien_hace`, permisos y paneles más usados).
+- **Cada persona** camina al lugar del panel que tiene abierto (`lugarDePanel`, sale de `flujoApp` + precisiones);
+  con la Agenda o el Mapa, a su puesto; desconectada, a su cuarto («zzz») si vive en el barrio. Contador, colaborador
+  externo y cuentas genéricas no aparecen (`ocultos`).
+- **Lo vivo** (`app/services/empresa_viva.py`, `GET /api/empresa-viva/estado`, token personal, sin LLM): preguntas de
+  preventa y chats de WhatsApp sin respuesta = fila en la tienda; órdenes MeLi pagadas (API, en segundo plano, caché
+  60 s / 5 min por envío) + pedidos web + despachos = cajas por alistar → alistadas (foto de Empaque o envío impreso)
+  → el mensajero se las lleva; recepciones abiertas = camión del proveedor; bodega = estantes por la caché del Control
+  de inventario + lista «por reponer»; lo detenido del Mapa = pilas de papeles. Las transiciones se detectan comparando
+  fotos y se atribuyen con `panel_eventos_operativos` (quién respondió, quién alistó, quién registró).
+- **Quién le habla a quién**: solicitudes/preguntas entre personas, sus respuestas y los mensajes del chat del equipo
+  de los últimos 20 min = avioncitos de papel de un avatar a otro. El avioncito lo ve todo el equipo; el texto solo
+  quien participa (o los miembros del grupo; un grupo sin miembros es de todos).
+- **Acciones** (`acciones.tsx`), siempre por los caminos de siempre: «Preguntarle algo» = `POST /api/tickets/`
+  `tipo=solicitud, subtipo=pregunta`; «Compartir idea» = `POST /api/canales/<id>/mensajes` (avisa si el grupo tiene
+  espejo a WhatsApp); «Mi avatar» = `preferencias_ui.empresa` {avatar, accesorio, color}, validado en
+  `tickets_db._limpiar_avatar_empresa`.
+- ⚠️ Nada de puntajes, rankings ni tiempos por persona (RRHH). El juego no escribe nada por su cuenta: tocar algo abre
+  el panel real. Banco de pruebas: `/app/dev/app.html?tocar=Empresa%20viva` (datos de `dev/empresaVivaEjemplo.ts`); en
+  `npm run dev` el motor queda en `window.__empresaViva` para mover la cámara desde DevTools. ⚠️ Capturas sin interfaz:
+  `--virtual-time-budget` congela la decodificación de texturas (sale en blanco); usar CDP con tiempo real.

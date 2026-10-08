@@ -1,3 +1,28 @@
+### 2026-10-08 12:10 - Empresa viva: la operación de McKenna como juego 3D (estilo FarmVille 3)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (panel `/app`, Agenda). Sin LLM.
+- **Qué se implementó:**
+  - Agenda → **Empresa viva**: el barrio real de la empresa en 3D, con el Búnker Suba (Armando y Cynthia), la Sede McKenna Sur (Victor y Stella) y la Tienda digital. Convive con el Mapa y no lo reemplaza.
+  - Cada persona camina al lugar del panel que tiene abierto; desconectada, duerme en su cuarto.
+  - Lo que se ve sale de la operación real:
+    - Preguntas de MeLi y chats de WhatsApp sin responder hacen fila en la tienda y se van con «¡Gracias, …!» cuando alguien responde.
+    - Las ventas son cajas que se alistan y el mensajero se lleva.
+    - Las recepciones abiertas traen el camión del proveedor.
+    - La bodega muestra lo agotado y lo crítico, con la lista de qué reponer.
+    - Lo detenido del Mapa aparece como pilas de papeles en cada oficina.
+  - **Quién le habla a quién:** las preguntas y solicitudes entre personas y los mensajes de los grupos del equipo vuelan como avioncitos de papel. El contenido solo lo ve quien participa.
+  - **Acciones**, siempre por los caminos de siempre:
+    - «Preguntarle algo» crea una solicitud de tipo pregunta.
+    - «Compartir idea» publica en el chat del equipo y avisa si el grupo sale también a WhatsApp.
+    - «Mi avatar» ofrece 12 personajes, accesorios y color del nombre.
+  - **Motor gráfico** con referencia en FarmVille 3:
+    - Three.js con cámara en perspectiva, luz cálida, oclusión ambiental, brillo y pasto que se mece.
+    - Casas con techo que se levanta al acercarse.
+    - Calidad alta, media o baja; el celular arranca en una más liviana.
+    - Modelos CC0 de KayKit y Kenney (5,2 MB).
+  - **Roles** sacados de la revisión de funciones, permisos y paneles más usados, en `app/data/empresa_viva_casas.json`. El contador y los colaboradores externos no aparecen.
+- **Archivos Modificados:** `app/services/empresa_viva.py` (nuevo), `app/routes_mapa_sistema.py`, `app/services/tickets_db.py` (avatar en `preferencias_ui`), `app/data/empresa_viva_casas.json` (nuevo), `desktop/src/components/empresa/*` (nuevo), `desktop/public/empresa/` (modelos), `desktop/package.json` (`three`), registro del panel (`App.tsx`, `Layout.tsx`, `panelAccess.ts`, `panelInfo.ts`, `flujoApp.ts`, `navStructure.ts`, `InicioNavTabs.tsx`, `mapaComun.tsx`, `PanelTransition.tsx`, `panels.tsx`, `stores/app.ts`), `desktop/dev/` (banco de pruebas), `tests/test_empresa_viva.py` (nuevo), `docs/agentic/modules/operacion-equipo.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-07 - IVA de venta = el que cobra el proveedor (automático) + publicación de 8 productos
 - **Autor:** Armando García
 - **Tipo de Cambio:** Funcionalidad (Alegra, compras, facturación) + operación de catálogo (MeLi, web). Sin LLM.

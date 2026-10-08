@@ -32,6 +32,7 @@ const MapaSistemaPanel = lazy(() => import("./components/MapaSistemaPanel"));
 const ColaboradoresPanel = lazy(() => import("./components/ColaboradoresPanel"));
 const MapaVivo = lazy(() => import("./components/MapaVivo"));
 const JuegosPanel = lazy(() => import("./components/JuegosPanel"));
+const EmpresaViva = lazy(() => import("./components/empresa/EmpresaViva"));
 const ArquitecturaPanel = lazy(() => import("./components/ArquitecturaPanel"));
 const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
 const NegocioPanel = lazy(() => import("./components/NegocioPanel"));
@@ -181,6 +182,8 @@ function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
       return <ColaboradoresPanel />;
     case "juegos":
       return <JuegosPanel />;
+    case "empresa-viva":
+      return <EmpresaViva />;
     case "arquitectura":
       return <ArquitecturaPanel />;
     case "etiquetas":

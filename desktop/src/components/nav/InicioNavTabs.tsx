@@ -55,12 +55,15 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
   const showMensajes = showSolicitudesChat || showEquipo;
   const showJuegos = Boolean(user && puedeVerSeccionPanel(user, "juegos"));
   const juegosActivo = panel === "juegos";
+  const showEmpresa = Boolean(user && puedeVerSeccionPanel(user, "empresa-viva"));
+  const empresaActiva = panel === "empresa-viva";
 
   useEffect(() => {
     if (panel === "dashboard") guardarUltimoPanelHub("inicio", "dashboard");
     else if (panel === "mapa-sistema") guardarUltimoPanelHub("inicio", "mapa-sistema");
     else if (panel === "colaboradores") guardarUltimoPanelHub("inicio", "colaboradores");
     else if (panel === "juegos") guardarUltimoPanelHub("inicio", "juegos");
+    else if (panel === "empresa-viva") guardarUltimoPanelHub("inicio", "empresa-viva");
     else if (enAgenda) guardarUltimoPanelHub("inicio", "hugo");
   }, [panel, enAgenda]);
 
@@ -137,6 +140,20 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
         >
           <PanelIcon panel="colaboradores" size={22} active={colaboradoresActivo} bubble={false} />
           <span className={HUB_TAB_LABEL}>Colaboradores</span>
+        </button>
+      )}
+      {showEmpresa && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={empresaActiva}
+          aria-label="Empresa viva"
+          title="Empresa viva — la operación de ahora como un juego"
+          onClick={() => setPanel("empresa-viva")}
+          className={tabClass(empresaActiva)}
+        >
+          <PanelIcon panel="empresa-viva" size={22} active={empresaActiva} bubble={false} />
+          <span className={HUB_TAB_LABEL}>Empresa viva</span>
         </button>
       )}
       {showJuegos && (

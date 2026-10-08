@@ -52,6 +52,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "chat-equipo", tier: "core" },
       { panel: "colaboradores", tier: "core" },
       { panel: "juegos", tier: "core" },
+      { panel: "empresa-viva", tier: "core" },
     ],
   },
   {
