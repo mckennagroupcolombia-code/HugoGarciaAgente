@@ -5660,3 +5660,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `ProductLabelForm.tsx`: la casilla Agro muestra `modoUsoAgro || modoUso` y lo editado a mano va a `modoUsoAgro`. El 30 mL sigue con `modoUso` (25 palabras).
 - **Verificado:** `npm run build` limpio.
 - **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `desktop/src/lib/fichaTecnicaAplicar.ts`, `desktop/src/lib/fichaTecnicaSync.ts`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+## 2026-10-09 — «Modo de uso» Agro puede invadir la fila inferior
+- Pedido del usuario: el texto largo del modo de uso (Agro) puede ocupar la fila inferior de la cuadrícula.
+- `ProductLabelForm.tsx`: en Agro el bloque GHS + información técnica + modo de uso ocupa las 3 filas de la columna derecha (`row-span-3`) y Pureza/CAS + cuchara quedan al fondo de esa misma celda. Así el texto baja hasta la fila 3 en vez de estirar toda la cuadrícula. El resto de categorías sigue igual (filas 1-2 + fila 3). Pureza/CAS + cuchara pasan a `identidadYCuchara` para no duplicarlos.
+- **Verificado:** `npm run build` limpio. No se capturó la etiqueta.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`

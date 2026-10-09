@@ -1635,6 +1635,35 @@ function ProductLabelFormInner({
   const carpetaPublicacionesDigitales = () =>
     `${CARPETA_PUBLICACIONES_DIGITALES}/${nombreCategoria(categoria)}`;
 
+  /** Etiqueta Agro: el «Modo de uso» ocupa también la fila inferior de la
+   *  columna derecha (ver el cuerpo de la ficha). */
+  const modoUsoInvadeFilaInferior = categoria === "agro";
+  /** Cuadro Pureza/CAS + cuchara de la columna derecha. */
+  const identidadYCuchara = (
+    <>
+      <TechnicalIdentity
+        concentration={data.concentration}
+        cas={data.cas}
+        onConcentrationChange={(v) => onChange({ concentration: v })}
+        onCasChange={(v) => onChange({ cas: v })}
+        casTitulo={data.casTitulo}
+        onCasTituloChange={(v) => onChange({ casTitulo: v })}
+        editMode={editMode}
+      />
+      <CucharaMedidora
+        cantidad={data.cucharaCantidad ?? ""}
+        unidad={data.cucharaUnidad || UNIDADES_CUCHARA[0]}
+        titulo={data.cucharaUtensilio}
+        onCantidadChange={(v) => onChange({ cucharaCantidad: v })}
+        onUnidadChange={(v) => onChange({ cucharaUnidad: v })}
+        onTituloChange={(v) => onChange({ cucharaUtensilio: v })}
+        editMode={editMode}
+        deshabilitada={Boolean(data.sinCuchara)}
+        onDeshabilitadaChange={(v) => onChange({ sinCuchara: v })}
+      />
+    </>
+  );
+
   const ficha = (
     <div
       ref={fichaRef}
@@ -1677,53 +1706,44 @@ function ProductLabelFormInner({
               borde lo corría 1.5px). La columna hereda las 3 filas de los
               atributos (subgrid): GHS + información técnica se centran en
               vertical en las filas 1-2, y el cuadro Pureza/CAS + cuchara en
-              la fila 3 (Grado / Conservación). */}
+              la fila 3 (Grado / Conservación). En Agro el «Modo de uso» es
+              largo (hasta 70 palabras) y puede invadir la fila 3: la columna
+              es una sola celda de 3 filas con Pureza/CAS + cuchara al fondo,
+              así el texto no estira la cuadrícula entera. */}
           <div
             className="grid border-l-[3px] border-[color:var(--acento)] pl-[13px] pr-4"
             style={{ gridRow: "span 3", gridTemplateRows: "subgrid" }}
           >
-            <div className="row-span-2 flex flex-col items-center justify-center gap-[14px] py-4">
-              <GhsBadge
-                value={data.ghs}
-                onChange={(v) => onChange({ ghs: v })}
-                iconSvg={data.ghsIconSvg}
-                onIconChange={(svg) => onChange({ ghsIconSvg: svg })}
-                desplazamiento={data.ghsDesplazamiento ?? 0}
-                onDesplazamientoChange={(v) => onChange({ ghsDesplazamiento: v })}
-                editMode={editMode}
-              />
-              <TechnicalDocuments
-                technicalDocuments={data.technicalDocuments}
-                website={data.website}
-                onTechnicalDocumentsChange={(v) => onChange({ technicalDocuments: v })}
-                onWebsiteChange={(v) => onChange({ website: v })}
-                editMode={editMode}
-                modoUso={data.modoUsoAgro || data.modoUso}
-                onModoUsoChange={categoria === "agro" ? (v) => onChange({ modoUsoAgro: v }) : undefined}
-              />
+            <div
+              className={`flex flex-col items-center gap-[14px] py-4 ${
+                modoUsoInvadeFilaInferior ? "row-span-3" : "row-span-2 justify-center"
+              }`}
+            >
+              <div className="flex w-full flex-1 flex-col items-center justify-center gap-[14px]">
+                <GhsBadge
+                  value={data.ghs}
+                  onChange={(v) => onChange({ ghs: v })}
+                  iconSvg={data.ghsIconSvg}
+                  onIconChange={(svg) => onChange({ ghsIconSvg: svg })}
+                  desplazamiento={data.ghsDesplazamiento ?? 0}
+                  onDesplazamientoChange={(v) => onChange({ ghsDesplazamiento: v })}
+                  editMode={editMode}
+                />
+                <TechnicalDocuments
+                  technicalDocuments={data.technicalDocuments}
+                  website={data.website}
+                  onTechnicalDocumentsChange={(v) => onChange({ technicalDocuments: v })}
+                  onWebsiteChange={(v) => onChange({ website: v })}
+                  editMode={editMode}
+                  modoUso={data.modoUsoAgro || data.modoUso}
+                  onModoUsoChange={modoUsoInvadeFilaInferior ? (v) => onChange({ modoUsoAgro: v }) : undefined}
+                />
+              </div>
+              {modoUsoInvadeFilaInferior && identidadYCuchara}
             </div>
-            <div className="flex flex-col items-center justify-center gap-[14px] py-4">
-              <TechnicalIdentity
-                concentration={data.concentration}
-                cas={data.cas}
-                onConcentrationChange={(v) => onChange({ concentration: v })}
-                onCasChange={(v) => onChange({ cas: v })}
-                casTitulo={data.casTitulo}
-                onCasTituloChange={(v) => onChange({ casTitulo: v })}
-                editMode={editMode}
-              />
-              <CucharaMedidora
-                cantidad={data.cucharaCantidad ?? ""}
-                unidad={data.cucharaUnidad || UNIDADES_CUCHARA[0]}
-                titulo={data.cucharaUtensilio}
-                onCantidadChange={(v) => onChange({ cucharaCantidad: v })}
-                onUnidadChange={(v) => onChange({ cucharaUnidad: v })}
-                onTituloChange={(v) => onChange({ cucharaUtensilio: v })}
-                editMode={editMode}
-                deshabilitada={Boolean(data.sinCuchara)}
-                onDeshabilitadaChange={(v) => onChange({ sinCuchara: v })}
-              />
-            </div>
+            {!modoUsoInvadeFilaInferior && (
+              <div className="flex flex-col items-center justify-center gap-[14px] py-4">{identidadYCuchara}</div>
+            )}
           </div>
         </div>
 
