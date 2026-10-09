@@ -311,7 +311,7 @@ def completar_datos_documento(
         datos_json=json.dumps(base, ensure_ascii=False, indent=2)[:6000],
         contexto=fuentes.get("contexto") or "(sin fuentes externas)",
     )
-    generado = _sintetizar_json(prompt)
+    generado = _sintetizar_json(_con_regla_proceso(prompt, titulo))
     if not generado:
         raise RuntimeError("La IA no devolvió JSON válido para completar el documento")
 
@@ -486,6 +486,33 @@ _PROMPT_BASE = (
     'Responde en español técnico, sin saludos, sin markdown, sin títulos.'
 )
 
+def regla_proceso_obtencion(nombre: str) -> str:
+    """Si el nombre declara el proceso (prensado en frío, virgen), la IA no puede
+    contradecirlo. Sin esto el aceite de girasol salía siempre refinado: es lo que
+    dicen PubMed y la ficha de Sheets del aceite de cocina (8-oct)."""
+    n = "".join(
+        c for c in unicodedata.normalize("NFD", (nombre or "").lower())
+        if unicodedata.category(c) != "Mn"
+    )
+    if "refinad" in n:
+        return ""
+    if not re.search(r"prensad[oa]s?\s+en\s+frio|cold[\s-]*press|\bvirgen\b", n):
+        return ""
+    return (
+        f'PROCESO DECLARADO (obligatorio, manda sobre la evidencia): "{nombre}" se obtiene por '
+        "prensado en frío, extracción mecánica sin calor ni solventes, y NO es refinado. "
+        "PROHIBIDO mencionar refinación, refinado, blanqueo, desodorización, neutralización, "
+        "winterización o extracción con solventes/hexano, y atribuirle olor y sabor neutros o "
+        "punto de humo alto (son del aceite refinado). Conserva su color, olor y sabor naturales. "
+        "Si la evidencia describe el aceite refinado o de cocina, ignora esas partes."
+    )
+
+
+def _con_regla_proceso(prompt: str, nombre: str) -> str:
+    regla = regla_proceso_obtencion(nombre)
+    return f"{prompt}\n{regla}" if regla else prompt
+
+
 # Campos cuya respuesta es una oración o frase corta (no un valor/código ni una
 # lista multilínea): deben terminar siempre en punto para verse consistentes
 # en la casilla del formulario, sin importar si el valor vino de PubChem o de
@@ -650,7 +677,7 @@ def sugerir_parametros_coa(nombre: str) -> dict[str, Any]:
         "Sin markdown, sin encabezados, sin numeración, sin texto extra."
     )
     try:
-        bruto = _sintetizar_texto(prompt)
+        bruto = _sintetizar_texto(_con_regla_proceso(prompt, nombre))
         filas = normalizar_filas_parametros_coa(bruto)
         if filas:
             return {"ok": True, "campo": "coa_parametros", "valor": filas, "origen": "gemini"}
@@ -699,7 +726,7 @@ def sugerir_campo_ficha(campo: str, nombre: str, grado: str = "") -> dict[str, A
 
     # ── Sinónimos: Gemini Flash directo, sin PubChem (evita timeouts de red) ────
     if campo == "sinonimos":
-        valor = _sintetizar_texto(
+        valor = _sintetizar_texto(_con_regla_proceso(
             f'{_PROMPT_BASE}\n'
             f'Genera exactamente 5 sinónimos en español para "{nombre}".\n'
             'Reglas obligatorias:\n'
@@ -708,8 +735,9 @@ def sugerir_campo_ficha(campo: str, nombre: str, grado: str = "") -> dict[str, A
             '- SÍ incluir el número de aditivo alimentario (E-XXX o INS XXX) si aplica, como uno de los 5.\n'
             '- SÍ incluir nombre INCI y nombre químico sistemático en español.\n'
             '- Exactamente 5 sinónimos, únicos, sin repetir información.\n'
-            '- Responde SOLO los 5 separados por punto y coma, sin títulos, sin numeración, sin explicaciones.'
-        )
+            '- Responde SOLO los 5 separados por punto y coma, sin títulos, sin numeración, sin explicaciones.',
+            nombre,
+        ))
         return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
 
     # ── 1. PubChem: CID + propiedades básicas (una sola llamada HTTP) ──────────
@@ -940,7 +968,7 @@ def sugerir_campo_ficha(campo: str, nombre: str, grado: str = "") -> dict[str, A
     if not prompt_texto:
         raise ValueError(f"Campo no tiene prompt configurado: {campo}")
 
-    valor = _sintetizar_texto(f"{_PROMPT_BASE}\n{prompt_texto}")
+    valor = _sintetizar_texto(_con_regla_proceso(f"{_PROMPT_BASE}\n{prompt_texto}", nombre))
     if campo == "conservacion":
         # La casilla de la etiqueta es una sintesis: el tope de 15 palabras se
         # impone aqui aunque el modelo devuelva un parrafo.

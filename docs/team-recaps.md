@@ -1,3 +1,11 @@
+### 2026-10-08 18:00 - Docs técnicos: la IA respeta «prensado en frío» (aceite de girasol)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (sugerencias IA del documento técnico). Con LLM (Gemini).
+- **Qué se implementó:**
+  - Si el nombre del producto dice **prensado en frío** o **virgen** (y no «refinado»), todas las sugerencias IA del documento (cada casilla, sinónimos, tabla COA y «completar») llevan una regla obligatoria: no mencionar refinación, blanqueo, desodorización ni solventes, ni atribuirle olor/sabor neutros o punto de humo alto. Antes la IA solo veía el nombre y la evidencia (PubMed, ficha de Sheets del aceite de cocina) y siempre lo describía refinado.
+  - El documento «ACEITE DE GIRASOL REFINADO» pasó a **«ACEITE DE GIRASOL PRENSADO EN FRÍO»** (`ft_coa_sds_aceite_de_girasol_prensado_en_frio.yaml`): descripción, olor, sabor, apariencia, modo de uso y propiedades sin rasgos de refinado; la etiqueta 500 mL enlazada quedó re-enlazada. Falta «Generar» para el PDF nuevo.
+- **Archivos Modificados:** `app/services/documento_cientifico.py`, `docs/team-recaps.md`.
+
 ### 2026-10-08 17:30 - Docs técnicos: ver en el editor las fotos del grupo COA enlazadas al documento
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (panel `/app`, Docs técnicos). Sin LLM.
