@@ -1,3 +1,12 @@
+### 2026-10-08 22:55 - MeLi + web: marañón tostado 250 g publicado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.
+- **Qué se implementó:**
+  - `C-MARTOS250g` → MeLi **MCO4517849830** «Marañón Entero Tostado 250g», $22.900, stock 20, envío a cargo del comprador, cat. MCO442340 «Frutos Secos» (taxonomía de pistachos tostados 250 g MCO2035213641), GTIN 7702752502643, sin atributos de suplemento. Empaque 19×16×5 cm / 300 g como las demás bolsas de 250 g (no el 10×10×5 de los pistachos). Web $20.610 (MeLi −10 %).
+  - Alegra: precio de lista $0 → $22.900. La foto MeLi era 1456×1080: se subió con relleno blanco a cuadrado.
+  - Ojo: la descripción de MeLi de pistachos tostados 250 g lo presenta como insumo cosmético «no apto para consumo directo»; conviene corregirla.
+- **Archivos Modificados:** `app/data/despliegue_ventas.json`, `app/data/publicaciones_overrides.json`, `docs/team-recaps.md`.
+
 ### 2026-10-08 22:40 - MeLi + web: sal marina ahumada 250 g publicada
 - **Autor:** Armando García
 - **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.

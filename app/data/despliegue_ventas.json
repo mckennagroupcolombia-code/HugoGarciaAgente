@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-08T22:30:27",
+ "actualizado": "2026-10-08T22:40:23",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
@@ -1960,6 +1960,15 @@
    "meli_ids": [
     "MCO2267503215"
    ]
+  },
+  "C-MARTOS250G": {
+   "nombre": "MARAÑON TOSTADO 250g",
+   "titulo_meli": "Marañón Entero Tostado 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4517849830"
+   ]
   }
  },
  "excluidas": [
@@ -2401,6 +2410,12 @@
    "sku": "C-SALMARAHU250G",
    "titulo": "Sal Marina Ahumada Gruesa Grano 2-5 Mm 250g",
    "desde": "2026-10-08T22:30:27",
+   "por": "armando"
+  },
+  "MCO4517849830": {
+   "sku": "C-MARTOS250G",
+   "titulo": "Marañón Entero Tostado 250g",
+   "desde": "2026-10-08T22:40:23",
    "por": "armando"
   }
  }
