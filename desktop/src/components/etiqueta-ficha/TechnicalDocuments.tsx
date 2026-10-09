@@ -11,12 +11,18 @@ export default function TechnicalDocuments({
   onTechnicalDocumentsChange,
   onWebsiteChange,
   editMode,
+  modoUso,
+  onModoUsoChange,
 }: {
   technicalDocuments: string;
   website: string;
   onTechnicalDocumentsChange: (v: string) => void;
   onWebsiteChange: (v: string) => void;
   editMode: boolean;
+  /** Casilla «Modo de uso» bajo la banda de la web (plantilla Agro). Sin
+   *  `onModoUsoChange` no se dibuja. */
+  modoUso?: string;
+  onModoUsoChange?: (v: string) => void;
 }) {
   return (
     <div className="w-full text-center">
@@ -58,6 +64,27 @@ export default function TechnicalDocuments({
           className="w-full text-center font-bold text-white"
         />
       </div>
+      {onModoUsoChange && (
+        <div className="mt-[10px] w-full rounded-[4px] border-[1.5px] border-[color:var(--acento)] px-3 py-2 text-left">
+          <EditableLabel
+            texto="Modo de uso:"
+            editMode={editMode}
+            styleKey="modoUsoTitulo"
+            defaultFontSize={14}
+            as="p"
+            className="font-bold text-[color:var(--acento)]"
+          />
+          <EditableField
+            value={modoUso ?? ""}
+            onChange={onModoUsoChange}
+            editMode={editMode}
+            multiline
+            styleKey="modoUso"
+            defaultFontSize={12}
+            className="mt-[4px] block whitespace-pre-line break-words text-left text-[#111111]"
+          />
+        </div>
+      )}
     </div>
   );
 }

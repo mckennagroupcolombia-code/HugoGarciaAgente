@@ -233,6 +233,7 @@ export const EJEMPLO_ETIQUETA = {
   phone: "+57 319 652 90 76",
   email: "info@mckennagroup.co",
   alergenos: "Contiene: frutos secos. Puede contener trazas de maní.",
+  modoUso: "Diluir 10 mL por litro de agua y aplicar por aspersión foliar.",
 } as const satisfies Partial<Record<keyof ProductLabelData, string>>;
 
 /** Campos FIJOS de la empresa que forman la "plantilla del formulario":

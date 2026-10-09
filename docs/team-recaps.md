@@ -5630,3 +5630,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Grupos (`chat_equipo/HiloCanal.tsx`) y el mini chat de la burbuja (`nav/SolicitudesEnProcesoFab.tsx`) abrían la foto en otra pestaña (`target="_blank"`); ahora abren el visor con todas las fotos del chat en orden y el pie «quién · hora». El hilo de Solicitudes ya lo usaba.
 - **Verificado:** `tsc --noEmit` sin errores en los archivos tocados; `npm run build` limpio.
 - **Archivos Modificados:** `desktop/src/components/tickets/VisorFotos.tsx`, `desktop/src/components/tickets/visorFotos.css`, `desktop/src/components/tickets/hiloPixel.css`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`
+
+## 2026-10-09 — Casilla «Modo de uso» en la plantilla Agro
+- Pedido del usuario: en la plantilla agro (jabón potásico, 76×102 mm) una casilla de modo de uso debajo de www.mckennagroup.co.
+- `etiqueta-ficha/TechnicalDocuments.tsx`: recuadro opcional con borde del acento, título editable «Modo de uso:» (`modoUsoTitulo`) y texto multilínea (`modoUso`, campo que ya existía en los datos). Solo se dibuja si recibe `onModoUsoChange`.
+- `ProductLabelForm.tsx` lo pasa solo cuando la categoría es `agro`; el resto de fichas de dos columnas no cambia. Ejemplo gris en `EJEMPLO_ETIQUETA.modoUso`.
+- **Verificado:** `npm run build` limpio.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/TechnicalDocuments.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `docs/team-recaps.md`
