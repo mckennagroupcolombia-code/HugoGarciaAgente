@@ -30,6 +30,8 @@ CANALES_FOTO = (("web", "web"), ("meli", "MeLi"))
 
 # Carpetas de ETIQUETAS STUDIO que en la web tienen otro nombre de sección.
 _CARPETA_A_CATEGORIA = {"Semillas & Frutos Secos": "Frutos secos y semillas"}
+# Secciones de la web que en el árbol van con el nombre de su línea comercial.
+_SECCION_A_CATEGORIA = {"Agrícola": "Agro"}
 
 
 def _u(s: Any) -> str:
@@ -313,6 +315,7 @@ def arbol(refrescar: bool = False) -> dict:
         carpeta = piezas["etiquetas"].get("categoria_png") or ""
         if carpeta and not c.get("linea_publicada") and linea in ("Otros", SIN_CATEGORIA):
             linea = _CARPETA_A_CATEGORIA.get(carpeta, carpeta)
+        linea = _SECCION_A_CATEGORIA.get(linea, linea)
         mp = next((k for k in c.get("componentes") or [] if k.get("casilla") == "materia_prima"), None)
         clave = c.get("familia") or f"solo:{c.get('ref')}"
         fam = categorias.setdefault(linea, {}).setdefault(clave, {

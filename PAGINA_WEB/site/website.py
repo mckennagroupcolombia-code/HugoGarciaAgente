@@ -1774,6 +1774,9 @@ def _presentation_label(nombre: str, sku: str = "") -> str:
             extra = re.sub(r"\s+", " ", extra).strip(" -–+|")
             return f"{qty} {extra}".strip() if extra else qty
         return qty
+    # «JABON POTASICO LITRO»: la unidad sola es un litro (sin esto el botón decía el SKU).
+    if re.search(r"(?i)\blitros?$", n):
+        return "1L"
     ms = _RX_PRESENTATION_SKU.search((sku or "").strip())
     if ms:
         unit = ms.group(2).lower()
@@ -2409,6 +2412,8 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         return "Otros"
     if "azul metileno" in n or "glutaraldehido" in n:
         return "Antisépticos"
+    if "jabon" in n and "potas" in n:
+        return "Agrícola"
     if (
         "betaina" in n
         or "tensosil" in n
