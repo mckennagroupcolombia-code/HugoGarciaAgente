@@ -1,5 +1,6 @@
-/* Visor con zoom de las fotos de producto (oct-2026).
-   Clic / toque en la foto de .prod-gallery → pantalla completa.
+/* Zoom de las fotos de producto (oct-2026).
+   Lupa interactiva sobre la foto (ver abajo) y, con clic / toque, visor a
+   pantalla completa.
    Zoom: pellizco, doble toque, doble clic o rueda; arrastrar para mover.
    Con zoom en 1: deslizar o ‹ › cambia de foto. Esc o ✕ cierra. */
 (function () {
@@ -219,7 +220,100 @@
   var mo = new MutationObserver(addHints);
   document.querySelectorAll('.prod-gallery').forEach(function (g) { mo.observe(g, { childList: true }); });
 
+  /* ── Lupa interactiva sobre la foto ──
+     Computador: al pasar el ratón aparece una lupa redonda que sigue al cursor;
+     la rueda cambia el aumento (1.5× a 6×). Celular: mantener el dedo sobre la
+     foto saca la lupa encima del dedo y se arrastra; al soltar desaparece. */
+  var lensCss = ''
+    + '.pz-lens{position:fixed;z-index:9999;width:190px;height:190px;border-radius:50%;pointer-events:none;'
+    + 'border:3px solid #fff;box-shadow:0 0 0 2px var(--green,#2a8a80),0 10px 30px rgba(0,0,0,.25);'
+    + 'background:#fff no-repeat;opacity:0;transform:scale(.6);transition:opacity .15s,transform .15s}'
+    + '.pz-lens.on{opacity:1;transform:scale(1)}'
+    + '.pz-lens-z{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font:600 11px/1 system-ui,sans-serif;'
+    + 'color:#fff;background:rgba(20,61,54,.75);padding:3px 7px;border-radius:9px}'
+    + '@media (pointer:fine){.prod-slide.active img{cursor:crosshair}}'
+    + '.prod-slide img{-webkit-touch-callout:none;-webkit-user-select:none}';
+  st.textContent += lensCss;
+
+  var lens = document.createElement('div');
+  lens.className = 'pz-lens';
+  lens.innerHTML = '<span class="pz-lens-z"></span>';
+  document.body.appendChild(lens);
+  var lensZ = lens.querySelector('.pz-lens-z');
+  var Z = 2.5, lensImg = null, lastPt = null, R = 95;
+
+  // (x, y) = punto de la foto que se aumenta; (lx, ly) = dónde se dibuja la lupa.
+  function lensAt(im, x, y, lx, ly) {
+    var r = im.getBoundingClientRect();
+    if (x < r.left || x > r.right || y < r.top || y > r.bottom) { lensOff(); return; }
+    if (lensImg !== im) {
+      lensImg = im;
+      lens.style.backgroundImage = 'url("' + (im.currentSrc || im.src).replace(/"/g, '\\"') + '")';
+    }
+    lastPt = { x: x, y: y, lx: lx, ly: ly };
+    lens.style.backgroundSize = (r.width * Z) + 'px ' + (r.height * Z) + 'px';
+    lens.style.backgroundPosition = (R - (x - r.left) * Z) + 'px ' + (R - (y - r.top) * Z) + 'px';
+    lens.style.left = (lx - R) + 'px';
+    lens.style.top = (ly - R) + 'px';
+    lensZ.textContent = Z.toFixed(1).replace('.0', '') + '×';
+    lens.classList.add('on');
+  }
+  function lensOff() { lens.classList.remove('on'); lensImg = null; lastPt = null; }
+
+  function slideImg(t) { return t && t.closest ? t.closest('.prod-slide.active img') : null; }
+
+  if (window.matchMedia('(pointer:fine)').matches) {
+    document.addEventListener('mousemove', function (e) {
+      var im = slideImg(e.target);
+      if (im && !(box && box.classList.contains('open'))) lensAt(im, e.clientX, e.clientY, e.clientX, e.clientY);
+      else if (lensImg) lensOff();
+    });
+    document.addEventListener('wheel', function (e) {
+      if (!lensImg || !slideImg(e.target)) return;
+      e.preventDefault();
+      Z = Math.max(1.5, Math.min(6, Z * (e.deltaY < 0 ? 1.2 : 1 / 1.2)));
+      var p = lastPt, im = lensImg;
+      lensImg = null; lensAt(im, p.x, p.y, p.lx, p.ly);
+    }, { passive: false });
+    window.addEventListener('scroll', lensOff, { passive: true });
+  }
+
+  // Táctil: mantener presionado 250 ms → lupa 110 px encima del dedo.
+  var holdT = null, holding = false, start = null, swallowClick = false;
+  document.addEventListener('touchstart', function (e) {
+    var im = slideImg(e.target);
+    if (!im || e.touches.length !== 1) return;
+    var t = e.touches[0];
+    start = { x: t.clientX, y: t.clientY };
+    holdT = setTimeout(function () {
+      holding = true;
+      if (navigator.vibrate) navigator.vibrate(10);
+      lensAt(im, start.x, start.y, start.x, start.y - 110);
+    }, 250);
+  }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    var t = e.touches[0];
+    if (holding) {
+      e.preventDefault();
+      var im = slideImg(document.elementFromPoint(t.clientX, t.clientY)) || lensImg;
+      if (im) { lensImg = im; lensAt(im, t.clientX, t.clientY, t.clientX, t.clientY - 110); }
+      return;
+    }
+    if (holdT && start && Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10) {
+      clearTimeout(holdT); holdT = null;   // era un desplazamiento normal de la página
+    }
+  }, { passive: false });
+  function touchEnd() {
+    clearTimeout(holdT); holdT = null;
+    if (holding) { holding = false; swallowClick = true; lensOff(); setTimeout(function () { swallowClick = false; }, 400); }
+  }
+  document.addEventListener('touchend', touchEnd);
+  document.addEventListener('touchcancel', touchEnd);
+  document.addEventListener('contextmenu', function (e) { if (holding || slideImg(e.target)) e.preventDefault(); });
+
   document.addEventListener('click', function (e) {
+    if (swallowClick) { e.preventDefault(); return; }
+    lensOff();
     var hit = e.target.closest('.prod-slide.active img, .pz-hint');
     if (!hit) return;
     var g = hit.closest('.prod-gallery');

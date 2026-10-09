@@ -5686,3 +5686,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `static/js/prod-zoom.js` (nuevo, incluido en `producto.html`): clic/toque en la foto o en la lupa abre la foto a pantalla completa sobre blanco; zoom con pellizco, doble toque/clic o rueda (hasta 5×), arrastrar para mover; con zoom 1 se desliza o usa ‹ › entre fotos; Esc, ✕ o toque fuera cierra. Sirve también para las galerías que rearma `setProdGallery`.
 - **Verificado:** Chrome headless en mckennagroup.co/producto/c-aceesealb5ml: lupa visible, abre, rueda → escala 2×, Esc cierra, sin errores JS. `mckenna-website` reiniciado.
 - **Archivos Modificados:** `PAGINA_WEB/site/static/js/prod-zoom.js`, `PAGINA_WEB/site/templates/producto.html`, `docs/team-recaps.md`
+
+## 2026-10-09 — Web: lupa interactiva en las fotos de producto
+- Pedido del usuario: «un zoom diferente, más interactivo» (tras el visor a pantalla completa).
+- `static/js/prod-zoom.js`: lupa redonda (190 px) que aumenta la foto en vivo. Computador: sigue al cursor sobre la foto y la rueda cambia el aumento (1,5× a 6×, se muestra en la lupa). Celular: mantener el dedo 250 ms saca la lupa 110 px encima del dedo y se arrastra; al soltar desaparece (no abre el visor). Clic/toque corto sigue abriendo el visor de pantalla completa. `producto.html` sube a `?v=20261009b`.
+- **Verificado:** Chrome headless en mckennagroup.co/producto/c-aceesealb5ml, escritorio (lupa + rueda a 3×) y Pixel 7 emulado (lupa al mantener el dedo), sin errores JS.
+- **Archivos Modificados:** `PAGINA_WEB/site/static/js/prod-zoom.js`, `PAGINA_WEB/site/templates/producto.html`, `docs/team-recaps.md`
