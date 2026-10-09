@@ -1,3 +1,13 @@
+### 2026-10-08 17:30 - Docs técnicos: ver en el editor las fotos del grupo COA enlazadas al documento
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (panel `/app`, Docs técnicos). Sin LLM.
+- **Qué se implementó:**
+  - En el editor del documento técnico, bajo «Sección 2 — Certificado de Análisis (COA)», salen las **fotos del grupo «COA y fichas técnicas»** que actualizaron ese documento (miniatura, lote y fecha). Clic → la foto en grande con «Abrir original». Si el documento no tiene fotos enlazadas, no aparece nada.
+  - El enlace es el que ya guardaba el COA automático (`coa_fotos.archivo_doc` en `coa_canal_auto.db`); se busca por la raíz del slug, así el borrador, el vacío y el final comparten fotos. El COA más reciente va primero y sus páginas en orden.
+  - Se enlazaron también las 28 fotos del 6-oct que se aplicaron a mano (estado `manual`). Las fotos 178-185 de ese día no tienen documento conocido y quedaron sin enlazar.
+  - Rutas: `GET /api/fichas/fotos-coa?titulo=|archivo=` y `GET /api/fichas/fotos-coa/<mensaje_id>` (la imagen; acepta `?token=` de sesión para el `<img>`).
+- **Archivos Modificados:** `app/services/coa_canal_auto.py`, `app/routes.py`, `desktop/src/components/documentos/FotosCoaGrupo.tsx`, `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`.
+
 ### 2026-10-08 16:50 - Docs técnicos: seleccionar una fórmula registrada dentro del documento
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (panel `/app`, Docs técnicos). Sin LLM.

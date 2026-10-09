@@ -21,6 +21,7 @@ import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
 import CargarDocumentosWebButton, { type CargarDocumentosWebResult } from "./documentos/CargarDocumentosWebButton";
 import FirmaPegable from "./documentos/FirmaPegable";
+import FotosCoaGrupo from "./documentos/FotosCoaGrupo";
 import SdsSeccion, { SDS_VACIA, sdsAPayload, sdsDesdeDatos, type ContextoFt, type SdsForm } from "./documentos/SdsSeccion";
 import DocumentosCatalogoTab, { type ProductoDocumentacion } from "./documentos/DocumentosCatalogoTab";
 import {
@@ -2835,6 +2836,7 @@ function DocumentoCompletoTabContent({
 
       {/* ─── COA: solo campos exclusivos ─── */}
       <SeccionBanner titulo="Sección 2 — Certificado de Análisis (COA)" />
+      <FotosCoaGrupo titulo={nombre} />
       <CoaSection
         coaEinces={coaEinces}
         coaGrado={coaGrado}

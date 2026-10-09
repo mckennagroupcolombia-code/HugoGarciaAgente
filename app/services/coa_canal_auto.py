@@ -733,3 +733,43 @@ def resumen(resultados: list[dict], errores_lectura: int = 0) -> str:
     lineas.append("")
     lineas.append("Revisar en el panel: /app?panel=fichas")
     return "\n".join(lineas)
+
+
+# ── Fotos de un documento (editor del documento técnico) ───────────────────
+
+_PREFIJOS_DOC = ("borrador_ft_coa_sds_", "vacio_ft_coa_sds_", "ft_coa_sds_")
+
+
+def _raiz_doc(archivo: str) -> str:
+    s = re.sub(r"\.ya?ml$", "", str(archivo or "").strip(), flags=re.I)
+    for p in _PREFIJOS_DOC:
+        if s.startswith(p):
+            return s[len(p):]
+    return s
+
+
+def fotos_de_documento(raiz: str) -> list[dict]:
+    """Fotos del grupo «COA y fichas técnicas» que actualizaron este documento (por la raíz del
+    slug, así el borrador, el vacío y el final comparten fotos). Solo las que siguen en disco."""
+    raiz = _raiz_doc(raiz)
+    if not raiz or not _DB.exists():
+        return []
+    with _conn() as c:
+        filas = [dict(r) for r in c.execute(
+            "SELECT mensaje_id, canal_id, ruta, estado, producto, lote, archivo_doc, creado_en FROM coa_fotos "
+            "WHERE archivo_doc IS NOT NULL AND archivo_doc != '' ORDER BY creado_en DESC, mensaje_id")]
+    fotos = [
+        {k: f[k] for k in ("mensaje_id", "estado", "producto", "lote", "archivo_doc", "creado_en")}
+        for f in filas if _raiz_doc(f["archivo_doc"]) == raiz and os.path.isfile(f["ruta"])
+    ]
+    # El COA más reciente primero; sus páginas en el orden en que llegaron.
+    ultimo: dict[str, float] = {}
+    for f in fotos:
+        ultimo[f["lote"] or ""] = max(ultimo.get(f["lote"] or "", 0), f["creado_en"])
+    return sorted(fotos, key=lambda f: (-ultimo[f["lote"] or ""], f["mensaje_id"]))
+
+
+def ruta_foto(mensaje_id: int) -> str | None:
+    with _conn() as c:
+        r = c.execute("SELECT ruta FROM coa_fotos WHERE mensaje_id=?", (int(mensaje_id),)).fetchone()
+    return r["ruta"] if r and os.path.isfile(r["ruta"]) else None

@@ -5672,6 +5672,43 @@ def register_routes(app):
             return jsonify({"error": "No encontrado"}), 404
         return jsonify({"id": doc["archivo"].rsplit(".", 1)[0], "titulo": doc["titulo"]})
 
+    @app.route("/app/api/fichas/fotos-coa", methods=["GET"])
+    @app.route("/api/fichas/fotos-coa", methods=["GET"])
+    def api_fichas_fotos_coa():
+        """Fotos del grupo «COA y fichas técnicas» que actualizaron el documento abierto.
+        `archivo` (slug del YAML) o `titulo` (el slug se calcula como al generar)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import coa_canal_auto
+        from app.services.ficha_tecnica import _normalizar
+
+        raiz = (request.args.get("archivo") or "").strip()
+        titulo = (request.args.get("titulo") or "").strip()
+        if not raiz and titulo:
+            raiz = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_")
+        return jsonify({"fotos": coa_canal_auto.fotos_de_documento(raiz)})
+
+    @app.route("/app/api/fichas/fotos-coa/<int:mensaje_id>", methods=["GET"])
+    @app.route("/api/fichas/fotos-coa/<int:mensaje_id>", methods=["GET"])
+    def api_fichas_foto_coa(mensaje_id: int):
+        """La imagen en sí. Va en un <img>, así que la sesión llega también como `?token=`."""
+        ok = _api_token_valido()
+        if not ok:
+            from app.services.tickets_db import get_usuario_by_token
+
+            tok = (request.args.get("token") or "").strip()
+            ok = bool(tok and get_usuario_by_token(tok))
+        if not ok:
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import send_file
+
+        from app.services import coa_canal_auto
+
+        ruta = coa_canal_auto.ruta_foto(mensaje_id)
+        if not ruta:
+            return jsonify({"error": "Foto no encontrada"}), 404
+        return send_file(ruta, conditional=True, max_age=86400)
+
     @app.route("/app/api/fichas/composicion-formula/<sku>", methods=["GET"])
     @app.route("/api/fichas/composicion-formula/<sku>", methods=["GET"])
     def api_fichas_composicion_formula(sku: str):
