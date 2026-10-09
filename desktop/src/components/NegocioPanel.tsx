@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { useAppStore } from "../stores/app";
+import { usePanelActual } from "../lib/panelLocal";
 import KeepAliveHubShell from "./nav/KeepAliveHubShell";
 
 const RentabilidadPanel = lazy(() => import("./RentabilidadPanel"));
@@ -26,7 +26,7 @@ function renderSubpanel(id: NegocioPanelId) {
  * se mantiene montada al cambiar de pestaña (edición en paralelo), igual que
  * cuando vivía en Contabilidad. */
 export default function NegocioPanel() {
-  const panel = useAppStore((s) => s.panel);
+  const panel = usePanelActual();
   const activeId: NegocioPanelId =
     panel === "publicidad" || panel === "salud-negocio" ? panel : "rentabilidad";
 

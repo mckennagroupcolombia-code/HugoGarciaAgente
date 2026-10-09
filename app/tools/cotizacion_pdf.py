@@ -14,6 +14,7 @@ montaban encima de la columna siguiente.
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime, timedelta
 
@@ -21,7 +22,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.units import cm
+from reportlab.lib.units import cm, mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
@@ -180,6 +181,34 @@ def _empresa() -> dict:
     return datos
 
 
+_DATA = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+
+
+def _metodo_llave() -> dict | None:
+    """Método «Llave» de `app/data/datos_pago.json`, la misma fuente que usa el bot."""
+    try:
+        with open(os.path.join(_DATA, "datos_pago.json"), encoding="utf-8") as f:
+            metodos = json.load(f).get("metodos") or []
+    except Exception:
+        return None
+    return next((m for m in metodos if "llave" in str(m.get("nombre", "")).lower()), None)
+
+
+def _llave_pago() -> dict | None:
+    """Llave Bre-B de la empresa, como texto (conserva los ceros iniciales).
+    Sin dato, la cotización no muestra forma de pago."""
+    dato = str((_metodo_llave() or {}).get("dato") or "").strip()
+    return {"banco": "Bancolombia", "llave": dato} if dato else None
+
+
+def _qr_llave() -> str | None:
+    """QR oficial de la llave (recorte del PDF de Bancolombia, sin retocar), si el
+    método lo nombra en `qr` y el archivo existe en app/data."""
+    nombre = str((_metodo_llave() or {}).get("qr") or "").strip()
+    ruta = os.path.join(_DATA, os.path.basename(nombre)) if nombre else ""
+    return ruta if ruta and os.path.isfile(ruta) else None
+
+
 _LOGO_CACHE: dict = {}
 
 
@@ -211,54 +240,53 @@ def _logo() -> tuple[bytes | None, float]:
 
 # ─── Documento ──────────────────────────────────────────────────────────────
 
+# Paleta de la cotización (oct-2026). Va aparte de la de arriba porque los
+# comprobantes y el expediente importan ACENTO/TINTA/... y no deben cambiar.
+COT_ACENTO = colors.HexColor("#086672")   # turquesa petróleo
+COT_SUAVE = colors.HexColor("#EFF6F7")    # fondos de tarjeta
+COT_TINTA = colors.HexColor("#173640")    # texto
+COT_LINEA = colors.HexColor("#D5E4E7")    # separadores
+COT_FILA = colors.HexColor("#F7FAFA")     # fila alterna de la tabla
+COT_TENUE = colors.HexColor("#5B7780")    # texto secundario (refs, etiquetas)
+RADIO = 5                                 # bordes redondeados, en puntos
+
+MARGEN = 12 * mm
+QR_LADO = 45 * mm   # QR Bre-B de ~113 módulos: 0,37 mm por módulo; subir si cuesta leerlo
+
+
 def _estilos() -> dict[str, ParagraphStyle]:
     f = _fuentes()
+
+    def e(nombre, fuente="regular", tam=10, color=COT_TINTA, alin=TA_LEFT, interlinea=None):
+        return ParagraphStyle(nombre, fontName=f[fuente], fontSize=tam,
+                              leading=interlinea or round(tam * 1.38, 1), textColor=color, alignment=alin)
+
     return {
-        "etiqueta": ParagraphStyle("etiqueta", fontName=f["semibold"], fontSize=7, leading=9,
-                                   textColor=TEXTO_SUAVE),
-        "titulo_doc": ParagraphStyle("titulo_doc", fontName=f["bold"], fontSize=20, leading=23,
-                                     textColor=ACENTO, alignment=TA_RIGHT),
-        "numero": ParagraphStyle("numero", fontName=f["medium"], fontSize=10, leading=13,
-                                 textColor=TINTA, alignment=TA_RIGHT),
-        "meta": ParagraphStyle("meta", fontName=f["regular"], fontSize=8.5, leading=12,
-                               textColor=TEXTO_SUAVE, alignment=TA_RIGHT),
-        "seccion": ParagraphStyle("seccion", fontName=f["semibold"], fontSize=8, leading=10,
-                                  textColor=ACENTO),
-        "nombre": ParagraphStyle("nombre", fontName=f["semibold"], fontSize=10.5, leading=13.5,
-                                 textColor=TINTA),
-        "cuerpo": ParagraphStyle("cuerpo", fontName=f["regular"], fontSize=8.5, leading=12,
-                                 textColor=TINTA),
-        "cuerpo_suave": ParagraphStyle("cuerpo_suave", fontName=f["regular"], fontSize=8.5,
-                                       leading=12, textColor=TEXTO_SUAVE),
-        "th": ParagraphStyle("th", fontName=f["semibold"], fontSize=7.5, leading=9.5,
-                             textColor=BLANCO),
-        "th_der": ParagraphStyle("th_der", fontName=f["semibold"], fontSize=7.5, leading=9.5,
-                                 textColor=BLANCO, alignment=TA_RIGHT),
-        "th_centro": ParagraphStyle("th_centro", fontName=f["semibold"], fontSize=7.5, leading=9.5,
-                                    textColor=BLANCO, alignment=TA_CENTER),
-        "td": ParagraphStyle("td", fontName=f["regular"], fontSize=8.5, leading=11.5, textColor=TINTA),
-        "td_sku": ParagraphStyle("td_sku", fontName=f["regular"], fontSize=7, leading=9,
-                                 textColor=TEXTO_SUAVE),
-        "td_der": ParagraphStyle("td_der", fontName=f["regular"], fontSize=8.5, leading=11.5,
-                                 textColor=TINTA, alignment=TA_RIGHT),
-        "td_der_b": ParagraphStyle("td_der_b", fontName=f["semibold"], fontSize=8.5, leading=11.5,
-                                   textColor=TINTA, alignment=TA_RIGHT),
-        "td_centro": ParagraphStyle("td_centro", fontName=f["regular"], fontSize=8.5, leading=11.5,
-                                    textColor=TEXTO_SUAVE, alignment=TA_CENTER),
-        "tot_lbl": ParagraphStyle("tot_lbl", fontName=f["regular"], fontSize=8.5, leading=12,
-                                  textColor=TEXTO_SUAVE, alignment=TA_RIGHT),
-        "tot_val": ParagraphStyle("tot_val", fontName=f["medium"], fontSize=8.5, leading=12,
-                                  textColor=TINTA, alignment=TA_RIGHT),
-        "total_lbl": ParagraphStyle("total_lbl", fontName=f["semibold"], fontSize=9.5, leading=13,
-                                    textColor=BLANCO, alignment=TA_RIGHT),
-        "total_val": ParagraphStyle("total_val", fontName=f["bold"], fontSize=12.5, leading=15,
-                                    textColor=BLANCO, alignment=TA_RIGHT),
-        "nota_titulo": ParagraphStyle("nota_titulo", fontName=f["semibold"], fontSize=8, leading=11,
-                                      textColor=ACENTO_OSCURO),
-        "nota": ParagraphStyle("nota", fontName=f["regular"], fontSize=8, leading=11.5,
-                               textColor=TINTA),
-        "lema": ParagraphStyle("lema", fontName=f["medium"], fontSize=9, leading=12,
-                               textColor=ACENTO, alignment=TA_LEFT),
+        "titulo_doc": e("titulo_doc", "bold", 24, COT_ACENTO, TA_RIGHT, 27),
+        "numero": e("numero", "semibold", 10.5, COT_TINTA, TA_RIGHT),
+        "meta": e("meta", "regular", 9.5, COT_TENUE, TA_RIGHT),
+        "lema": e("lema", "medium", 9.5, COT_ACENTO),
+        "lema_centro": e("lema_centro", "medium", 9.5, COT_ACENTO, TA_CENTER),
+        "etiqueta": e("etiqueta", "bold", 8, COT_ACENTO, interlinea=10),
+        "nombre": e("nombre", "bold", 11, COT_TINTA),
+        "cuerpo": e("cuerpo", "regular", 9.5, COT_TINTA),
+        "th": e("th", "semibold", 9, BLANCO),
+        "th_centro": e("th_centro", "semibold", 9, BLANCO, TA_CENTER),
+        "th_der": e("th_der", "semibold", 9, BLANCO, TA_RIGHT),
+        "td": e("td", "medium", 10, COT_TINTA),
+        "td_ref": e("td_ref", "regular", 8, COT_TENUE),
+        "tot_lbl": e("tot_lbl", "regular", 10, COT_TENUE, TA_RIGHT),
+        "tot_val": e("tot_val", "medium", 10, COT_TINTA, TA_RIGHT),
+        "total_lbl": e("total_lbl", "semibold", 9.5, BLANCO, TA_LEFT),
+        "total_val": e("total_val", "bold", 19, BLANCO, TA_RIGHT, 23),
+        "pago_titulo": e("pago_titulo", "bold", 9, COT_ACENTO),
+        "pago_lbl": e("pago_lbl", "regular", 9, COT_TENUE),
+        "pago_val": e("pago_val", "semibold", 10.5, COT_TINTA),
+        "llave": e("llave", "bold", 14, COT_ACENTO, interlinea=17),
+        "pago_nota": e("pago_nota", "regular", 9.5, COT_TINTA),
+        "pendiente": e("pendiente", "semibold", 10, COT_TENUE, TA_CENTER),
+        "nota_titulo": e("nota_titulo", "bold", 9, COT_ACENTO),
+        "nota": e("nota", "regular", 9, COT_TINTA, interlinea=13.5),
     }
 
 
@@ -288,24 +316,93 @@ def _pie_de_pagina(empresa: dict, fuentes: dict):
     return dibujar
 
 
-def _bloque_datos(titulo: str, filas: list[tuple[str, str]], nombre: str, st: dict, ancho: float) -> Table:
-    """Tarjeta «De» / «Para»: nombre en grande y debajo etiqueta → valor, todo con salto de línea."""
-    celdas = [[Paragraph(_esc(titulo), st["etiqueta"])], [Paragraph(_esc(nombre), st["nombre"])]]
-    for etiqueta, valor in filas:
-        if not valor:
-            continue
-        celdas.append([Paragraph(
-            f'<font color="#3a7e87">{_esc(etiqueta)}</font>  {_esc(valor)}', st["cuerpo"])])
-    t = Table(celdas, colWidths=[ancho])
+def _pie_cotizacion(empresa: dict, fuentes: dict):
+    """Pie de la cotización: línea fina, contacto, aviso legal y número de página."""
+    def dibujar(canvas, doc):
+        canvas.saveState()
+        x0, x1 = doc.leftMargin, doc.pagesize[0] - doc.rightMargin
+        y = doc.bottomMargin - 7 * mm
+        canvas.setStrokeColor(COT_LINEA)
+        canvas.setLineWidth(0.6)
+        canvas.line(x0, y + 11, x1, y + 11)
+        canvas.setFont(fuentes["regular"], 9)
+        canvas.setFillColor(COT_TENUE)
+        canvas.drawString(x0, y, f"{empresa['web']}  ·  {empresa['correo']}  ·  WhatsApp {empresa['telefono']}")
+        canvas.drawString(x0, y - 12, "Documento informativo · no es factura electrónica")
+        canvas.setFont(fuentes["semibold"], 9)
+        canvas.setFillColor(COT_ACENTO)
+        canvas.drawRightString(x1, y, f"Página {doc.page}")
+        canvas.restoreState()
+    return dibujar
+
+
+def _tarjeta(contenido, ancho: float, *, fondo=COT_SUAVE, pad: float = 10) -> Table:
+    """Bloque de fondo plano con bordes redondeados."""
+    t = Table([[contenido]], colWidths=[ancho])
     t.setStyle(TableStyle([
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 1.5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 1.5),
-        ("TOPPADDING", (0, 0), (-1, 0), 0),
-        ("BOTTOMPADDING", (0, 1), (-1, 1), 4),
-        ("LINEBEFORE", (0, 0), (0, -1), 2, ACENTO),
+        ("BACKGROUND", (0, 0), (-1, -1), fondo),
+        ("ROUNDEDCORNERS", [RADIO] * 4),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), pad + 2),
+        ("RIGHTPADDING", (0, 0), (-1, -1), pad + 2),
+        ("TOPPADDING", (0, 0), (-1, -1), pad),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), pad),
+    ]))
+    return t
+
+
+def _bloque_datos(titulo: str, filas: list[tuple[str, str]], nombre: str, st: dict) -> list:
+    """Contenido de la tarjeta «DE» / «PARA»: etiqueta, nombre en negrita y datos
+    con salto de línea (una dirección larga crece hacia abajo, no hacia el lado)."""
+    celdas = [Paragraph(_esc(titulo), st["etiqueta"]), Spacer(1, 3), Paragraph(_esc(nombre), st["nombre"]),
+              Spacer(1, 2)]
+    for etiqueta, valor in filas:
+        if valor:
+            pre = f'<font color="#5B7780">{_esc(etiqueta)}</font>  ' if etiqueta else ""
+            celdas.append(Paragraph(pre + _esc(valor), st["cuerpo"]))
+    return celdas
+
+
+def _bloque_pago(llave: dict, empresa: dict, st: dict, ancho: float):
+    """Tarjeta horizontal: datos de pago a la izquierda y el QR original a la derecha.
+    El QR se inserta tal cual (PNG sin pérdida, a resolución nativa) dentro de un
+    recuadro blanco; nada se dibuja encima del código ni de su margen."""
+    qr = _qr_llave()
+    izquierda = [
+        Paragraph("FORMA DE PAGO", st["pago_titulo"]),
+        Spacer(1, 8),
+        Paragraph(f"<font color='#5B7780'>Banco</font>  {_esc(llave['banco'])}", st["pago_val"]),
+        Spacer(1, 3),
+        Paragraph(f"<font color='#5B7780'>Titular</font>  {_esc(empresa['razon_social'])}", st["pago_val"]),
+        Spacer(1, 8),
+        Paragraph("Llave Bre-B", st["pago_lbl"]), Paragraph(_esc(llave["llave"]), st["llave"]),
+        Spacer(1, 8),
+        Paragraph("Escanee el QR desde la app de su banco." if qr
+                  else "Transfiera a la llave desde la app de su banco.", st["pago_nota"]),
+    ]
+    caja = QR_LADO + 8
+    if qr:
+        derecha = Image(qr, width=QR_LADO, height=QR_LADO)
+    else:
+        # Marcador explícito: nunca un QR generado a partir de la llave.
+        derecha = Paragraph("QR original pendiente", st["pendiente"])
+    qr_t = Table([[derecha]], colWidths=[caja], rowHeights=[caja])
+    qr_t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), BLANCO),
+        ("ROUNDEDCORNERS", [RADIO] * 4),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ] + ([] if qr else [("BOX", (0, 0), (-1, -1), 0.8, COT_LINEA)])))
+    t = Table([[izquierda, qr_t]], colWidths=[ancho - caja - 24, caja + 24])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), COT_SUAVE),
+        ("ROUNDEDCORNERS", [RADIO] * 4),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (0, 0), 14), ("RIGHTPADDING", (0, 0), (0, 0), 10),
+        ("LEFTPADDING", (1, 0), (1, 0), 12), ("RIGHTPADDING", (1, 0), (1, 0), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 9), ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
     ]))
     return t
 
@@ -328,6 +425,11 @@ def generar_cotizacion_pdf(cotizacion: dict, *, carpeta: str | None = None) -> s
         "notas": "..."
     }
     Retorna la ruta del PDF generado.
+
+    Diseño oct-2026: tamaño carta (el configurado), márgenes de 12 mm, texto de
+    9–11 pt, tarjetas planas con bordes de 5 pt. La tabla repite su encabezado
+    al pasar de página y ninguna fila, ni los totales, ni la tarjeta de pago se
+    parten entre páginas.
     """
     numero = cotizacion.get("numero", f"COT-{datetime.now().strftime('%Y%m%d%H%M%S')}")
     filename = os.path.join(carpeta or CARPETA, f"{numero}.pdf")
@@ -344,136 +446,159 @@ def generar_cotizacion_pdf(cotizacion: dict, *, carpeta: str | None = None) -> s
 
     doc = SimpleDocTemplate(
         filename, pagesize=letter,
-        topMargin=1.6 * cm, bottomMargin=2.2 * cm, leftMargin=1.9 * cm, rightMargin=1.9 * cm,
+        topMargin=MARGEN, bottomMargin=MARGEN + 12 * mm, leftMargin=MARGEN, rightMargin=MARGEN,
         title=f"Cotización {numero} · {empresa['razon_social']}",
         author=empresa["razon_social"], subject="Cotización",
     )
-    ancho_util = letter[0] - doc.leftMargin - doc.rightMargin
+    ancho = letter[0] - 2 * MARGEN
     story: list = []
 
-    # ── Cabecera: logotipo a la izquierda, datos del documento a la derecha
+    # ── Cabecera: logotipo + lema | COTIZACIÓN, número y fechas
     logo_png, aspecto = _logo()
-    logo_w = 5.6 * cm
+    logo_w = 4.6 * cm
     if logo_png:
         import io
 
-        celda_logo = Image(io.BytesIO(logo_png), width=logo_w, height=logo_w / aspecto)
+        logo = Image(io.BytesIO(logo_png), width=logo_w, height=logo_w / aspecto)
     else:
-        celda_logo = Paragraph(_esc(empresa["razon_social"]), st["nombre"])
-    celda_logo.hAlign = "LEFT"
-    meta = [
+        logo = Paragraph(_esc(empresa["razon_social"]), st["nombre"])
+    # Lema centrado bajo el logo: los dos en un bloque del ancho del logo.
+    marca = Table([[logo], [Paragraph(_esc(LEMA), st["lema_centro"])]], colWidths=[logo_w])
+    marca.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
+        ("BOTTOMPADDING", (0, 1), (-1, 1), 0),
+    ]))
+    marca.hAlign = "LEFT"
+    izquierda = [marca]
+    derecha = [
         Paragraph("COTIZACIÓN", st["titulo_doc"]),
         Paragraph(_esc(numero), st["numero"]),
-        Spacer(1, 4),
-        Paragraph(f"Fecha  <font color='#022d33'>{fecha_txt}</font>", st["meta"]),
-        Paragraph(f"Válida hasta  <font color='#022d33'>{vence_txt}</font>", st["meta"]),
+        Spacer(1, 3),
+        Paragraph(f"Emisión  <font color='#173640'>{fecha_txt}</font>", st["meta"]),
+        Paragraph(f"Vence  <font color='#173640'>{vence_txt}</font>", st["meta"]),
     ]
-    cab = Table([[celda_logo, meta]], colWidths=[ancho_util * 0.55, ancho_util * 0.45])
+    cab = Table([[izquierda, derecha]], colWidths=[ancho * 0.55, ancho * 0.45])
     cab.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("LINEBELOW", (0, 0), (-1, 0), 1.4, ACENTO),
+        ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("LINEBELOW", (0, 0), (-1, 0), 1.2, COT_ACENTO),
     ]))
-    story.append(cab)
-    story.append(Spacer(1, 4))
-    story.append(Paragraph(_esc(LEMA), st["lema"]))
-    story.append(Spacer(1, 14))
+    story += [cab, Spacer(1, 10)]
 
-    # ── De / Para
+    # ── De / Para: dos tarjetas del mismo ancho, alineadas arriba
     cliente = cotizacion.get("cliente") or {}
+    hueco = 8
+    col = (ancho - hueco) / 2
     de = _bloque_datos("DE", [
         ("NIT", empresa["nit"]),
         ("", empresa["ciudad"]),
         ("WhatsApp", empresa["telefono"]),
         ("", empresa["correo"]),
-    ], empresa["razon_social"], st, ancho_util * 0.47)
+    ], empresa["razon_social"], st)
     para = _bloque_datos("PARA", [
         ("NIT / Cédula", cliente.get("nit") or ""),
-        ("Dirección", cliente.get("direccion") or ""),
+        ("Dirección", ", ".join(x for x in (cliente.get("direccion"), cliente.get("ciudad")) if x)),
         ("WhatsApp", cliente.get("telefono") or ""),
         ("Correo", cliente.get("correo") or ""),
-    ], cliente.get("nombre") or "Cliente", st, ancho_util * 0.47)
-    partes = Table([[de, para]], colWidths=[ancho_util * 0.5, ancho_util * 0.5])
+    ], cliente.get("nombre") or "Cliente", st)
+    # Las dos tarjetas en la misma fila de una tabla con fondo por celda: así
+    # quedan de la misma altura aunque la dirección del cliente ocupe más líneas.
+    partes = Table([[de, "", para]], colWidths=[col, hueco, col])
     partes.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, 0), COT_SUAVE),
+        ("BACKGROUND", (2, 0), (2, 0), COT_SUAVE),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("LEFTPADDING", (1, 0), (1, 0), 0), ("RIGHTPADDING", (1, 0), (1, 0), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
     ]))
-    story.append(partes)
-    story.append(Spacer(1, 16))
+    story += [partes, Spacer(1, 12)]
 
-    # ── Detalle
+    # ── Detalle: # · producto (ref. debajo) · cant · precio unit · IVA · total
     productos = cotizacion.get("productos") or []
-    con_iva = any(p.get("iva_pct") is not None for p in productos)
-    encabezado = [Paragraph("#", st["th_centro"]), Paragraph("Producto", st["th"]),
-                  Paragraph("Cant.", st["th_der"]), Paragraph("Precio unit.", st["th_der"])]
-    if con_iva:
-        encabezado.append(Paragraph("IVA", st["th_der"]))
-    encabezado.append(Paragraph("Total", st["th_der"]))
-    filas = [encabezado]
+    f_reg, f_semi = fuentes["regular"], fuentes["semibold"]
+    filas = [[Paragraph("#", st["th_centro"]), Paragraph("Producto", st["th"]),
+              Paragraph("Cant.", st["th_centro"]), Paragraph("Precio unit.", st["th_der"]),
+              Paragraph("IVA", st["th_centro"]), Paragraph("Total", st["th_der"])]]
     for i, p in enumerate(productos, 1):
-        nombre = Paragraph(_esc(p.get("nombre", "")), st["td"])
         sku = (p.get("sku") or "").strip()
-        celda_nombre = [nombre, Paragraph(f"Ref. {_esc(sku)}", st["td_sku"])] if sku else nombre
-        fila = [Paragraph(str(i), st["td_centro"]), celda_nombre,
-                Paragraph(_cantidad(p.get("cantidad")), st["td_der"]),
-                Paragraph(_pesos(p.get("precio_unit")), st["td_der"])]
-        if con_iva:
-            fila.append(Paragraph(_pct(p.get("iva_pct")), st["td_der"]))
-        fila.append(Paragraph(_pesos(p.get("subtotal")), st["td_der_b"]))
-        filas.append(fila)
-
-    if con_iva:
-        col_ws = [0.05, 0.47, 0.09, 0.15, 0.08, 0.16]
-    else:
-        col_ws = [0.05, 0.53, 0.10, 0.16, 0.16]
-    tabla = Table(filas, colWidths=[ancho_util * w for w in col_ws], repeatRows=1)
-    estilo = [
-        ("BACKGROUND", (0, 0), (-1, 0), ACENTO),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, 0), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
-        ("TOPPADDING", (0, 1), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
-        ("LEFTPADDING", (0, 0), (-1, -1), 7),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BLANCO, FONDO_SUAVE]),
-        ("LINEBELOW", (0, 1), (-1, -1), 0.4, BORDE),
-    ]
-    tabla.setStyle(TableStyle(estilo))
-    story.append(tabla)
-    story.append(Spacer(1, 10))
-
-    # ── Totales: precios al público con IVA incluido; el desglose es informativo
-    sub = cotizacion.get("subtotal", 0)
-    iva = cotizacion.get("iva", 0)
-    tot = cotizacion.get("total", 0)
-    tot_filas = [
-        [Paragraph("Subtotal sin IVA", st["tot_lbl"]), Paragraph(_pesos(sub), st["tot_val"])],
-        [Paragraph("IVA", st["tot_lbl"]), Paragraph(_pesos(iva), st["tot_val"])],
-        [Paragraph("TOTAL A PAGAR", st["total_lbl"]), Paragraph(f"{_pesos(tot)} <font size='7'>COP</font>", st["total_val"])],
-    ]
-    tot_ancho = ancho_util * 0.44
-    tot_t = Table(tot_filas, colWidths=[tot_ancho * 0.52, tot_ancho * 0.48])
-    tot_t.setStyle(TableStyle([
-        ("TOPPADDING", (0, 0), (-1, 1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, 1), 3),
-        ("LINEBELOW", (0, 1), (-1, 1), 0.5, BORDE),
-        ("BACKGROUND", (0, 2), (-1, 2), ACENTO_OSCURO),
-        ("TOPPADDING", (0, 2), (-1, 2), 8),
-        ("BOTTOMPADDING", (0, 2), (-1, 2), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        celda = [Paragraph(_esc(p.get("nombre", "")), st["td"])]
+        if sku:
+            celda.append(Paragraph(f"Ref. {_esc(sku)}", st["td_ref"]))
+        # Importes como texto plano (no Paragraph): una celda de texto plano no
+        # parte la cifra en dos líneas.
+        filas.append([str(i), celda, _cantidad(p.get("cantidad")), _pesos(p.get("precio_unit")),
+                      _pct(p.get("iva_pct")) if p.get("iva_pct") is not None else "—",
+                      _pesos(p.get("subtotal"))])
+    if not productos:
+        filas.append(["", Paragraph("Sin productos", st["td_ref"]), "", "", "", ""])
+    fijas = [0.9 * cm, 1.7 * cm, 2.9 * cm, 1.6 * cm, 3.1 * cm]
+    anchos = [fijas[0], ancho - sum(fijas)] + fijas[1:]
+    tabla = Table(filas, colWidths=anchos, repeatRows=1)
+    tabla.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COT_ACENTO),
+        ("ROUNDEDCORNERS", [RADIO, RADIO, 0, 0]),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BLANCO, COT_FILA]),
+        ("LINEBELOW", (0, 1), (-1, -1), 0.5, COT_LINEA),
+        ("FONT", (0, 1), (-1, -1), f_reg, 10),
+        ("FONT", (5, 1), (5, -1), f_semi, 10),
+        ("TEXTCOLOR", (0, 1), (-1, -1), COT_TINTA),
+        ("TEXTCOLOR", (0, 1), (0, -1), COT_TENUE),
+        ("ALIGN", (0, 0), (0, -1), "CENTER"),
+        ("ALIGN", (2, 1), (2, -1), "CENTER"),
+        ("ALIGN", (4, 1), (4, -1), "CENTER"),
+        ("ALIGN", (3, 1), (3, -1), "RIGHT"),
+        ("ALIGN", (5, 1), (5, -1), "RIGHT"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, 0), 7), ("BOTTOMPADDING", (0, 0), (-1, 0), 7),
+        ("TOPPADDING", (0, 1), (-1, -1), 5), ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7),
     ]))
-    tot_t.hAlign = "RIGHT"
-    story.append(KeepTogether([tot_t]))
-    story.append(Spacer(1, 18))
+    story += [tabla, Spacer(1, 10)]
+
+    # ── Totales (precios con IVA incluido; los valores llegan ya calculados) a la
+    # derecha y, en la misma fila, la tarjeta de pago: así una cotización corriente
+    # cabe en una página sin achicar la letra.
+    tot_ancho = 8.4 * cm
+    resumen = Table([
+        [Paragraph("Subtotal sin IVA", st["tot_lbl"]), Paragraph(_pesos(cotizacion.get("subtotal", 0)), st["tot_val"])],
+        [Paragraph("IVA", st["tot_lbl"]), Paragraph(_pesos(cotizacion.get("iva", 0)), st["tot_val"])],
+    ], colWidths=[tot_ancho * 0.55, tot_ancho * 0.45])
+    resumen.setStyle(TableStyle([
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+    ]))
+    total = Table([[Paragraph("TOTAL A PAGAR", st["total_lbl"])],
+                   [Paragraph(_pesos(cotizacion.get("total", 0)) + " <font size='9'>COP</font>", st["total_val"])]],
+                  colWidths=[tot_ancho])
+    total.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), COT_ACENTO),
+        ("ROUNDEDCORNERS", [RADIO] * 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, 0), 9), ("BOTTOMPADDING", (0, 0), (-1, 0), 0),
+        ("TOPPADDING", (0, 1), (-1, 1), 2), ("BOTTOMPADDING", (0, 1), (-1, 1), 10),
+    ]))
+    totales = [resumen, Spacer(1, 6), total]
+
+    llave = _llave_pago()
+    if llave:
+        hueco = 10
+        pago_w = ancho - tot_ancho - hueco
+        fila = Table([[_bloque_pago(llave, empresa, st, pago_w), "", totales]],
+                     colWidths=[pago_w, hueco, tot_ancho])
+        fila.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        story += [KeepTogether([fila]), Spacer(1, 12)]
+    else:
+        for t in totales:
+            t.hAlign = "RIGHT"
+        story += [KeepTogether(totales), Spacer(1, 12)]
 
     # ── Condiciones
     notas = (cotizacion.get("notas") or "").strip()
@@ -485,28 +610,17 @@ def generar_cotizacion_pdf(cotizacion: dict, *, carpeta: str | None = None) -> s
         "Materias primas farmacéuticas y cosméticas reenvasadas; cada producto viaja con su etiqueta "
         "y, si lo requiere, con su ficha técnica y certificado de análisis.",
     ]
-    cuerpo = [Paragraph("CONDICIONES", st["nota_titulo"])]
+    cuerpo = [Paragraph("CONDICIONES", st["nota_titulo"]), Spacer(1, 3)]
     if notas:
-        cuerpo.append(Paragraph(f"<b>Nota:</b> {_esc(notas)}", st["nota"]))
-    cuerpo += [Paragraph(f"•  {_esc(c)}", st["nota"]) for c in condiciones]
-    nt = Table([[cuerpo]], colWidths=[ancho_util])
-    nt.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), TINTE),
-        ("LINEBEFORE", (0, 0), (0, -1), 2, ACENTO),
-        ("TOPPADDING", (0, 0), (-1, -1), 9),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
-        ("LEFTPADDING", (0, 0), (-1, -1), 12),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
-    ]))
-    story.append(KeepTogether([nt]))
-    story.append(Spacer(1, 14))
-    story.append(Paragraph(
-        "Gracias por contar con McKenna Group. Cualquier ajuste en cantidades o presentaciones, "
-        "escríbanos por WhatsApp y le enviamos la cotización actualizada.",
-        st["cuerpo_suave"],
-    ))
+        cuerpo += [Paragraph(f"<b>Nota:</b> {_esc(notas)}", st["nota"]), Spacer(1, 3)]
+    for c in condiciones:
+        cuerpo += [Paragraph(_esc(c), st["nota"], bulletText="•"), Spacer(1, 1)]
+    cuerpo.append(Paragraph(
+        _esc("¿Necesita ajustar cantidades o presentaciones? Escríbanos por WhatsApp y le enviamos "
+             "la cotización actualizada."), st["nota"], bulletText="•"))
+    story.append(KeepTogether([_tarjeta(cuerpo, ancho, pad=8)]))
 
-    pie = _pie_de_pagina(empresa, fuentes)
+    pie = _pie_cotizacion(empresa, fuentes)
     doc.build(story, onFirstPage=pie, onLaterPages=pie)
     print(f"📄 [COTIZACIÓN PDF] Generado: {filename}")
     return filename
@@ -526,8 +640,11 @@ def enviar_cotizacion(cotizacion: dict, numero_cliente: str) -> str:
     caption = (
         f"📋 *Cotización {numero_cot}*\n"
         f"👤 {cliente}\n"
-        f"💵 Total: *${total:,.0f} COP*\n\n"
-        f"📌 Válida por 15 días. Una vez realizado el pago, envíe el comprobante para "
+        f"💵 Total: *${total:,.0f} COP*\n"
+        + (f"🏦 Llave Bre-B {llave['banco']}: *{llave['llave']}* (el QR va en el PDF)\n"
+           if (llave := _llave_pago()) else "")
+        + "\n"
+        + f"📌 Válida por 15 días. Una vez realizado el pago, envíe el comprobante para "
         f"proceder con la factura electrónica y el despacho."
     )
 

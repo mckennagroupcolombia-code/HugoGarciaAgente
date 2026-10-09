@@ -200,7 +200,12 @@ def test_preferencias_sonidos_se_validan_y_se_guardan(entorno):
     limpio = tickets_db._limpiar_alertas_sonido(
         {"activo": True, "volumen": 140, "general": "dh_ladrido", "personas": {"8": "cc_circo"}, "canales": {"3": "silencio"}})
     assert limpio == {"activo": True, "volumen": 100, "tono_por_grupo": True, "general": "dh_ladrido",
-                      "personas": {"8": "cc_circo"}, "canales": {"3": "silencio"}}
+                      "personas": {"8": "cc_circo"}, "canales": {"3": "silencio"}, "lenguaje": 1}
+    # Lenguaje sonoro (8-oct): ids sintetizados mk_… y la versión, que se guarda para no migrar dos veces.
+    nuevo = tickets_db._limpiar_alertas_sonido(
+        {"general": "mk_mensaje", "solicitud": "mk_solicitud", "canales": {"4": "mk_recordatorio"}, "lenguaje": 2})
+    assert nuevo["general"] == "mk_mensaje" and nuevo["canales"] == {"4": "mk_recordatorio"} and nuevo["lenguaje"] == 2
+    assert tickets_db._limpiar_alertas_sonido({"lenguaje": "2"})["lenguaje"] == 1
     # Cada grupo con su tono propio (7-oct): se puede apagar y queda guardado.
     assert tickets_db._limpiar_alertas_sonido({"tono_por_grupo": False})["tono_por_grupo"] is False
     assert tickets_db._limpiar_alertas_sonido({"general": "<script>"}) is None
@@ -280,3 +285,44 @@ def test_cuentas_tecnicas_no_se_nombran_y_username_con_arroba(entorno):
     canal = CI.crear_canal(ANA, "Equipo")
     assert [p["id"] for p in CI.mencionables(canal["id"], ANA)] == [3]
     assert [x["id"] for x in CI.enviar_mensaje(canal["id"], ANA, "@Hugo @cynthia mira")["menciones"]] == [3]
+
+
+def _personas(*filas):
+    import sqlite3
+
+    c = sqlite3.connect(tickets_db.DB_PATH)
+    for uid, nombre, activo in filas:
+        c.execute("INSERT OR REPLACE INTO usuarios (id, nombre, username, password_hash, activo) VALUES (?,?,?,?,?)",
+                  (uid, nombre, nombre.lower(), "x", activo))
+    c.commit()
+    c.close()
+
+
+def test_chat_directo_lo_abre_cualquiera_y_es_solo_de_los_dos(entorno, monkeypatch):
+    """Empresa viva → «Hablar»: preguntarle algo a alguien es una conversación, no una solicitud."""
+    CI, _, _ = entorno
+    _personas((10, "Beto Ruiz", 1), (11, "Carla Díaz", 1), (12, "Dario Paz", 0))
+    beto, carla = {"id": 10, "nombre": "Beto Ruiz", "rol": {"nivel": 1}}, {"id": 11, "nombre": "Carla Díaz", "rol": {"nivel": 1}}
+    canal = CI.canal_directo(beto, 11)                       # sin ser administrador
+    assert canal["miembros"] == [10, 11] and canal["nombre"] == "Beto · Carla" and canal["directo_con"] == 11
+    assert CI.canal_directo(carla, 10)["id"] == canal["id"]   # el mismo chat, se abra de donde se abra
+    CI.enviar_mensaje(canal["id"], beto, "¿Ya llegó la glicerina?")
+    assert CI.no_leidos_total(carla) == 1
+    # Ni otra persona ni administración lo leen.
+    monkeypatch.setattr(CI, "_es_admin", lambda u: True)
+    assert CI.listar_mensajes(canal["id"], ANA) is None
+    assert all(c["id"] != canal["id"] for c in CI.listar_canales(ANA))
+    m = CI.listar_mensajes(canal["id"], carla)[0]
+    assert CI.eliminar_mensaje(m["id"], ANA) is False        # tampoco borra en un chat de dos
+    with pytest.raises(ValueError):
+        CI.canal_directo(beto, 10)                           # consigo mismo no
+    with pytest.raises(ValueError):
+        CI.canal_directo(beto, 12)                           # alguien inactivo no
+
+
+def test_chat_directo_sigue_el_grupo_de_dos_que_ya_existia(entorno):
+    CI, _, _ = entorno
+    _personas((10, "Beto Ruiz", 1), (11, "Carla Díaz", 1))
+    viejo = CI.crear_canal(ANA, "Beto · Carla", miembros=[10, 11])
+    CI.enviar_mensaje(viejo["id"], {"id": 10, "nombre": "Beto Ruiz"}, "hola")
+    assert CI.canal_directo({"id": 11, "nombre": "Carla Díaz"}, 10)["id"] == viejo["id"]

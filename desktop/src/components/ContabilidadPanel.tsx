@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo } from "react";
-import { useAppStore } from "../stores/app";
+import { usePanelActual, useIrAPanel } from "../lib/panelLocal";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useUiMode } from "../stores/uiMode";
 import { modoAvanzadoEfectivo } from "../lib/adminAccess";
@@ -74,8 +74,8 @@ function renderSubpanel(id: ContabilidadPanelId) {
 }
 
 export default function ContabilidadPanel() {
-  const panel = useAppStore((s) => s.panel);
-  const setPanel = useAppStore((s) => s.setPanel);
+  const panel = usePanelActual();
+  const setPanel = useIrAPanel();
   const { user } = useTicketsAuth();
   const advancedToggle = useUiMode((s) => s.advanced);
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);

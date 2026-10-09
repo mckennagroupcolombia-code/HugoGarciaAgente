@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useTicketsAuth } from "../stores/ticketsAuth";
-import { useAppStore } from "../stores/app";
+import { usePanelActual } from "../lib/panelLocal";
 import {
   OPERATIVOS_SUBTABS,
   guardarSubtabOperativos,
@@ -32,7 +32,7 @@ function Cargando() {
  */
 export default function OperativosPanel() {
   const { user } = useTicketsAuth();
-  const panel = useAppStore((s) => s.panel);
+  const panel = usePanelActual();
 
   const puedeRrhh = Boolean(puedeVerModuloContabilidad(user, "rrhh"));
   const puedeImpuestos = Boolean(puedeVerModuloContabilidad(user, "impuestos"));

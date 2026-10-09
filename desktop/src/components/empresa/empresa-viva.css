@@ -1,126 +1,144 @@
-/* Etiquetas HTML pegadas al mundo 3D (CSS2DRenderer): nombres, letreros, globos e íconos.
-   Colores fijos (no del tema): viven sobre la escena del juego, que es igual en claro y oscuro. */
-.ev-nombre {
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #1d2b53;
-  font: 700 11px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  white-space: nowrap;
-}
-.ev-nombre-yo { background: #ffe14d; }
-/* Lo que hace cada quien, bajo el nombre. De lejos se esconde (no tapa el barrio). */
-.ev-hace {
-  display: block;
-  margin-top: -1px;
-  font: 600 9.5px/1.25 system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #4a5568;
-  text-align: center;
-}
-[data-lejos="1"] .ev-hace { display: none; }
-.ev-nombre-hugo { background: #5db8ff; color: #fff; }
+/* Empresa viva — ventanas al estilo de los RPG de Super Nintendo (Chrono Trigger): fondo azul en
+   degradé, doble borde claro, letra pixel (Pixelify Sans, OFL, en public/empresa/pixel/fuente/). */
 
-.ev-letrero-casa {
-  padding: 4px 12px;
-  border-radius: 10px;
-  background: #fff7e6;
-  border: 2px solid #8a6a4a;
-  color: #5a3d22;
-  font: 800 14px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
-  box-shadow: 0 3px 0 #8a6a4a, 0 6px 10px rgba(0, 0, 0, 0.25);
-  white-space: nowrap;
+@font-face {
+  font-family: "PixelifyMck";
+  src: url("/app/empresa/pixel/fuente/pixelify-sans-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
 }
-.ev-letrero-lugar {
-  padding: 1px 6px;
+
+.ev-raiz {
+  --ev-azul-1: #3b4fb8;
+  --ev-azul-2: #1b2470;
+  --ev-azul-3: #0b1140;
+  --ev-borde: #e9ecff;
+  --ev-borde-2: #8a95d6;
+  --ev-texto: #ffffff;
+  --ev-tenue: #b9c2ff;
+  --ev-dorado: #ffe14d;
+  background: #1f3d23;
+}
+
+.ev-ventana {
+  font-family: "PixelifyMck", ui-monospace, monospace;
+  color: var(--ev-texto);
+  background: linear-gradient(180deg, var(--ev-azul-1) 0%, var(--ev-azul-2) 55%, var(--ev-azul-3) 100%);
+  border: 3px solid var(--ev-borde);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 2px var(--ev-borde-2), inset 0 0 0 4px rgba(0, 0, 0, 0.35), 0 6px 18px rgba(0, 0, 0, 0.45);
+  text-shadow: 1px 1px 0 #0b1140;
+  letter-spacing: 0.02em;
+  image-rendering: pixelated;
+}
+.ev-ventana-clara {
+  font-family: "PixelifyMck", ui-monospace, monospace;
+  color: #1d2b53;
+  background: #fffaf0;
+  border: 3px solid #1d2b53;
+  border-radius: 8px;
+  box-shadow: 0 4px 0 rgba(29, 43, 83, 0.35);
+}
+
+.ev-nombre-dialogo {
+  color: var(--ev-dorado);
+  font-weight: 700;
+}
+
+/* El cursor de manito de los menús de Chrono Trigger */
+.ev-opcion {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.18rem 0.4rem;
+  border-radius: 4px;
+  text-align: left;
+  color: var(--ev-texto);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font: inherit;
+  cursor: pointer;
+}
+.ev-opcion .ev-mano { width: 1.1rem; display: inline-block; color: var(--ev-dorado); visibility: hidden; }
+.ev-opcion[data-activa="1"] .ev-mano { visibility: visible; animation: ev-mano 0.6s steps(2) infinite; }
+.ev-opcion[data-activa="1"] { background: rgba(255, 255, 255, 0.1); }
+.ev-opcion:disabled { color: var(--ev-tenue); cursor: default; }
+@keyframes ev-mano { 50% { transform: translateX(3px); } }
+
+.ev-sigue {
+  display: inline-block;
+  color: var(--ev-dorado);
+  animation: ev-sigue 0.7s steps(2) infinite;
+}
+@keyframes ev-sigue { 50% { transform: translateY(3px); } }
+
+.ev-campo {
+  width: 100%;
+  font: inherit;
+  color: #1d2b53;
+  background: #f4f6ff;
+  border: 2px solid var(--ev-borde-2);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+  text-shadow: none;
+}
+.ev-campo:focus { outline: 2px solid var(--ev-dorado); }
+
+.ev-boton {
+  font-family: "PixelifyMck", ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: #fff;
+  background: linear-gradient(180deg, #4a5fd0, #26318c);
+  border: 2px solid var(--ev-borde);
   border-radius: 6px;
-  background: rgba(29, 43, 83, 0.72);
-  color: #fff;
-  font: 700 10px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 0.2rem 0.55rem;
+  text-shadow: 1px 1px 0 #0b1140;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
   white-space: nowrap;
 }
+.ev-boton:hover { filter: brightness(1.12); }
+.ev-boton[aria-pressed="true"] { background: linear-gradient(180deg, #ffd23f, #e79b00); color: #1d2b53; text-shadow: none; }
 
-.ev-globo {
-  position: relative;
-  padding: 3px 9px;
-  border-radius: 12px;
-  background: #fff;
-  color: #1d2b53;
-  font: 800 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  white-space: nowrap;
-  animation: ev-salta 0.45s ease-out;
+/* Controles táctiles (cruceta + A/B), al estilo del control de Super Nintendo */
+.ev-cruceta {
+  position: absolute; left: 14px; bottom: 14px; width: 132px; height: 132px; z-index: 25;
+  touch-action: none; user-select: none; -webkit-user-select: none;
 }
-.ev-globo::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -5px;
-  margin-left: -5px;
-  border: 5px solid transparent;
-  border-bottom: 0;
-  border-top-color: #fff;
+.ev-cruceta button {
+  position: absolute; width: 44px; height: 44px; border-radius: 8px; border: 2px solid rgba(255, 255, 255, 0.7);
+  background: rgba(20, 28, 80, 0.55); color: #fff; font-size: 18px; box-shadow: none; padding: 0;
+  touch-action: none;
 }
-.ev-globo-ok { background: #d9fbe3; color: #0f5132; }
-.ev-globo-ok::after { border-top-color: #d9fbe3; }
-.ev-globo-venta { background: #fff3b0; color: #6b4e00; }
-.ev-globo-venta::after { border-top-color: #fff3b0; }
-.ev-globo-hugo { background: #d6eeff; color: #0b4a7a; }
-.ev-globo-pregunta { background: #ffe8c7; color: #7a3e00; }
-.ev-globo-pregunta::after { border-top-color: #ffe8c7; }
-.ev-globo-solicitud { background: #dcefff; color: #0b4a7a; }
-.ev-globo-solicitud::after { border-top-color: #dcefff; }
-.ev-globo-respuesta { background: #d9fbe3; color: #0f5132; }
-.ev-globo-respuesta::after { border-top-color: #d9fbe3; }
-.ev-globo-grupo { background: #ffffff; color: #1d2b53; }
-.ev-globo-accion { background: #eef2ff; color: #312e81; }
-.ev-globo-accion::after { border-top-color: #eef2ff; }
-.ev-globo-cafe { background: #fdf0e1; color: #7c4a1e; }
-.ev-globo-cafe::after { border-top-color: #fdf0e1; }
-.ev-globo-charla { background: #ffffff; color: #1d2b53; font-size: 14px; letter-spacing: 2px; }
-.ev-globo-idea { background: #fff6bf; color: #6b4e00; }
-.ev-globo-idea::after { border-top-color: #fff6bf; }
-.ev-globo-hugo::after { border-top-color: #d6eeff; }
+.ev-cruceta button[data-on="1"] { background: rgba(255, 225, 77, 0.75); color: #1d2b53; }
+.ev-botones { position: absolute; right: 14px; bottom: 96px; width: 128px; height: 110px; z-index: 25; touch-action: none; }
+.ev-botones button {
+  position: absolute; width: 58px; height: 58px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.75);
+  font-family: "PixelifyMck", monospace; font-size: 20px; color: #fff; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35); padding: 0;
+  touch-action: none;
+}
+.ev-botones .ev-a { right: 0; top: 0; background: rgba(214, 48, 49, 0.85); }
+.ev-botones .ev-b { left: 0; bottom: 0; background: rgba(241, 196, 15, 0.85); color: #1d2b53; }
+.ev-botones button[data-on="1"] { filter: brightness(1.35); transform: translateY(2px); }
 
-.ev-icono {
-  min-width: 20px;
-  padding: 1px 5px;
-  border-radius: 10px;
-  text-align: center;
-  font: 900 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-  animation: ev-flota 1.6s ease-in-out infinite;
-}
-.ev-pide-meli { background: #ffe600; color: #2d3277; }
-.ev-pide-wa { background: #25d366; color: #fff; }
-.ev-wa { background: #25d366; color: #fff; font-size: 9px; }
-.ev-zzz { background: transparent; box-shadow: none; color: #4a5a8a; font-size: 13px; }
-.ev-zzz small { font-size: 0.75em; margin-left: 1px; }
+.ev-retrato { image-rendering: pixelated; }
 
-.ev-aviso {
-  padding: 3px 10px;
-  border-radius: 10px;
-  background: #fff;
-  color: #1d2b53;
-  font: 700 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  white-space: nowrap;
-}
-.ev-aviso-rojo { background: #ffe1e1; color: #9b1c1c; animation: ev-flota 2.2s ease-in-out infinite; }
+/* Algo te espera (un reto de ajedrez, tu turno): el botón late suave, como un ícono de RPG. */
+.ev-latido { animation: ev-latido 1.4s ease-in-out infinite; }
+@keyframes ev-latido { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.3); } }
+@media (prefers-reduced-motion: reduce) { .ev-latido { animation: none; } }
 
-.ev-pila {
-  min-width: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
-  background: #ffa300;
-  color: #fff;
-  text-align: center;
-  font: 900 11px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+/* El tablero del ajedrez cabe en la ventana: lo mide el contenedor (container query), no la
+   pantalla, porque el juego vive dentro de la app (barra, menú) y su alto cambia. Arriba y abajo
+   del tablero van los dos jugadores (~6,5rem en total). */
+.ev-ajedrez-area { container-type: size; }
+.ev-ajedrez-col { width: min(100%, 36rem); }
+@media (min-width: 768px) {
+  .ev-ajedrez-col { width: min(calc(100% - 17rem), max(15rem, calc(100cqh - 6.5rem)), 36rem); }
 }
-.ev-pila-alta { background: #ff4d4d; }
-.ev-oculto { display: none; }
 
-@keyframes ev-flota { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-@keyframes ev-salta { 0% { transform: scale(0.4); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .ev-icono, .ev-aviso-rojo, .ev-globo { animation: none; } }
+/* La cancha de tenis (2 × 1) cabe a lo alto de la ventana: arriba va el marcador y abajo la ayuda
+   (~8rem). Como el tablero del ajedrez, la mide el contenedor y no la pantalla. */
+.ev-tenis-area { container-type: size; }
+.ev-tenis-cancha { width: min(100%, 56rem, max(18rem, calc((100cqh - 8rem) * 2))); }

@@ -56,6 +56,10 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
 - **Redirección**: `app/data/redireccion_panel.json` (reglas regex → aviso con enlace `/app?panel=…`, un aviso por regla
   y grupo cada 2 h). **Encendido desde el 24-sep** (el bot escribe en los grupos reales; `"activo": false` lo apaga sin reiniciar). Canales creados ese día: «Inventario y llegadas» ↔ MCKG PEDIDOS / COMPRAS y «Sede Sur» ↔ MCKG SEDE SUR (ida y vuelta), «Compras USA y China» (solo llegada).
 - Enlace directo: `/app?panel=<id>` abre esa sección (App.tsx, `PANEL_DEL_ENLACE`).
+- **Chat directo de dos** (8-oct-2026): `canales_internos.canal_directo(usuario, otro_id)` / `POST /api/canales/directo`
+  `{con}`. Cualquiera lo abre (no hace falta ser supervisor); `tipo='directo'`, clave `directo:<menor>-<mayor>`; si ya
+  existía un grupo que era solo de esos dos (sin WhatsApp) se usa ese. `_puede_ver`: un directo es **solo de sus dos
+  miembros** (administración no lo lista, no lo lee ni borra mensajes ajenos). Lo usa Empresa viva («Hablar»).
 
 ### AH. Alertas sonoras y chat del equipo legible (6-oct-2026)
 
@@ -82,10 +86,10 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
   `PanelTransition.fillHeight`), ya no `calc(100dvh-…)`.
 
 - **Tono propio por grupo (7-oct-2026)**:
-  - `lib/alertasSonido.ts::sonidoDeCanal`: el sonido elegido para el grupo; si no hay, `tonoPropioDeGrupo(id)` (10
-    tonos cortos, fijos por id, así cada grupo se reconoce de oído).
+  - `lib/alertasSonido.ts::sonidoDeCanal`: el sonido elegido para el grupo; si no hay, `tonoPropioDeGrupo(id)` (tonos
+    fijos por id, así cada grupo se reconoce de oído; desde el 8-oct son las 7 campanitas del lenguaje sonoro).
   - `tono_por_grupo: false` (casilla en los ajustes) vuelve a un solo sonido «general».
-  - Sin el perro: ladridos y risa no están entre los tonos de grupo (son 7 tonos; desde el grupo 8 se repiten).
+  - Son 7 tonos; desde el grupo 8 se repiten.
 - **El perro que se ríe es solo para cerrar un flujo** (`lib/celebracionAprobado.ts::escucharMonedasDelServidor`):
   - Sale al cerrar una tarea (estado `resuelto`, `completar-accion`) y en `RUTAS_DE_CIERRE` (`…/finalizar`, facturar).
   - La moneda de cualquier otra misión (comentar, evidencia, paso) suena con `sonarMoneda()`, un tono corto.
@@ -93,6 +97,21 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
   - La fila de grupos de la bandeja muestra el ícono del tono y el globo de no leídos late.
   - ⚠️ El aviso con sonido vive en `SolicitudesEnProcesoFab`, que solo monta el Layout: `MobileHub` lo monta con
     `soloAvisos` (sin la bolita). Sin eso, la pestaña Mensajes de la barra de abajo no sonaba.
+- **Lenguaje sonoro (8-oct-2026)** (`desktop/src/lib/lenguajeSonoro.ts`). Los recortes de 8 bits eran feos e iguales
+  entre sí. Ahora todo se sintetiza con Web Audio (sin archivos ni red), en do mayor, con timbres suaves (campanita FM,
+  marimba, seno/triangular) y una sala corta; un solo `AudioContext` con limitador para toda la app. **La forma dice qué
+  pasó**: mensaje = dos notas de campanita (las 7 campanitas `mk_mensaje…mk_brisa` son los tonos de grupo), @ = la
+  campanita + destello agudo, solicitud = tres notas de marimba que suben, urgente = sirena suave de dos tonos, detenido
+  (`.mv-bloqueo` del Mapa) = dos notas graves que bajan, paso revisado = arpegio, tarea/flujo cerrado = arpegio + acorde
+  (el perro se sigue viendo, ya **no** suena su risa), monedas = si→mi metálico, tarea en curso (`Cronometro`,
+  `avisoTareaEnCurso`) = dos toques y una campana, zumbido = vibración grave. Al moverse por la app
+  (`sonidosJuego.ts`, mismas claves): cada etapa es una marimba de dos notas que sube una quinta, más aguda cuanto más
+  adelante en el flujo; Vender = moneda, Entregar baja, Inicio = din-don. La leyenda con ▶ está en «Sonidos de los
+  avisos» → «Qué significa cada sonido».
+  - Compatibilidad: los ids viejos (`dh_*`, `cc_*`) siguen sonando como «clásicos». `preferencias_ui.sonidos.lenguaje`
+    (`tickets_db._limpiar_alertas_sonido`, sin el campo = 1): con 1, el panel cambia una sola vez los sonidos **de
+    fábrica** viejos (`general` dh_pato/dh_ladrido, `solicitud` dh_ronda) por los nuevos y guarda 2; lo elegido a mano
+    por persona o grupo no se toca.
 
 ### AJ. Zumbidos en las solicitudes (7-oct-2026)
 
@@ -261,59 +280,129 @@ Jenniffer subía las fotos de los COA y alguien los pasaba a mano a Docs técnic
 - Primer uso 7-oct: agar agar, colágeno hidrolizado, sorbitol polvo, proteína aislada de soya y creatina (el lote era
   **D**20260406C, el documento decía G…) actualizados; D-pantenol y L-arginina ya estaban.
 
-### AL. Empresa viva — la operación como juego de gestión (8-oct-2026)
-Agenda → **Empresa viva** (panel `empresa-viva`, `desktop/src/components/empresa/`). Convive con el Mapa: el Mapa es la
-app por etapas; esto es la operación de ahora como juego 3D (Three.js, `three` en `package.json`, chunk lazy), con
-modelos CC0 de KayKit y Kenney en `desktop/public/empresa/` (ver su `LEEME.md`).
-- **Motor gráfico** (`render.ts`, referencia: tráiler de FarmVille 3, pedida por el usuario el 8-oct; el pixel art 2D y el
-  isométrico plano con Kenney fueron rechazados por «no parecerse a FarmVille»): cámara en perspectiva de lente larga,
-  sol cálido + cielo, GTAO + bloom + saturación + SMAA, pasto instanciado que se mece (shader) y margaritas. Calidad
-  alta/media/baja (celular arranca en media o baja; «Gráficos» en la barra). Se evaluó Babylon.js, PlayCanvas, Unity
-  WebGL y Godot: se queda Three.js (ya integrado, liviano, la brecha era de arte y luz, no del motor).
-- **Pueblo moderno, techo que se levanta** (decisión del usuario): las casas se arman en `escena.ts` (muros, ventanas,
-  techo aparte — teja a dos aguas en la Sede, plano con paneles solares en el Búnker, plano con toldo en la Tienda). De
-  lejos cerradas; al acercarse (o tocar el techo) el techo sube y se desvanece y los muros del frente bajan. «Casas:
-  auto/abiertas/cerradas» en la barra. Muebles: catálogo `MUEBLE` (nombre lógico de `barrio.ts` → modelo); KayKit va con
-  UNA escala (0,5), escalar por altura deforma lo plano (pasó con la estufa y el entrepaño de pared).
-- **El barrio** (`barrio.ts`): Búnker Suba (cuartos de Armando y Cynthia, gerencia, contabilidad, estudio de diseño),
-  Sede McKenna Sur (cuartos de Victor y Stella, oficina con cocina, bodega, recepción, portón, cultivo de hongos) y
-  Tienda digital. Quién vive dónde, su cuarto, dónde trabaja por defecto y su rol: `app/data/empresa_viva_casas.json`
-  (roles sacados el 8-oct de `rendimiento.quien_hace`, permisos y paneles más usados).
-- **Cada persona** camina al lugar del panel que tiene abierto (`lugarDePanel`, sale de `flujoApp` + precisiones);
-  con la Agenda o el Mapa, a su puesto; desconectada, a su cuarto («zzz») si vive en el barrio. Contador, colaborador
-  externo y cuentas genéricas no aparecen (`ocultos`).
-- **Lo vivo** (`app/services/empresa_viva.py`, `GET /api/empresa-viva/estado`, token personal, sin LLM): preguntas de
-  preventa y chats de WhatsApp sin respuesta = fila en la tienda; órdenes MeLi pagadas (API, en segundo plano, caché
-  60 s / 5 min por envío) + pedidos web + despachos = cajas por alistar → alistadas (foto de Empaque o envío impreso)
-  → el mensajero se las lleva; recepciones abiertas = camión del proveedor; bodega = estantes por la caché del Control
-  de inventario + lista «por reponer»; lo detenido del Mapa = pilas de papeles. Las transiciones se detectan comparando
-  fotos y se atribuyen con `panel_eventos_operativos` (quién respondió, quién alistó, quién registró).
-- **Quién le habla a quién**: solicitudes/preguntas entre personas, sus respuestas y los mensajes del chat del equipo
-  de los últimos 20 min = avioncitos de papel de un avatar a otro. El avioncito lo ve todo el equipo; el texto solo
-  quien participa (o los miembros del grupo; un grupo sin miembros es de todos).
-- **Acciones** (`acciones.tsx`), siempre por los caminos de siempre: «Preguntarle algo» = `POST /api/tickets/`
-  `tipo=solicitud, subtipo=pregunta`; «Compartir idea» = `POST /api/canales/<id>/mensajes` (avisa si el grupo tiene
-  espejo a WhatsApp); «Mi avatar» = `preferencias_ui.empresa` {avatar, accesorio, color}, validado en
-  `tickets_db._limpiar_avatar_empresa`.
-- **Dinámica en tiempo real** (8-oct, pedido: «se queda corto en las dinámicas de los personajes»):
-  - Parte rápida del estado (`empresa_viva.vivo()`, caché 2 s; el juego consulta cada 4 s): presencia, **tarea con
-    cronómetro andando** (`ticket_corridas` activa ≤6 h, clasificada con `rendimiento.clasificar`), acciones de la
-    auditoría de solicitudes (`logs_auditoria`, 3 min) e interacciones. La foto pesada (MeLi, bodega) sigue a 10 s.
-  - Quien tiene un cronómetro andando está **presente** aunque no tenga el panel abierto, y va al sitio de su tarea
-    (`barrio.TAREA`: cocina, mesa de empaque, ronda entre estantes, cultivo…). Bajo el nombre: «Cocinando», «Empacando».
-    El título de la tarea o de la solicitud ajena no se muestra (solo la función).
-  - Vida diaria (`motor.vidaDiaria`): rondas de trabajo, pausas cortas (tinto en `barrio.CAFE`, estirarse, visitar a
-    alguien de la misma casa). Pregunta a alguien de la misma casa = camina a su puesto y conversan.
-  - Barra del equipo (retratos + qué hace; tocar = la cámara lo sigue), modo «En vivo» (la cámara va a lo que pasa),
-    registro unificado (eventos + acciones + interacciones), día y noche con la hora de Bogotá.
-  - ⚠️ El juego dentro del Mapa no lleva `colab-pixel`: sus reglas (esquinas cuadradas, botones con borde) lo desfiguran.
-- **Dónde se ve:** en el Mapa (inicio), selector **Mapa · Juego** del cabezote (donde estuvo «Edificio»; se recuerda en
-  `localStorage` `mck-mapa-vivo-modo`), además del panel `empresa-viva` de la Agenda. El juego se carga lazy.
-- ⚠️ **Modelos:** Flask los sirve en `/app/empresa/<ruta>` (`serve_spa_empresa`, mismo guardia de sesión que el bundle).
-  Sin esa ruta caían al comodín de `/app` y llegaban como `index.html` con 200: el barrio salía sin personas, muebles ni
-  estantes (8-oct, ya en producción; Vite en `npm run dev` no lo muestra). Un archivo nuevo en `desktop/public/` que no
-  sea `assets/`, `juegos/` o `empresa/` necesita su ruta. Si un modelo no carga, el juego lo avisa en pantalla.
-- ⚠️ Nada de puntajes, rankings ni tiempos por persona (RRHH). El juego no escribe nada por su cuenta: tocar algo abre
-  el panel real. Banco de pruebas: `/app/dev/app.html?tocar=Empresa%20viva` (datos de `dev/empresaVivaEjemplo.ts`); en
-  `npm run dev` el motor queda en `window.__empresaViva` para mover la cámara desde DevTools. ⚠️ Capturas sin interfaz:
-  `--virtual-time-budget` congela la decodificación de texturas (sale en blanco); usar CDP con tiempo real.
+### AL. Empresa viva — la operación como RPG de Super Nintendo (8-oct-2026)
+Agenda → **Empresa viva** (panel `empresa-viva`) y el selector **Mapa · Juego** del cabezote del Mapa
+(`localStorage` `mck-mapa-vivo-modo`). Código: `desktop/src/components/empresa/`; arte: `desktop/public/empresa/pixel/`.
+- **Rehecho el 8-oct (tarde)** a pedido del usuario: el barrio 3D (Three.js + KayKit, «vista global sin centrarse en el
+  personaje») se cambió por un **RPG en pixel art estilo Chrono Trigger**: cada quien **maneja su personaje** y camina hasta
+  los demás para hablarles; la cámara lo sigue (zoom entero o de medio paso, ~17×9 baldosas). Se evaluó
+  `androoAGI/starnet` (estación pixel art de agentes IA): es un arnés de agentes en Tauri + Node, y su arte NO es MIT
+  (los sprites son del autor) → no sirve; se tomó solo la idea «el mundo es la proyección del estado vivo». Motor:
+  **Phaser 4.2.1** (MIT; `juego.ts` lo carga lazy). El 3D quedó en el historial (commit c13a36ab); `three` se desinstaló.
+- **Archivos**: `juego.ts` (arranca Phaser, interfaz para React) · `escena.ts` (dibujo, jugador, cámara, techos que se
+  levantan, teclado, toque, globos, avioncitos, noche) · `motor.ts` (estado del servidor → personajes, fila de la tienda,
+  paquetes, moto del mensajero, camión del proveedor, estantes de bodega, papeles) · `camino.ts` (A* sobre la rejilla de
+  16 px + «cuerda tirante») · `personajes.ts` (compone avatares LPC por capas y paletas en un canvas) · `barrio.ts`
+  (panel → lugar, `TAREA` → punto/ronda) · `dialogo.tsx` (ventana azul, texto que se escribe solo, menú con manito) ·
+  `acciones.tsx` (Mi personaje, preguntar, decir, compartir) · `EmpresaViva.tsx` (HUD, diálogos de cada cosa, red).
+- **El barrio sale de un solo plano**: `scripts/empresa_viva/armar_mapa.py` dibuja `suelo.png`, `muebles.png`,
+  `objetos.png`, `techos/*.png`, `hugo.png` **y** escribe `mapa.json` (lugares, puestos, puntos con nombre, estantes,
+  rejilla de choques). Cambiar el barrio = editar el plano y volver a correr el script (`--vista x.jpg` = imagen de
+  control); nunca editar `mapa.json` a mano. Lugares: los de siempre (gerencia, contabilidad, estudio, cuartos, oficina
+  con cocina, bodega, recepción, portón, hongos, tienda). Arte: pasto/árboles LPC, oficina «LPC Revised: The Office», lo
+  moderno dibujado en el script con la paleta LPC (`pixel/CREDITOS.md`).
+- **Personajes**: `scripts/empresa_viva/armar_personajes.py` baja del Universal LPC Character Generator solo el catálogo
+  (cuerpo, cabeza, 18 peinados, barbas, 8 camisas, overol, 6 pantalones, zapatos, gafas) y empaca tiras de 25 columnas
+  (caminar, quieto, sentado en silla, celebrar, correr). El navegador apila y recolorea (paletas piel/pelo/tela/ojos).
+  Avatar = `preferencias_ui.empresa {pixel:{…}, color}` validado contra `personajes.json` en
+  `tickets_db._limpiar_avatar_empresa` (el formato 3D viejo ya no se acepta). Defaults por persona, clientes, proveedor y
+  mensajero en `app/data/empresa_viva_casas.json` (`pixel`). Blusa/chaqueta/delantal del generador solo traen «caminar»:
+  se excluyeron (desaparecerían al sentarse).
+- **Jugar**: flechas/WASD, Shift corre, Espacio/Enter/E/Z = A (hablar o examinar lo de enfrente). Tocar el piso = ir
+  allá; tocar a alguien = ir y hablarle; tocar una cara de la barra del equipo = caminar solo hasta esa persona. En
+  celular: cruceta + A/B en pantalla. El teclado no se roba cuando se escribe en un campo. Con un diálogo abierto el
+  personaje se queda quieto (y si iba caminando solo, sigue al cerrarlo).
+- **Hablar = conversar, no hacer una tarea** (8-oct, pedido del usuario: «preguntar algo no es hacer una solicitud»). A una
+  persona → qué hace ahora (tarea con cronómetro, panel abierto, WhatsApp, o «Zzz»), «Te escribí/Te respondí: …» si hay
+  algo sin leer (un «!» sobre su cabeza), y el menú: **Hablar** = el **chat directo de los dos** (`ChatPersona.tsx`,
+  `POST /api/canales/directo` → `canales_internos.canal_directo`: se crea al primer «Hablar» o se reusa un grupo que ya era
+  solo de ellos, p. ej. «Armando · Cynthia»; `tipo='directo'`, **solo lo leen los dos, ni administración**, y tampoco ven
+  el avioncito ni «X le escribió a Y» los demás). Queda guardado, llega con su push de siempre y se ve en «Equipo»
+  («Ver en Equipo» abre ese chat vía `sessionStorage mck-chat-equipo-canal`). Si alguien te escribe mientras juegas, sale el
+  diálogo «Responder / Ir hasta donde está / Luego». **Pedirle una tarea** = solicitud de la Agenda (aparte). **¿Qué
+  haces?** = rol, funciones e «Ir a <panel>». El «Decirle algo» en memoria (`/decir`) se retiró: lo reemplaza el chat.
+- **Cada módulo de la app es un objeto del barrio** (8-oct, pedido: «que se sepa qué espacio es qué y cada módulo cumpla
+  su función»). `armar_mapa.py::estacion()` pone el ícono (58 íconos pixel en `objetos.png`, `ico_*`) sobre el mueble y el
+  sitio de uso; `mapa.json → estaciones` (67, cubren todos los paneles de `flujoApp` salvo `chat`/`supervisor`, que van
+  hablando con Hugo, y el propio juego). Reparto: Gerencia = Dirigir · Contabilidad = Contar + facturas/pagos/créditos ·
+  Estudio = Preparar + Publicar · **Sala de sistemas** (nueva, mitad sur del antiguo estudio) = Sistema · Oficina de la
+  sede = Entregar + **Facturar** (antes contabilidad; `barrio.POR_ETAPA`) · Bodega = stock e inventario · **Contenedor de
+  comercio exterior** en el patio = Abastecer · Tienda = Vender (un portátil por canal) · pasillos = Agenda, chat del
+  equipo (dispensador/cafetera) y Juegos (arcade) · **directorio** en la entrada de cada casa (lista los cuartos con sus
+  módulos; tocar uno = caminar hasta él). Examinar un objeto = qué hace, etapa → tramo (de `flujoApp`, `barrio.infoModulo`),
+  quién lo usa ahora, lo detenido del Mapa (también como **globito rojo** con el número sobre el ícono) y «Usar <módulo>»
+  si hay permiso. Quien no juega va al objeto del módulo que tiene abierto (`motor.estacionPara`; si hay dos, el de su casa).
+  **«¿Dónde está…?»** (`buscador.tsx`): todos los módulos por etapa, con filtro; elegir = caminar hasta el objeto. Al entrar
+  a un cuarto sale su **letrero** («CONTABILIDAD · Contar»); con «Sin techos» se ven los nombres de todos los cuartos.
+- **Los módulos se usan DENTRO del juego** (8-oct, pedido: «cuando se abre un módulo se rompe el juego porque se sale…
+  una vista que sea 100 % el juego con todas las funcionalidades»). «Usar X» abre el módulo de verdad en una ventana del
+  juego (`VentanaModulo.tsx`) y el personaje camina y se sienta en su objeto (los demás leen «Usando Libro Mayor»: campo
+  `modulo` de `/api/empresa-viva/jugador`). Cerrar = «Volver al barrio», en el mismo punto. Cómo no se sale:
+  - El módulo se monta con el mismo enrutador de la app, extraído de `App.tsx` a `components/PanelRouter.tsx`.
+  - **Panel local** (`lib/panelLocal.tsx`): los módulos con secciones (Contabilidad, Facturación, Negocio, Inventario,
+    Logística, Operativos) leen `usePanelActual()` / navegan con `useIrAPanel()` en vez del store; adentro del juego eso es
+    la ventana (con migas y «← Atrás»), afuera es el store como siempre. ⚠️ Un hub nuevo con pestañas debe usar esos dos
+    hooks, o al cambiar de pestaña saca a la persona del juego.
+  - Lo que navegue por el store directo lo atrapa `interceptarPanel` (`stores/app.ts`), **solo** si el clic o la tecla salió
+    de la ventana del módulo (bandera de captura en `VentanaModulo`): la barra de la app sigue funcionando normal.
+  - El Mapa adentro del juego se fuerza a modo mapa (`MapaVivo`: sin el selector Mapa · Juego, o sería un juego dentro de otro).
+  - Con algo abierto encima, flechas y espacio son de lo abierto (desplazar el módulo), no del personaje (`escena.instalarTeclado`).
+- **Ajedrez entre dos** (8-oct, pedido: «que dos jugadores jueguen ajedrez, como minijuego»). Mesa de piedra en el
+  parque, al sur de la calle (`armar_mapa.py`: `m_mesa_ajedrez`, dos `m_banquito`, estación `tipo="ajedrez"` + punto
+  `ajedrez_der`). Se reta con «Jugar ajedrez» al hablarle a alguien o desde la mesa («Retar a alguien», «Mirar: A vs B»).
+  Al que retan le sale el diálogo «Aceptar y jugar / Ahora no / Lo pienso» (y un botón ♞ que late en la barra mientras
+  haya un reto o sea tu turno). Al empezar, cada quien camina a su banco (blancas a la izquierda) y se sienta; el tablero
+  (`Ajedrez.tsx`) se juega con dos toques (pieza → casilla), con jaque, coronación, tablas ofrecidas y rendición.
+  - **Servidor**: `app/services/empresa_viva_ajedrez.py`, tabla `ev_ajedrez` en `tickets.db` (sobrevive reinicios: se
+    puede dejar a medias). Rutas `GET|POST /api/empresa-viva/ajedrez`, `GET …/<id>`, `POST …/<id>/aceptar|rechazar|
+    cancelar|jugada|rendirse|tablas`, con la persona del juego (el contador no juega). Valida turno por paridad, forma
+    UCI, `n` (no mover dos veces) y pone el resultado según el motivo (jaque mate = gana quien movió).
+  - **No** valida la legalidad de cada jugada: lo hace **chess.js 1.4.0** (BSD-2) en el navegador de todos, que
+    reconstruye la partida y la marca rota si una jugada no vale. Minijuego interno: no amerita un motor en Python.
+  - Límites: 6 partidas abiertas por persona, una abierta por pareja, el reto vence a las 2 h. Mirar lo puede todo el
+    equipo; mover solo los dos. Las piezas son pixel art propio (máscaras 16 × 16 en `Ajedrez.tsx`).
+- **Trofeos al lado de la cama** (8-oct noche, pedido cuando Armando le ganó a Cynthia la primera partida, 37 jugadas con
+  jaque mate). Cada partida ganada deja un trofeo a quien ganó (`ev_trofeos` en tickets.db, uno por partida y ganador):
+  **oro** = jaque mate, **plata** = el rival se rindió, **verde** = partido de tenis ganado (uno para cada quien del
+  equipo); las tablas no dan. Se acumulan en una **repisa al lado de la cama** de cada cuarto (`m_repisa_trofeos`, punto
+  `trofeos_<cuarto>` con 2 baldas de 4; desde el noveno sale «+N»); quién duerme dónde lo dice `empresa_viva_casas.json`.
+  Examinar la repisa = la lista («le ganaste a Cynthia con jaque mate en 37 jugadas · 8 oct»). Al arrancar, las partidas
+  ganadas antes de existir los trofeos dejan el suyo (por eso el de Armando quedó guardado). ⚠️ Jenniffer y Sebastián no
+  tienen cuarto en el barrio: sus trofeos se guardan pero no se ven en ninguna repisa. No es un ranking: nada compara
+  a nadie, cada quien tiene los suyos en su cuarto.
+- **Tenis en equipo** (8-oct noche, pedido: «un juego de tenis para jugar en equipo todos, como el ajedrez»). Cancha en
+  el parque, al lado de la mesa de ajedrez (`textura_cancha_tenis`, estación `tipo="tenis"`, puntos `tenis_A`/`tenis_B`).
+  Alguien **arma un partido** (sala), los demás se unen al equipo A (izquierda de la red) o B (hasta 3 por lado), quien lo
+  armó lo empieza; a todos los que andan por el barrio les sale el aviso y queda en «Atender». Tiempo real, gana quien se
+  lleve **2 juegos** (15-30-40, iguales, ventaja).
+  - **Red sin sockets**: cada jugador manda su raqueta cada 100 ms (`POST /api/empresa-viva/tenis/<id>/estado`); el
+    **anfitrión** (quien lo armó, o el siguiente vivo si se va 6 s) simula la pelota en su navegador y la manda, y anota los
+    puntos con `punto_seq` (un reenvío no cuenta dos veces). Los demás dibujan la pelota adelantada con su velocidad. El
+    servidor (`app/services/empresa_viva_tenis.py`) solo reparte y lleva el marcador; vive **en memoria** (un reinicio corta
+    los partidos; los trofeos ya ganados quedan). ⚠️ Si el anfitrión cierra la ventana, la pelota se detiene hasta que otro
+    tome el relevo.
+  - Rutas: `GET|POST /api/empresa-viva/tenis`, `GET …/<id>`, `POST …/<id>/unirse|salir|empezar|estado`. Cuadro y física en
+    `Tenis.tsx` (canvas, coordenadas 0-1, cancha 2 × 1); con el dedo se arrastra la raqueta.
+- **Objetos que se distinguen del mapa** (8-oct noche, pedido: «los nombres e íconos de los módulos no se distinguen»).
+  Cada objeto-módulo flota en una **placa del color de su etapa del Mapa** (`barrio.colorModulo` lee `mapaComun.COLOR`,
+  paleta PICO-8: Contar azul noche, Facturar vino, Vender verde…), con borde claro, una puntita hacia el mueble y un vaivén;
+  al entrar a un cuarto salen **los nombres de todos sus módulos** con ese color, sin montarse (el que choca no sale).
+  `barrio.objetoDe` lleva «Publicaciones» y «Canales del producto» (salieron del menú) al objeto de Vitrina web.
+- **«Atender» (tecla Q, primer botón de la barra)**: lo que necesita tu atención en un menú (`MenuAtencion.tsx`): *Para ti*
+  (solicitudes que te hicieron — de `/api/mensajes/resumen` —, chats sin responder, grupos sin leer, retos y turno del
+  ajedrez, partidos de tenis), *Detenido en tus módulos* (el «Detenido ahora» del Mapa, ya recortado a tus permisos) y *En
+  el barrio* (clientes en la tienda, paquetes por alistar, proveedor llegando). Cada renglón: **Atender** (abre el módulo
+  ahí mismo, dentro del juego; una solicitud se abre directo en Mensajes → Solicitudes) o **Ir** (caminar hasta el objeto).
+- **Techos**: la casa donde está el jugador pierde techo y fachada; sobre los techos se lee «Adentro: …». «Sin techos»
+  en la barra los quita todos. Noche con la hora de Bogotá (velo + halos en los postes).
+- ⚠️ Botones del juego con `mck-btn-no-fx` (el `index.css` les fuerza posición, `overflow` y efectos). ⚠️ En desarrollo
+  React monta dos veces: `JuegoEmpresa` lleva la bandera `destruido` o quedan dos lienzos de Phaser superpuestos (el de
+  arriba congelado). ⚠️ Lo que no se mueve con la cámara se escala con el zoom (el velo de la noche se recalcula).
+- **Banco de pruebas**: `/app/dev/app.html` → «JUEGO» en el cabezote del Mapa; `dev/empresaVivaEjemplo.ts` trae el ciclo
+  de 4 fotos, un jugador de ejemplo (Jenniffer camina por la sede) y un chat directo de ejemplo (a los 90 s te escribe).
+  `dev/ajedrezEjemplo.ts`: partidas en memoria; el rival acepta y responde con jugadas al azar, Cynthia y Victor juegan
+  una (para mirar) y Jenniffer te reta a los 25 s; trae el oro de Armando y una plata de Victor en sus repisas.
+  `dev/tenisEjemplo.ts`: Victor se une al equipo B y su raqueta sigue la pelota; Cynthia arma un partido a los 40 s.
+  En `npm run dev` el juego
+  queda en `window.__empresaViva`. Capturas: Chrome headless + CDP con tiempo real (ver memoria de capturas).
+- ⚠️ Nada de puntajes, rankings ni tiempos por persona (RRHH).

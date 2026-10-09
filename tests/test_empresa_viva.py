@@ -4,13 +4,19 @@ from app.services import empresa_viva as E
 from app.services.tickets_db import _limpiar_avatar_empresa
 
 
-def test_el_avatar_solo_acepta_modelos_y_accesorios_que_existen():
-    assert _limpiar_avatar_empresa({"avatar": "character-male-e", "accesorio": "aid-glasses", "color": "#FFE14D"}) == {
-        "avatar": "character-male-e", "accesorio": "aid-glasses", "color": "#FFE14D"}
-    assert _limpiar_avatar_empresa({"avatar": "character-male-e"}) == {"avatar": "character-male-e", "accesorio": "", "color": ""}
-    assert _limpiar_avatar_empresa({"avatar": "../../etc/passwd"}) is None
-    assert _limpiar_avatar_empresa({"avatar": "character-male-e", "accesorio": "sombrero"}) is None
-    assert _limpiar_avatar_empresa({"avatar": "character-male-e", "color": "red;background:url(x)"}) is None
+_AVATAR = {"cuerpo": "mujer", "piel": "amber", "ojos": "brown", "pelo": "cola", "color_pelo": "chestnut", "barba": "",
+           "torso": "polo", "color_torso": "rose", "piernas": "leggins", "color_piernas": "black", "zapatos": "tenis",
+           "color_zapatos": "white", "delantal": "", "color_delantal": "tan", "gafas": "redondas"}
+
+
+def test_el_avatar_solo_acepta_piezas_y_colores_del_catalogo():
+    assert _limpiar_avatar_empresa({"pixel": _AVATAR, "color": "#FFE14D"}) == {"pixel": _AVATAR, "color": "#FFE14D"}
+    assert _limpiar_avatar_empresa({"pixel": {**_AVATAR, "pelo": "../../etc/passwd"}}) is None
+    assert _limpiar_avatar_empresa({"pixel": {**_AVATAR, "gafas": "monoculo"}}) is None
+    assert _limpiar_avatar_empresa({"pixel": {**_AVATAR, "color_torso": "#ff0000"}}) is None   # solo paletas con nombre
+    assert _limpiar_avatar_empresa({"pixel": _AVATAR, "color": "red;background:url(x)"}) is None
+    # El del barrio 3D (avatar + accesorio) ya no se acepta: el juego ahora es en pixel art.
+    assert _limpiar_avatar_empresa({"avatar": "character-male-e", "accesorio": "aid-glasses"}) is None
     assert _limpiar_avatar_empresa("character-male-e") is None
 
 
@@ -99,3 +105,248 @@ def test_con_clientes_en_la_tienda_y_un_administrador(monkeypatch):
     admin = {"id": 8, "permisos_secciones": {}, "rol": {"nivel": 3}}
     e = E.estado_para(admin)
     assert e["visitantes"][0]["texto"] == "¿Envían?" and e["sin_senal"] == []
+
+
+def _limpiar_juego():
+    E._jugadores.clear()
+
+
+def test_quien_juega_ve_a_los_demas_y_no_a_si_mismo():
+    _limpiar_juego()
+    armando, jenni = {"id": 8}, {"id": 10}
+    assert E.jugador(armando, {"x": 100, "y": 200, "dir": "abajo", "pose": "camina"})["jugadores"] == []
+    r = E.jugador(jenni, {"x": 300, "y": 210, "dir": "nada", "pose": "vuela"})
+    assert [j["id"] for j in r["jugadores"]] == [8]
+    otro = E.jugador(armando, {})["jugadores"][0]
+    assert otro["id"] == 10 and otro["dir"] == "abajo" and otro["pose"] == "quieto"   # lo raro se vuelve lo de siempre
+    # Posiciones basura no se anotan
+    assert E._limpiar_posicion({"x": "a", "y": 1}) is None
+    assert E._limpiar_posicion({"x": -5, "y": 1}) is None
+    assert E._limpiar_posicion({"x": 10**6, "y": 1}) is None
+
+
+def test_quien_deja_de_jugar_desaparece(monkeypatch):
+    _limpiar_juego()
+    t = [1000.0]
+    monkeypatch.setattr(E.time, "time", lambda: t[0])
+    E.jugador({"id": 8}, {"x": 1, "y": 1})
+    t[0] += E._VIDA_JUGADOR_S + 1
+    assert E.jugador({"id": 10}, {"x": 2, "y": 2})["jugadores"] == []
+
+
+def test_el_chat_de_dos_no_lo_ve_nadie_mas(monkeypatch):
+    """Hablar con alguien en el juego = chat directo: ni el avioncito lo ven los demás."""
+    inter = [{"id": "m1", "tipo": "chat", "de": 8, "para": [10], "canal_id": 4, "ts": 1, "texto": "¿Ya facturaste?",
+              "privado": True}]
+    monkeypatch.setattr(E, "foto", lambda refrescar=False: _foto([]))
+    monkeypatch.setattr(E, "vivo", lambda refrescar=False: {"personas": [], "tareas": {}, "interacciones": inter,
+                                                            "acciones": [], "sin_senal": []})
+    monkeypatch.setattr(E, "casas", lambda: {"usuarios": {}})
+    from app.services import mapa_app
+    monkeypatch.setattr(mapa_app, "urgencias_para", lambda u: {"por_etapa": {}})
+    assert E.estado_para({"id": 10, "permisos_secciones": {}, "rol": {"nivel": 1}})["interacciones"][0]["texto"] == "¿Ya facturaste?"
+    assert E.estado_para({"id": 9, "permisos_secciones": {}, "rol": {"nivel": 1}})["interacciones"] == []
+    assert E.estado_para({"id": 1, "permisos_secciones": {}, "rol": {"nivel": 3}, "es_admin": True})["interacciones"] == []
+
+
+def test_las_rutas_del_juego_exigen_a_la_persona(monkeypatch):
+    """Sin token personal no hay a quién mover; el contador no juega."""
+    from flask import Flask
+
+    from app import routes_mapa_sistema
+    from app.services import tickets_db
+
+    app = Flask(__name__)
+    routes_mapa_sistema.register_mapa_sistema_routes(app)
+    c = app.test_client()
+    assert c.post("/api/empresa-viva/jugador", json={"x": 1, "y": 1}).status_code == 401
+    usuarios = {"tok-stella": {"id": 9, "permisos_secciones": {"empaque": True}},
+                "tok-contador": {"id": 12, "permisos_secciones": {"contador": True}}}
+    monkeypatch.setattr(tickets_db, "get_usuario_by_token", lambda tok: usuarios.get(tok))
+    monkeypatch.setattr(tickets_db, "aplicar_privilegios_admin_cynthia", lambda u: u)
+    _limpiar_juego()
+    assert c.post("/api/empresa-viva/jugador", json={}, headers={"Authorization": "Bearer tok-contador"}).status_code == 403
+    r = c.post("/api/empresa-viva/jugador", json={"x": 40, "y": 50, "dir": "arriba", "pose": "camina"},
+               headers={"Authorization": "Bearer tok-stella"})
+    assert r.status_code == 200 and r.get_json()["jugadores"] == []
+    assert E._jugadores[9]["dir"] == "arriba"
+    assert c.post("/api/empresa-viva/decir", json={"para": 10, "texto": "hola"}).status_code == 404   # ya no existe
+
+
+# ─── Ajedrez en la mesa del parque (empresa_viva_ajedrez) ────────────────────
+
+def _ajedrez(monkeypatch, tmp_path):
+    from app.services import empresa_viva_ajedrez as A
+    from app.services import tickets_db
+
+    monkeypatch.setattr(tickets_db, "DB_PATH", str(tmp_path / "tickets_test.db"))
+    equipo = {8: {"id": 8, "permisos_secciones": {}}, 6: {"id": 6, "permisos_secciones": {}},
+              9: {"id": 9, "permisos_secciones": {}}, 12: {"id": 12, "permisos_secciones": {"contador": True}}}
+    monkeypatch.setattr(tickets_db, "get_usuario_by_id", lambda i: equipo.get(int(i)))
+    return A, equipo
+
+
+def test_ajedrez_reto_aceptar_y_turnos(monkeypatch, tmp_path):
+    import pytest
+
+    A, eq = _ajedrez(monkeypatch, tmp_path)
+    p = A.retar(eq[8], 6)
+    assert p["estado"] == "invitada" and {p["blancas"], p["negras"]} == {8, 6} and p["reta"] == 8
+    with pytest.raises(ValueError):
+        A.retar(eq[6], 8)                       # ya tienen una abierta
+    with pytest.raises(ValueError):
+        A.retar(eq[8], 12)                      # el contador no juega
+    with pytest.raises(ValueError):
+        A.responder(eq[8], p["id"], True)       # quien retó no se acepta a sí mismo
+    with pytest.raises(PermissionError):
+        A.responder(eq[9], p["id"], True)       # ni alguien de afuera
+    p = A.responder(eq[6], p["id"], True)
+    assert p["estado"] == "jugando" and p["turno"] == "blancas"
+    blancas, negras = eq[p["blancas"]], eq[p["negras"]]
+    with pytest.raises(ValueError):
+        A.jugar(negras, p["id"], "e7e5", 0)     # no es su turno
+    with pytest.raises(ValueError):
+        A.jugar(blancas, p["id"], "e2-e4", 0)   # no es UCI
+    p = A.jugar(blancas, p["id"], "e2e4", 0)
+    assert p["jugadas"] == ["e2e4"] and p["turno"] == "negras"
+    with pytest.raises(ValueError):
+        A.jugar(blancas, p["id"], "d2d4", 0)    # el tablero cambió (n viejo) y además no le toca
+    with pytest.raises(PermissionError):
+        A.jugar(eq[9], p["id"], "e7e5", 1)      # quien mira no mueve
+    # Jaque mate del pastor: el resultado lo pone el servidor (gana quien movió).
+    for uci, quien in (("e7e5", negras), ("f1c4", blancas), ("b8c6", negras), ("d1h5", blancas), ("g8f6", negras)):
+        p = A.jugar(quien, p["id"], uci, len(p["jugadas"]))
+    p = A.jugar(blancas, p["id"], "h5f7", 6, fin="jaque mate")
+    assert p["estado"] == "terminada" and p["resultado"] == ("1-0" if p["blancas"] == blancas["id"] else "0-1")
+    assert p["motivo"] == "jaque mate"
+    with pytest.raises(ValueError):
+        A.jugar(negras, p["id"], "a7a6", 7)     # ya terminó
+
+
+def test_ajedrez_tablas_rendicion_y_quien_mira(monkeypatch, tmp_path):
+    import pytest
+
+    A, eq = _ajedrez(monkeypatch, tmp_path)
+    p = A.responder(eq[6], A.retar(eq[8], 6)["id"], True)
+    with pytest.raises(ValueError):
+        A.tablas(eq[8], p["id"], "aceptar")     # nadie las ofreció
+    A.tablas(eq[8], p["id"], "ofrecer")
+    with pytest.raises(ValueError):
+        A.tablas(eq[8], p["id"], "aceptar")     # no se aceptan las propias
+    p = A.tablas(eq[6], p["id"], "aceptar")
+    assert p["estado"] == "terminada" and p["resultado"] == "1/2-1/2"
+
+    q = A.responder(eq[9], A.retar(eq[8], 9)["id"], True)
+    vista = A.listar(eq[6])
+    assert [x["id"] for x in vista["en_curso"]] == [q["id"]]          # Cynthia puede mirar la de Armando y Stella
+    assert [x["id"] for x in vista["mias"]] == [p["id"]]              # y ve su partida recién terminada
+    q = A.rendirse(eq[9], q["id"])
+    assert q["resultado"] == ("1-0" if q["blancas"] == 8 else "0-1") and q["motivo"] == "rendición"
+
+    r = A.retar(eq[6], 9)
+    assert A.responder(eq[6], r["id"], False)["estado"] == "cancelada"   # retirar el reto
+    r = A.retar(eq[6], 9)
+    assert A.responder(eq[9], r["id"], False)["estado"] == "rechazada"
+
+
+def test_ajedrez_rutas(monkeypatch, tmp_path):
+    from flask import Flask
+
+    from app import routes_mapa_sistema
+    from app.services import tickets_db
+
+    A, eq = _ajedrez(monkeypatch, tmp_path)
+    app = Flask(__name__)
+    routes_mapa_sistema.register_mapa_sistema_routes(app)
+    c = app.test_client()
+    usuarios = {"tok-armando": eq[8], "tok-cynthia": eq[6], "tok-contador": eq[12]}
+    monkeypatch.setattr(tickets_db, "get_usuario_by_token", lambda tok: usuarios.get(tok))
+    monkeypatch.setattr(tickets_db, "aplicar_privilegios_admin_cynthia", lambda u: u)
+    h = lambda tok: {"Authorization": f"Bearer {tok}"}
+    assert c.get("/api/empresa-viva/ajedrez").status_code == 401
+    assert c.get("/api/empresa-viva/ajedrez", headers=h("tok-contador")).status_code == 403
+    r = c.post("/api/empresa-viva/ajedrez", json={"a": 6}, headers=h("tok-armando"))
+    assert r.status_code == 200
+    pid = r.get_json()["id"]
+    assert c.post(f"/api/empresa-viva/ajedrez/{pid}/aceptar", headers=h("tok-armando")).status_code == 400
+    assert c.post(f"/api/empresa-viva/ajedrez/{pid}/aceptar", headers=h("tok-cynthia")).get_json()["estado"] == "jugando"
+    assert c.post(f"/api/empresa-viva/ajedrez/{pid}/volar", headers=h("tok-cynthia")).status_code == 404
+    assert c.get("/api/empresa-viva/ajedrez/999", headers=h("tok-cynthia")).status_code == 404
+    p = c.get(f"/api/empresa-viva/ajedrez/{pid}", headers=h("tok-armando")).get_json()
+    quien = "tok-armando" if p["blancas"] == 8 else "tok-cynthia"
+    r = c.post(f"/api/empresa-viva/ajedrez/{pid}/jugada", json={"uci": "e2e4", "n": 0}, headers=h(quien))
+    assert r.status_code == 200 and r.get_json()["jugadas"] == ["e2e4"]
+    assert c.post(f"/api/empresa-viva/ajedrez/{pid}/jugada", json={"uci": "e7e5", "n": "x"}, headers=h(quien)).status_code == 400
+
+
+def test_ajedrez_trofeos_de_quien_gana(monkeypatch, tmp_path):
+    """Oro por jaque mate, plata si el rival se rinde, nada por tablas; uno por partida."""
+    import sqlite3
+
+    A, eq = _ajedrez(monkeypatch, tmp_path)
+    p = A.responder(eq[6], A.retar(eq[8], 6)["id"], True)
+    bl, ng = eq[p["blancas"]], eq[p["negras"]]
+    for uci, quien in (("e2e4", bl), ("e7e5", ng), ("f1c4", bl), ("b8c6", ng), ("d1h5", bl), ("g8f6", ng)):
+        p = A.jugar(quien, p["id"], uci, len(p["jugadas"]))
+    A.jugar(bl, p["id"], "h5f7", 6, fin="jaque mate")
+    q = A.responder(eq[9], A.retar(eq[8], 9)["id"], True)
+    A.rendirse(eq[9], q["id"])                                   # Stella se rinde: plata para Armando
+    t = A.responder(eq[9], A.retar(eq[6], 9)["id"], True)
+    A.tablas(eq[6], t["id"], "ofrecer")
+    A.tablas(eq[9], t["id"], "aceptar")                          # tablas: sin trofeo
+    trofeos = A.listar(eq[9])["trofeos"]
+    assert [(x["usuario"], x["rival"], x["medalla"]) for x in trofeos] == [(bl["id"], ng["id"], "oro"), (8, 9, "plata")]
+    assert trofeos[0]["motivo"] == "jaque mate" and trofeos[0]["jugadas"] == 7
+
+    # Una partida ganada antes de que existieran los trofeos también deja el suyo (una sola vez).
+    c = sqlite3.connect(A.tickets_db.DB_PATH)
+    c.execute("DELETE FROM ev_trofeos")
+    c.commit()
+    c.close()
+    A._listo.clear()
+    assert len(A.trofeos()) == 2
+    A._listo.clear()
+    assert len(A.trofeos()) == 2
+
+
+def test_tenis_en_equipo_conteo_y_trofeos(monkeypatch, tmp_path):
+    """Sala → equipos → el anfitrión anota con el conteo de tenis → trofeo a cada ganador."""
+    import pytest
+
+    from app.services import empresa_viva_tenis as T
+
+    A, eq = _ajedrez(monkeypatch, tmp_path)
+    T._partidas.clear()
+    p = T.crear(eq[8])
+    with pytest.raises(ValueError):
+        T.crear(eq[8])                                  # ya está en uno
+    with pytest.raises(ValueError):
+        T.empezar(eq[8], p["id"])                       # falta el otro equipo
+    T.unirse(eq[6], p["id"], "A")
+    T.unirse(eq[9], p["id"], "B")
+    with pytest.raises(PermissionError):
+        T.empezar(eq[9], p["id"])                       # lo empieza quien lo armó
+    p = T.empezar(eq[8], p["id"])
+    assert p["estado"] == "jugando" and p["host"] == 8 and p["equipos"] == {"A": [8, 6], "B": [9]}
+    # Stella no es anfitriona: su «punto» no cuenta; su raqueta sí llega
+    p = T.estado(eq[9], p["id"], {"raqueta": {"x": 0.9, "y": 7}, "punto": "B", "punto_seq": 1})
+    assert p["puntos"] == {"A": 0, "B": 0} and p["raquetas"]["9"]["y"] == 1
+    seq = 0
+    def punto(equipo):
+        nonlocal seq
+        seq += 1
+        return T.estado(eq[8], p["id"], {"raqueta": {"x": 0.1, "y": 0.5}, "punto": equipo, "punto_seq": seq})
+    for e in "AAAB":
+        p = punto(e)
+    assert p["puntos"] == {"A": 3, "B": 1}
+    p = T.estado(eq[8], p["id"], {"punto": "A", "punto_seq": seq})   # reenvío: no cuenta dos veces
+    assert p["puntos"]["A"] == 3
+    p = punto("A")
+    assert p["juegos"] == {"A": 1, "B": 0} and p["puntos"] == {"A": 0, "B": 0} and p["saca"] == "B"
+    for e in "ABABABAA":                                # iguales, ventaja… y juego
+        p = punto(e)
+    assert p["estado"] == "terminada" and p["ganador"] == "A"
+    tenis = [t for t in A.trofeos() if t["juego"] == "tenis"]
+    assert sorted(t["usuario"] for t in tenis) == [6, 8]
+    assert tenis[0]["detalle"]["rivales"] == [9] and tenis[0]["detalle"]["marcador"] == "2-0"
+    T._partidas.clear()

@@ -307,6 +307,13 @@ function syncNavHash(panel: Panel, view?: string) {
   writeNavHash(p, view);
 }
 
+let interceptor: ((p: Panel) => boolean) | null = null;
+/** Quien abre módulos por dentro (Empresa viva) atiende los cambios de panel que nacen allí:
+ *  devuelve true si se encargó. `null` lo quita. */
+export function interceptarPanel(fn: ((p: Panel) => boolean) | null) {
+  interceptor = fn;
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -345,6 +352,9 @@ export const useAppStore = create<AppState>()(
           return;
         }
         const next = normalizePanel(panel);
+        // Empresa viva abre los módulos dentro del juego: si lo pidió algo de su ventana, lo atiende
+        // allá y la app no cambia de panel (ver lib/panelLocal.tsx).
+        if (interceptor?.(next)) return;
         const cur = get();
         if (cur.panel === next && !cur.sidebarOpen) return;
         // Al abrir un panel operativo desde el hub, pasar al Layout responsive.

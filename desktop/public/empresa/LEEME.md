@@ -1,17 +1,22 @@
-# Modelos 3D de «Empresa viva»
+# Recursos de «Empresa viva» (pixel art)
 
-Solo los modelos que usa el juego (`desktop/src/components/empresa/`). Todos con licencia **CC0 1.0** (dominio público).
+El juego (`desktop/src/components/empresa/`, Phaser 4) carga todo de `pixel/`. Flask lo sirve en
+`/app/empresa/<ruta>` (`serve_spa_empresa` en `app/routes.py`, mismo guardia de sesión que el panel).
 
-| Carpeta | Pack de origen | Licencia |
+| Archivo | Qué es | Lo arma |
 |---|---|---|
-| `kaykit/ciudad/` | KayKit City Builder Bits (edificios vecinos, postes, carros, setos) | `kaykit/LICENSE-kaykit.txt` |
-| `kaykit/muebles/` | KayKit Furniture Bits (interiores) | idem |
-| `kaykit/cocina/` | KayKit Restaurant Bits (cocina, mostrador, frascos de la bodega) | idem |
-| `kaykit/medieval/decoration/nature/` | KayKit Medieval Hexagon (árboles redondos) | idem |
-| `personajes/` | Kenney Mini Characters (12 personajes animados + gafas; `previews/` = miniaturas) | `LICENSE-kenney.txt` |
-| `muebles/`, `carros/`, `naturaleza/` | Kenney Furniture Kit, Car Kit, Nature Kit (lo que KayKit no trae) | idem |
+| `pixel/suelo.png` | el piso de todo el barrio (pasto, calle, andenes, pisos y muros) | `scripts/empresa_viva/armar_mapa.py` |
+| `pixel/muebles.png` + `.json` | atlas de muebles (se ordenan por profundidad con los personajes) | idem |
+| `pixel/objetos.png` + `.json` | lo que se mueve o cambia: cajas, avioncitos, frascos, papeles, moto, camión | idem |
+| `pixel/techos/<casa>.png` | techo + fachada de cada casa (se desvanece cuando el jugador entra) | idem |
+| `pixel/hugo.png` | Hugo, el agente (4 cuadros) | idem |
+| `pixel/mapa.json` | lugares, puestos, puntos con nombre, muebles, estantes, rejilla de choques | idem |
+| `pixel/personajes/` | capas LPC por pieza y tipo de cuerpo + `personajes.json` (catálogo y paletas) | `scripts/empresa_viva/armar_personajes.py` |
+| `pixel/fuente/` | Pixelify Sans (OFL) para diálogos y nombres | bajada de Google Fonts |
 
-KayKit: https://github.com/KayKit-Game-Assets (Kay Lousberg). Kenney: https://kenney.nl.
-Cada `.gltf` de KayKit trae su `.bin` y la textura del pack al lado; los `.glb` de Kenney leen `Textures/colormap.png`.
-No mover un modelo a la carpeta de otro pack. Para agregar uno: copiar sus archivos a la carpeta de su pack y
-registrarlo en `MUEBLE` (`escena.ts`) con su escala (KayKit Furniture/Restaurant: `s: 0.5`).
+**No editar a mano** lo generado: se cambia el plano en `armar_mapa.py` (o el catálogo en
+`armar_personajes.py`) y se vuelve a correr — el dibujo y la lógica salen del mismo plano, así no se
+desalinean. `--vista ruta.jpg` deja una imagen de control del barrio armado.
+
+Créditos y licencias: `pixel/CREDITOS.md` y `pixel/personajes/CREDITOS.md`. El barrio 3D anterior
+(Three.js + KayKit/Kenney) se retiró el 2026-10-08; está en el historial de git (commit c13a36ab).

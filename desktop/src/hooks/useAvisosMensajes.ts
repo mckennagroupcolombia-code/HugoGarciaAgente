@@ -16,7 +16,8 @@ import { useResumenMensajes } from "./useCanalesEquipo";
  *  - Zumbido de una solicitud (`zumbidos` del resumen): la pantalla tiembla, zumba y sale
  *    la tarjeta; se marca visto para que no vuelva a sonar (lib/zumbido.tsx).
  * El sonido sale de las alertas sonoras de cada quien (lib/alertasSonido.ts): por grupo,
- * por persona o el general, con recortes de Duck Hunt y Circus Charlie.
+ * por persona o el general, con el lenguaje sonoro de la app (campanitas de dos notas para
+ * mensajes, tres notas para solicitudes) o los clásicos de Duck Hunt y Circus Charlie.
  */
 
 export type AvisoMensaje = {
@@ -135,7 +136,8 @@ export function useAvisosMensajes(activo: boolean, noMostrarCanal: number | null
         const sonido = sonidoDeMensaje(useAlertasSonido.getState().ajustes, m.canal_id, m.usuario_id);
         setAviso({ id: m.id, tipo: "mensaje", canal_id: m.canal_id, canal_nombre: m.canal_nombre, autor_nombre: m.autor_nombre,
           texto: m.texto || (m.adjunto_nombre ? "📎 Adjunto" : "Mensaje nuevo"), icono: sonidoPorId(sonido)?.icono, mencion: Boolean(m.mencion) });
-        if (!document.hidden) reproducirSonido(sonido);
+        // Si te nombran con @, encima del tono del grupo suena un destello (lib/lenguajeSonoro.ts).
+        if (!document.hidden) reproducirSonido(sonido, { mencion: Boolean(m.mencion) });
       })
       .catch(() => {});
   }, [n]); // eslint-disable-line react-hooks/exhaustive-deps

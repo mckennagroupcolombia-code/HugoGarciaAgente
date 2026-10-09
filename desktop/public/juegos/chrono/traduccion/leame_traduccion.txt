@@ -1,0 +1,371 @@
+Traducción de  CHRONO TRIGGER de SNES, de inglés a español.
+Aplicar sobre ROM SIN cabecera (véanse "nota" y apartado 0.0).
+v. 1.07
+
+
+		Por cortesía de
+          ____  
+         / __/ 
+        / /    
+       / /    ___                                         ° |\ 
+      | |    |   \   ___    ___  _  _    ___  _           _ | \   
+      | |    | |\ \ / _ \  / __|| |/ /  / _ \\ \   /\  /\| ||  \ 
+      | |    | |/ /| |_| || |   | | /  | | | |\ \ / / / /| ||   \
+       \ \   | | / |  _  || |   |   \  | | | | \ \ /\/ / | || |\ \ 
+        \ \_ | | \ | | | || |__ | |\ \ | |_| |  \ /\ \/  | || | \ \ 
+         \__||_|\_\|_| |_| \___||_| \_\ \___/    \  \/   |_||_|  \/ 
+
+
+					http://crackowia.com
+
+		                    
+
+
+	Traducción / ROMhack:			Rod Mérida
+	Evaluador beta:				Vicks Delgado
+	Traductora auxiliar:	 		Mire Scarlet
+						  (Escena de Flea y Slash)
+
+
+Copyright (c) R. Mérida, 2020
+
+Porcentaje de traducción: 100%
+
+Signos especiales del castellano: ñ, á, é, í, ó, ú, ü, ¡, ¿, Ñ, Á, É
+
+Aplicar el parche sobre ROM norteamericana (en inglés) SIN cabecera SMC de 512 bytes.* (Para más información sobre cabeceras .SMC, véase el siguiente apartado)
+  Si tu ROM tiene cabecera, utiliza Tush para quitársela:
+https://www.mediafire.com/file/1m5s2i8eabwmjo6/tush.zip/file
+Enlace alternativo: crackowia.com/utils/tush.php
+
+Idioma original de ROM: inglés
+
+Tamaño de la ROM original: 4MB (32 Mbits)
+Tamaño de ROM parcheada traducida: 4MB (32 Mbits)
+¿Expande este parche el tamaño de la ROM? No
+
+Versión de ROM del juego sobre la que aplicar el parche:
+	Aplicar el parche a ROM norteamericana sin cabecera con suma de verificación CRC32 de ROM: 2D206BF7 y suma de verificación CRC32 de archivo: 8A36ED76
+(La suma de verificación puede obtenerse abriendo dicha ROM desde el emulador ZSNES)
+
+Para ver las INSTRUCCIONES SOBRE CÓMO APLICAR ESTE PARCHE dirigíos al apartado 0.0 del índice (más abajo).
+
+¿Se fabrican reproducciones físicas del cartucho traducido? Sí.
+  Sin ánimo de lucro, y siempre que el interesado posea una copia legal del juego (no nos hacemos responsables de un mal proceder ante tal cláusula, que queda enteramente bajo responsabilidad y a discreción del usuario).
+  Los interesados pueden solicitárnoslas a través de nuestro correo de contacto: crackowia@gmail.com
+
+
+
+
+*Nota: QUÉ ES UNA CABECERA .SMC
+____________________________________
+Este parche requiere ser aplicado sobre una ROM de SNES que no tenga cabecera SMC. Las cabeceras SMC son un tipo de cabecera de 512 caracteres, o bytes, que eran agregadas automáticamente al archivo de una ROM al ser extraída del cartucho a disquete mediante dispositivos Super Magic Drive, o Super Magic Cartridge. Éstos fueron los primeros dispositivos extractores de ROM's de cartuchos, o "copiones", más o menos difundidos durante los 90, y permitían extraer un cartucho conectado a ellos, grabándolos en uno o varios discos magnéticos, en forma de archivo, que luego podían ser fácil y cómodamente leídos desde un PC.
+
+Es este tipo de archivo lo que luego comenzó a ser denominado "ROM" en el mundillo de la emulación. En realidad la ROM es el chip incluido en la placa de un cartucho que contiene toda la programación, información y datos del juego, gráficos, niveles, etc., pero no la cabecera SMC, que es parte únicamente del formato de archivo extraído por el copión.
+
+Dicho de otro modo, el parche con este léame incluido requiere ser aplicado a una ROM en lo que se conoce como formato .SFC (sin cabecera incluida), y no .SMC, es decir, requiere ser aplicado sobre una ROM que no incluya cabecera externa de 512 caracteres, de lo contrario el parche no se aplicará correctamente, y lo que saldrá será un "churro" que no arrancará en ningún emulador ni consola ni a tiros. Si dispones de una ROM con cabecera, puedes quitársela con Tush, utilidad que ponemos a disposición del público: crackowia.com/utils/tush.php
+
+¿Cómo saber si la ROM a la que vas a aplicar el parche tiene o no cabecera?
+Muy sencillo: Mira las propiedades del archivo de la ROM,
+- si ocupa 4.194.816 bytes (ó 4097 kilobytes) poseerá cabecera;
+- si por el contrario ocupara 4.194.304 bytes (ó 4096 KB) carecerá de cabecera.
+
+
+
+ÍNDICE
+0.0. INSTRUCCIONES DE APLICACIÓN DEL PARCHE
+0.1. Control de versiones
+1. INFORMACIÓN ADICIONAL
+1.1. NTSC y PAL
+1.2. Versión de la ROM que se ha traducido
+1.3. Tratos de 2ª persona plural y cortesía.
+1.4. Uso de arcaísmos.
+1.5. Español peninsular vs. hispanoamericano neutro
+1.6. Leísmo inexistente.
+1.7. Uso de acentos diacríticos en éste, ése, aquél y sólo
+1.8. Traducción de gráficos
+1.9. Autoría
+1.10. Agradecimientos especiales
+2. DIATRIBA SOBRE TRADUCCIONES EXISTENTES DE CHRONO TRIGGER
+3. CONSIDERACIÓN LEGAL
+4. CONTACTO
+
+
+
+
+0.0. INSTRUCCIONES DE APLICACIÓN DEL PARCHE
+___________________________________________
+
+Este fichero no es el juego en sí, ya traducido, sino un parche. En otras palabras, este fichero contiene, por así decirlo, las diferencias entre la ROM original y la ROM traducida.
+
+CÓMO USAR ESTE PARCHE:
+
+Para poder obtener la ROM traducida al castellano de este juego a partir de este parche, deberá disponer de la ROM original en inglés, así como de un programa capaz de aplicar a dicha ROM el parche.
+
+Una vez disponga de todo esto, deberá proceder de la siguiente forma:
+
+- Copie el parche y la ROM original (con cabecera SMC) a un mismo directorio (carpeta).
+
+- Compruebe si la ROM tiene o no cabecera. Si no tiene cabecera ocupará 4096 KB . En ese caso puede proceder a la aplicación del parche.
+Si su ROM posee cabecerá verá que ocupa 4097 KB, en cuyo caso, puede quitársela con el programa Tush: crackowia.com/utils/tush.php. 
+
+- Ejecute la herramienta capaz de aplicarle el parche a la ROM original (un ejemplo de programa capaz de hacer esto es SNESTOOL, para MS-DOS, o LunarIPS, para Windows. Ambos pueden descargarse a través de los siguientes enlaces:
+crackowia.com/utils/snestool.php
+crackowia.com/utils/lunarips.php ).
+
+- Aplique el parche a la ROM original mediante el programa, ya ejecutado. Para ello seleccione la opción Use IPS, si utiliza SNESTOOL, y Apply Patch, en caso de que utilice Lunar IPS, y siga los pasos: el programa le pedirá seleccionar primero el parche, y luego la ROM original no traducida, que se sobreescribirá, generando así la ROM castellana. Si desea conservar la ROM original en inglés haga antes una copia de seguridad de la misma.
+
+- Ya dispondrá de una versión traducida del mismo juego, que la disfrute.
+
+
+Si a pesar de todo continuase experimentado dificultades en la aplicación del parche, consulte nuestra web: http://crackowia.com
+
+
+
+0.1. CONTROL DE VERSIONES
+_________________________
+v.1.07. Revisado el modo de traducir al español el habla arcaica de Frog, de tipo shakespeariano, propia de la versión en inglés del juego (traducida por Ted Woolsey). Cabe matizar que en inglés el habla de este personaje está trufada de arcaísmos morfológicos (Methinks, 'Tis...) y conjugacionales (thou knowest, thou wilt...), y con no poca frecuencia sintácticos (uso de "naught" como partícula negativa, por ejemplo), a un punto en que prácticamente en cada frase que dice hay algo de eso. Lo lógico, si se quiere ser fiel a la versión occidental del juego (como era este proyecto cuando lo ejecutamos en 2020) sería traducirlo con una carga análoga de arcaísmos de tipo barroco. Y eso hicimos en 2020. Hay alguna gente poco familiarizada con el habla de tipo barroco o propia del siglo de Oro (la que se puede ver en cualquier obra de Lope de Vega, Quevedo o Cervantes), que se ha quejado de que en la traducción el habla de Frog llega a resultar a ratos forzada, que algunas frases pueden resultar liosas: se refiere con toda probabilidad a frases del tipo de "tenemos que encontralla", "hémosla liberar", "Llevado se la han" o "paréceme", pero es que éste es el tipo de arcaísmos que en nuestra lengua equivaldrían a la clase de arcaísmos de corte shakespeariano que el juego emplea en inglés; no hay muchos más que se puedan usar con la misma frecuencia que los utiliza en inglés el juego. Creo honestamente que quien afirma esto de que es "forzado", es porque no se ha visto cómo era en inglés. En cualquier caso, a fin de hacer la lectura de la traducción más asequible, llevadera y liviana con independencia del nivel cultural del lector, esté éste más o menos versado en clásicos de la literatura española, hemos hecho una revisión a fondo de todo lo que dice el personaje Frog a lo largo del juego, conforme al siguiente criterio: si la frase que dice Frog es corta y no va precedida o seguida de varias otras que ayuden a contextualizar, hacemos un ejercicio de contención y tendemos bien a mantener la frase en español moderno al uso, utilizando como única marca arcaica el "vos" medievalesco o algún sinónimo de regusto antiguo ("guisa" en lugar de "apariencia) cuyo uso pueda venir a colación. Si la frase es lo bastante larga o pertenece a un discurso lo bastante abundante como para que sea fácil insertar arcaísmos más crudos sin que ello desconcierte al lector, o se ha dejado como estaba, o se han modificado leventemente para tratar de obtener el equilibrio entre que se sepa el personaje habla de forma antigua, que suene gracioso y que no resulte lioso. 
+	- Revisado el logotipo de nombre de elemento mágico "Relámpago" en el menú, para que cobre mayor contraste y no se difumine en exceso la separación entre las letras "p", "g" y "o" finales.
+	- Revisada la traducción del nombre de objeto clave DreamStone, que pasa a llamarse RocaVetusta, en lugar de RocaMorfeo.
+
+
+v.1.06a. Revisada justificación de margen derecho de un diálogo de Marle, al comienzo del juego, si le decimos que no a su propuesta de que nos acompañe en la feria (agradecimientos por el reporte a "El Sentir").
+
+v.1.06. Traducidas todas las pantallas de créditos del juego.
+	- Añadidos cuatro caracteres dobles fáciles de dibujar en el espacio límite de 8 píxeles de ancho, a fin de poder desabreviar algunos nombres de técnicas, así como de objetos y armas del inventario (como Tricecrnio, que pasaría a Tricecornio, es decir, un tricornio con forma de cornamenta de triceratops; como BrzoAriete, que apsa a BrazoAriete; o como PatadaTrple, que pasa a PatadaTriple).
+	- Sustituido el nombre de habilidad Vrticeígneo por Pirovórtice.
+
+v.1.05. Mejorado diálogo de Lucca, cuando se disponen a atacar a Lavos con el Epoch, y ella teme que termine naufragando.
+	Corregida errata de concordancia en un artículo, en diálogo del Gurú de la Razón, antes de ir al Pico de la Muerte.
+	-> revisión 1.05c -> sustituido "¡Silencio!" por "¡Quietos!", cuando los soldados persiguen en el presente a Chrono y Marle.
+			sustituido "Dinos," por "A ver," en diálogo de Lucca mientras van en busca de Melchor, tras visitar su morada y no encontrarlo, porque se halla ausente, habiendo dejado una nota.
+			Parche VINAGRE.IPS (ahora VINAGAR.IPS): se transcribe el nombre japonés de Ozzie, que es "Vinaga" (del inglés Vinager) de manera literal, como VINAGAR (pronunciado Vínagar), en todo el juego, en lugar de castellanizarlo como VINAGRE. Ambas opciones se me tercian válidas, y respetables, pero a día de hoy, considero que la transcripción literal es mucho más fiel al estilo y espíritu de Toriyama en el diseño y nomenclatura de sus personajes, en que tiene tendencia a nombrar a todos los personajes de una misma categoría a partir de objetos o elementos que tienen algo en común, en este caso ingredientes culinarios, pero modificando ligeramente dicho vocablo para dar lugar a nombres ficticios, cuya etimología no sea obvia. Así en Dragon Ball tenemos Cácalot (o Cácarot), a partir de "Carrot" (en japonés transcrito Karotto), Vegeta, de "Vegetable", pues es el rey de los Saiyas, o Guerreros del Espacio, por tanto el más importante, o Nappa, o el propio hermano de Goku, Raditz, a partir de Radish, que significa rábano en inglés. Aplicando este mismo criterio, hemos traducido los nombres originales de los 3 antagonistas secundarios temáticos Ozzie, Flea y Slash, que en japonés eran Vinaga, Mayone y Soiso (derivado de Soy Sauce, salsa de soja) como Vinagar, Mayón, y Saltz (este último derivado a partir del equivalente castellano del término, para que su etimología e interrelación con los otros dos sea más obvia). De todas formas recordamos a los que nos leen que este parche es completamente opcional, dado su carácter experimental, como ya dije con anterioridad en el léame de este parche. Lo normal, o estándar, en nuestra traducción, será siempre jugar al parche original que incluye para la práctica totalidad de los personajes la nomenclatura yanqui fruto de la traducción al inglés de Ted Woolsey: Ozzie, Flea, Slash, Marle y Nadia (en lugar de Nadia para ambos), Magus (en lugar de Maô, rey demonio) y Janus (en lugar de Jaki), Schala (en lugar de Sara), Frog (en lugar de Kaeru), Melchor (en lugar de Bosshu), etc.
+	-> revisión 1.05d -> añadida preposición "a" omitida por error en diálogo "Hablando de tipos raros, no he vuelto a ver al guardián de la Reina, esa rana rara."
+	-> revisión 1.05e -> el Colgante de Marle aparecía por descuido en el menú como "Pendiente", por no saber que era el mismo objeto, a pesar de que en todos los diálogos del juego se menciona siempre como "Colgante" o incluso muy ocasionalmente "medallón". Ha sido subsanado en el menú (de todas formas, dado que sólo aparecía así en el menú y que es un objeto especial, que no puede ser usado como tal desde el inventario, esto afectaba poco en el juego y la historia. Agradecimientos a José Luis Fernández, ya que gracias a él he podido percatarme de este detalle). 
+	Una letra "L" minúscula aparecía ligeramente cortada por su parte superior en un diálogo de Magus, durante el segundo juicio; ha sido corregido (Agradecimientos a Damniel, del canal "Damniel, vicio y perversión", por informar de este ligero error tipográfico).
+	Revisado diálogo de Frog tras encontrar el grupo en el presente el Cascarón Arcoíris.
+
+v.1.044. Corregido "porque" átono separado en el segundo juicio.
+
+v.1.043. Corregidas dos erratas: "n" final de sílaba elidida en "Plantarlo, con esperanza"; y "d" en lugar de "t" en "difunto", en un diálogo con el Gurú de la Razón sobre el Germen de Chronos.
+
+v.1.042. Corregida errata, adición de "n" final de sílaba innecesaria en diálogo de Dalton en el Mirlo Negro, junto al Epoch, en la palabra "atención". 
+
+v.1.041. Corregida errata, "n" final de sílaba elidida en diálogo de la reina Zeal: "acabaréis rogándonos piedad".
+	Eliminada repetición de nexo "que" en diálogo de Lucca: "ha sido un golpe de suerte que el Portal nos enviase acá."
+	Sustituido adverbio "acá" por "aquí" en diálogo de Lucca: "He terminado por acá", para indicar mayor cercanía.
+
+v.1.04. Corregido error de puntero en frase de huida "¡No puedes huir!", que hacía que apareciera como un sarcástico "Ne"...
+
+v.1.03. Eliminada "a" parcialmente borrada en diálogo del dependiente de la Aldea Truce en el presente, tras volver de la Edad Media y echar a faltar a Fritz, debido a que el texto del primer renglón se pega demasiado al margen derecho.
+
+v.1.025. Corregida errata en diálogo de Marle en el futuro, cuando pregunta si puede relevar a alguien.
+	Sustituido "acá" por "aquí" en diálogo precedente, para evitar posible rasgo de tipismo dialectal andaluz oriental rural, si bien, puede llegar a aparecer "acá" en tal contexto, de menor cercanía, o imprecisión, en castellano estándar (y se llega a utilizar en otros casos en situación similar).
+
+v.1.024. Eliminada inversión verbo-pronombre en último verso del cántico de los Místicos en adoración a Magus, utilizada con fines métricos, al carecer dicho cántico de regularidad métrica.
+	Sustituido CHORO por CORO en cántico en adoración a Magus, en el sótano de la catedral.
+	Sustituido el demostrativo "esa" por "esta" en diálogo de Lucca: "¡Ey, Crono! ¿Dónde has encontrado a esa ricura?" en referencia a Marle, para indicar una menor distancia.
+	Eliminado "de" innecesario en "Seguro que", en el diálogo del monstruo disfrazado de Rey Guardia (lo que daba apariencia de dequeísmo).
+	Sustituido "pendientes" por "medallones" en un diálogo acerca del interés de Melchor por adquirir tales reliquias pagándolas con holgura. 
+	Corregido error de concordancia de género en un diálogo de Lucca (al presentarse Frog) y otro de una testigo durante el juicio a Crono. 
+        Sustituido "pinta deliciosa" por "pinta exquisita", en el diálogo de una monja falsa en la Catedral, para que el sentido de tal frase sea más ambiguo, y no resulte tan descarado.
+
+v.1.023. Desabreviada cadena de texto Armdr por -> Armadura en menú de equipo, y PM Utlz por -> PM Usado en menú de técnica.
+
+v.1.022. Desabreviado nombre de categoría de objetos del menú ARMDR a -> ARMADURA
+
+v.1.021. Mejorada la nomenclatura de los mandos en el menú. Ágil (ó Rápd) pasa a Correr
+
+v.1.02. Mejorado nombre de dos apartados del menú, relativo a los mandos y a la velocidad de combates: Rápd - Lnto, que pasa a Veloz - Lnto, y Deshaz y Rápd, que pasan a Anular y Ágil.
+
+v.1.01. Corregida errata que hacía que al modificar los nombres de Crono, Marle y Magus, en algunos diálogos siguiese apareciendo el nombre por defecto. Esto no sucedía con Lucca, Robo, Frog ni Ayla. De todas formas, dada la elevada costumbre de la amplia mayoría de aficionados y nostálgicos de este juego de jugar respetando los nombres originales, es muy probable que una gran mayoría de los usuarios de esta traducción no hayan llegado a apreciarlo en la versión 1.0, ni lleguen a apreciarlo nunca. Pero para aquellos que sí, corregido.
+
+
+v.1.0.  Traducción completa y revisada. Todo lo a continuación descrito.
+
+
+
+1. INFORMACIóN ADICIONAL
+_____________________
+
+He aquí la traducción culminada de Chrono Trigger de inglés a castellano.
+
+Éste es el resultado de un trabajo de traducción ROMhack iniciado el 4 de Mayo de 2020 por Rod Mérida, y culminado, en su primer borrador completo del guión, el día 25 de Mayo, en un total de 21 días de trabajo netos. 23 días de trabajo adicional fueron dedicados a la revisión y rejugado de la traducción, al cargo de Vikcs Delgado, con la consecuente aplicación de correcciones de erratas, aspectos mejorables y fallas (tales como salidas del texto por el margen derecho de la ventana de diálogo, bastante frecuentes), en un trabajo de evaluación beta encomiable. Se daba así, por concluida la traducción en su versión final el día 17 de Julio de 2020, en un total de 44 jornadas.
+
+Fue necesaria, para acelerar trabajo, la ayuda llegado un punto de Mireya Scarlet, de Chile, al cargo de la traducción de parte del banco de texto correspondiente al diálogo con Ozzie, Slash y Flea en el Castillo de Magus, revisado después por Rod Mérida a fin de unificar estilo.
+
+Es ésta, pues, una traducción fruto de una labor titánica, realizada en tiempo récord, en un total de 21 días de trabajo neto diario, más otras 23 jornadas adicionales dedicadas a la revisión y corrección.
+
+
+1.1. NTSC Y PAL
+_______________
+
+Este juego se encuentra en formato de imagen NTSC (a 60 Hz), utilizado en Japón y la mayor parte del territorio americano. Pero es compatible con PAL. Funciona correctamente en cualquier videoconsola Super Nintendo europea. Por tanto no requiere conversión de NTSC a PAL de ninguna índole, para su correcta ejecución en máquinas reales PAL.
+
+
+1.2. VERSIÓN DE LA ROM QUE SE HA TRADUCIDO
+__________________________________________
+
+Ésta es una traducción hecha a partir del texto original inglés de la versión norteamericana de Chrono Trigger, fruto de la traducción a partir del japonés realizada y dirigida por Ted Woolsey. 
+
+Esta traducción es respetuosa con el texto original de la versión norteamericana, y cualesquier aspectos editoriales presentes en ella, tales como número de líneas en que se distribuye una frase, márgenes de una línea concreta en un determinado diálogo, uso de comas en lugar de puntos suspensivos para recrear tartamudeos (una diferencia tipográfica con Final Fantasy III de SNES que tiene este juego), colocación de comillas de cerrar después de signos de puntuación y no antes, uso de letra capital para ciertos nombres y conceptos clave del juego... Así, hemos sido fieles a la forma y estructura de párrafo utilizados en la versión norteamericana, y al uso de signos de puntuación y suspensivos presente en su texto. Hemos respetado asimismo, en la medida de lo posible, la estructura y orden de las oraciones al trasladarlas al español, siempre que no lleguen a resultar artificiales en contexto.
+
+Pero a diferencia de como hiciéramos con nuestra última traducción de Final Fantasy VI de SNES del inglés al castellano, no hemos optado por cotejar diálogos con el texto original japonés, salvo uno solo en el final del juego, que nos pareció de un caso de censura especialmente significativo, el que dice:
+"¡La princesa es preciosa!{03}{01}
+Y según veo, no soy yo el único
+al que se lo parece, ¿eh?",
+
+donde el original inglés decía "The princess is gorgeous!{03}{01}
+Donít get me wrong, of course you are
+too." como si se estuviera refiriendo a su esposa, cuando se supone que le está hablando a Chrono.
+
+La razón de que no hayamos hecho este criterio extensible a otros diálogos es que la versión norteamericana de Chrono Trigger incluye líneas de diálogo y elementos que se eliminaron finalmente en la versión japonesa. No son exactamente el mismo juego. Cada versión tiene pros y contras. El otro motivo es la prisa. Disponíamos de un tiempo limitado para llevar a su término este proyecto y no queríamos dilatarlo mucho en el tiempo.
+
+Sí se han cotejado con la versión japonesa los nombres concretos de algunos enemigos, técnicas y armas, pero no todos, ni la mayoría, como hiciéramos con nuestra última traducción de Final Fantasy VI. Hacerlo del modo contrario nos habría llevado a tener que revisar el nombre de personajes básicos del juego, como Magus, llamado Maô en la versión japonesa (aunque con un significado que no dista mucho), Schala, llamada Sara, Marle, llamada simplemente Nadia, Frog, llamado Kaeru, Janus, por no hablar del trío Ozzie, Slash y Flea, llamados por Akira Toriyama Vinager (Vinagre), Soiso (de Soy Sauce, es decir, Salsa de Soja) y Mayonne (de Mayonesa), en su habitual estilo de nombrar categorías de personajes por temáticas. No descartamos sin embargo la inclusión de un parche extra en este .zip que restituya los nombres de Ozzie, Slash y Flea a Vinagre, Saltz y Mayón, por si algún purista lo prefiere de este modo.
+
+
+
+1.3. TRATOS DE 2ª PERSONA PLURAL Y CORTESÍA (VOSOTROS - USTEDES)
+___________________________________________________________
+Esta traducción usa en todo momento el cuadro de conjugación completo del "Vosotros/as" como trato de segunda persona plural, con todos sus posesivos y pronombres átonos, en situaciones que no requieren cortesía. Para situaciones de cortesía se utiliza "Ustedes" y su cuadro de conjugación de tercera persona como trato plural; del mismo modo que se utiliza "Tú", para situaciones no de cortesía, y "Usted", para situaciones que requieren cortesía, como trato singular.
+
+Utilizamos, por su parte, la forma normativa de imperativo plural del verbo "ir", "idos", allí donde es necesario, a pesar de su connotación hiperculta o arcaizante, ya que la alternativa, usar "iros", lo que constituye vulgarismo, diga lo que digan Arturo Pérez Reverte y quienes ahora dirijan la RAE. No obstante, se ha privilegiado su uso en situaciones que requieren de un tono más literario o arcaizante, prefiriendo en otros casos sinónimos como "marchaos", y similares.
+
+
+1.4. USO DE ARCAÍSMOS
+_____________________
+Este juego es una historia que gira en torno a los viajes temporales, a distintas épocas pasadas y futuras. Por ello se viaja a épocas remotas, como la Edad Media o la Antigüedad. No hablan del mismo modo, ya de por sí en el texto original inglés, las gentes de la Edad Media que las del presente, o los robots que los seres humanos. Las primeras utilizan un tipo de retórica o manera de hablar que concuerda con la mentalidad de la época. Hemos tratado de recrear esto en nuestra traducción, de manera similar a como se suele hacer en los doblajes al español peninsular de películas ambientadas en la Edad Media, el Renacimiento y siglos XVII y XVIII, como por ejemplo _Rob Roy: la pasión de un rebelde_, de 1995, ambientada en la Escocia del siglo XVII, y protagonizada por Liam Neeson. En este tipo de películas utilizan todo el tiempo el pronombre de segunda persona "vos" conjugado en plural como equivalente a "usted" y como trato de cortesía, equivalente a "ye" en inglés, y se valen de un tipo de retórica y prosodia más arcaizante, utilizan "mas" átono en lugar de pero, etc.
+
+Nosotros hemos hecho en nuestra traducción lo mismo: cuando viajas a la Edad Media, los personajes de la época no hablan de "usted", hablan de "vos". No dicen "estómago", dicen "vientre". No dicen "pelo", dicen "cabello". No dicen "auto", dicen "carruaje". Y usan "mas" con mayor frecuencia, entre otros muchos detalles.
+
+Lo mismo ocurre en la Antigüedad (o Edad Oscura), en que los personajes utilizan un estilo de habla ligeramente más retórico que el vulgo contemporáneo. O en el futuro post-apocalíptico, en que los personajes humanos, viviendo en condiciones insalubres, harapientos, utilizan un estilo suburbano, puramente coloquial y lleno de jerguismos. Los personajes robóticos, por su parte, utilizan un estilo hiperformal, mucho más ampuloso y plagado de tecnicismos informáticos, salvo Johnny, el cyborg motero, por ser mitad humano, mitad ser biológico, el cual utiliza un tipo de lenguaje coloquial y barriobajero propio de un gueto.
+
+Mención a parte de todo esto, merecen personajes como Frog, cuya habla en el texto inglés presenta afectación y es deliberadamente arcaizante, utilizando un estilo de gramática y conjugación shakespeariano. Sabemos que ésto no era así en el texto original japonés, donde habla simplemente de forma ruda y caballeresca, más parecido a una especie de Adelbert Steiner. Hemos querido, sin embargo, respetar este matiz del texto inglés, que resulta enormemente llamativo para los que hayan jugado en lengua original este juego, por una mera cuestión de respeto editorial a la versión norteamericana, y hemos querido trasladar en nuestra traducción toda esta sarta y retahíla de arcaísmos, utilizando para ello recursos lingüísticos que sean comprensibles para el jugador moderno y que no lo saquen del juego mientras lee la historia, que resulten naturales. Si en el original Frog utiliza un tipo de habla shakespeariana, nosotros debemos utilizar un habla barroca, propia del Quijote y las Novelas Ejemplares de Cervantes, para este personaje. Si él dice "Thou", nosotros decimos "Vos". Si él dice "This be", nosotros decimos "Aquesto" o "Aquéste". Si él dice "Methinks", nosotros decimos "Paréceme". Si él dice "Should we need", nosotros decimos "Tal vez hayamos menester". Y un largo etcétera que sería imposible resumir y condensar en estas líneas. 
+
+Por lo demás, dado que en el juego éste es el único personaje medieval que habla con conjugación arcaizante shakespeariana, y que los demás personajes del Medievo no hablan así, hemos tratado de reducir, en la medida de lo posible, la distancia dialectal entre ambas categorías de personaje. Para ello hemos elegido sólo aquellos arcaísmos, para Frog, que ya en esta época resultaban propios del lenguaje literario y el habla poética o culta. "Aqueste" por ejemplo, era una forma de pronombre que en época del Lazarillo de Tormes todavía se usaba, pero cada vez más relegado a la literatura, a nivel de habla cotidiana se decía "Este". En el barroco (Cervantes, Quevedo, Lope de Vega), "aqueste" sólo aparece de manera ocasional, como recurso métrico, en poesía, o para remedar el habla caballeresca de Don Quijote, cuando habla con "f-" inicial, diciendo "desfacer entuertos" y "non fuyas" en una época en que ya nadie hablaba así, pero aún podía leerse en copias de libros antiguos.
+
+El uso del "vos" y el "mas" átono para Frog, es común con el resto de personajes de su tiempo. El uso de la inversión verbo-pronombre (paréceme, térciaseme), aparece poco, y es un recurso utilizado con fines retóricos y en determinadas expresiones aun hoy (como "Dícese", "Érase"). Lo mismo ocurre con el "Dó" en lugar de "Dónde", que aparece utilizado hasta en el siglo XIX. El uso de "sc" en "paresce", por su parte, muy poco frecuente en Frog, no pasaba de ser una variante ortográfica, acaso fonética, que alguna vez se habría llegado a pronunciar. La bifurcación del futuro en perífrasis "haber de" invertida cuando aparece insertado un pronombre átono entre medio, como en "Dirigir nos hemos" (en lugar de "Nos dirigiremos"), es un recurso válido desde el punto de vista de la gramática actual. El resto de cosas que este personaje pueda llegar a decir no dejan de ser en su amplia mayoría giros retóricos y arcaísmos léxicos, como mancebo, zagal o mozo, en lugar de joven, niño o muchacho. Etc.
+
+
+
+1.5. ESPAÑOL PENINSULAR VS. HISPANOAMERICANO NEUTRO
+___________________________________________________
+Se ha tomando como referencia, a la hora de utilizar frases hechas coloquiales y modismos, el español peninsular en detrimento del hispanoamericano neutro, pero se ha tratado de lograr un español lo más neutro y polivalente posible para los hablantes de ambos continentes.
+
+Ello teniendo en cuenta que, desde nuestro punto de vista, el uso del Vosotros como plural familiar y del Vos barroco como equivalente arcaico al usted no constituye un rasgo dialectal del español de España, sino una característica del español general neutro, sin ninguna clase de acento, rasgo dialectal ni tipismo; pertenece al español general, se sigue enseñando en las escuelas y figura en cualquier libro de gramática, y aparecen en poesía y a nivel literario por parte de poetas hispanoamericanos cultos, aunque en contextos retóricos y narrativos (por ejemplo, Pablo Neruda, en alguno de sus poemas, se refiere al público, a unas gentes determinadas como "vosotros"). Por tanto, cuando decimos "conseguir un español lo más neutro posible dentro de lo que cabe", no incluimos, como parte de ese lote, renunciar a las formas del cuadro de conjugación completo de la segunda personal del plural, ya que son parte del español general y literario, y su desuso y desconocimiento en Hispanoamérica, fomentado por los medios audiovisuales y las políticas lingüísticas del subcontinente en los últimos decenios, debe combatirse, no ser alentado.
+
+
+1.6. LEÍSMO INEXISTENTE
+_________________________
+
+Nuestra traducción evita incurrir en todo momento en cualquier caso de leísmo (sustitución de "lo" por "le") y no digamos ya laísmo (sustitución de "le" por "la"), incluidos el leísmo de usted y de persona masculina, común en el centro-norte peninsular y que se ha extendido de manera abrumadora en medios audiovisuales españoles, hasta el punto de ser admitido por la norma estándar castellana peninsular (donde tradicionalmente no lo era). De hecho es admitido como válido por la RAE en sus últimas reformas, que ya no lo considera vulgarismo, si bien aconseja privilegiar el uso contrario: nosotros lo hacemos. Nos valemos de este modo del modelo de lengua estándar tradicionalmente empleado en Andalucía y todo el sur peninsular y en Hispanoamérica: lo(s), la(s) para complemento directo, y le(s) para complemento indirecto. 
+
+
+1.7. USO DE ACENTOS DIACRÍTICOS
+_______________________________
+Hemos utilizado, respecto a la acentuación del adverbio Sólo y los pronombres demostrativos Éste/a, Ése/a y Aquél/lla, la tilde diacrítica para diferenciarlos del adjetivo Solo y los determinantes demostrativos Este/a, Ese/a y Aquel/lla, siguiendo la norma de acentuación anterior a la propuesta en la reforma ortográfica de la RAE de 1999, que estableció por vez primera la no obligatoriedad del uso de dicho acento diacrítico; si bien aún requería su utilización en casos de confusión. Esta convención ortográfica fue sustituida en la Ortografía de la RAE publicada en 2010, por otra que elimina definitivamente dichas tildes diacríticas, siendo admisibles en casos únicamente de confusión, pero no necesarias. Es un hecho sin embargo que tal propuesta ortográfica ha encontrado una enorme oposición y resistencia por parte de la comunidad de hablantes (en especial hablantes cultos). Nosotros nos oponemos también a dicho "consejo" de la RAE, por considerar que el uso de dicho diacrítico sigue vivo en nuestro idioma. Es además de enorme utilidad para evitar situaciones de ambigüedad que de modo eventual pueden llegar a darse. Da al lector, por otro lado, una noción más clara de la categoría y valor gramatical de tales vocablos homónimos en cada caso.
+
+
+1.8. TRADUCCIÓN DE GRÁFICOS
+______________________
+
+Hemos traducido los textos dibujados como gráficos en las palabras "Miss", durante los combates, trasladándola a "Falló", y en los logotipos de elementos Relámpago, Fuego, Agua y Sombra, en el menú. Así como en el menú del Epoch y en los rótulos de año con las siglas "B.C." y "A.D." (respectivamente "A.C." y "D.C.") que aparecen en el mapa mundi.
+
+Se ha corregido también el rótulo "But future refused to change", por "Mas el futuro se opone al cambio", que no era un texto dibujado, sino escrito, con una tipografía de letra más grande.
+
+No hemos creído importante traducir los créditos, que aparecen en inglés incluso en la versión japonesa, salvo para la palabra "traductor". 
+
+Tampoco hemos creído importante traducir el rótulo "Battle Mode" al comienzo del juego, pero sí el pequeño texto que aparece inmediatamente debajo, que dice "Batalla Tiempo Activo v.2.0". Todo lo demás se ha traducido.
+
+
+1.9. Sobre la autoría:
+______________________
+
+Esta traducción ha sido hecha desde cero por Rod Mérida, con la colaboración puntual, para determinada área del guión, de Mireya Scarlet, lo que ha ayudado a acelerar carga de trabajo, y de V. Delgado en todo a lo que evaluación beta y revisión de errores se refiere; este último ha aportado numerosas correcciones y propuestas de mejora, la mayoría de ellas aplicadas, ayudando a depurar de errores y mejorar la calidad del texto definitivo. Es por lo tanto una obra colectiva de Traducciones Crackowia (TM), grupo traductor conocido en ocasiones por mera metonimia como Traducciones Mérida (TM), dirigida, publicada y realizada bajo la coordinación e iniciativa de (c) R. Mérida, quien realiza el grueso del trabajo de traducción del guión y modificación de ROM. Todos los derechos reservados.
+
+Esta traducción es una obra derivada de Chrono Trigger. Disponemos de derechos de copia sobre el trabajo de la traducción, pero no así sobre la obra que traduce. Por tal motivo, distribuimos como parche únicamente la traducción, mas no la ROM a cuya modificación está destinada. Los autores de esta obra derivada no se hacen en ningún momento responsables del uso que el usuario final haga de la misma o de la ROM a que va destinada. La responsabilidad sobre el uso de esta traducción recae por entero sobre el usuario.
+
+
+1.10. Agradecimientos especiales:
+___________________________
+	A Cristopher Reyes,
+	  por informar de la errata que motivó la actualización a la versión 1.01, de elevada importancia, haciendo posible su corrección temprana (véase 0.1. Control de versiones).
+	A Pethronos,
+	  por informar de detalles mejorables en algunas cadenas de texto de menúes, que motivaron las actualizaciones 1.022 y 1.023 (véase Control de versiones).
+	A nuestros grupos de traducción predecesores: Traducciones Mérida
+	http://tradusmerida.gq ,
+	y Traducciones Andrómeda.
+
+
+
+2. DIATRIBA SOBRE TRADUCCIONES EXISTENTES DE CHRONO TRIGGER EN ESPAÑOL.
+EL PORQUÉ DE ESTA TRADUCCIÓN: REFLEXIÓN PERSONAL DEL TRADUCTOR.
+_______________________________________________________________________
+
+Algunos se preguntarán para qué una nueva traducción de Chrono Trigger al español si ya existen dos en nuestro idioma, una de ellas ampliamente difundida, la de Magno, y otra anterior, la de Ereza.
+
+No hemos estudiado en toda su extensión la calidad de la traducción de Ereza, porque no hemos tenido ocasión de jugarla o revisarla en suficiente medida en el poco tiempo de que disponíamos, pero hemos podido jugarla en sus tramos iniciales, aprenciando así, tras una revisión de los diálogos de la primera parte del juego, que muestran tendencia a valerse de un tipo de traducción demasiado literal y carente de estilo. Traduce, pero no cuida la adaptación en contexto. Por su parte, el trabajo de regraficación de los logotipos de elementos del menú una vez traducidos, Rayo, Fuego, Agua, Sombra, es de una calidad deficiente con respecto al original, su elaboración ha sido paupérrima.
+
+Sí conocemos, por su parte, bastante de la traducción de Magno, la que dicen que es la mejor de las dos que existían hasta ahora. Según criterio personal del traductor de este proyecto, es una traducción que se va al extremo contrario: se toma a todas luces muchísimas licencias y cambia muchas cosas del texto original inglés a su entera discreción. Al ser traducción de una traducción, si lo comparamos por su parte con el texto japonés, el cambio semántico llega a ser drástico en algunos momentos.
+
+Continuamente mientras iba traduciendo el Chrono Trigger pude comparar, por mera curiosidad, muchos de los diálogos que iba traduciendo, una vez los tenía volcados ya al castellano, con el texto de Magno, y cambia por completo la estructura del párrafo, eliminando frases y líneas enteras de diálogo por falta de espacio o porque simplemente interpreta que como él lo está diciendo significa lo mismo, y sobra añadir nada más. Además, introduce muchas expresiones coloquiales peninsulares demasiado coloquiales donde en el original no aparece nada equivalente. Por otra parte no ha cuidado la cuestión del lenguaje de época, ni de los arcaísmos de Frog, traduciendo el Thou unas veces por usted y anacronismos similares.
+
+La suma de todo eso altera la experiencia de juego y hace que mientras se juega el texto pierda muchas cosas y detalles. Si bien la experiencia de juego continúa siendo buena porque el juego de por sí lo vale. Esto sucede en ambas traducciones, en una por demasiado literal, en otra por demasiado libre. No hay un término medio.
+
+Ésta es por tanto una traducción más conservadora: mucho más fiel al texto original inglés, más respetuosa con la experiencia original de juego, pero no traduce de manera demasiado literal hasta el punto de sonar carente de estilo. Cuida y pule en gran el apartado de la adaptación en contexto, y tiene en cuenta consideraciones de ritmicidad y prosodia en todo momento. Ha sido cuidada al detalle, y traslada al 100% con un paralelismo de construcción enorme cada párrafo. Es como jugar al juego inglés, pero en castellano. Y a la vez, sin los defectos propios de una traducción extraoficial, hecha por fans, que caracterizan a la versión de Ereza.
+
+Por otra parte, no hemos alterado para nada el código ensamblador original del juego ni las reglas del sistema de estadísticas y combates, cosa que Magno, por poseer conocimientos de lenguaje máquina de SNES y ROMhackeo bastante avanzados, no duda en hacer, si puede. Por tanto, con su traducción, la experiencia de juego original termina viéndose alterada. Nosotros no vemos necesidad de ello y salvo en casos muy excepcionales y justificados, lo desaconsejamos.
+
+Todo eso nos ha llevado a ver como plenamente necesario y justificado el que el público disponga de esta segunda o tercera traducción como alternativa. Cuando nos hemos lanzado a la tarea titánica de hacer esta traducción en 21 días largos (récord de tiempo que excede a la traducción de Woolsey), más 23 adicionales de corrección, revisión, y pasárnoslo, no es de forma gratuita, es por algo. No hemos hecho esta traducción "por amor al arte", sino porque era necesario que la hubiera en nuestra lengua, para que el público hispano pueda disfrutar, con todas las de la ley, del Chrono Trigger original de SNES en su lengua nativa.
+
+Esta traducción, por su parte, servirá como base o antesala para traducir el Chrono Trigger en su versión de PlayStation, algo hasta ahora inexistente.
+
+-------------------------------------------------------
+
+
+          _____                   _______                   _____          
+         /\    \                 /::\    \                 /\    \         
+        /::\    \               /::::\    \               /::\    \        
+       /::::\    \             /::::::\    \             /::::\    \       
+      /::::::\    \           /::::::::\    \           /::::::\    \      
+     /:::/\:::\    \         /:::/~~\:::\    \         /:::/\:::\    \     
+    /:::/__\:::\    \       /:::/    \:::\    \       /:::/  \:::\    \    
+   /::::\   \:::\    \     /:::/    / \:::\    \     /:::/    \:::\    \   
+  /::::::\   \:::\    \   /:::/____/   \:::\____\   /:::/    / \:::\    \  
+ /:::/\:::\   \:::\____\ |:::|    |     |:::|    | /:::/    /   \:::\ ___\ 
+/:::/  \:::\   \:::|    ||:::|____|     |:::|    |/:::/____/     \:::|    |
+\::/   |::::\  /:::|____| \:::\    \   /:::/    / \:::\    \     /:::|____|
+ \/____|:::::\/:::/    /   \:::\    \ /:::/    /   \:::\    \   /:::/    / 
+       |:::::::::/    /     \:::\    /:::/    /     \:::\    \ /:::/    /  
+       |::|\::::/    /       \:::\__/:::/    /       \:::\    /:::/    /   
+       |::| \::/____/         \::::::::/    /         \:::\  /:::/    /    
+       |::|  ~|                \::::::/    /           \:::\/:::/    /     
+       |::|   |                 \::::/    /             \::::::/    /      
+       \::|   |                  \::/____/               \::::/    /       
+        \:|   |                   ~~                      \::/____/        
+         \|___|                                            ~~              
+                                                                                                                                                                                                                                         
+
+
+-------------------------------------------------------
+3. CONSIDERACIÓN LEGAL.
+_______________________
+
+QUEDA EXPRESAMENTE PROHIBIDA LA DISTRIBUCIÓN DE ESTA TRADUCCIÓN SIN INCLUIRSE MENCIÓN A SU AUTOR (Y RESPETAR LA QUE YA HAY DENTRO DEL ARCHIVO).
+
+QUEDA EXPRESAMENTE PROHIBIDA LA DISTRIBUCIÓN DE ESTA TRADUCCIÓN CON ÁNIMO DE LUCRO SIN EL PERMISO EXPRESO DEL AUTOR.
+
+Esta traducción es obra de su autor, (c) R. Mérida, 2020. Todos los derechos reservados.
+
+
+4. CONTACTO
+___________
+
+Para cualquier comentario o petición, puede ponerse en contacto con nosotros a través de nuestra dirección de correo electrónico:
+crackowia@gmail.com .
+
+O visite nuestra página web:
+http://crackowia.com
+
+En caso de que desees contribuir materialmente a la realización de nuevos proyectos de envergadura, con cantidades de texto análogas o superiores a las del presente juego, puedes hacerlo aportando tu donativo a través de
+PayPal: echidna33@hotmail.com . No será en vano.

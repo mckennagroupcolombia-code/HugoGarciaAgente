@@ -3392,6 +3392,17 @@
       "bimestre": 4,
       "codigo": "7703042502640",
       "creado_at": "2026-10-04T15:01:21"
+    },
+    {
+      "id": "b5c570179daa",
+      "sku": "JABPOTLt",
+      "nombre_producto": "JABON POTASICO LITRO",
+      "numero_producto": 305,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7703050012643",
+      "creado_at": "2026-10-08T16:29:57"
     }
   ]
 }

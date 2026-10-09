@@ -1,9 +1,11 @@
 import os
+import functools
 import json
 import re
 import sqlite3
 import secrets
 import time
+from pathlib import Path
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -1917,9 +1919,9 @@ _SONIDO_ID = re.compile(r"^(?:[a-z]{2}_[a-z_]{2,20}|silencio)$")
 
 
 def _limpiar_alertas_sonido(raw) -> dict | None:
-    """{activo, volumen 0-100, tono_por_grupo, general, solicitud, personas{uid: id}, canales{cid: id}}.
-    Los ids de sonido son claves cortas (dh_risa, cc_circo, silencio…); el catálogo vive en
-    el panel, aquí solo se valida la forma para no guardar basura."""
+    """{activo, volumen 0-100, tono_por_grupo, general, solicitud, personas{uid: id}, canales{cid: id},
+    lenguaje}. Los ids de sonido son claves cortas (mk_mensaje, dh_risa, cc_circo, silencio…); el
+    catálogo vive en el panel, aquí solo se valida la forma para no guardar basura."""
     if not isinstance(raw, dict):
         return None
     out: dict = {"activo": bool(raw.get("activo", True)),
@@ -1929,6 +1931,10 @@ def _limpiar_alertas_sonido(raw) -> dict | None:
     if isinstance(vol, bool) or not isinstance(vol, (int, float)):
         return None
     out["volumen"] = max(0, min(100, int(vol)))
+    # Versión del lenguaje sonoro (8-oct-2026): con 2 el panel ya no cambia los sonidos de
+    # fábrica viejos (los recortes de juego) por los nuevos. Sin el campo = 1.
+    leng = raw.get("lenguaje", 1)
+    out["lenguaje"] = leng if isinstance(leng, int) and not isinstance(leng, bool) and 1 <= leng <= 9 else 1
     for k in ("general", "solicitud"):
         v = raw.get(k)
         if v is not None:
@@ -1948,25 +1954,57 @@ def _limpiar_alertas_sonido(raw) -> dict | None:
     return out
 
 
-# Avatares del barrio: los modelos que hay en desktop/public/empresa/personajes/.
-AVATARES_EMPRESA = tuple(f"character-{g}-{l}" for g in ("female", "male") for l in "abcdef")
-ACCESORIOS_EMPRESA = ("", "aid-glasses", "aid-sunglasses")
+# Avatares del barrio (Empresa viva, pixel art): piezas y paletas del catálogo LPC que arma
+# scripts/empresa_viva/armar_personajes.py en desktop/public/empresa/pixel/personajes/personajes.json.
+_CATALOGO_PIXEL = Path(__file__).resolve().parents[2] / "desktop" / "public" / "empresa" / "pixel" / "personajes" / "personajes.json"
+# campo del avatar → (pieza del catálogo | None, material de paleta | None)
+_CAMPOS_PIXEL = {
+    "cuerpo": ("cuerpo", None), "piel": (None, "body"), "ojos": (None, "eye"),
+    "pelo": ("pelo", None), "color_pelo": (None, "hair"), "barba": ("barba", None),
+    "torso": ("torso", None), "color_torso": (None, "cloth"), "piernas": ("piernas", None),
+    "color_piernas": (None, "cloth"), "zapatos": ("zapatos", None), "color_zapatos": (None, "cloth"),
+    "delantal": ("delantal", None), "color_delantal": (None, "cloth"), "gafas": ("gafas", None),
+}
+
+
+@functools.lru_cache(maxsize=1)
+def _catalogo_pixel() -> dict:
+    import json as _json
+
+    try:
+        return _json.loads(_CATALOGO_PIXEL.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
 
 
 def _limpiar_avatar_empresa(valor) -> dict | None:
-    """{avatar, accesorio, color} validado; None si algo no es de la lista."""
+    """{pixel: {cuerpo, piel, pelo, …}, color} validado contra el catálogo; None si algo no es de la
+    lista. Las piezas vacías («sin barba», «sin gafas») se aceptan solo si el catálogo las ofrece."""
     import re as _re
 
     if not isinstance(valor, dict):
         return None
-    avatar = str(valor.get("avatar") or "")
-    accesorio = str(valor.get("accesorio") or "")
     color = str(valor.get("color") or "")
-    if avatar not in AVATARES_EMPRESA or accesorio not in ACCESORIOS_EMPRESA:
-        return None
     if color and not _re.fullmatch(r"#[0-9a-fA-F]{6}", color):
         return None
-    return {"avatar": avatar, "accesorio": accesorio, "color": color}
+    pixel = valor.get("pixel")
+    if not isinstance(pixel, dict):
+        return None
+    cat = _catalogo_pixel()
+    piezas, paletas = cat.get("piezas") or {}, cat.get("paletas") or {}
+    if not piezas or not paletas:
+        return None
+    limpio: dict[str, str] = {}
+    for campo, (pieza, material) in _CAMPOS_PIXEL.items():
+        v = str(pixel.get(campo) or "")
+        if pieza:
+            ids = {p.get("id", "") for p in piezas.get(pieza) or []}
+            if v not in ids:
+                return None
+        elif v not in (paletas.get(material) or {}):
+            return None
+        limpio[campo] = v
+    return {"pixel": limpio, "color": color}
 
 
 def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, str | None, dict | None]:

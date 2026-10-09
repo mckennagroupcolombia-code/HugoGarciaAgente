@@ -89,6 +89,17 @@ def register_canales_routes(app):
             return jsonify({"error": str(e)}), 400
         return jsonify(canal), 201
 
+    @app.route("/api/canales/directo", methods=["POST"])
+    @_auth
+    def canales_directo():
+        """Abre (o crea) el chat de dos con otra persona: body {con: usuario_id}. No hace falta ser
+        administrador; el chat es solo de los dos (canales_internos.canal_directo)."""
+        d = request.get_json(silent=True) or {}
+        try:
+            return jsonify(CI.canal_directo(_u(), d.get("con")))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
     @app.route("/api/canales/<int:canal_id>", methods=["PATCH"])
     @_auth
     def canales_actualizar(canal_id: int):

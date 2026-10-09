@@ -6,6 +6,7 @@
  * reloj global del cabezote (TareaEnCurso). `marcarAvisoTarea`/`msDesdeUltimoAviso` es la
  * marca compartida: si los dos están montados, no suena dos veces.
  */
+import { tocarEarcon } from "./lenguajeSonoro";
 
 let _ultimoAviso = Date.now();
 
@@ -116,19 +117,6 @@ export async function playAlarmAudio(apiToken?: string) {
     return;
   }
 
-  // Fallback: chime Web Audio API
-  try {
-    const ctx = _unlockedCtx ?? new AudioContext();
-    const now = ctx.currentTime;
-    [[0, 880], [0.32, 1100], [0.64, 660]].forEach(([delay, freq]) => {
-      const osc = ctx.createOscillator(); const gain = ctx.createGain();
-      osc.type = "sine"; osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, now + delay);
-      gain.gain.linearRampToValueAtTime(0.3, now + delay + 0.06);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.4);
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.start(now + delay); osc.stop(now + delay + 0.42);
-    });
-    setTimeout(() => ctx.close().catch(() => {}), 2500);
-  } catch { /* AudioContext no disponible */ }
+  // Fallback: el «tarea en curso» del lenguaje sonoro (lib/lenguajeSonoro.ts).
+  tocarEarcon("mk_recordatorio", { volumen: 0.9 });
 }

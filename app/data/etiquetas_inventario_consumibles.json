@@ -53,15 +53,15 @@
       "alto_pulg": 2.008,
       "unidades_por_rollo": 540,
       "rollos": 1.0,
-      "etiquetas_sueltas": 323,
+      "etiquetas_sueltas": 267,
       "minimo_rollos": 1.0,
       "minimo": 1.0,
       "formato_etiqueta": "100 g",
       "notas": "",
       "cantidad": 1.0,
       "unidad": "rollos",
-      "total_etiquetas": 863,
-      "updated_at": "2026-10-07T12:00:05"
+      "total_etiquetas": 807,
+      "updated_at": "2026-10-08T10:28:54"
     },
     {
       "id": "79e33a0235d5",
@@ -150,8 +150,8 @@
     {
       "id": "2299337d5a1e",
       "tipo": "papel",
-      "ref": "Litro",
-      "nombre": "Litro · 108×76 mm",
+      "ref": "ETQLT",
+      "nombre": "ETQLT · 108×76 mm",
       "ancho_mm": 108.0,
       "alto_mm": 76.0,
       "ancho_pulg": 4.252,
@@ -166,7 +166,7 @@
       "cantidad": 250.0,
       "unidad": "rollos",
       "total_etiquetas": 250,
-      "updated_at": "2026-06-14T21:46:41"
+      "updated_at": "2026-10-08T15:50:04"
     },
     {
       "id": "4f91b9188526",

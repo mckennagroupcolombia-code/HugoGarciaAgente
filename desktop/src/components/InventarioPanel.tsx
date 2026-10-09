@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { useAppStore } from "../stores/app";
+import { usePanelActual } from "../lib/panelLocal";
 import KeepAliveHubShell from "./nav/KeepAliveHubShell";
 
 const InventarioControlPanel = lazy(() => import("./InventarioControlPanel"));
@@ -22,7 +22,7 @@ function renderSubpanel(id: InventarioPanelId) {
  * con la partida doble, solo convivía ahí por historia). Stock se mantiene
  * montado al cambiar de pestaña (edición en paralelo), igual que antes. */
 export default function InventarioPanel() {
-  const panel = useAppStore((s) => s.panel);
+  const panel = usePanelActual();
   const activeId: InventarioPanelId = panel === "stock" ? "stock" : "control-inventario";
 
   return (

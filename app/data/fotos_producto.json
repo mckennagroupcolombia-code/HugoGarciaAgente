@@ -693,6 +693,116 @@
      "bytes": 2619615
     }
    ]
+  },
+  "C-SALMARAHU500G": {
+   "web": [
+    {
+     "archivo": "C-SALMARAHU500G_20261008-211003_0485.png",
+     "subido_at": "2026-10-08T21:10:03",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2514546
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-SALMARAHU500G_20261008-211309_854d.png",
+     "subido_at": "2026-10-08T21:13:09",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2396470
+    }
+   ]
+  },
+  "C-SALMARAHU250G": {
+   "web": [
+    {
+     "archivo": "C-SALMARAHU250G_20261008-222614_1a32.png",
+     "subido_at": "2026-10-08T22:26:14",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2472297
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-SALMARAHU250G_20261008-222742_def5.png",
+     "subido_at": "2026-10-08T22:27:42",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2445558
+    }
+   ]
+  },
+  "C-MARTOS250G": {
+   "web": [
+    {
+     "archivo": "C-MARTOS250G_20261008-223319_6dfb.png",
+     "subido_at": "2026-10-08T22:33:19",
+     "por": "@cynthia",
+     "ancho": 1456,
+     "alto": 1080,
+     "bytes": 2149750
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-MARTOS250G_20261008-223614_06f5.png",
+     "subido_at": "2026-10-08T22:36:14",
+     "por": "@cynthia",
+     "ancho": 1456,
+     "alto": 1080,
+     "bytes": 2327636
+    }
+   ]
+  },
+  "C-MARTOS500G": {
+   "web": [
+    {
+     "archivo": "C-MARTOS500G_20261008-224453_f075.png",
+     "subido_at": "2026-10-08T22:44:53",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2561621
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-MARTOS500G_20261008-224604_2615.png",
+     "subido_at": "2026-10-08T22:46:04",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2536179
+    }
+   ]
+  },
+  "C-NUEPEC250G": {
+   "web": [
+    {
+     "archivo": "C-NUEPEC250G_20261008-225200_64c7.png",
+     "subido_at": "2026-10-08T22:52:00",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2535786
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-NUEPEC250G_20261008-225408_6f20.png",
+     "subido_at": "2026-10-08T22:54:08",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2514315
+    }
+   ]
   }
  }
 }

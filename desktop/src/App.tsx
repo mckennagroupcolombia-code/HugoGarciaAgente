@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import AvisoPersonal from "./components/nav/AvisoPersonal";
 import { useAppStore, type Panel, waitForAppHydration } from "./stores/app";
 import { useTicketsAuth, type TicketsUser, ensureTicketsAuthHydrated } from "./stores/ticketsAuth";
@@ -7,64 +7,12 @@ import VentanaAuxiliarShell from "./components/VentanaAuxiliarShell";
 import { esVentanaAuxiliar } from "./lib/ventanaAuxiliar";
 import { readNavHash } from "./lib/navHash";
 import Layout from "./components/Layout";
-import Dashboard from "./components/Dashboard";
-import TicketsPanel from "./components/TicketsPanel";
+import { PanelRouter } from "./components/PanelRouter";
 import ThemesDialog from "./components/ThemesDialog";
 import MatrixRain from "./components/MatrixRain";
 import BarbieSparkles from "./components/BarbieSparkles";
 
-// Paneles bajo demanda: cada uno baja en su propio chunk al abrirlo, en vez de
-// inflar el bundle inicial. Dashboard y TicketsPanel quedan estáticos por ser
-// los paneles de aterrizaje.
-const Chat = lazy(() => import("./components/Chat"));
-const VozIA = lazy(() => import("./components/VozIA"));
-const PreventaPanel = lazy(() => import("./components/PreventaPanel"));
-const PostventaPanel = lazy(() => import("./components/PostventaPanel"));
-const VentasEmailPanel = lazy(() => import("./components/VentasEmailPanel"));
-const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"));
-const FormulasPanel = lazy(() => import("./components/formulas/FormulasPanel"));
-const IdeasPanel = lazy(() => import("./components/ideas/IdeasPanel"));
-const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
-const EmpaquePanel = lazy(() => import("./components/EmpaquePanel"));
-const GuiasEnvioPanel = lazy(() => import("./components/GuiasEnvioPanel"));
-const EntregasFlexPanel = lazy(() => import("./components/EntregasFlexPanel"));
-const MapaSistemaPanel = lazy(() => import("./components/MapaSistemaPanel"));
-const ColaboradoresPanel = lazy(() => import("./components/ColaboradoresPanel"));
-const MapaVivo = lazy(() => import("./components/MapaVivo"));
-const JuegosPanel = lazy(() => import("./components/JuegosPanel"));
-const EmpresaViva = lazy(() => import("./components/empresa/EmpresaViva"));
-const ArquitecturaPanel = lazy(() => import("./components/ArquitecturaPanel"));
-const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
-const NegocioPanel = lazy(() => import("./components/NegocioPanel"));
-const FacturacionPanel = lazy(() => import("./components/FacturacionPanel"));
-const WebChatPanel = lazy(() => import("./components/WebChatPanel"));
-const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
-const SupervisorPanel = lazy(() => import("./components/SupervisorPanel"));
-const ControlVersionesPanel = lazy(() => import("./components/ControlVersionesPanel"));
-const TelemetriaPanel = lazy(() => import("./components/TelemetriaPanel"));
-const MeliOAuthPanel = lazy(() => import("./components/MeliOAuthPanel"));
-const GmailOAuthPanel = lazy(() => import("./components/GmailOAuthPanel"));
-const ConexionesPanel = lazy(() => import("./components/ConexionesPanel"));
-const TareasProgramadasPanel = lazy(() => import("./components/TareasProgramadasPanel"));
-const EtiquetasPanel = lazy(() => import("./components/EtiquetasPanel"));
-const ConfigurarProductosPanel = lazy(() =>
-  import("./components/EtiquetasPanel").then((m) => ({
-    default: m.ConfigurarProductosPanel,
-  })),
-);
-const PlacasConcretoPanel = lazy(() => import("./components/PlacasConcretoPanel"));
-const ContenidoPanel = lazy(() => import("./components/ContenidoPanel"));
-const InventarioPanel = lazy(() => import("./components/InventarioPanel"));
-const PublicacionesPanel = lazy(() => import("./components/PublicacionesPanel"));
-const CanalesProductoPanel = lazy(() => import("./components/canales_producto/CanalesProductoPanel"));
-const ChatEquipoPanel = lazy(() => import("./components/chat_equipo/ChatEquipoPanel"));
-const RecepcionMercanciaPanel = lazy(() => import("./components/recepcion/RecepcionMercanciaPanel"));
-const VitrinaWebPanel = lazy(() => import("./components/VitrinaWebPanel"));
-const LogisticaInternacionalPanel = lazy(
-  () => import("./components/LogisticaInternacionalPanel"),
-);
-const Settings = lazy(() => import("./components/Settings"));
-const PerfilPanel = lazy(() => import("./components/PerfilPanel"));
+
 import { PANEL_INFO } from "./lib/panelInfo";
 import { usePanelTheme } from "./stores/panelTheme";
 import { useQuestTheme } from "./stores/questTheme";
@@ -77,150 +25,10 @@ import {
 import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
 import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
-import { esPanelContabilidad } from "./lib/contabilidadAccess";
 import { panelDeInicio, puedeVerSeccionPanel } from "./lib/panelAccess";
 import { instalarSonidos } from "./lib/sonidosJuego";
 import { useAlertasSonido } from "./lib/alertasSonido";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
-
-function PanelCargando() {
-  return (
-    <div className="flex h-full min-h-[40vh] items-center justify-center text-sm text-muted">
-      Cargando panel…
-    </div>
-  );
-}
-
-function PanelRouter({ panel }: { panel?: Panel } = {}) {
-  return (
-    <Suspense fallback={<PanelCargando />}>
-      <PanelRouterInner impuesto={panel} />
-    </Suspense>
-  );
-}
-
-/** `impuesto` gana sobre el store: ver VentanaAuxiliarShell. */
-function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
-  const delStore = useAppStore((s) => s.panel);
-  const panel = impuesto ?? delStore;
-  switch (panel) {
-    case "hugo":
-    case "tickets":
-      return <TicketsPanel />;
-    case "dashboard":
-      return <Dashboard />;
-    case "chat":
-      return <Chat />;
-    case "voz":
-      return <VozIA />;
-    case "webchat":
-      return <WebChatPanel />;
-    case "whatsapp":
-      return <WhatsAppPanel />;
-    case "supervisor":
-      return <SupervisorPanel />;
-    case "control-versiones":
-      return <ControlVersionesPanel />;
-    case "telemetria":
-      return <TelemetriaPanel />;
-    case "meli-oauth":
-      return <MeliOAuthPanel />;
-    case "gmail-oauth":
-      return <GmailOAuthPanel />;
-    case "conexiones":
-      return <ConexionesPanel />;
-    case "tareas-programadas":
-      return <TareasProgramadasPanel />;
-    case "preventa":
-      return <PreventaPanel />;
-    case "postventa":
-      return <PostventaPanel />;
-    case "ventas-email":
-      return <VentasEmailPanel />;
-    case "costos-productos":
-    case "catalogo-alegra":
-    case "compras-exterior":
-    case "productos-siigo":
-    case "rrhh":
-    case "operativos":
-    case "ingresos-egresos":
-    case "creditos-adquiridos":
-    case "prestamos":
-    case "pagos":
-    case "conciliacion-contador":
-    case "libro-mayor":
-    case "socios":
-      return <ContabilidadPanel />;
-    case "rentabilidad":
-    case "publicidad":
-    case "salud-negocio":
-      return <NegocioPanel />;
-    case "facturacion":
-    case "sync":
-    case "facturas":
-    case "astro-killer":
-      return <FacturacionPanel />;
-    case "fichas":
-      return <FichasTecnicasPanel />;
-    case "formulas":
-      return <FormulasPanel />;
-    case "ideas":
-      return <IdeasPanel />;
-    case "pedidos":
-      return <PedidosWebPanel />;
-    case "empaque":
-      return <EmpaquePanel />;
-    case "guias-envio":
-      return <GuiasEnvioPanel />;
-    case "entregas-flex":
-      return <EntregasFlexPanel />;
-    case "mapa-sistema":
-      return <MapaSistemaPanel />;
-    case "mapa-vivo":
-      return <MapaVivo />;
-    case "colaboradores":
-      return <ColaboradoresPanel />;
-    case "juegos":
-      return <JuegosPanel />;
-    case "empresa-viva":
-      return <EmpresaViva />;
-    case "arquitectura":
-      return <ArquitecturaPanel />;
-    case "etiquetas":
-      return <EtiquetasPanel />;
-    case "etiquetas-config":
-      return <ConfigurarProductosPanel />;
-    case "placas-concreto":
-      return <PlacasConcretoPanel />;
-    case "contenido":
-      return <ContenidoPanel />;
-    case "control-inventario":
-    case "stock":
-      return <InventarioPanel />;
-    case "publicaciones":
-      return <PublicacionesPanel />;
-    case "canales-producto":
-      return <CanalesProductoPanel />;
-    case "chat-equipo":
-      return <ChatEquipoPanel />;
-    case "recepcion-mercancia":
-      return <RecepcionMercanciaPanel />;
-    case "vitrina-web":
-      return <VitrinaWebPanel />;
-    case "logistica-importaciones":
-    case "logistica-embarques":
-    case "logistica-aduanas":
-    case "logistica-proveedores":
-    case "logistica-seguimiento":
-      return <LogisticaInternacionalPanel />;
-    case "settings":
-      return <Settings />;
-    case "perfil":
-      return <PerfilPanel />;
-    default:
-      return esPanelContabilidad(panel) ? <ContabilidadPanel /> : <Dashboard />;
-  }
-}
 
 function AppLoginView({
   onLogin,

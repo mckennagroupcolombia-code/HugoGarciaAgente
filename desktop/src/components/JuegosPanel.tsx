@@ -73,6 +73,15 @@ const JUEGOS: Juego[] = [
     alto: 320,
     guarda: true,
   },
+  {
+    id: "chrono",
+    nombre: "Chrono Trigger",
+    descripcion: "El RPG de Square (SNES, 1995), emulado y traducido al español por Rod Mérida (crackowia.com). Flechas mueven, S = A (hablar, confirmar), X = B (cancelar; sostenida, correr), A = X (menú), Enter = Start. Se guarda en los puntos de guardado. Tarda unos segundos en cargar.",
+    src: `${import.meta.env.BASE_URL}juegos/chrono/index.html?v=1`,
+    ancho: 512,
+    alto: 448,
+    guarda: true,
+  },
 ];
 
 type Servidor = "revisando" | "ok" | "sin-ruta";

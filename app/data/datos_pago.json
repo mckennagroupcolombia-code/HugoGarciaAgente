@@ -4,7 +4,8 @@
     {
       "nombre": "Llave (Bre-B / Transfiya)",
       "dato": "0066302076",
-      "nota": "Es la llave que el equipo comparte a los clientes para transferencias."
+      "nota": "Es la llave que el equipo comparte a los clientes para transferencias.",
+      "qr": "qr_breb_bancolombia.png"
     }
   ],
   "no_disponibles": [

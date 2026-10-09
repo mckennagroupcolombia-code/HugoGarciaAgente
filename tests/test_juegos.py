@@ -34,7 +34,7 @@ def test_la_pagina_del_juego_exige_sesion(client, monkeypatch):
     assert "connect-src 'none'" in csp
 
 
-@pytest.mark.parametrize("juego", ["duckhunt", "circus-nes", "bass", "chess"])
+@pytest.mark.parametrize("juego", ["duckhunt", "circus-nes", "bass", "chess", "chrono"])
 def test_cada_juego_exige_sesion_en_su_pagina(client, monkeypatch, juego):
     monkeypatch.setattr(spa_sesion, "usuario_de_cookie", lambda: None)
     assert client.get(f"/app/juegos/{juego}/index.html").status_code == 403
@@ -171,7 +171,7 @@ def test_el_juego_no_trae_ejecutables_ni_llamadas_externas():
         texto = p.read_text(encoding="utf-8", errors="ignore")
         if p.name.endswith("_datos.js") or "externalLib" in p.parts:
             continue  # base64 (MP3, ROM) · librerías de terceros ya revisadas a mano (cake.js, YUI, jsnes, snes9x)
-        if "bass" in p.parts or "chess" in p.parts:
+        if "bass" in p.parts or "chess" in p.parts or "chrono" in p.parts:
             continue  # emuladores wasm: usan fetch al mismo origen (CSP propia, ver _csp_juego)
         for linea in texto.splitlines():
             if linea.lstrip().startswith(("*", "//", "#")):

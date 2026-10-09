@@ -17724,7 +17724,8 @@ def register_routes(app):
     # dirección, que el navegador del dominio público bloqueaba (22-sep-2026: «NetworkError»). Con
     # 'self' el juego solo alcanza este mismo origen, y la API exige el token Bearer, que el iframe
     # con sandbox no tiene.
-    _JUEGOS_WASM = ("bass", "chess")
+    # chrono importa el núcleo Snes9x de bass/externalLib/ (no lo duplica): bass debe seguir en la lista.
+    _JUEGOS_WASM = ("bass", "chess", "chrono")
 
     def _csp_juego(ruta: str) -> str:
         juego = ruta.split("/", 1)[0]

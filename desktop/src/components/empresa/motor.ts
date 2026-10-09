@@ -1,155 +1,27 @@
 /**
- * Motor del juego de la empresa: convierte cada foto del servidor (/api/empresa-viva/estado)
- * en lo que pasa en el barrio 3D (escena.ts). No guarda ni decide nada: cada foto nueva se
- * vuelve destinos, y los personajes caminan hacia ellos por las puertas y la calle.
+ * Motor de Empresa viva: convierte cada foto del servidor (/api/empresa-viva/estado) en lo que
+ * pasa en el barrio (escena.ts). No guarda ni decide nada de la operación: cada foto nueva se
+ * vuelve destinos, y los personajes caminan hacia ellos (A* por las puertas, camino.ts).
  *
- * - Cada persona del equipo va al lugar del panel que tiene abierto (barrio.lugarDePanel); con
- *   la Agenda o el Mapa abiertos, a su puesto de siempre; desconectada, a su cuarto si vive en
- *   el barrio (sentada, «zzz»), o se va por la calle si no.
- * - Cada pregunta de MeLi o cliente de WhatsApp es alguien en la fila de la Tienda digital.
- *   Cuando lo atienden se va con «¡Gracias, …!» y quien lo atendió celebra.
- * - Cada compra es una caja en la oficina de la sede; alistada pasa al portón; el mensajero la
- *   recoge y se va en su furgón. El proveedor llega en camión a la recepción y se va cuando se
- *   registra la mercancía.
+ * - El jugador (tú) se mueve con las flechas, el dedo o el mouse; los demás que también estén
+ *   jugando llegan por /api/empresa-viva/jugador y se mueven como ellos los manejan.
+ * - Quien no está jugando va solo al lugar del panel que tiene abierto (barrio.lugarDePanel) o al
+ *   sitio de la tarea con cronómetro (barrio.TAREA); ausente, a su cuarto si vive en el barrio.
+ * - Cada pregunta de MeLi o cliente de WhatsApp hace fila en la Tienda digital; cada compra es una
+ *   caja que se alista y se lleva el mensajero en su moto; el proveedor llega en camión.
  */
-import * as THREE from "three";
-import type { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import {
-  ANDEN_Z, CAFE, CAMION_PROVEEDOR_PARQUEO, CARRIL_IDA, CARRIL_VUELTA, CASA, ENTRADA_RECEPCION, HUGO_PUESTO,
-  LUGAR, LUGARES, MENSAJERO_PARQUEO, TAREA, casaDeLugar, lugarDePanel, puestoFila, puestoPaqueteAlistado,
-  puestoPaquetePorAlistar, type Animacion, type LugarId, type Parada,
-} from "./barrio";
+import type Phaser from "phaser";
 import { PANEL_INFO } from "../../lib/panelInfo";
 import type { Panel } from "../../stores/app";
-import { Escena, type Elegible } from "./escena";
-import { animar, objeto, objetoAlto, personaje, ponerAccesorio, type Personaje } from "./recursos";
+import { CAFE, TAREA, infoModulo, lugarDePanel, type CasaId } from "./barrio";
+import type { EscenaBarrio, Figura, Paso } from "./escena";
+import { avatarDeSemilla, normalizarAvatar, type Catalogo } from "./personajes";
+import type {
+  AvatarPixel, Dir, EstadoEmpresa, EventoApi, InteraccionApi, JugadorApi, PersonaApi, Pose,
+} from "./tipos";
 
-// ─── Lo que manda el servidor ────────────────────────────────────────────────
-
-export type Por = { id: number | null; nombre: string; bot?: boolean } | null;
-export interface AvatarElegido { avatar: string; accesorio: string; color: string }
-export interface PersonaApi {
-  id: number; nombre: string; username: string; en_linea: boolean; panel: string; via: "panel" | "whatsapp" | "";
-  avatar?: AvatarElegido | null; funciones?: string[];
-  /** Tarea con cronómetro andando (lo que hace con las manos ahora). */
-  tarea?: { funcion: string; hace: string; titulo: string; ticket_id: number; desde: string } | null;
-  /** En el panel, por WhatsApp o con un cronómetro andando. */
-  presente?: boolean;
-}
-export interface AccionApi {
-  id: string; tipo: "creo" | "comento" | "adjunto" | "midio" | "resolvio" | "en_proceso" | "reporto" | "zumbido";
-  de: number; ts: number; ticket_id: number; titulo: string;
-}
-export interface InteraccionApi {
-  id: string; tipo: "pregunta" | "solicitud" | "respuesta" | "grupo" | "idea"; de: number; para: number[]; todos?: boolean;
-  ts: number; texto: string; canal?: string; canal_id?: number; ticket_id?: number;
-}
-export interface VisitanteApi {
-  id: string; tipo: "preventa" | "whatsapp"; desde: string; producto: string; texto: string; panel: string; puede: boolean;
-}
-export interface PaqueteApi {
-  id: string; canal: "meli" | "web" | "whatsapp"; flex: boolean; estado: "por_alistar" | "alistado" | "en_ruta";
-  desde: string; unidades: number; producto: string; lugar: string; alistado_por: Por; panel: string; puede: boolean;
-}
-export interface ProveedorApi {
-  id: string; estado: "descargando" | "registrado"; proveedor: string; items: number; recibe: Por; desde: string;
-  panel: string; puede: boolean;
-}
-export interface Detenido { id: string; n: number; texto: string; panel: string; severidad: string }
-export interface EventoApi { seq: number; ts: number; tipo: string; objeto: string; por: Por }
-export interface ConfigCasas {
-  usuarios: Record<string, { vive?: string; cuarto?: LugarId; trabaja?: LugarId; avatar?: string; rol?: string }>;
-  avatar_por_defecto?: string;
-  clientes?: string[];
-  proveedor?: string;
-  mensajero?: string;
-}
-export interface Reponer { sku: string; nombre: string; estado: "agotado" | "critico"; stock: number | null }
-export interface EstadoEmpresa {
-  yo: number;
-  personas: PersonaApi[];
-  casas: ConfigCasas;
-  visitantes: VisitanteApi[];
-  visitantes_mas: number;
-  paquetes: PaqueteApi[];
-  paquetes_mas: number;
-  proveedores: ProveedorApi[];
-  bodega: { publicaciones: number; agotados: number; criticos: number; por_reponer?: Reponer[]; panel: string } | null;
-  oficina: Record<string, { alta: number; media: number; items: Detenido[] }>;
-  eventos: EventoApi[];
-  interacciones?: InteraccionApi[];
-  acciones?: AccionApi[];
-  sin_senal: { fuente: string; error: string }[];
-  generado: string;
-  hora?: string;
-}
-
-export type Seleccion =
-  | { tipo: "persona"; datos: PersonaApi; lugar: LugarId; rol?: string }
-  | { tipo: "visitante"; datos: VisitanteApi }
-  | { tipo: "paquete"; datos: PaqueteApi }
-  | { tipo: "proveedor"; datos: ProveedorApi }
-  | { tipo: "hugo" }
-  | { tipo: "mensajero"; alistados: number }
-  | { tipo: "lugar"; lugar: LugarId };
-
-// ─── Entidades ───────────────────────────────────────────────────────────────
-
-/** Un punto de una ruta. Con `pausa`, al llegar se queda ese tiempo haciendo `anim`, mirando a `rot`. */
-type Punto = { x: number; z: number; pausa?: number; anim?: string; rot?: number };
-type Tipo = "persona" | "visitante" | "paquete" | "proveedor" | "mensajero" | "camion" | "furgon" | "caja" | "hugo";
-
-interface Ent {
-  id: string;
-  tipo: Tipo;
-  obj: THREE.Group;
-  pj?: Personaje;
-  /** Puesto final: dónde se queda y qué hace allí. */
-  base: Punto & { rot: number; anim: Animacion };
-  ruta: Punto[];
-  vel: number;
-  lugar?: LugarId;
-  sale?: boolean;
-  /** Animación de un momento (celebrar) antes de seguir. */
-  momento?: { anim: string; hasta: number };
-  pausaHasta?: number;
-  sel?: Seleccion;
-  nombre?: CSS2DObject;
-  globo?: { o: CSS2DObject; hasta: number };
-  icono?: CSS2DObject;
-  vehiculo?: boolean;
-  /** avatar|accesorio con el que se creó: si la persona lo cambia, se vuelve a crear. */
-  look?: string;
-  /** Tareas que van y vienen (alistar, aseo): los puntos y por cuál va. */
-  ronda?: Parada[];
-  rondaK?: number;
-  /** Cuándo toca la próxima pausa corta (café, estirarse, visitar a alguien). */
-  vidaEn?: number;
-  presente?: boolean;
-  /** Trabaja con las manos en un sitio fijo (cronómetro): no se va de pausa tan seguido. */
-  ocupado?: boolean;
-  /** Hacia dónde mira mientras hace una pausa en una parada (radianes). */
-  giro?: number;
-}
-
-/** Un avioncito de papel volando de un avatar a otro. */
-interface Avion {
-  obj: THREE.Group;
-  desde: THREE.Vector3;
-  hacia: () => THREE.Vector3;
-  t0: number;
-  dur: number;
-  llegar: () => void;
-  llego?: boolean;
-}
-
-const COLOR_AVION: Record<string, string> = {
-  pregunta: "#FF9F1C", solicitud: "#3BA7FF", respuesta: "#2ECC71", grupo: "#FFFFFF", idea: "#FFE14D",
-};
-
-const VEL_PERSONA = 1.7;
-const VEL_CARRO = 6;
-const COLOR_CANAL: Record<string, string> = { meli: "#FFE600", web: "#3BA7FF", whatsapp: "#25D366" };
+const VEL_PERSONA = 78;
+const VEL_CARRO = 190;
 
 function primerNombre(n: string): string {
   return (n || "").trim().split(/\s+/)[0] || "";
@@ -159,260 +31,67 @@ function hash(s: string): number {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return Math.abs(h);
 }
-function esc(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-}
+const corto = (t: string, n = 46) => (t.length > n ? `${t.slice(0, n - 2)}…` : t);
 
 export interface OpcionesMotor {
-  onSelect: (s: Seleccion | null) => void;
-  onSonido?: (nombre: string) => void;
-  onListo?: () => void;
+  onSonido: (n: string) => void;
+  catalogo: Catalogo | null;
 }
 
 export class Motor {
-  readonly escena: Escena;
-  private ents = new Map<string, Ent>();
   private estado: EstadoEmpresa | null = null;
   private ultimoSeq = -1;
-  private listo = false;
-  private pendiente: EstadoEmpresa | null = null;
-  private reducido: boolean;
-  private seleccionado: string | null = null;
-  private cargando = new Set<string>();
-  private cajasEstante: THREE.Object3D[] = [];
-  private llenando = false;
-  private estadoCasillas = { vacias: -1, criticas: -1 };
-  private pilas = new Map<string, { grupo: THREE.Group; etiqueta: CSS2DObject }>();
-  private avisoBodega: CSS2DObject | null = null;
-  private mensajeroVuelve = 0;
-  private aviones: Avion[] = [];
   private interVistas = new Set<string>();
   private accVistas = new Set<string>();
-  private modoTV = false;
-  private relojHora = 0;
-  private tvHasta = 0;
+  private remotos = new Map<number, JugadorApi>();
+  private mensajeroVuelve = 0;
+  private slots: { img: Phaser.GameObjects.Image; marca: Phaser.GameObjects.Rectangle }[] = [];
+  private casillas = { vacias: -1, criticas: -1 };
+  private avisoBodega: Phaser.GameObjects.Text | null = null;
+  private reducido: boolean;
 
-  constructor(cont: HTMLElement, private op: OpcionesMotor) {
+  constructor(private esc: EscenaBarrio, private op: OpcionesMotor) {
     this.reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    this.escena = new Escena(cont);
-    this.escena.onFrame = (dt, t) => this.actualizar(dt, t);
-    this.escena.onElegir = (e) => this.alElegir(e);
-    void this.escena.construir().then(() => {
-      // El día y la noche siguen la hora de Bogotá (también si el celular está en otro huso).
-      const hora = () => {
-        const [h, m] = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hour12: false })
-          .format(new Date()).split(":").map(Number);
-        this.escena.aplicarHora(h + m / 60);
-      };
-      hora();
-      this.relojHora = window.setInterval(hora, 60_000);
-      this.crearHugo();
-      this.listo = true;
-      this.op.onListo?.();
-      if (this.pendiente) this.sincronizar(this.pendiente);
-    });
+    this.crearHugo();
+    this.crearEstantes();
   }
 
-  destruir() {
-    window.clearInterval(this.relojHora);
-    this.escena.destruir();
+  private get mapa() { return this.esc.mapa; }
+  private punto(nombre: string): Paso & { dir: Dir } {
+    const p = this.mapa.puntos[nombre] as { x: number; y: number; dir: Dir } | undefined;
+    return p ? { x: p.x, y: p.y, dir: p.dir } : { x: this.mapa.ancho / 2, y: this.mapa.alto / 2, dir: "abajo" };
+  }
+  private casaDeLugar(l: string): CasaId {
+    return (this.mapa.lugares[l]?.casa ?? "sede") as CasaId;
   }
 
-  deseleccionar() {
-    this.seleccionado = null;
-    this.escena.marcar(null);
-  }
+  // ─── El jugador ────────────────────────────────────────────────────────────
 
-  private alElegir(e: Elegible | null) {
-    if (!e) { this.deseleccionar(); this.op.onSelect(null); return; }
-    if (e.tipo === "lugar") {
-      this.deseleccionar();
-      this.op.onSelect({ tipo: "lugar", lugar: e.id as LugarId });
-      return;
+  crearJugador(est: EstadoEmpresa, inicio: { x: number; y: number; dir: Dir } | null): Figura {
+    const yo = est.personas.find((p) => p.id === est.yo);
+    let pos = inicio;
+    if (!pos) {
+      const cfg = yo ? est.casas?.usuarios?.[yo.username] : undefined;
+      const lugar = (cfg?.trabaja && this.mapa.lugares[cfg.trabaja]) ? cfg.trabaja : "tienda";
+      const pu = this.mapa.lugares[lugar]?.puestos.find((p) => p.pose === "parado") ?? this.mapa.lugares[lugar]?.puestos[0];
+      pos = pu ? { x: pu.x, y: pu.y + 24, dir: "abajo" } : { x: this.punto("llegada_oeste").x + 60, y: this.punto("llegada_oeste").y, dir: "derecha" };
     }
-    const ent = this.ents.get(e.id);
-    if (!ent?.sel) return;
-    this.seleccionado = ent.id;
-    this.escena.marcar(ent.obj);
-    this.op.onSelect(ent.sel);
+    const libre = this.esc.rejilla.cercaLibre(pos.x, pos.y);
+    const f = this.esc.crearFigura(`p${est.yo}`, "jugador", libre.x, libre.y, pos.dir);
+    f.vel = VEL_PERSONA;
+    this.esc.jugador = f;
+    if (yo) void this.esc.vestir(f, this.avatarDe(yo, est));
+    return f;
   }
 
-  // ─── Crear figuras ─────────────────────────────────────────────────────────
-
-  /** Caja invisible para tocar (más fácil que acertarle a un brazo). */
-  private tocable(ent: Ent, w = 0.7, h = 1.4, d = 0.7) {
-    const caja = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ visible: false }));
-    caja.position.y = h / 2;
-    ent.obj.add(caja);
-    this.escena.elegible(caja, { tipo: ent.tipo, id: ent.id });
-  }
-
-  private async crearPersonaje(id: string, tipo: Tipo, avatar: string, desde: Punto, base: Ent["base"], extra: Partial<Ent> = {}): Promise<Ent | null> {
-    if (this.cargando.has(id) || this.ents.has(id)) return null;
-    this.cargando.add(id);
-    try {
-      const pj = await personaje(avatar);
-      const obj = new THREE.Group();
-      obj.add(pj.raiz);
-      obj.position.set(desde.x, 0.12, desde.z);
-      obj.rotation.y = THREE.MathUtils.degToRad(base.rot);
-      this.escena.scene.add(obj);
-      const ent: Ent = { id, tipo, obj, pj, base, ruta: [], vel: VEL_PERSONA, ...extra };
-      this.tocable(ent);
-      this.ents.set(id, ent);
-      return ent;
-    } catch {
-      return null;
-    } finally {
-      this.cargando.delete(id);
-    }
-  }
-
-  private crearHugo() {
-    // Hugo es un robot: no hay modelo de robot en los packs, se arma con formas simples.
-    const g = new THREE.Group();
-    const azul = new THREE.MeshStandardMaterial({ color: "#5DB8FF", roughness: 0.4, metalness: 0.2 });
-    const blanco = new THREE.MeshStandardMaterial({ color: "#F4F8FF", roughness: 0.35 });
-    const ojo = new THREE.MeshStandardMaterial({ color: "#1B2A4A", emissive: "#3FE0FF", emissiveIntensity: 1.2 });
-    const cuerpo = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.22, 6, 14), blanco);
-    cuerpo.position.y = 0.38;
-    const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 16), azul);
-    cabeza.position.y = 0.82;
-    cabeza.scale.set(1.15, 0.92, 1);
-    for (const x of [-0.08, 0.08]) {
-      const o = new THREE.Mesh(new THREE.SphereGeometry(0.04, 10, 8), ojo);
-      o.position.set(x, 0.84, 0.19);
-      g.add(o);
-    }
-    const antena = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.16), blanco);
-    antena.position.y = 1.08;
-    const luz = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8),
-      new THREE.MeshStandardMaterial({ color: "#FFD34D", emissive: "#FFB000", emissiveIntensity: 1.5 }));
-    luz.position.y = 1.18;
-    luz.name = "luz";
-    g.add(cuerpo, cabeza, antena, luz);
-    g.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).castShadow = true; });
-    const obj = new THREE.Group();
-    g.scale.setScalar(1.25);
-    obj.add(g);
-    obj.position.set(HUGO_PUESTO.x, 0.12, HUGO_PUESTO.z);
-    this.escena.scene.add(obj);
-    const ent: Ent = { id: "hugo", tipo: "hugo", obj, base: { ...HUGO_PUESTO, anim: "idle" }, ruta: [], vel: 0, sel: { tipo: "hugo" } };
-    ent.nombre = Escena.etiqueta("Hugo", "ev-nombre ev-nombre-hugo");
-    ent.nombre.position.set(0, 1.75, 0);
-    obj.add(ent.nombre);
-    this.tocable(ent, 0.6, 1.3, 0.6);
-    this.ents.set("hugo", ent);
-  }
-
-  private async crearVehiculo(id: string, tipo: Tipo, ruta: string, desde: Punto, base: Ent["base"], sel?: Seleccion): Promise<Ent | null> {
-    if (this.cargando.has(id) || this.ents.has(id)) return null;
-    this.cargando.add(id);
-    try {
-      const modelo = await objeto(ruta, 0.85);
-      const obj = new THREE.Group();
-      obj.add(modelo);
-      obj.position.set(desde.x, 0.02, desde.z);
-      this.escena.scene.add(obj);
-      const ent: Ent = { id, tipo, obj, base, ruta: [], vel: VEL_CARRO, vehiculo: true, sel };
-      this.tocable(ent, 1.4, 1.6, 2.8);
-      this.ents.set(id, ent);
-      return ent;
-    } catch {
-      return null;
-    } finally {
-      this.cargando.delete(id);
-    }
-  }
-
-  private async crearCaja(id: string, tipo: Tipo, canal: string | null, desde: Punto, base: Ent["base"], sel?: Seleccion): Promise<Ent | null> {
-    if (this.cargando.has(id) || this.ents.has(id)) return null;
-    this.cargando.add(id);
-    try {
-      const caja = await objeto("muebles/cardboardBoxClosed", 1.6);
-      const obj = new THREE.Group();
-      obj.add(caja);
-      if (canal) {
-        // La etiqueta del canal encima de la caja: amarilla MeLi, azul web, verde WhatsApp.
-        const marca = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.012, 0.12),
-          new THREE.MeshStandardMaterial({ color: COLOR_CANAL[canal] ?? "#FFFFFF" }));
-        marca.position.y = 0.455;
-        obj.add(marca);
-      }
-      obj.position.set(desde.x, 0.12, desde.z);
-      obj.rotation.y = THREE.MathUtils.degToRad(base.rot);
-      this.escena.scene.add(obj);
-      const ent: Ent = { id, tipo, obj, base, ruta: [], vel: VEL_PERSONA * 1.3, sel };
-      if (sel) this.tocable(ent, 0.5, 0.55, 0.5);
-      this.ents.set(id, ent);
-      return ent;
-    } catch {
-      return null;
-    } finally {
-      this.cargando.delete(id);
-    }
-  }
-
-  private quitar(ent: Ent) {
-    this.escena.scene.remove(ent.obj);
-    ent.obj.traverse((o) => {
-      this.escena.olvidar(o);
-      // Los CSS2DObject dejan su <div> en el DOM si no se quitan a mano.
-      const css = o as unknown as CSS2DObject & { isCSS2DObject?: boolean };
-      if (css.isCSS2DObject) css.element.remove();
-    });
-    ent.pj?.mixer.stopAllAction();
-    this.ents.delete(ent.id);
-    if (this.seleccionado === ent.id) this.deseleccionar();
-  }
-
-  private ponerGlobo(ent: Ent, texto: string, ms = 5500, clase = "ev-globo") {
-    if (ent.globo) { ent.globo.o.element.remove(); ent.obj.remove(ent.globo.o); }
-    const o = Escena.etiqueta(esc(texto), clase);
-    o.position.set(0, ent.vehiculo ? 2.4 : 2.0, 0);
-    ent.obj.add(o);
-    ent.globo = { o, hasta: performance.now() + ms };
-  }
-
-  private ponerIcono(ent: Ent, html: string, clase: string) {
-    if (ent.icono) { Escena.cambiar(ent.icono, html, clase); return; }
-    ent.icono = Escena.etiqueta(html, clase);
-    ent.icono.position.set(0.55, 1.95, 0);
-    ent.obj.add(ent.icono);
-  }
-  private quitarIcono(ent: Ent) {
-    if (!ent.icono) return;
-    ent.icono.element.remove();
-    ent.obj.remove(ent.icono);
-    ent.icono = undefined;
-  }
-
-  // ─── Caminos ───────────────────────────────────────────────────────────────
-
-  /** Por dónde se camina de un lugar a otro: puertas de los cuartos, la puerta de la casa,
-   *  el andén. Así nadie atraviesa un muro. Devuelve los puntos intermedios y el destino. */
-  private camino(desde: LugarId | undefined, hacia: LugarId | undefined, destino: Punto): Punto[] {
-    if (!desde || !hacia || desde === hacia) return [destino];
-    const salir = (l: LugarId): Punto[] => {
-      const lu = LUGAR[l], casa = CASA[lu.casa];
-      if (l === "porton") return [{ x: casa.puertaFuera.x, z: casa.puertaFuera.z + 0.6 }];
-      if (l === "recepcion") return [lu.puerta, LUGAR.bodega.puerta, casa.puertaDentro, casa.puertaFuera];
-      return [lu.puerta, casa.puertaDentro, casa.puertaFuera];
-    };
-    const entrar = (l: LugarId): Punto[] => salir(l).reverse();
-    if (casaDeLugar(desde) === casaDeLugar(hacia)) {
-      if (desde === "porton" || hacia === "porton") return [...salir(desde), ...entrar(hacia), destino];
-      const medio = desde === "recepcion" || hacia === "recepcion" ? [LUGAR.bodega.puerta] : [];
-      return [LUGAR[desde].puerta, ...medio, LUGAR[hacia].puerta, destino];
-    }
-    const ca = CASA[casaDeLugar(desde)].puertaFuera, cb = CASA[casaDeLugar(hacia)].puertaFuera;
-    return [...salir(desde), { x: ca.x, z: ANDEN_Z }, { x: cb.x, z: ANDEN_Z }, ...entrar(hacia), destino];
+  private avatarDe(p: PersonaApi, est: EstadoEmpresa): AvatarPixel {
+    const cfg = est.casas?.usuarios?.[p.username];
+    return normalizarAvatar(p.avatar?.pixel ?? cfg?.pixel ?? null, `persona-${p.id}`, this.op.catalogo);
   }
 
   // ─── Sincronizar con el servidor ───────────────────────────────────────────
 
   sincronizar(est: EstadoEmpresa) {
-    if (!this.listo) { this.pendiente = est; return; }
     const primera = this.estado === null;
     this.estado = est;
     const nuevos = primera ? [] : est.eventos.filter((e) => e.seq > this.ultimoSeq);
@@ -420,6 +99,8 @@ export class Motor {
     const evento = new Map(nuevos.map((e) => [e.objeto, e]));
     const vivos = new Set<string>(["hugo"]);
     const sonidos = new Set<string>();
+    if (!this.esc.jugador) this.crearJugador(est, null);
+    vivos.add(`p${est.yo}`);
 
     this.sincronizarPersonas(est, primera, vivos);
     this.sincronizarVisitantes(est, primera, vivos, sonidos);
@@ -427,383 +108,435 @@ export class Motor {
     this.sincronizarProveedores(est, primera, vivos, sonidos);
     this.sincronizarMensajero(est, primera, vivos, nuevos, sonidos);
     this.sincronizarBodega(est);
-    this.sincronizarPilas(est);
+    this.sincronizarPendientes(est);
+    this.nombrarCuartos(est);
     this.sincronizarInteracciones(est, primera, sonidos);
     this.sincronizarAcciones(est, primera, sonidos);
+    this.ocupantes(est);
 
-    for (const ent of [...this.ents.values()]) {
-      if (vivos.has(ent.id) || ent.sale) continue;
-      this.despedir(ent, evento, sonidos);
+    for (const f of [...this.esc.figuras.values()]) {
+      if (vivos.has(f.id) || f.sale || f.tipo === "jugador") continue;
+      this.despedir(f, evento, sonidos);
     }
-    if (this.reducido) for (const e of this.ents.values()) { e.obj.position.x = e.base.x; e.obj.position.z = e.base.z; e.ruta = []; }
-    for (const n of sonidos) this.op.onSonido?.(n);
+    for (const n of sonidos) this.op.onSonido(n);
   }
 
-  /** Qué se lee bajo el nombre: lo que hace con las manos, o el panel donde está. */
-  private queHace(p: PersonaApi): string {
+  /** Lo que se lee bajo el nombre: lo que hace con las manos, o el panel donde está. */
+  queHace(p: PersonaApi, jugando = false): string {
     const t = p.tarea ? TAREA[p.tarea.funcion] : undefined;
     if (t) return t.corto;
     if (p.tarea?.hace) return p.tarea.hace;
+    const modulo = this.remotos.get(p.id)?.modulo;
+    if (jugando && modulo === "ajedrez") return "Jugando ajedrez en el parque";
+    if (jugando && modulo === "tenis") return "Jugando tenis en el parque";
+    if (jugando && modulo) return `Usando ${infoModulo(modulo).nombre}`;
+    if (jugando) return "Paseando por el barrio";
     if (!(p.presente ?? p.en_linea)) return "";
     if (p.via === "whatsapp") return "Por WhatsApp";
     const info = PANEL_INFO[p.panel as Panel];
-    const lugar = lugarDePanel(p.panel);
-    return info && lugar ? `En ${info.label}` : "En su puesto";
+    return info && lugarDePanel(p.panel) ? info.label : "En su puesto";
+  }
+
+  /** Otros jugadores: posición y pose como ellos los manejan. */
+  jugadores(lista: JugadorApi[]) {
+    const ahora = Date.now() / 1000;
+    this.remotos = new Map(lista.filter((j) => ahora - j.t < 12).map((j) => [j.id, j]));
+    for (const [id, j] of this.remotos) {
+      const f = this.esc.figuras.get(`p${id}`);
+      if (!f || f.tipo === "jugador") continue;
+      f.remoto = { x: j.x, y: j.y, dir: j.dir, pose: j.pose, t: j.t };
+      f.ruta = [];
+    }
+    for (const f of this.esc.figuras.values()) {
+      if (f.remoto && !this.remotos.has(Number(f.id.slice(1)))) {
+        // Dejó de jugar: vuelve a su sitio solo.
+        f.remoto = null;
+        f.x = Math.round(f.x); f.y = Math.round(f.y);
+        if (f.base) this.esc.irA(f, f.base);
+      }
+    }
+    if (this.estado) this.sincronizarPersonas(this.estado, false, new Set());
+  }
+
+  jugando(id: number): boolean {
+    return this.remotos.has(id);
   }
 
   private sincronizarPersonas(est: EstadoEmpresa, primera: boolean, vivos: Set<string>) {
     const cfg = est.casas?.usuarios ?? {};
-    // Dónde va cada quien: 1) lo que hace con las manos (cronómetro), 2) el panel que tiene
-    // abierto, 3) su puesto de siempre; ausente, a su cuarto si vive en el barrio.
-    const conPuesto = new Map<LugarId, PersonaApi[]>();
-    const fijos: { p: PersonaApi; l: LugarId; base: Ent["base"]; ronda?: Parada[] }[] = [];
+    const conPuesto = new Map<string, PersonaApi[]>();
+    const fijos: { p: PersonaApi; l: string; base: Paso; ronda?: Paso[] }[] = [];
     for (const p of est.personas) {
+      if (p.id === est.yo) {
+        const j = this.esc.jugador;
+        if (j) void this.esc.vestir(j, this.avatarDe(p, est));
+        continue;
+      }
       const c = cfg[p.username] ?? {};
-      const presente = p.presente ?? p.en_linea;
+      const remoto = this.remotos.get(p.id);
+      const presente = Boolean(remoto) || (p.presente ?? p.en_linea);
       const t = p.tarea ? TAREA[p.tarea.funcion] : undefined;
-      let l: LugarId | null;
+      let l: string | null;
       if (!presente) l = c.cuarto ?? null;
       else l = t?.lugar ?? lugarDePanel(p.panel) ?? c.trabaja ?? (c.vive === "bunker" ? "gerencia" : "oficina_sede");
-      if (!l || !LUGAR[l]) continue;
-      if (presente && t && t.lugar === l && (t.parada || t.ronda)) {
-        const r = t.parada ?? t.ronda![0];
-        fijos.push({ p, l, base: { x: r.x, z: r.z, rot: r.rot, anim: r.anim }, ronda: t.ronda });
+      if (!l || !this.mapa.lugares[l]) continue;
+      // Con un módulo abierto (y sin tarea con las manos), va al objeto de ese módulo: Facturación
+      // es un escritorio de la oficina de la sede, el Libro Mayor la biblioteca de contabilidad…
+      const estacion = presente && !t?.lugar && (remoto || p.via === "panel") ? this.estacionPara(p.panel, c) : null;
+      if (estacion && !remoto) {
+        const uso = estacion.uso;
+        fijos.push({ p, l: this.lugarDeEstacion(estacion), base: { x: uso.x, y: uso.y, dir: uso.dir, pose: uso.pose === "sentado" ? "sentado" : "quieto" } });
+        continue;
+      }
+      if (presente && t?.lugar === l && (t.punto || t.ronda)) {
+        const pts = (t.ronda ?? [t.punto!]).map((n) => ({ ...this.punto(n), pose: (t.sentado ? "sentado" : "quieto") as Pose }));
+        fijos.push({ p, l, base: pts[0], ronda: t.ronda ? pts : undefined });
       } else conPuesto.set(l, [...(conPuesto.get(l) ?? []), p]);
     }
-    const ubicar = (p: PersonaApi, l: LugarId, base: Ent["base"], ronda?: Parada[]) => {
+    const ubicar = (p: PersonaApi, l: string, base: Paso, ronda?: Paso[]) => {
       const id = `p${p.id}`;
       vivos.add(id);
       const c = cfg[p.username] ?? {};
-      const presente = p.presente ?? p.en_linea;
-      const sel: Seleccion = { tipo: "persona", datos: p, lugar: l, rol: c.rol };
-      const avatar = p.avatar?.avatar || c.avatar || est.casas?.avatar_por_defecto || "character-male-d";
-      const look = `${avatar}|${p.avatar?.accesorio ?? ""}|${p.avatar?.color ?? ""}`;
-      const extra = { ronda, ocupado: Boolean(p.tarea && TAREA[p.tarea.funcion]?.lugar), presente };
-      let ent = this.ents.get(id);
-      if (ent && !ent.sale && ent.look !== look) {
-        // Cambió de avatar: se vuelve a crear en el mismo sitio, con un saltito.
-        const donde = { x: ent.obj.position.x, z: ent.obj.position.z };
-        this.quitar(ent);
-        ent = undefined;
-        this.nacerPersona(id, p, est, avatar, look, donde, base, l, sel, false, true, extra);
-        return;
+      const remoto = this.remotos.get(p.id);
+      const presente = Boolean(remoto) || (p.presente ?? p.en_linea);
+      const ex = { tipo: "persona" as const, datos: p, lugar: l, rol: c.rol, jugando: Boolean(remoto) };
+      let f = this.esc.figuras.get(id);
+      if (f && f.sale) { this.esc.quitarFigura(f); f = undefined; }
+      if (!f) {
+        // Quien vive en el barrio ya está en su casa; los demás llegan caminando por el andén.
+        const vive = Boolean(c.vive);
+        const desde = remoto ? { x: remoto.x, y: remoto.y } : primera || vive ? base : this.punto("llegada_oeste");
+        f = this.esc.crearFigura(id, "persona", desde.x, desde.y, base.dir ?? "abajo");
+        f.vel = VEL_PERSONA;
+        f.vidaEn = performance.now() + 8000 + (hash(id) % 20000);
+        f.rondaK = 0;
+        if (!remoto && desde.x === base.x && desde.y === base.y) { f.pose = base.pose ?? "quieto"; f.dir = base.dir ?? "abajo"; }
       }
-      if (ent && !ent.sale) {
-        const cambia = ent.lugar !== l || ent.base.x !== base.x || ent.base.z !== base.z;
-        if (ent.lugar !== l) ent.ruta = this.camino(ent.lugar, l, base).slice(0, -1);
-        else if (cambia && !ent.ruta.length) ent.ruta = [];
-        const mismaRonda = Boolean(ronda) && ronda === ent.ronda;   // sigue su ronda donde iba
-        if (!mismaRonda) { ent.ronda = ronda; ent.rondaK = 0; }
-        Object.assign(ent, { lugar: l, sel, ocupado: extra.ocupado, presente });
-        if (!mismaRonda) ent.base = base;
-        this.marcarPersona(ent, p);
-        return;
+      // Una ronda que sigue igual (alistar, aseo) se deja donde iba; si no, nuevo destino.
+      const mismaRonda = Boolean(ronda && f.ronda && ronda.length === f.ronda.length
+        && ronda.every((r, k) => r.x === f!.ronda![k].x && r.y === f!.ronda![k].y));
+      if (!mismaRonda) {
+        const cambia = f.lugar !== l || f.base?.x !== base.x || f.base?.y !== base.y;
+        f.ronda = ronda;
+        f.rondaK = 0;
+        f.base = base;
+        if (cambia && !f.remoto && f.tipo === "persona" && (f.x !== base.x || f.y !== base.y)) this.esc.irA(f, base);
       }
-      // Quien vive en el barrio ya está en su casa; los demás llegan caminando por la calle.
-      const vive = Boolean(c.vive);
-      const desde = primera || vive ? base : { x: -37, z: ANDEN_Z };
-      this.nacerPersona(id, p, est, avatar, look, desde, base, l, sel, !primera && !vive, false, extra);
+      f.lugar = l;
+      f.ex = ex;
+      f.presente = presente;
+      f.ocupado = Boolean(p.tarea && TAREA[p.tarea.funcion]?.lugar);
+      void this.esc.vestir(f, this.avatarDe(p, est));
+      this.esc.ponerNombre(f, primerNombre(p.nombre), this.queHace(p, Boolean(remoto)), p.avatar?.color || undefined);
+      if (!presente) this.esc.ponerIcono(f, "z z z", "#bfe3ff");
+      else if (remoto) this.esc.ponerIcono(f, "★", "#ffe14d");
+      else if (p.via === "whatsapp" && !p.tarea) this.esc.ponerIcono(f, "WA", "#25d366");
+      else this.esc.ponerIcono(f, this.respuestaPendiente(p.id) ? "!" : null, "#ff9f1c");
     };
-    for (const f of fijos) ubicar(f.p, f.l, f.base, f.ronda);
+    // Dos personas en el mismo objeto: la segunda se para al lado.
+    const ocupados = new Map<string, number>();
+    for (const fj of fijos) {
+      const k = `${fj.base.x},${fj.base.y}`;
+      const n = ocupados.get(k) ?? 0;
+      ocupados.set(k, n + 1);
+      const base = n ? { ...fj.base, x: fj.base.x + (n % 2 ? 26 : -26) * Math.ceil(n / 2), pose: "quieto" as Pose } : fj.base;
+      ubicar(fj.p, fj.l, base, fj.ronda);
+    }
     for (const [l, gente] of conPuesto) {
-      const puestos = LUGAR[l].puestos;
+      const puestos = this.mapa.lugares[l].puestos;
       gente.forEach((p, i) => {
-        const pu = puestos[i % puestos.length];
-        const extra = Math.floor(i / puestos.length);
-        const presente = p.presente ?? p.en_linea;
-        // Si hay más gente que puestos, el resto se para al lado.
-        ubicar(p, l, { x: pu.x + extra * 0.5, z: pu.z + extra * 0.4, rot: pu.rot,
-                       anim: (presente ? pu.anim : pu.anim === "sit" ? "sit" : "idle") as Animacion });
+        const pu = puestos[i % Math.max(1, puestos.length)] ?? { x: this.mapa.lugares[l].rect[0] + 64, y: this.mapa.lugares[l].rect[1] + 120, dir: "abajo", pose: "parado" };
+        const extra = Math.floor(i / Math.max(1, puestos.length));
+        const presente = this.remotos.has(p.id) || (p.presente ?? p.en_linea);
+        const pose: Pose = pu.pose === "sentado" ? "sentado" : "quieto";
+        ubicar(p, l, { x: pu.x + extra * 22, y: pu.y + extra * 6, dir: presente ? pu.dir : "abajo", pose });
       });
     }
   }
 
-  private nacerPersona(id: string, p: PersonaApi, est: EstadoEmpresa, avatar: string, look: string, desde: Punto,
-                       base: Ent["base"], l: LugarId, sel: Seleccion, llegaPorLaCalle: boolean, saltito: boolean,
-                       extra: Partial<Ent> = {}) {
-    void this.crearPersonaje(id, "persona", avatar, desde, base, { lugar: l, sel, look, ...extra, rondaK: 0,
-                                                                  vidaEn: performance.now() + 8000 + (hash(id) % 20000) })
-      .then(async (e) => {
-        if (!e) return;
-        e.nombre = Escena.etiqueta("", p.id === est.yo ? "ev-nombre ev-nombre-yo" : "ev-nombre");
-        const color = p.avatar?.color;
-        if (color) (e.nombre.element.firstElementChild as HTMLElement).style.background = color;
-        e.nombre.position.set(0, 1.5, 0);
-        e.obj.add(e.nombre);
-        if (llegaPorLaCalle) {
-          const casa = CASA[casaDeLugar(l)];
-          e.ruta = l === "porton" || LUGAR[l].afuera && l !== "recepcion"
-            ? [{ x: casa.puertaFuera.x, z: ANDEN_Z }, casa.puertaFuera]
-            : [{ x: casa.puertaFuera.x, z: ANDEN_Z }, casa.puertaFuera, casa.puertaDentro,
-               ...(l === "recepcion" ? [LUGAR.bodega.puerta] : []), LUGAR[l].puerta];
-        }
-        if (saltito) { e.momento = { anim: "jump", hasta: performance.now() + 900 }; }
-        this.marcarPersona(e, p);
-        if (p.avatar?.accesorio && e.pj) await ponerAccesorio(e.pj, p.avatar.accesorio);
-      });
-  }
-
-  /** Nombre + lo que hace; «zzz» si está ausente en su cuarto; WA si trabaja por WhatsApp. */
-  private marcarPersona(ent: Ent, p: PersonaApi) {
-    const presente = p.presente ?? p.en_linea;
-    const hace = this.queHace(p);
-    if (ent.nombre) {
-      const clase = ent.nombre.element.firstElementChild?.className ?? "ev-nombre";
-      Escena.cambiar(ent.nombre, `${esc(primerNombre(p.nombre))}${hace ? `<span class="ev-hace">${esc(hace)}</span>` : ""}`, clase);
-    }
-    if (!presente) this.ponerIcono(ent, "z<small>z</small><small>z</small>", "ev-icono ev-zzz");
-    else if (p.via === "whatsapp" && !p.tarea) this.ponerIcono(ent, "WA", "ev-icono ev-wa");
-    else this.quitarIcono(ent);
+  /** ¿Esa persona me escribió o me respondió algo hace poco? (un «!» sobre su cabeza hasta que lo leo). */
+  respuestaPendiente(id: number): InteraccionApi | null {
+    const est = this.estado;
+    if (!est) return null;
+    const vistas = respuestasLeidas();
+    return (est.interacciones ?? []).find((i) => (i.tipo === "respuesta" || i.tipo === "chat") && i.de === id
+      && i.para.includes(est.yo) && !vistas.has(i.id)) ?? null;
   }
 
   private sincronizarVisitantes(est: EstadoEmpresa, primera: boolean, vivos: Set<string>, sonidos: Set<string>) {
-    const clientes = est.casas?.clientes?.length ? est.casas.clientes : ["character-female-a", "character-male-a"];
+    const fila = this.mapa.puntos.fila?.puntos ?? [];
     est.visitantes.forEach((v, i) => {
       const id = `v${v.id}`;
       vivos.add(id);
-      const f = puestoFila(i);
-      // Miran hacia la puerta de la tienda.
-      const base = { ...f, rot: i < 3 ? 180 : 90, anim: "idle" as Animacion };
-      const sel: Seleccion = { tipo: "visitante", datos: v };
-      const ent = this.ents.get(id);
-      if (ent) { ent.base = base; ent.sel = sel; return; }
-      const desde = primera ? f : { x: 37, z: ANDEN_Z + 0.3 };
-      void this.crearPersonaje(id, "visitante", clientes[hash(v.id) % clientes.length], desde, base, { sel, vel: VEL_PERSONA * 1.15 })
-        .then((e) => {
-          if (e) this.ponerIcono(e, v.tipo === "whatsapp" ? "…" : "?", v.tipo === "whatsapp" ? "ev-icono ev-pide-wa" : "ev-icono ev-pide-meli");
-        });
-      if (!primera) sonidos.add("inicio");
+      const p = fila[Math.min(i, fila.length - 1)] ?? this.punto("mostrador_cliente");
+      const base: Paso = { x: p.x + (i >= fila.length ? (i - fila.length + 1) * 30 : 0), y: p.y, dir: i < 5 ? "arriba" : "izquierda", pose: "quieto" };
+      const ex = { tipo: "visitante" as const, datos: v };
+      let f = this.esc.figuras.get(id);
+      if (f) {
+        if (f.base?.x !== base.x || f.base?.y !== base.y) this.esc.irA(f, base);
+        f.base = base; f.ex = ex;
+        return;
+      }
+      const desde = primera ? base : this.punto("llegada_este");
+      f = this.esc.crearFigura(id, "visitante", desde.x, desde.y, "izquierda");
+      f.vel = VEL_PERSONA * 1.1;
+      f.base = base; f.ex = ex;
+      if (!primera) this.esc.irA(f, base);
+      const preset = est.casas?.clientes?.length ? est.casas.clientes[hash(v.id) % est.casas.clientes.length] : null;
+      void this.esc.vestir(f, preset ? normalizarAvatar(preset, `cliente-${v.id}`, this.op.catalogo) : avatarDeSemilla(`cliente-${v.id}`, this.op.catalogo));
+      this.esc.ponerIcono(f, v.tipo === "whatsapp" ? "…" : "?", v.tipo === "whatsapp" ? "#25d366" : "#ffe600");
+      if (!primera) sonidos.add("vender");
     });
+  }
+
+  private grilla(nombre: string, i: number): Paso {
+    const p = this.mapa.puntos[nombre] as { x: number; y: number; columnas?: number; paso?: number; sobre?: number } | undefined;
+    if (!p) return { x: 0, y: 0 };
+    const col = i % (p.columnas ?? 6), fila = Math.floor(i / (p.columnas ?? 6));
+    return { x: p.x + col * (p.paso ?? 14), y: p.y + fila * 10, sobre: p.sobre };
   }
 
   private sincronizarPaquetes(est: EstadoEmpresa, primera: boolean, vivos: Set<string>, evento: Map<string, EventoApi>, sonidos: Set<string>) {
     let iMesa = 0, iPorton = 0;
     for (const p of est.paquetes) {
       const id = `k${p.id}`;
-      const ent = this.ents.get(id);
+      const f = this.esc.figuras.get(id);
       if (p.estado === "en_ruta") {
-        if (ent && !ent.sale) this.alFurgon(ent);
-        if (ent) vivos.add(id);
+        if (f && !f.sale) this.alaMoto(f);
+        if (f) vivos.add(id);
         continue;
       }
       vivos.add(id);
-      const pos = p.estado === "alistado" ? puestoPaqueteAlistado(iPorton++) : puestoPaquetePorAlistar(iMesa++);
-      const base = { x: pos.x, z: pos.z, rot: (hash(p.id) % 30) - 15, anim: "idle" as Animacion };
-      const sel: Seleccion = { tipo: "paquete", datos: p };
-      if (ent) {
-        const estabaAdentro = ent.base.z < 1;
-        ent.base = base; ent.sel = sel;
-        if (estabaAdentro && base.z > 1) {
-          // De la oficina al portón, por la puerta de la casa.
-          ent.ruta = [LUGAR.oficina_sede.puerta, CASA.sede.puertaDentro, CASA.sede.puertaFuera];
+      const alistado = p.estado === "alistado";
+      const pos = this.grilla(alistado ? "paquetes_alistados" : "paquetes_por_alistar", alistado ? iPorton++ : iMesa++);
+      const base: Paso = { x: pos.x, y: pos.y, sobre: pos.sobre };
+      const ex = { tipo: "paquete" as const, datos: p };
+      if (f) {
+        const estabaEnMesa = f.base && f.base.y < this.mapa.casas.sede.rect[3];
+        if (estabaEnMesa && alistado) {
+          this.esc.irA(f, base);
           const ev = evento.get(p.id);
           if (ev?.tipo === "alistado") { sonidos.add("preparar"); this.celebrar(ev.por, "¡Alistado!"); }
-        }
+        } else if (f.base?.x !== base.x || f.base?.y !== base.y) this.esc.irA(f, base);
+        f.base = base; f.ex = ex;
         continue;
       }
-      // Una compra nueva aparece en la oficina de la sede, con su globo.
-      void this.crearCaja(id, "paquete", p.canal, base, base, sel).then((e) => {
-        if (e && !primera) { e.obj.scale.setScalar(0.01); this.ponerGlobo(e, "¡Nueva venta!", 4000, "ev-globo ev-globo-venta"); }
-      });
-      if (!primera) sonidos.add("vender");
+      const n = this.esc.crearFigura(id, "objeto", base.x, base.y);
+      n.spr.setTexture("objetos", `caja_${p.canal}`).setOrigin(0.5, 1).setVisible(true);
+      n.vel = VEL_PERSONA * 1.2;
+      n.base = base; n.ex = ex;
+      if (!primera) { n.aparecer = this.esc.time.now + 500; this.esc.ponerGlobo(n, "¡Nueva venta!", 4000, 0xfff6a8); sonidos.add("vender"); }
     }
   }
 
-  private alFurgon(ent: Ent) {
-    const furgon = this.ents.get("furgon");
-    const destino = furgon ? { x: furgon.obj.position.x, z: furgon.obj.position.z } : MENSAJERO_PARQUEO;
-    ent.ruta = [{ x: -5, z: 7.4 }, destino];
-    ent.sale = true;
+  private alaMoto(f: Figura) {
+    const moto = this.esc.figuras.get("moto");
+    const destino = moto ? { x: moto.x + 10, y: moto.y - 4 } : this.punto("moto");
+    this.esc.irA(f, destino);
+    f.sale = true;
   }
 
   private sincronizarProveedores(est: EstadoEmpresa, primera: boolean, vivos: Set<string>, sonidos: Set<string>) {
     const pv = est.proveedores.find((p) => p.estado === "descargando");
     if (!pv) return;
-    const sel: Seleccion = { tipo: "proveedor", datos: pv };
-    vivos.add("camion");
-    vivos.add("proveedor");
-    const parqueo = { ...CAMION_PROVEEDOR_PARQUEO, rot: 180, anim: "idle" as Animacion };
-    const camion = this.ents.get("camion");
+    const ex = { tipo: "proveedor" as const, datos: pv };
+    vivos.add("camion"); vivos.add("proveedor");
+    const parqueo = this.punto("camion");
+    let camion = this.esc.figuras.get("camion");
     if (!camion) {
-      const llega = !primera;
-      void this.crearVehiculo("camion", "camion", "carros/truck", llega ? { x: -38, z: CARRIL_IDA } : parqueo, parqueo, sel).then((e) => {
-        if (!e) return;
-        e.obj.rotation.y = llega ? Math.PI / 2 : Math.PI;
-        if (llega) e.ruta = [ENTRADA_RECEPCION, { x: CAMION_PROVEEDOR_PARQUEO.x, z: 3 }];
-      });
-      if (llega) sonidos.add("abastecer");
-    } else camion.sel = sel;
-    const puesto = { x: 8.6, z: -5.6, rot: 90, anim: "holding-both" as Animacion };
-    if (!this.ents.has("proveedor")) {
-      void this.crearPersonaje("proveedor", "proveedor", est.casas?.proveedor ?? "character-male-d",
-        primera ? puesto : { x: 10.2, z: 6 }, puesto, { sel, lugar: "recepcion" })
-        .then((e) => { if (e && !primera) e.pausaHasta = performance.now() + 4500; });
+      camion = this.vehiculo("camion", "camion", primera ? parqueo : { x: -140, y: parqueo.y }, false);
+      camion.base = parqueo;
+      if (!primera) {
+        // Llega por la calle; el proveedor se baja cuando el camión se estaciona.
+        camion.ruta = [parqueo];
+        camion.alLlegar = () => this.bajarProveedor(est, false);
+        sonidos.add("abastecer");
+      }
     }
-    // Cajas de la mercancía en el patio.
+    camion.ex = ex;
+    if (primera) this.bajarProveedor(est, true);
+    const pf = this.esc.figuras.get("proveedor");
+    if (pf) pf.ex = ex;
     const n = Math.max(2, Math.min(8, pv.items || 4));
     for (let i = 0; i < n; i++) {
       const id = `c${pv.id}-${i}`;
       vivos.add(id);
-      if (this.ents.has(id)) continue;
-      const pos = { x: 7.6 + (i % 4) * 0.42, z: -2.4 + Math.floor(i / 4) * 0.42 };
-      void this.crearCaja(id, "caja", null, primera ? pos : { x: CAMION_PROVEEDOR_PARQUEO.x, z: -3 }, { ...pos, rot: i * 13, anim: "idle" })
-        .then((e) => { if (e && !primera) e.pausaHasta = performance.now() + 5000 + i * 500; });
+      if (this.esc.figuras.has(id)) continue;
+      const pos = this.grilla("cajas_proveedor", i);
+      const c = this.esc.crearFigura(id, "objeto", pos.x, pos.y);
+      c.spr.setTexture("objetos", "caja_proveedor").setOrigin(0.5, 1).setVisible(true).setScale(1.6);
+      c.base = { x: pos.x, y: pos.y };
+      c.ex = ex;
+      // Las cajas aparecen cuando el proveedor ya las bajó.
+      if (!primera) { c.spr.setVisible(false); this.esc.time.delayedCall(9000 + i * 450, () => { c.spr.setVisible(true); c.aparecer = this.esc.time.now + 500; }); }
     }
+  }
+
+  private bajarProveedor(est: EstadoEmpresa, primera: boolean) {
+    if (this.esc.figuras.has("proveedor")) return;
+    const pv = this.estado?.proveedores.find((p) => p.estado === "descargando");
+    const camion = this.esc.figuras.get("camion");
+    if (!pv || !camion) return;
+    const puesto = { ...this.punto("proveedor"), pose: "quieto" as Pose };
+    const desde = primera ? puesto : this.esc.rejilla.cercaLibre(camion.x + 40, camion.y - 60);
+    const pf = this.esc.crearFigura("proveedor", "proveedor", desde.x, desde.y, "arriba");
+    pf.vel = VEL_PERSONA;
+    pf.base = puesto;
+    pf.ex = { tipo: "proveedor", datos: pv };
+    if (!primera) this.esc.irA(pf, puesto);
+    void this.esc.vestir(pf, normalizarAvatar(est.casas?.proveedor ?? { delantal: "overol", color_delantal: "blue" }, "proveedor", this.op.catalogo));
+  }
+
+  private vehiculo(id: string, cuadro: string, desde: { x: number; y: number }, miraIzquierda: boolean): Figura {
+    const f = this.esc.crearFigura(id, "vehiculo", desde.x, desde.y, miraIzquierda ? "izquierda" : "derecha");
+    f.vehiculo = true;
+    f.vel = VEL_CARRO;
+    f.spr.setTexture("objetos", cuadro).setVisible(true);
+    this.esc.origenDeCuadro(f.spr);
+    f.spr.setData("miraIzquierda", miraIzquierda);
+    return f;
   }
 
   private sincronizarMensajero(est: EstadoEmpresa, primera: boolean, vivos: Set<string>, nuevos: EventoApi[], sonidos: Set<string>) {
     const alistados = est.paquetes.filter((p) => p.estado === "alistado").length;
     const salio = nuevos.some((e) => e.tipo === "salio");
-    const furgon = this.ents.get("furgon");
-    const sel: Seleccion = { tipo: "mensajero", alistados };
-    if (furgon) furgon.sel = sel;
-    const m = this.ents.get("mensajero");
-    if (m) m.sel = sel;
-    if (furgon && !furgon.sale && !primera && (salio || alistados === 0)) {
-      // Recoge y se va hacia el oriente; vuelve después si quedan paquetes alistados.
+    const moto = this.esc.figuras.get("moto");
+    const ex = { tipo: "mensajero" as const, alistados };
+    if (moto) moto.ex = ex;
+    const m = this.esc.figuras.get("mensajero");
+    if (m) m.ex = ex;
+    if (moto && !moto.sale && !primera && (salio || alistados === 0)) {
+      // Recoge y se va hacia el occidente; vuelve después si quedan paquetes alistados.
       this.mensajeroVuelve = performance.now() + 14000;
-      if (m && !m.sale) { m.ruta = [{ x: -5, z: 8.6 }, { x: furgon.obj.position.x - 0.8, z: furgon.obj.position.z }]; m.sale = true; }
-      furgon.pausaHasta = performance.now() + 3000;
-      furgon.ruta = [{ x: 40, z: CARRIL_VUELTA }];
-      furgon.sale = true;
+      if (m && !m.sale) {
+        this.esc.irA(m, { x: moto.x + 6, y: moto.y - 6 });
+        m.sale = true;
+      }
+      moto.pausaHasta = this.esc.time.now + 3500;
+      moto.ruta = [{ x: -160, y: moto.y }];
+      moto.sale = true;
       sonidos.add("entregar");
       return;
     }
-    if (furgon) vivos.add("furgon");
+    if (moto) vivos.add("moto");
     if (m) vivos.add("mensajero");
-    if (alistados === 0 || furgon || performance.now() < this.mensajeroVuelve) return;
-    const parqueo = { ...MENSAJERO_PARQUEO, rot: -90, anim: "idle" as Animacion };
-    void this.crearVehiculo("furgon", "furgon", "carros/delivery", primera ? parqueo : { x: 40, z: CARRIL_VUELTA }, parqueo, sel)
-      .then((e) => { if (e) e.obj.rotation.y = -Math.PI / 2; });
-    vivos.add("furgon");
-    const puesto = { x: -4.2, z: 6.6, rot: 180, anim: "idle" as Animacion };
-    if (!m) {
-      vivos.add("mensajero");
-      void this.crearPersonaje("mensajero", "mensajero", est.casas?.mensajero ?? "character-male-a",
-        primera ? puesto : { x: -5.8, z: CARRIL_VUELTA - 0.8 }, puesto, { sel })
-        .then((e) => { if (e && !primera) e.pausaHasta = performance.now() + 3500; });
+    if (alistados === 0 || moto || performance.now() < this.mensajeroVuelve) return;
+    const parqueo = this.punto("moto");
+    const nm = this.vehiculo("moto", "moto", primera ? parqueo : { x: this.mapa.ancho + 120, y: parqueo.y }, true);
+    nm.base = parqueo; nm.ex = ex;
+    vivos.add("moto"); vivos.add("mensajero");
+    if (primera) this.bajarMensajero(est, true);
+    else {
+      // Llega en la moto y se baja cuando se estaciona frente al portón.
+      nm.ruta = [parqueo];
+      nm.alLlegar = () => this.bajarMensajero(est, false);
     }
   }
 
-  /** Los estantes: cada casilla es una parte del catálogo. Caja normal = hay, caja que brilla
-   *  naranja = crítico, casilla vacía = agotado. */
+  private bajarMensajero(est: EstadoEmpresa, primera: boolean) {
+    const moto = this.esc.figuras.get("moto");
+    if (this.esc.figuras.has("mensajero") || !moto) return;
+    const puesto = { ...this.punto("mensajero"), pose: "quieto" as Pose };
+    const desde = primera ? puesto : this.esc.rejilla.cercaLibre(moto.x - 6, moto.y - 22);
+    const mf = this.esc.crearFigura("mensajero", "mensajero", desde.x, desde.y, "arriba");
+    mf.vel = VEL_PERSONA;
+    mf.base = puesto;
+    mf.ex = moto.ex;
+    if (!primera) this.esc.irA(mf, puesto);
+    void this.esc.vestir(mf, normalizarAvatar(est.casas?.mensajero ?? { torso: "buzo", color_torso: "red" }, "mensajero", this.op.catalogo));
+  }
+
+  // ─── Bodega: cada casilla de los estantes es una parte del catálogo ─────────
+
+  private crearEstantes() {
+    for (const [k, s] of this.mapa.estantes.entries()) {
+      const img = this.esc.add.image(s.x, s.y, "objetos", `frasco${(hash(`f${k}`) % 6)}`).setOrigin(0.5, 1).setDepth(s.z + 1);
+      const marca = this.esc.add.rectangle(s.x, s.y - 1, 9, 2, 0xff3b3b).setDepth(s.z + 1).setVisible(false);
+      this.slots.push({ img, marca });
+    }
+  }
+
   private sincronizarBodega(est: EstadoEmpresa) {
     const b = est.bodega;
     if (!b) return;
-    this.actualizarAvisoBodega(b);
-    const casillas = this.escena.estantes.length * 6;
+    const n = this.slots.length;
     const total = Math.max(1, b.publicaciones);
-    const vacias = Math.round(casillas * b.agotados / total);
-    const criticas = Math.round(casillas * b.criticos / total);
-    if (this.cajasEstante.length) this.colorearEstantes(vacias, criticas);
-    else if (!this.llenando) void this.llenarEstantes(vacias, criticas);
-  }
-
-  private async llenarEstantes(vacias: number, criticas: number) {
-    this.llenando = true;
-    // Frascos y cajas de materia prima (KayKit Restaurant), alternados para que se vea variado.
-    const modelos = ["jar_A_large", "jar_B_large", "jar_C_large", "jar_D_large"];
-    const bases = await Promise.all(modelos.map((m) => objetoAlto(`kaykit/cocina/${m}.gltf`, 0.27)));
-    const marcaRoja = new THREE.MeshStandardMaterial({ color: "#FF3B3B", emissive: "#FF0000", emissiveIntensity: 0.5 });
-    let k = 0;
-    for (const est of this.escena.estantes) {
-      const casillas = (est.userData.casillas as THREE.Vector3[] | undefined) ?? [];
-      for (const pos of casillas) {
-        const c = bases[(k++ * 7) % bases.length].clone(true);
-        c.position.copy(pos);
-        c.traverse((o) => {
-          const m = o as THREE.Mesh;
-          if (m.isMesh) m.material = (m.material as THREE.Material).clone();
-        });
-        // Marca roja de «agotado»: se ve cuando la casilla queda vacía.
-        const marca = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.05, 0.02), marcaRoja);
-        marca.name = "marca-agotado";
-        marca.position.set(0, 0.02, 0.17);
-        marca.visible = false;
-        c.add(marca);
-        est.add(c);
-        this.cajasEstante.push(c);
-      }
-    }
-    this.colorearEstantes(vacias, criticas);
-  }
-
-  /** Casilla llena = caja del color de su línea de producto; crítica = naranja que brilla;
-   *  agotada = hueco con una marca roja en el borde del estante. */
-  private colorearEstantes(vacias: number, criticas: number) {
-    if (this.estadoCasillas.vacias === vacias && this.estadoCasillas.criticas === criticas) return;
-    this.estadoCasillas = { vacias, criticas };
-    const n = this.cajasEstante.length;
-    // Lo vacío y lo crítico, repartido por toda la bodega (no amontonado en un rincón).
-    const orden = [...Array(n).keys()].sort((a, b) => hash(`c${a}x`) - hash(`c${b}x`));
+    const vacias = Math.round(n * b.agotados / total);
+    const criticas = Math.round(n * b.criticos / total);
+    const txt = b.agotados + b.criticos ? `${b.agotados} agotados · ${b.criticos} por acabarse` : "Bodega al día";
+    if (!this.avisoBodega) {
+      const p = this.punto("aviso_bodega");
+      this.avisoBodega = this.esc.texto(p.x, p.y, txt, 9, "#ffffff", "#b42318").setOrigin(0.5, 0).setDepth(p.y + 70);
+    } else this.avisoBodega.setText(txt);
+    if (this.casillas.vacias === vacias && this.casillas.criticas === criticas) return;
+    this.casillas = { vacias, criticas };
+    const orden = [...Array(n).keys()].sort((a, c) => hash(`c${a}x`) - hash(`c${c}x`));
     orden.forEach((idx, k) => {
-      const caja = this.cajasEstante[idx];
-      const vacia = k < vacias;
-      const critica = !vacia && k < vacias + criticas;
-      caja.visible = true;
-      caja.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (!m.isMesh) return;
-        if (m.name === "marca-agotado") { m.visible = vacia; return; }
-        m.visible = !vacia;
-        const mat = m.material as THREE.MeshStandardMaterial;
-        // Los frascos traen su textura: el color solo se tiñe en lo crítico (naranja que brilla).
-        mat.color = new THREE.Color(critica ? "#FFB066" : "#FFFFFF");
-        mat.emissive = new THREE.Color(critica ? "#FF5A00" : "#000000");
-        mat.emissiveIntensity = critica ? 0.6 : 0;
-      });
+      const s = this.slots[idx];
+      const vacia = k < vacias, critica = !vacia && k < vacias + criticas;
+      s.img.setVisible(!vacia);
+      s.marca.setVisible(vacia);
+      this.esc.tweens.killTweensOf(s.img);
+      s.img.setAlpha(1);
+      if (critica) {
+        s.img.setTint(0xffa060);
+        if (!this.reducido) this.esc.tweens.add({ targets: s.img, alpha: 0.55, duration: 700, yoyo: true, repeat: -1 });
+      } else s.img.clearTint();
     });
   }
 
-  private actualizarAvisoBodega(b: NonNullable<EstadoEmpresa["bodega"]>) {
-    const n = b.agotados + b.criticos;
-    const html = n ? `<b>${b.agotados}</b> agotados · <b>${b.criticos}</b> por acabarse` : "Bodega al día";
-    const clase = n ? "ev-aviso ev-aviso-rojo" : "ev-aviso";
-    if (!this.avisoBodega) {
-      this.avisoBodega = Escena.etiqueta(html, clase);
-      this.avisoBodega.position.set(3, 2.4, -4.6);
-      this.escena.scene.add(this.avisoBodega);
-    } else {
-      Escena.cambiar(this.avisoBodega, html, clase);
+  /** Lo detenido del Mapa (recortado a permisos), como globito rojo sobre el objeto de cada módulo. */
+  private sincronizarPendientes(est: EstadoEmpresa) {
+    const por: Record<string, { n: number; alta: boolean }> = {};
+    for (const etapa of Object.values(est.oficina ?? {}))
+      for (const it of etapa.items ?? []) {
+        const a = (por[it.panel] ??= { n: 0, alta: false });
+        a.n += it.n;
+        a.alta ||= it.severidad === "alta";
+      }
+    this.esc.pendientes(por);
+  }
+
+  private nombrarCuartos(est: EstadoEmpresa) {
+    const nombres = new Map(est.personas.map((p) => [p.username, primerNombre(p.nombre)]));
+    for (const [username, c] of Object.entries(est.casas?.usuarios ?? {})) {
+      if (c.cuarto && nombres.get(username)) this.esc.nombrarCuarto(c.cuarto, `Cuarto de ${nombres.get(username)}`);
     }
   }
 
-  /** Papeles por resolver en cada oficina (lo detenido del Mapa, ya filtrado por permisos). */
-  private sincronizarPilas(est: EstadoEmpresa) {
-    const papel = new THREE.MeshStandardMaterial({ color: "#FAFAF5", roughness: 0.9 });
-    const sitios: Partial<Record<LugarId, Punto & { y: number }>> = {
-      contabilidad: { x: -18.8, z: -0.35, y: 0.47 }, estudio: { x: -18.1, z: -7.75, y: 0.52 },
-      gerencia: { x: -27.15, z: -2.9, y: 0.52 }, tienda: { x: 18.5, z: -2.2, y: 0.58 },
-    };
-    for (const l of LUGARES) {
-      const sitio = sitios[l.id];
-      if (!sitio) continue;
-      const items = l.etapas.flatMap((et) => est.oficina[et]?.items ?? []);
-      const n = items.reduce((a, it) => a + it.n, 0);
-      const alta = items.some((it) => it.severidad === "alta");
-      let pila = this.pilas.get(l.id);
-      if (!pila) {
-        const grupo = new THREE.Group();
-        grupo.position.set(sitio.x, sitio.y, sitio.z);
-        const etiqueta = Escena.etiqueta("", "ev-pila");
-        grupo.add(etiqueta);
-        this.escena.scene.add(grupo);
-        pila = { grupo, etiqueta };
-        this.pilas.set(l.id, pila);
-      }
-      const hojas = n ? Math.min(14, Math.max(2, Math.ceil(Math.log2(n + 1) * 2))) : 0;
-      const papeles = pila.grupo.children.filter((c) => (c as THREE.Mesh).isMesh);
-      for (const h of papeles.slice(hojas)) pila.grupo.remove(h);
-      for (let k = papeles.length; k < hojas; k++) {
-        const h = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.016, 0.17), papel);
-        h.position.set((k % 2) * 0.01, 0.01 + k * 0.018, 0);
-        h.rotation.y = (((k * 37) % 20) - 10) * 0.01;
-        h.castShadow = true;
-        pila.grupo.add(h);
-      }
-      pila.etiqueta.position.set(0, 0.12 + hojas * 0.018, 0);
-      Escena.cambiar(pila.etiqueta, n ? String(n) : "", n ? (alta ? "ev-pila ev-pila-alta" : "ev-pila") : "ev-pila ev-oculto");
+  /** El objeto del módulo que la persona tiene abierto (si hay dos, el de su casa). */
+  private estacionPara(panel: string, cfg: { vive?: string; trabaja?: string }) {
+    const casa = cfg.vive ?? (cfg.trabaja ? this.mapa.lugares[cfg.trabaja]?.casa : undefined);
+    return this.esc.estacionDe(panel, undefined, casa);
+  }
+
+  /** El lugar de un objeto; los de los pasillos cuentan como de su casa (su primer lugar). */
+  private lugarDeEstacion(e: { lugar: string; x: number; z: number }): string {
+    if (this.mapa.lugares[e.lugar]) return e.lugar;
+    const casa = this.esc.casaDe(e.x, e.z - 2);
+    return Object.entries(this.mapa.lugares).find(([, l]) => l.casa === casa && !l.afuera)?.[0] ?? "oficina_sede";
+  }
+
+  private crearHugo() {
+    const p = this.punto("hugo");
+    const f = this.esc.crearFigura("hugo", "hugo", p.x, p.y, "abajo");
+    f.spr.setTexture("hugo", 0).setOrigin(24 / 48, 60 / 64).setVisible(true);
+    f.vel = 0;
+    f.base = { x: p.x, y: p.y };
+    f.ex = { tipo: "hugo" };
+    this.esc.ponerNombre(f, "Hugo", "Agente de IA", "#9fd6ff");
+  }
+
+  /** Quién está adentro de cada casa (se escribe sobre el techo cuando estás afuera). */
+  private ocupantes(est: EstadoEmpresa) {
+    const por: Record<string, string[]> = {};
+    for (const f of this.esc.figuras.values()) {
+      if (f.tipo !== "persona" || f.ex?.tipo !== "persona" || !f.presente) continue;
+      const casa = this.esc.casaDe(f.x, f.y);
+      if (casa) (por[casa] ??= []).push(primerNombre(f.ex.datos.nombre));
     }
+    for (const casa of Object.keys(this.mapa.casas)) this.esc.ocupantes(casa, por[casa] ?? []);
+    void est;
   }
 
   // ─── Quién le habla a quién: avioncitos de papel ───────────────────────────
@@ -813,344 +546,214 @@ export class Motor {
     for (const it of est.interacciones ?? []) {
       if (this.interVistas.has(it.id)) continue;
       this.interVistas.add(it.id);
-      // Al abrir, solo lo del último minuto y medio: lo anterior ya pasó.
       if (primera && ahora - it.ts > 90) continue;
-      if (this.lanzar(it, est)) sonidos.add(it.tipo === "pregunta" || it.tipo === "solicitud" ? "inicio" : "blip");
+      if (this.lanzar(it, est)) sonidos.add(it.tipo === "pregunta" || it.tipo === "solicitud" || it.tipo === "chat" ? "vista" : "blip");
     }
   }
 
-  /** Lanza los avioncitos de una interacción. También la usa el panel justo después de
-   *  preguntar o compartir, para que se vea al instante (luego la foto del servidor la trae
-   *  con el mismo id y no se repite). */
+  /** Lanza los avioncitos de una interacción. También lo usa el panel justo después de preguntar
+   *  o compartir, para que se vea al instante (la foto del servidor la trae luego con el mismo id). */
   lanzar(it: InteraccionApi, est: EstadoEmpresa | null = this.estado): boolean {
     this.interVistas.add(it.id);
-    const de = this.ents.get(`p${it.de}`);
+    const de = this.esc.figuras.get(`p${it.de}`);
     if (!de || !est) return false;
-    const enLinea = new Set(est.personas.filter((p) => p.en_linea).map((p) => p.id));
+    const presentes = new Set(est.personas.filter((p) => p.presente ?? p.en_linea).map((p) => `p${p.id}`));
     const para = it.todos
-      ? [...this.ents.values()].filter((e) => e.tipo === "persona" && e.id !== de.id && enLinea.has(Number(e.id.slice(1))))
-      : it.para.map((id) => this.ents.get(`p${id}`)).filter((e): e is Ent => Boolean(e));
-    const nombreDe = primerNombre(est.personas.find((p) => p.id === it.de)?.nombre ?? "");
-    const nombrePara = para.length === 1 ? primerNombre(est.personas.find((p) => `p${p.id}` === para[0].id)?.nombre ?? "") : "";
-    const corto = (t: string) => (t.length > 46 ? `${t.slice(0, 44)}…` : t);
-    const textoSale: Record<string, string> = {
+      ? [...this.esc.figuras.values()].filter((f) => (f.tipo === "persona" || f.tipo === "jugador") && f.id !== de.id && presentes.has(f.id))
+      : it.para.map((id) => this.esc.figuras.get(`p${id}`)).filter((f): f is Figura => Boolean(f));
+    const nombre = (id: number) => primerNombre(est.personas.find((p) => p.id === id)?.nombre ?? "");
+    const nombreDe = nombre(it.de);
+    const nombrePara = para.length === 1 ? nombre(Number(para[0].id.slice(1))) : "";
+    const sale: Record<string, string> = {
       pregunta: it.texto ? `«${corto(it.texto)}»` : nombrePara ? `Pregunta para ${nombrePara}` : "Pregunta",
       solicitud: it.texto ? corto(it.texto) : nombrePara ? `Solicitud para ${nombrePara}` : "Solicitud",
       respuesta: it.texto ? corto(it.texto) : "Respondió",
       grupo: it.canal ? `En «${it.canal}»` : "Escribió en un grupo",
       idea: it.texto ? corto(it.texto) : it.canal ? `Idea en «${it.canal}»` : "Compartió una idea",
+      chat: it.texto ? `«${corto(it.texto)}»` : "…",
     };
-    const textoLlega: Record<string, string> = {
+    const llega: Record<string, string> = {
       pregunta: `Pregunta de ${nombreDe}`, solicitud: `Solicitud de ${nombreDe}`, respuesta: `${nombreDe} te respondió`,
       grupo: it.canal ? `${nombreDe} en «${it.canal}»` : `Mensaje de ${nombreDe}`, idea: `Idea de ${nombreDe}`,
+      chat: `${nombreDe} te escribió`,
     };
-    // Pregunta o solicitud a alguien de la misma casa: camina hasta su puesto y conversan.
-    const unoSolo = para.length === 1 ? para[0] : null;
-    if ((it.tipo === "pregunta" || it.tipo === "solicitud") && unoSolo && de.lugar && unoSolo.lugar
-        && casaDeLugar(de.lugar) === casaDeLugar(unoSolo.lugar) && de.presente && unoSolo.presente
-        && !de.ruta.length && !de.ronda && !this.reducido) {
-      this.visitar(de, unoSolo, textoSale[it.tipo] ?? "…", 5500);
-      this.enfocar(de);
+    // Pregunta a alguien de la misma casa (y nadie lo maneja): camina hasta su puesto y conversan.
+    const uno = para.length === 1 ? para[0] : null;
+    if ((it.tipo === "pregunta" || it.tipo === "solicitud" || it.tipo === "chat") && uno && de.tipo === "persona" && !de.remoto && de.lugar && uno.lugar
+        && this.casaDeLugar(de.lugar) === this.casaDeLugar(uno.lugar) && de.presente && uno.presente && !de.ruta.length && !de.ronda && !this.reducido) {
+      this.visitar(de, uno, sale[it.tipo] ?? "…", 5500);
       return true;
     }
-    this.ponerGlobo(de, textoSale[it.tipo] ?? "", 5000, `ev-globo ev-globo-${it.tipo}`);
-    this.enfocar(de);
-    if (de.pj && !de.momento) de.momento = { anim: "interact-right", hasta: performance.now() + 1200 };
+    this.esc.ponerGlobo(de, sale[it.tipo] ?? "", 5000, it.tipo === "idea" ? 0xfff6a8 : 0xffffff);
     para.slice(0, 8).forEach((destino, i) => {
-      const avion = this.crearAvion(COLOR_AVION[it.tipo] ?? "#FFFFFF");
-      const desde = de.obj.position.clone().setY(1.6);
-      avion.position.copy(desde);
-      this.escena.scene.add(avion);
-      this.aviones.push({
-        obj: avion, desde, hacia: () => destino.obj.position.clone().setY(1.55),
-        t0: performance.now() + i * 280, dur: 1800 + Math.min(1600, desde.distanceTo(destino.obj.position) * 45),
-        llegar: () => {
-          if (!this.ents.has(destino.id)) return;
-          this.ponerGlobo(destino, it.tipo === "respuesta" && nombrePara ? `${nombreDe} te respondió` : textoLlega[it.tipo] ?? "", 5500,
-                          `ev-globo ev-globo-${it.tipo}`);
-          if (destino.pj && !destino.momento) destino.momento = { anim: "emote-yes", hasta: performance.now() + 1000 };
-        },
+      this.esc.avion(de, destino, it.tipo, i * 280, () => {
+        if (!this.esc.figuras.has(destino.id)) return;
+        this.esc.ponerGlobo(destino, it.tipo === "respuesta" && nombrePara ? `${nombreDe} te respondió` : llega[it.tipo] ?? "", 5500, 0xe8f4ff);
+        if (!destino.remoto && destino.tipo !== "jugador" && destino.pose !== "sentado") destino.momento = { pose: "celebra", hasta: this.esc.time.now + 900 };
       });
     });
     return true;
   }
 
-  /** Un avioncito de papel: dos alas y una quilla, del color del tipo de mensaje. */
-  private crearAvion(color: string): THREE.Group {
-    const g = new THREE.Group();
-    const ala = new THREE.BufferGeometry();
-    ala.setAttribute("position", new THREE.Float32BufferAttribute([
-      0, 0, 0.32, -0.2, 0.03, -0.18, 0, 0, -0.1,
-      0, 0, 0.32, 0, 0, -0.1, 0.2, 0.03, -0.18,
-      0, 0, 0.32, 0, -0.07, -0.12, 0, 0, -0.1,
-    ], 3));
-    ala.computeVertexNormals();
-    const mat = new THREE.MeshStandardMaterial({ color: "#FFFFFF", side: THREE.DoubleSide, roughness: 0.6 });
-    const cuerpo = new THREE.Mesh(ala, mat);
-    cuerpo.castShadow = true;
-    const borde = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.3), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.4 }));
-    borde.position.set(0, 0.012, 0.05);
-    g.add(cuerpo, borde);
-    g.scale.setScalar(1.6);
-    return g;
-  }
-
-  private volarAviones() {
-    const ahora = performance.now();
-    this.aviones = this.aviones.filter((a) => {
-      const k = (ahora - a.t0) / a.dur;
-      if (k < 0) { a.obj.visible = false; return true; }
-      a.obj.visible = true;
-      if (k >= 1) {
-        if (!a.llego) { a.llego = true; a.llegar(); }
-        this.escena.scene.remove(a.obj);
-        return false;
-      }
-      const fin = a.hacia();
-      const pos = (q: number) => {
-        const v = a.desde.clone().lerp(fin, q);
-        v.y += Math.sin(Math.PI * q) * (1.6 + a.desde.distanceTo(fin) * 0.08);
-        return v;
-      };
-      const suave = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-      a.obj.position.copy(pos(suave));
-      a.obj.lookAt(pos(Math.min(1, suave + 0.02)));
-      return true;
-    });
-  }
-
-  /** Quien resolvió algo celebra con su globo. Si fue Hugo, Hugo. */
-  private celebrar(por: Por, texto: string) {
+  private celebrar(por: EventoApi["por"], texto: string) {
     if (por?.bot) {
-      const h = this.ents.get("hugo");
-      if (h) { this.ponerGlobo(h, "¡Respondí!", 5000, "ev-globo ev-globo-hugo"); h.momento = { anim: "salto", hasta: performance.now() + 1200 }; }
+      const h = this.esc.figuras.get("hugo");
+      if (h) { this.esc.ponerGlobo(h, "¡Respondí!", 5000, 0xdff3ff); h.momento = { pose: "celebra", hasta: this.esc.time.now + 1200 }; }
       return;
     }
     if (!por?.id) return;
-    const p = this.ents.get(`p${por.id}`);
-    if (!p || p.sale) return;
-    this.ponerGlobo(p, texto, 5500, "ev-globo ev-globo-ok");
-    p.momento = { anim: "emote-yes", hasta: performance.now() + 1800 };
-    this.enfocar(p);
+    const f = this.esc.figuras.get(`p${por.id}`);
+    if (!f || f.sale) return;
+    this.esc.ponerGlobo(f, texto, 5500, 0xd9ffd9);
+    if (f.pose !== "sentado" && !f.remoto && f.tipo !== "jugador") f.momento = { pose: "celebra", hasta: this.esc.time.now + 1600 };
   }
 
-  private despedir(ent: Ent, evento: Map<string, EventoApi>, sonidos: Set<string>) {
-    if (ent.tipo === "mensajero" || ent.tipo === "furgon" || ent.tipo === "hugo") return;
-    ent.sale = true;
-    if (ent.tipo === "persona") {
-      const l = ent.lugar ?? "oficina_sede";
-      const casa = CASA[casaDeLugar(l)];
-      const salida = l === "porton" ? [] : this.camino(l, "porton", casa.puertaFuera);
-      ent.ruta = [...salida, { x: casa.puertaFuera.x, z: ANDEN_Z }, { x: -37, z: ANDEN_Z }];
+  private despedir(f: Figura, evento: Map<string, EventoApi>, sonidos: Set<string>) {
+    if (f.tipo === "hugo" || f.id === "moto" || f.id === "mensajero") return;
+    if (f.tipo === "persona") {
+      f.sale = true;
+      this.esc.irA(f, this.punto("llegada_oeste"));
       return;
     }
-    if (ent.tipo === "visitante") {
-      const ev = evento.get(ent.id.slice(1));
+    if (f.tipo === "visitante") {
+      const ev = evento.get(f.id.slice(1));
       const quien = ev?.por?.bot ? "Hugo" : primerNombre(ev?.por?.nombre ?? "");
-      this.quitarIcono(ent);
-      this.ponerGlobo(ent, quien ? `¡Gracias, ${quien}!` : "¡Gracias!", 6000, "ev-globo ev-globo-ok");
-      ent.momento = { anim: "emote-yes", hasta: performance.now() + 1500 };
+      this.esc.ponerIcono(f, null);
+      this.esc.ponerGlobo(f, quien ? `¡Gracias, ${quien}!` : "¡Gracias!", 6000, 0xd9ffd9);
+      f.momento = { pose: "celebra", hasta: this.esc.time.now + 1300 };
       if (ev) { this.celebrar(ev.por, "¡Respondí!"); sonidos.add("vender"); }
-      ent.ruta = [{ x: ent.obj.position.x + 0.6, z: ANDEN_Z + 0.3 }, { x: 38, z: ANDEN_Z + 0.3 }];
+      f.ex = undefined;
+      this.esc.irA(f, this.punto("llegada_este"));
+      f.sale = true;
       return;
     }
-    if (ent.tipo === "paquete") { ent.sale = false; this.alFurgon(ent); return; }
-    if (ent.tipo === "proveedor" || ent.tipo === "camion") {
+    if (f.id.startsWith("k")) { this.alaMoto(f); return; }
+    if (f.id === "proveedor") {
       const ev = [...evento.values()].find((e) => e.tipo === "registrado");
-      if (ent.tipo === "proveedor") {
-        this.ponerGlobo(ent, "¡Registrado!", 4500, "ev-globo ev-globo-ok");
-        if (ev) { this.celebrar(ev.por, "¡Recibido!"); sonidos.add("inicio"); }
-        ent.ruta = [{ x: 10.2, z: 4.5 }, { x: 10.2, z: ANDEN_Z }, { x: -37, z: ANDEN_Z }];
-      } else {
-        ent.pausaHasta = performance.now() + 2500;
-        ent.ruta = [{ x: CAMION_PROVEEDOR_PARQUEO.x, z: CARRIL_IDA }, { x: 40, z: CARRIL_IDA }];
-      }
+      this.esc.ponerGlobo(f, "¡Registrado!", 4500, 0xd9ffd9);
+      if (ev) { this.celebrar(ev.por, "¡Recibido!"); sonidos.add("contar"); }
+      f.ex = undefined;
+      const camion = this.esc.figuras.get("camion");
+      this.esc.irA(f, camion ? { x: camion.x + 30, y: camion.y - 12 } : this.punto("llegada_oeste"));
+      f.sale = true;
       return;
     }
-    if (ent.tipo === "caja") {
+    if (f.id === "camion") {
+      f.pausaHasta = this.esc.time.now + 6000;
+      f.ruta = [{ x: this.mapa.ancho + 200, y: f.y }];
+      f.sale = true;
+      return;
+    }
+    if (f.id.startsWith("c")) {
       // La mercancía registrada entra a la bodega.
-      ent.ruta = [LUGAR.recepcion.puerta, { x: 3, z: -5 }];
+      this.esc.irA(f, this.punto("preparar"));
+      f.sale = true;
       return;
     }
-    this.quitar(ent);
-  }
-
-  // ─── Animación ─────────────────────────────────────────────────────────────
-
-  private actualizar(dt: number, t: number) {
-    const ahora = performance.now();
-    this.volarAviones();
-    for (const ent of [...this.ents.values()]) {
-      ent.pj?.mixer.update(dt);
-      const o = ent.obj;
-      if (ent.globo && ahora > ent.globo.hasta) { ent.globo.o.element.remove(); o.remove(ent.globo.o); ent.globo = undefined; }
-      // Aparecer con un rebote (cajas nuevas).
-      if (o.scale.x < 1) o.scale.setScalar(Math.min(1, o.scale.x + dt * 2.5));
-      if (ent.tipo === "hugo") {
-        const luz = o.getObjectByName("luz") as THREE.Mesh | undefined;
-        if (luz) (luz.material as THREE.MeshStandardMaterial).emissiveIntensity = 1 + Math.sin(t * 4) * 0.8;
-        const salto = ent.momento && ahora < ent.momento.hasta ? Math.abs(Math.sin(t * 9)) * 0.25 : Math.sin(t * 2) * 0.03;
-        o.position.y = 0.12 + salto;
-        continue;
-      }
-      if (ent.momento && ahora < ent.momento.hasta) {
-        if (ent.pj) animar(ent.pj, ent.momento.anim);
-        if (ent.giro !== undefined) this.girar(o, ent.giro, dt);
-        continue;
-      }
-      ent.momento = undefined;
-      if (ent.pausaHasta && ahora < ent.pausaHasta) {
-        if (ent.pj) animar(ent.pj, "idle");
-        continue;
-      }
-      ent.pausaHasta = undefined;
-      ent.giro = undefined;
-      const destino = ent.ruta[0] ?? (ent.sale ? null : ent.base);
-      if (!destino) { this.quitar(ent); continue; }
-      const dx = destino.x - o.position.x, dz = destino.z - o.position.z;
-      const d = Math.hypot(dx, dz);
-      const paso = ent.vel * dt;
-      if (d <= paso || d < 0.01) {
-        o.position.x = destino.x; o.position.z = destino.z;
-        if (ent.ruta.length) {
-          const parada = ent.ruta.shift()!;
-          // Una parada con pausa: se queda haciendo algo (tomar café, conversar) y sigue.
-          if (parada.pausa) {
-            ent.momento = { anim: parada.anim ?? "idle", hasta: ahora + parada.pausa };
-            if (parada.rot !== undefined) ent.giro = THREE.MathUtils.degToRad(parada.rot);
-          }
-          continue;
-        }
-        if (ent.sale) { this.quitar(ent); continue; }
-        // Llegó a su puesto: mira hacia donde trabaja y hace lo suyo.
-        if (!ent.vehiculo) this.girar(o, THREE.MathUtils.degToRad(ent.base.rot), dt);
-        if (ent.pj) animar(ent.pj, ent.base.anim);
-        this.vidaDiaria(ent, ahora);
-        continue;
-      }
-      o.position.x += (dx / d) * paso;
-      o.position.z += (dz / d) * paso;
-      o.rotation.y = Math.atan2(dx, dz);
-      if (ent.pj) animar(ent.pj, ent.tipo === "proveedor" || ent.tipo === "mensajero" ? "holding-both" : "walk");
-    }
-  }
-
-  private girar(o: THREE.Object3D, meta: number, dt: number) {
-    let dif = meta - o.rotation.y;
-    dif = Math.atan2(Math.sin(dif), Math.cos(dif));
-    o.rotation.y += dif * Math.min(1, dt * 8);
+    f.sale = true;
   }
 
   // ─── La vida de todos los días ─────────────────────────────────────────────
 
-  /** Quien está trabajando no se queda de piedra: hace su ronda (alistar, aseo) o, de vez en
-   *  cuando, una pausa corta — estirarse, ir por un tinto, pasar a saludar a alguien de la casa. */
-  private vidaDiaria(ent: Ent, ahora: number) {
-    if (ent.tipo !== "persona" || !ent.presente || this.reducido || !ent.lugar) return;
-    const azar = (hash(ent.id + Math.floor(ahora / 1000)) % 1000) / 1000;
-    if (ent.ronda?.length) {
-      if (ent.vidaEn && ahora < ent.vidaEn) return;
-      ent.rondaK = ((ent.rondaK ?? 0) + 1) % ent.ronda.length;
-      const r = ent.ronda[ent.rondaK];
-      ent.base = { x: r.x, z: r.z, rot: r.rot, anim: r.anim };
-      ent.vidaEn = ahora + 4500 + azar * 3500;
-      return;
-    }
-    if (!ent.vidaEn) { ent.vidaEn = ahora + 15000 + azar * 30000; return; }
-    if (ahora < ent.vidaEn) return;
-    ent.vidaEn = ahora + (ent.ocupado ? 80000 : 35000) + azar * 45000;
-    const casa = casaDeLugar(ent.lugar);
-    const companeros = [...this.ents.values()].filter((e) => e.tipo === "persona" && e !== ent && e.presente && e.lugar
-      && casaDeLugar(e.lugar) === casa && !e.ruta.length && !e.momento && !e.ronda);
-    if (azar < 0.35) {
-      ent.momento = { anim: "interact-left", hasta: ahora + 2400 };   // se estira, mira el celular
-    } else if (azar < 0.72 || !companeros.length) {
-      const c = CAFE[casa];
-      const parada: Punto = { x: c.x + (azar - 0.5) * 0.6, z: c.z, pausa: 4500, anim: "interact-right", rot: c.rot };
-      this.irYVolver(ent, c.lugar, parada);
-      this.ponerGlobo(ent, "Un tintico", 3000, "ev-globo ev-globo-cafe");
-    } else {
-      this.visitar(ent, companeros[Math.floor(azar * 997) % companeros.length], "…", 5000);
+  /** Lo llama juego.ts cada segundo: rondas (alistar, aseo) y pausas cortas (tinto, visitas). */
+  vidaDiaria() {
+    if (this.reducido) return;
+    const ahora = performance.now();
+    const j = this.esc.jugador;
+    for (const f of this.esc.figuras.values()) {
+      if (f.tipo !== "persona" || !f.presente || f.remoto || !f.lugar || f.ruta.length || f.sale) continue;
+      if (f.momento && this.esc.time.now < f.momento.hasta) continue;
+      // Si el jugador está cerca (le va a hablar), no se va de pausa.
+      if (j && Math.hypot(j.x - f.x, j.y - f.y) < 110) continue;
+      const azar = (hash(f.id + Math.floor(ahora / 1000)) % 1000) / 1000;
+      if (f.ronda?.length) {
+        if (f.vidaEn && ahora < f.vidaEn) continue;
+        f.rondaK = ((f.rondaK ?? 0) + 1) % f.ronda.length;
+        f.base = f.ronda[f.rondaK];
+        this.esc.irA(f, f.base);
+        f.vidaEn = ahora + 4500 + azar * 3500;
+        continue;
+      }
+      if (!f.vidaEn) { f.vidaEn = ahora + 15000 + azar * 30000; continue; }
+      if (ahora < f.vidaEn) continue;
+      f.vidaEn = ahora + (f.ocupado ? 80000 : 40000) + azar * 45000;
+      const casa = this.casaDeLugar(f.lugar);
+      const companeros = [...this.esc.figuras.values()].filter((o) => o.tipo === "persona" && o !== f && o.presente && !o.remoto && o.lugar
+        && this.casaDeLugar(o.lugar) === casa && !o.ruta.length && !o.ronda);
+      if (azar < 0.3) {
+        f.momento = { pose: "quieto", hasta: this.esc.time.now + 2400, dir: (["izquierda", "derecha", "abajo"] as Dir[])[Math.floor(azar * 30) % 3] };
+      } else if (azar < 0.7 || !companeros.length) {
+        const c = this.punto(CAFE[casa]);
+        const parada: Paso = { x: c.x + (azar - 0.5) * 24, y: c.y, pausa: 4500, pose: "quieto", dir: c.dir };
+        this.irYVolver(f, parada);
+        this.esc.ponerGlobo(f, "Un tintico", 3000, 0xfff1d6);
+      } else {
+        this.visitar(f, companeros[Math.floor(azar * 997) % companeros.length], "…", 5000);
+      }
     }
   }
 
-  /** Ir a un punto (por las puertas), quedarse lo que diga la parada y volver al puesto. */
-  private irYVolver(ent: Ent, lugar: LugarId, parada: Punto) {
-    if (!ent.lugar) return;
-    ent.ruta = [...this.camino(ent.lugar, lugar, parada).slice(0, -1), parada,
-                ...this.camino(lugar, ent.lugar, ent.base).slice(0, -1)];
+  private irYVolver(f: Figura, parada: Paso) {
+    if (!f.base) return;
+    const ida = this.esc.rejilla.buscar(f.x, f.y, parada.x, parada.y);
+    const vuelta = this.esc.rejilla.buscar(parada.x, parada.y, f.base.x, f.base.y);
+    if (!ida || !vuelta) return;
+    Object.assign(ida[ida.length - 1], { pausa: parada.pausa, pose: parada.pose, dir: parada.dir });
+    f.ruta = [...ida, ...vuelta];
   }
 
   /** Pasar al puesto de alguien a conversar: los dos se miran, globos de charla, y vuelve. */
-  private visitar(ent: Ent, otro: Ent, texto: string, ms: number) {
-    if (!otro.lugar) return;
-    const ox = otro.obj.position.x, oz = otro.obj.position.z;
-    const cerca = { x: ox + 0.6, z: oz + 0.45 };
-    const rot = THREE.MathUtils.radToDeg(Math.atan2(ox - cerca.x, oz - cerca.z));
-    this.irYVolver(ent, otro.lugar, { ...cerca, pausa: ms, anim: "interact-right", rot });
-    // El otro lo atiende cuando llega (más o menos: no esperamos a medir la distancia).
-    const llegada = performance.now() + Math.min(9000, Math.hypot(ent.obj.position.x - ox, ent.obj.position.z - oz) / VEL_PERSONA * 1000);
+  private visitar(f: Figura, otro: Figura, texto: string, ms: number) {
+    const lado = this.esc.rejilla.cercaLibre(otro.x + 22, otro.y + 14);
+    const dir: Dir = otro.x < lado.x ? "izquierda" : "derecha";
+    this.irYVolver(f, { x: lado.x, y: lado.y, pausa: ms, pose: "quieto", dir });
+    const llegada = Math.min(12000, (Math.hypot(f.x - lado.x, f.y - lado.y) / VEL_PERSONA) * 1000 * 1.3);
     window.setTimeout(() => {
-      if (!this.ents.has(otro.id) || !this.ents.has(ent.id)) return;
-      otro.momento = { anim: "interact-right", hasta: performance.now() + ms - 500 };
-      otro.giro = Math.atan2(cerca.x - ox, cerca.z - oz);
-      this.ponerGlobo(ent, texto, ms - 800, "ev-globo ev-globo-charla");
-      this.ponerGlobo(otro, "…", ms - 800, "ev-globo ev-globo-charla");
-    }, Math.max(0, llegada - performance.now()));
+      if (!this.esc.figuras.has(otro.id) || !this.esc.figuras.has(f.id)) return;
+      if (otro.pose !== "sentado" && !otro.remoto) otro.momento = { pose: "quieto", hasta: this.esc.time.now + ms - 500, dir: dir === "izquierda" ? "derecha" : "izquierda" };
+      this.esc.ponerGlobo(f, texto, ms - 800, 0xffffff);
+      this.esc.ponerGlobo(otro, "…", ms - 800, 0xffffff);
+    }, llegada);
   }
 
   // ─── Lo que cada quien acaba de hacer en las solicitudes ───────────────────
 
   private sincronizarAcciones(est: EstadoEmpresa, primera: boolean, sonidos: Set<string>) {
     const ahora = Date.now() / 1000;
-    const TEXTO: Record<string, [string, string]> = {
-      resolvio: ["¡Resuelta!", "emote-yes"], comento: ["Comentó", "interact-right"], creo: ["Nueva solicitud", "interact-right"],
-      adjunto: ["Adjuntó un archivo", "interact-right"], midio: ["Registró su tiempo", "interact-left"],
-      en_proceso: ["¡Manos a la obra!", "pick-up"], reporto: ["Reportó avance", "interact-right"], zumbido: ["¡Bzz!", "jump"],
+    const TEXTO: Record<string, string> = {
+      resolvio: "¡Resuelta!", comento: "Comentó", creo: "Nueva solicitud", adjunto: "Adjuntó un archivo",
+      midio: "Registró su tiempo", en_proceso: "¡Manos a la obra!", reporto: "Reportó avance", zumbido: "¡Bzz!",
     };
     for (const a of est.acciones ?? []) {
       if (this.accVistas.has(a.id)) continue;
       this.accVistas.add(a.id);
       if (primera && ahora - a.ts > 20) continue;
-      const ent = this.ents.get(`p${a.de}`);
-      const [texto, anim] = TEXTO[a.tipo] ?? ["", "idle"];
-      if (!ent || !texto) continue;
-      const detalle = a.titulo ? `: ${a.titulo.length > 30 ? `${a.titulo.slice(0, 28)}…` : a.titulo}` : "";
-      this.ponerGlobo(ent, `${texto}${detalle}`, 4500, a.tipo === "resolvio" ? "ev-globo ev-globo-ok" : "ev-globo ev-globo-accion");
-      if (!ent.ruta.length) ent.momento = { anim, hasta: performance.now() + 1800 };
+      const f = this.esc.figuras.get(`p${a.de}`);
+      const texto = TEXTO[a.tipo];
+      if (!f || !texto) continue;
+      const detalle = a.titulo ? `: ${corto(a.titulo, 30)}` : "";
+      this.esc.ponerGlobo(f, `${texto}${detalle}`, 4500, a.tipo === "resolvio" ? 0xd9ffd9 : 0xffffff);
+      if (a.tipo === "resolvio" && f.pose !== "sentado" && !f.remoto && f.tipo !== "jugador") f.momento = { pose: "celebra", hasta: this.esc.time.now + 1600 };
       if (a.tipo === "resolvio") sonidos.add("preparar");
-      this.enfocar(ent);
     }
   }
+}
 
-  // ─── Cámara: seguir a alguien y «en vivo» ──────────────────────────────────
-
-  /** Seguir a una persona del equipo con la cámara (null = soltar). */
-  seguir(personaId: number | null): boolean {
-    const ent = personaId === null ? null : this.ents.get(`p${personaId}`);
-    this.escena.seguir(ent?.obj ?? null);
-    if (ent) { this.seleccionado = ent.id; this.escena.marcar(ent.obj); }
-    return Boolean(ent);
+// Respuestas ya leídas en el juego (para no repetir el «!»): en este navegador, por un rato.
+const CLAVE_LEIDAS = "mck-ev-respuestas-leidas";
+export function respuestasLeidas(): Set<string> {
+  try {
+    return new Set(JSON.parse(sessionStorage.getItem(CLAVE_LEIDAS) || "[]") as string[]);
+  } catch {
+    return new Set();
   }
-
-  /** «En vivo»: la cámara va sola a donde acaba de pasar algo. */
-  enVivo(activo: boolean) {
-    // Apagarlo suelta la cámara solo si estaba encendido: si no, soltaría a quien se acaba de elegir.
-    if (!activo && this.modoTV) this.escena.seguir(null);
-    this.modoTV = activo;
-  }
-
-  private enfocar(ent: Ent) {
-    if (!this.modoTV) return;
-    const ahora = performance.now();
-    if (ahora < this.tvHasta) return;   // deja ver lo anterior unos segundos
-    this.tvHasta = ahora + 7000;
-    this.escena.seguir(ent.obj, true);
-  }
-
-  /** Acercar la cámara a un lugar. */
-  irALugar(id: LugarId, zoom = 2.2) {
-    const c = Escena.centro(id);
-    this.escena.irA(c.x, c.z, zoom);
+}
+export function marcarRespuestaLeida(id: string) {
+  try {
+    const s = respuestasLeidas();
+    s.add(id);
+    sessionStorage.setItem(CLAVE_LEIDAS, JSON.stringify([...s].slice(-200)));
+  } catch {
+    /* sin almacenamiento: el «!» vuelve a salir hasta que la respuesta salga de la ventana de 20 min */
   }
 }

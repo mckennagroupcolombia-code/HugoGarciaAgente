@@ -1,42 +1,120 @@
 {
-  "_doc": "Empresa viva (Agenda → Empresa viva): quién vive en qué casa del barrio, en qué cuarto, dónde trabaja cuando tiene abierta la Agenda o el Mapa, y con qué avatar (desktop/public/empresa/personajes/<avatar>.glb). Clave = username del panel. Lugares: gerencia, contabilidad, estudio, cuarto_bunker_1, cuarto_bunker_2, oficina_sede, bodega, recepcion, porton, hongos, cuarto_sede_1, cuarto_sede_2, tienda. Quien no está aquí llega desde la calle cuando se conecta y se va cuando se desconecta. Los roles salen de la revisión del 8-oct-2026 (catálogo de funciones de rendimiento, permisos y paneles más usados); el juego muestra además las funciones vivas de cada quien.",
+  "_doc": "Empresa viva (Agenda → Empresa viva): quién vive en qué casa del barrio, en qué cuarto, dónde trabaja cuando tiene abierta la Agenda o el Mapa, y su personaje por defecto en pixel art («pixel»: piezas y paletas de desktop/public/empresa/pixel/personajes/personajes.json; cada quien lo cambia en «Mi personaje»). Clave = username del panel. Lugares: gerencia, contabilidad, estudio, cuarto_bunker_1, cuarto_bunker_2, oficina_sede, bodega, recepcion, porton, hongos, cuarto_sede_1, cuarto_sede_2, tienda. Quien no está aquí llega desde la calle cuando se conecta y se va cuando se desconecta. «clientes», «proveedor» y «mensajero»: cómo se ven esos personajes (lo que falte se completa al azar, estable por persona). Los roles salen de la revisión del 8-oct-2026 (catálogo de funciones de rendimiento, permisos y paneles más usados).",
   "usuarios": {
     "armando": {
       "vive": "bunker",
       "cuarto": "cuarto_bunker_1",
       "trabaja": "gerencia",
-      "avatar": "character-male-e",
-      "rol": "Gerente general, fundador y representante legal. Administra la aplicación, aprueba pagos y lleva el Libro Mayor"
+      "rol": "Gerente general, fundador y representante legal. Administra la aplicación, aprueba pagos y lleva el Libro Mayor",
+      "pixel": {
+        "cuerpo": "hombre",
+        "piel": "light",
+        "ojos": "brown",
+        "pelo": "corto",
+        "color_pelo": "dark_brown",
+        "barba": "sombra",
+        "torso": "camisa",
+        "color_torso": "sky",
+        "piernas": "jean",
+        "color_piernas": "navy",
+        "zapatos": "zapatos",
+        "color_zapatos": "brown",
+        "gafas": "gafas"
+      }
     },
     "@cynthia": {
       "vive": "bunker",
       "cuarto": "cuarto_bunker_2",
       "trabaja": "estudio",
-      "avatar": "character-female-b",
-      "rol": "Diseño de producto: etiquetas, fichas técnicas, publicaciones y catálogo"
+      "rol": "Diseño de producto: etiquetas, fichas técnicas, publicaciones y catálogo",
+      "pixel": {
+        "cuerpo": "mujer",
+        "piel": "light",
+        "ojos": "green",
+        "pelo": "largo_liso",
+        "color_pelo": "black",
+        "torso": "cardigan",
+        "color_torso": "lavender",
+        "piernas": "pantalon",
+        "color_piernas": "charcoal",
+        "zapatos": "tenis",
+        "color_zapatos": "white"
+      }
     },
     "vitor": {
       "vive": "sede",
       "cuarto": "cuarto_sede_1",
       "trabaja": "hongos",
-      "avatar": "character-male-b",
-      "rol": "Sede Sur: línea de hongos, envasado, envíos a la transportadora y el almuerzo del equipo"
+      "rol": "Sede Sur: línea de hongos, envasado, envíos a la transportadora y el almuerzo del equipo",
+      "pixel": {
+        "cuerpo": "hombre",
+        "piel": "olive",
+        "ojos": "brown",
+        "pelo": "crespo",
+        "color_pelo": "black",
+        "barba": "candado",
+        "torso": "camiseta",
+        "color_torso": "green",
+        "piernas": "jean",
+        "color_piernas": "blue",
+        "zapatos": "tenis",
+        "color_zapatos": "gray",
+        "delantal": "overol",
+        "color_delantal": "tan"
+      }
     },
     "stella": {
       "vive": "sede",
       "cuarto": "cuarto_sede_2",
       "trabaja": "oficina_sede",
-      "avatar": "character-female-e",
-      "rol": "Sede Sur: empaque, alistamiento de envíos, fórmulas y aseo"
+      "rol": "Sede Sur: empaque, alistamiento de envíos, fórmulas y aseo",
+      "pixel": {
+        "cuerpo": "mujer",
+        "piel": "taupe",
+        "ojos": "brown",
+        "pelo": "cola",
+        "color_pelo": "chestnut",
+        "torso": "polo",
+        "color_torso": "rose",
+        "piernas": "leggins",
+        "color_piernas": "black",
+        "zapatos": "tenis",
+        "color_zapatos": "white"
+      }
     },
     "jerry": {
       "trabaja": "oficina_sede",
-      "avatar": "character-female-c",
-      "rol": "Facturación, notas crédito, atención a clientes por WhatsApp y alistamiento de envíos"
+      "rol": "Facturación, notas crédito, atención a clientes por WhatsApp y alistamiento de envíos",
+      "pixel": {
+        "cuerpo": "mujer",
+        "piel": "amber",
+        "ojos": "brown",
+        "pelo": "ondulado",
+        "color_pelo": "dark_brown",
+        "torso": "camiseta_v",
+        "color_torso": "teal",
+        "piernas": "falda",
+        "color_piernas": "navy",
+        "zapatos": "zapatos",
+        "color_zapatos": "black",
+        "gafas": "redondas"
+      }
     },
     "sebastian.garcia": {
       "trabaja": "oficina_sede",
-      "avatar": "character-male-f"
+      "pixel": {
+        "cuerpo": "hombre",
+        "piel": "light",
+        "ojos": "brown",
+        "pelo": "despeinado",
+        "color_pelo": "light_brown",
+        "torso": "buzo",
+        "color_torso": "charcoal",
+        "piernas": "jean",
+        "color_piernas": "navy",
+        "zapatos": "tenis",
+        "color_zapatos": "white"
+      }
     }
   },
   "ocultos": [
@@ -44,14 +122,95 @@
     "prueba",
     "hugo_ia_bot"
   ],
-  "avatar_por_defecto": "character-male-d",
   "clientes": [
-    "character-female-a",
-    "character-male-a",
-    "character-female-d",
-    "character-male-c",
-    "character-female-f"
+    {
+      "cuerpo": "mujer",
+      "piel": "brown",
+      "pelo": "afro",
+      "color_pelo": "black",
+      "torso": "camiseta",
+      "color_torso": "yellow",
+      "piernas": "jean",
+      "color_piernas": "blue"
+    },
+    {
+      "cuerpo": "hombre",
+      "piel": "bronze",
+      "pelo": "puntas",
+      "color_pelo": "black",
+      "torso": "polo",
+      "color_torso": "red",
+      "piernas": "bermuda",
+      "color_piernas": "tan"
+    },
+    {
+      "cuerpo": "mujer",
+      "piel": "light",
+      "pelo": "bob",
+      "color_pelo": "blonde",
+      "torso": "esqueleto",
+      "color_torso": "pink",
+      "piernas": "falda",
+      "color_piernas": "charcoal"
+    },
+    {
+      "cuerpo": "hombre",
+      "piel": "amber",
+      "pelo": "raya",
+      "color_pelo": "chestnut",
+      "barba": "barba",
+      "color_torso": "forest",
+      "torso": "camiseta",
+      "piernas": "pantalon",
+      "color_piernas": "gray"
+    },
+    {
+      "cuerpo": "mujer",
+      "piel": "olive",
+      "pelo": "mono",
+      "color_pelo": "dark_brown",
+      "torso": "buzo",
+      "color_torso": "orange",
+      "piernas": "leggins",
+      "color_piernas": "navy"
+    },
+    {
+      "cuerpo": "hombre",
+      "piel": "black",
+      "pelo": "crespo",
+      "color_pelo": "black",
+      "torso": "camisa",
+      "color_torso": "white",
+      "piernas": "formal",
+      "color_piernas": "charcoal",
+      "gafas": "sol"
+    }
   ],
-  "proveedor": "character-male-d",
-  "mensajero": "character-male-a"
+  "proveedor": {
+    "cuerpo": "hombre",
+    "piel": "taupe",
+    "pelo": "corto",
+    "color_pelo": "black",
+    "barba": "poblada",
+    "torso": "camiseta",
+    "color_torso": "gray",
+    "delantal": "overol",
+    "color_delantal": "blue",
+    "piernas": "jean",
+    "color_piernas": "navy",
+    "zapatos": "zapatos",
+    "color_zapatos": "brown"
+  },
+  "mensajero": {
+    "cuerpo": "hombre",
+    "piel": "brown",
+    "pelo": "puntas",
+    "color_pelo": "black",
+    "torso": "buzo",
+    "color_torso": "red",
+    "piernas": "jean",
+    "color_piernas": "charcoal",
+    "zapatos": "tenis",
+    "color_zapatos": "black"
+  }
 }

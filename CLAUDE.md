@@ -8,7 +8,7 @@ final. Antes de tocar un módulo, leer su ficha. Al documentar algo nuevo: 2-4 l
 
 **Hugo García** es el agente de IA de McKenna Group S.A.S. (materias primas farmacéuticas y cosméticas, Bogotá, Colombia). Automatiza ventas por WhatsApp, preguntas de MercadoLibre, sincronización de stock, facturación Siigo, generación de catálogos y producción de contenido multimedia para redes sociales.
 
-**Stack**: Python 3.12 · Flask · **React 19 + TypeScript + Tailwind CSS** (panel operaciones `desktop/`) · **Anthropic Claude** (modelo por defecto en WhatsApp, `/chat`, Web Chat y preventa MeLi; tool-calling en canales de operaciones) · **Google GenAI Gemini 2.5-Pro** (red de seguridad de los canales cliente/preventa y modelo de scripts de contenido) · **bot-mckenna** (Node, `whatsapp-web.js`, puerto **3000** → proxy a `8081/whatsapp`; monitor `/monitor`) · Vite · Zustand · React Query · Evolution API (opcional, p. ej. transcripción en `routes.py`) · MercadoLibre API · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite · Ideogram · ElevenLabs · fal.ai (Kling) · PIL · ffmpeg · Facebook Graph API
+**Stack**: Python 3.12 · Flask · **React 19 + TypeScript + Tailwind CSS** (panel operaciones `desktop/`) · **Anthropic Claude** (modelo por defecto en WhatsApp, `/chat`, Web Chat y preventa MeLi; tool-calling en canales de operaciones) · **Google GenAI Gemini 2.5-Pro** (red de seguridad de los canales cliente/preventa y modelo de scripts de contenido) · **bot-mckenna** (Node, `whatsapp-web.js`, puerto **3000** → proxy a `8081/whatsapp`; monitor `/monitor`) · Vite · Zustand · React Query · Phaser 4 (Empresa viva) · Evolution API (opcional, p. ej. transcripción en `routes.py`) · MercadoLibre API · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite · Ideogram · ElevenLabs · fal.ai (Kling) · PIL · ffmpeg · Facebook Graph API
 
 ---
 ## Cómo correr el proyecto
@@ -267,16 +267,21 @@ Flash (`coa_canal_auto`), actualiza lote y resultados, llena las casillas vacía
 Si no hay un documento claro no adivina. `COA_CANAL_AUTO_ACTIVO=0` lo apaga; a mano: `scripts/coa_canal_procesar.py`.
 
 **Empresa viva** (`operacion-equipo.md`, AL, 8-oct): Agenda → Empresa viva = el barrio real (Búnker Suba, Sede Sur,
-Tienda digital) como juego 3D estilo FarmVille 3 (Three.js + `render.ts` + modelos CC0 KayKit/Kenney en
-`desktop/public/empresa/`); casas con techo que se levanta. Cada avatar va al lugar del panel que tiene abierto;
-clientes, paquetes, mensajero y proveedores salen de la operación real (`empresa_viva.py`, sin LLM).
-Preguntar a alguien = solicitud `subtipo=pregunta`; compartir idea = chat del equipo. Casas y roles: `empresa_viva_casas.json`.
+Tienda digital) como RPG pixel art estilo Chrono Trigger en **Phaser 4**: cada quien maneja su personaje y camina hasta los
+demás para hablarles; cada módulo de la app es un objeto del barrio y **se usa dentro del juego** (`VentanaModulo` +
+`lib/panelLocal.tsx`: ⚠️ un hub con pestañas usa `usePanelActual`/`useIrAPanel`, no el store, o saca a la persona del juego).
+Barrio, objetos-módulo y `mapa.json` salen de `scripts/empresa_viva/armar_mapa.py`; personajes LPC de `armar_personajes.py`
+(no editar lo generado). «Hablar» = chat directo de dos (`/api/canales/directo`, solo ellos lo leen); «Pedirle una tarea» =
+solicitud. **Ajedrez entre dos** en la mesa del parque (`empresa_viva_ajedrez.py`, `ev_ajedrez` en tickets.db; reglas con chess.js
+en el navegador) y **tenis en equipo** en la cancha (`empresa_viva_tenis.py`, en memoria); lo ganado deja **trofeos** en la repisa
+al lado de la cama (`ev_trofeos`). «Atender» (Q) junta lo que necesita tu atención; las placas de los objetos usan el color de su etapa del Mapa.
 
 **Zumbidos en solicitudes** (`operacion-equipo.md`, AJ, 7-oct): «📳 Zumbido» sacude la app de los demás miembros
 (uno cada 20 s, solo con el panel abierto; `ticket_zumbidos`, llega por `/api/mensajes/resumen`).
 
 **Alertas sonoras + chat legible** (`operacion-equipo.md`, AH, 6-oct): cada quien elige sonido por persona (quién le
-pide algo) y por grupo, con recortes de Duck Hunt y de Circus Charlie grabados de la ROM; `preferencias_ui.sonidos`.
+pide algo) y por grupo; `preferencias_ui.sonidos`. Desde el 8-oct, **lenguaje sonoro** sintetizado (`lib/lenguajeSonoro.ts`):
+la forma dice qué pasó (dos notas = mensaje, tres que suben = solicitud…); los recortes de Duck Hunt/Circus Charlie quedan como «clásicos».
 El hilo del grupo tiene Aa (3 tamaños), separadores por día, autores con color y formato de WhatsApp.
 
 **Revisión de pesos, medidas y empaques** (`operacion-equipo.md`, AG). Solicitud `subtipo=revision_empaque` con wizard

@@ -8,7 +8,11 @@
  *
  *   /app/dev/app.html?perfil=admin|despachos&panel_guardado=hugo
  */
-import { estadoEmpresaEjemplo } from "./empresaVivaEjemplo";
+import { ajedrezEjemplo } from "./ajedrezEjemplo";
+import { tenisEjemplo } from "./tenisEjemplo";
+import { estadoEmpresaEjemplo, jugadoresEjemplo } from "./empresaVivaEjemplo";
+
+const chatsEjemplo: Record<string, { id: number; usuario_id: number; autor_nombre: string; texto: string; creado_en: number }[]> = {};
 
 const q = new URLSearchParams(location.search);
 const PERFILES: Record<string, Record<string, unknown>> = {
@@ -113,6 +117,33 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
   }
   // El juego de la empresa, con un ciclo de EJEMPLO que cambia cada 10 s (dev/empresaVivaEjemplo.ts).
   if (ruta === "/api/empresa-viva/estado") return json(estadoEmpresaEjemplo(Number(usuario.id)));
+  // Ajedrez de EJEMPLO en la mesa del parque: el rival acepta y responde solo (dev/ajedrezEjemplo.ts).
+  { const r = ajedrezEjemplo(ruta, init, Number(usuario.id)); if (r) return r; }
+  // Tenis de EJEMPLO en la cancha del parque: Victor se une y su raqueta sigue la pelota (dev/tenisEjemplo.ts).
+  { const r = tenisEjemplo(ruta, init, Number(usuario.id)); if (r) return r; }
+  // Otro jugador de EJEMPLO (Jenniffer) que camina por la oficina de la sede y te saluda una vez.
+  if (ruta === "/api/empresa-viva/jugador") return json(jugadoresEjemplo());
+  // Chat directo de EJEMPLO (Empresa viva → «Hablar»): un canal por persona, mensajes en memoria.
+  if (ruta === "/api/canales/directo" && init?.method === "POST") {
+    const con = Number(JSON.parse(String(init.body || "{}")).con);
+    return json({ id: 900 + con, nombre: `Armando · ${con}`, miembros: [Number(usuario.id), con], directo_con: con });
+  }
+  {
+    const m = ruta.match(/^\/api\/canales\/(\d+)\/(mensajes|leido)$/);
+    if (m && Number(m[1]) >= 900) {
+      const lista = (chatsEjemplo[m[1]] ??= Number(m[1]) === 910
+        ? [{ id: 1, usuario_id: 10, autor_nombre: "Jenniffer", texto: "¡Hola! ¿Ya viste que llegó el proveedor?", creado_en: Date.now() / 1000 - 60 }]
+        : []);
+      if (m[2] === "leido") return json({ ok: true });
+      if (init?.method === "POST") {
+        const msg = { id: lista.length + 1, usuario_id: Number(usuario.id), autor_nombre: "Armando", texto: JSON.parse(String(init.body)).texto, creado_en: Date.now() / 1000 };
+        lista.push(msg);
+        return json(msg, 201);
+      }
+      const despues = Number(new URL(url, location.origin).searchParams.get("despues_de") || 0);
+      return json({ mensajes: lista.filter((x) => x.id > despues) });
+    }
+  }
   if (ruta === "/api/canales" && (init?.method ?? "GET") === "GET") return json({ canales: [
     { id: 8, nombre: "HORMIGUITAS DE MCKENNA", descripcion: "", miembros: [], espejo_salida: false, wa_jid: "", wa_nombre: "" },
     { id: 2, nombre: "Sede Sur", descripcion: "", miembros: [7, 9, 10], espejo_salida: true, wa_jid: "x@g.us", wa_nombre: "MCKG SEDE SUR" },

@@ -3,16 +3,16 @@
     "Bogotá D.C.|Martires": {
       "departamento": "Bogotá D.C.",
       "municipio": "Martires",
-      "n_pedidos": 5,
+      "n_pedidos": 7,
       "primera_vez": "2026-08-20",
-      "ultima_vez": "2026-09-15"
+      "ultima_vez": "2026-10-07"
     },
     "Valle del Cauca|Cali": {
       "departamento": "Valle del Cauca",
       "municipio": "Cali",
-      "n_pedidos": 79,
+      "n_pedidos": 81,
       "primera_vez": "2026-08-14",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-07"
     },
     "Huila|Pitalito": {
       "departamento": "Huila",
@@ -24,16 +24,16 @@
     "Bogotá D.C.|Chapinero": {
       "departamento": "Bogotá D.C.",
       "municipio": "Chapinero",
-      "n_pedidos": 40,
+      "n_pedidos": 41,
       "primera_vez": "2026-08-12",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-06"
     },
     "Bogotá D.C.|Suba": {
       "departamento": "Bogotá D.C.",
       "municipio": "Suba",
-      "n_pedidos": 137,
+      "n_pedidos": 141,
       "primera_vez": "2026-08-13",
-      "ultima_vez": "2026-10-06"
+      "ultima_vez": "2026-10-07"
     },
     "Santander|Floridablanca": {
       "departamento": "Santander",
@@ -45,44 +45,44 @@
     "Antioquia|Medellín": {
       "departamento": "Antioquia",
       "municipio": "Medellín",
-      "n_pedidos": 86,
+      "n_pedidos": 89,
       "primera_vez": "2026-08-13",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-07"
     },
     "Antioquia|Itaguí": {
       "departamento": "Antioquia",
       "municipio": "Itaguí",
-      "n_pedidos": 10,
+      "n_pedidos": 11,
       "primera_vez": "2026-08-20",
-      "ultima_vez": "2026-09-30"
+      "ultima_vez": "2026-10-05"
     },
     "Bogotá D.C.|Teusaquillo": {
       "departamento": "Bogotá D.C.",
       "municipio": "Teusaquillo",
-      "n_pedidos": 33,
+      "n_pedidos": 34,
       "primera_vez": "2026-08-12",
       "ultima_vez": "2026-10-06"
     },
     "Bogotá D.C.|Kennedy": {
       "departamento": "Bogotá D.C.",
       "municipio": "Kennedy",
-      "n_pedidos": 79,
+      "n_pedidos": 84,
       "primera_vez": "2026-08-12",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-07"
     },
     "Bogotá D.C.|Usaquén": {
       "departamento": "Bogotá D.C.",
       "municipio": "Usaquén",
-      "n_pedidos": 72,
+      "n_pedidos": 75,
       "primera_vez": "2026-08-13",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-07"
     },
     "Santander|Barrancabermeja": {
       "departamento": "Santander",
       "municipio": "Barrancabermeja",
-      "n_pedidos": 11,
+      "n_pedidos": 12,
       "primera_vez": "2026-08-20",
-      "ultima_vez": "2026-09-21"
+      "ultima_vez": "2026-10-05"
     },
     "Boyacá|Tibaná": {
       "departamento": "Boyacá",
@@ -94,23 +94,23 @@
     "Bogotá D.C.|Engativá": {
       "departamento": "Bogotá D.C.",
       "municipio": "Engativá",
-      "n_pedidos": 76,
+      "n_pedidos": 80,
       "primera_vez": "2026-08-13",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-08"
     },
     "Córdoba|Montería": {
       "departamento": "Córdoba",
       "municipio": "Montería",
-      "n_pedidos": 6,
+      "n_pedidos": 7,
       "primera_vez": "2026-08-20",
-      "ultima_vez": "2026-10-03"
+      "ultima_vez": "2026-10-07"
     },
     "Bogotá D.C.|Fontibón": {
       "departamento": "Bogotá D.C.",
       "municipio": "Fontibón",
-      "n_pedidos": 55,
+      "n_pedidos": 57,
       "primera_vez": "2026-08-20",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-07"
     },
     "Meta|Acacias": {
       "departamento": "Meta",
@@ -122,9 +122,9 @@
     "Santander|Bucaramanga": {
       "departamento": "Santander",
       "municipio": "Bucaramanga",
-      "n_pedidos": 13,
+      "n_pedidos": 15,
       "primera_vez": "2026-08-20",
-      "ultima_vez": "2026-10-01"
+      "ultima_vez": "2026-10-06"
     },
     "Antioquia|La Ceja": {
       "departamento": "Antioquia",
@@ -136,9 +136,9 @@
     "Bolívar|Cartagena De Indias": {
       "departamento": "Bolívar",
       "municipio": "Cartagena De Indias",
-      "n_pedidos": 21,
+      "n_pedidos": 22,
       "primera_vez": "2026-08-13",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-07"
     },
     "Cesar|San Alberto": {
       "departamento": "Cesar",
@@ -157,9 +157,9 @@
     "Antioquia|Bello": {
       "departamento": "Antioquia",
       "municipio": "Bello",
-      "n_pedidos": 27,
+      "n_pedidos": 29,
       "primera_vez": "2026-08-13",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-07"
     },
     "Huila|Neiva": {
       "departamento": "Huila",
@@ -171,9 +171,9 @@
     "Bogotá D.C.|Bosa": {
       "departamento": "Bogotá D.C.",
       "municipio": "Bosa",
-      "n_pedidos": 27,
+      "n_pedidos": 29,
       "primera_vez": "2026-08-20",
-      "ultima_vez": "2026-10-06"
+      "ultima_vez": "2026-10-07"
     },
     "Meta|Villavicencio": {
       "departamento": "Meta",
@@ -192,9 +192,9 @@
     "Quindío|Armenia": {
       "departamento": "Quindío",
       "municipio": "Armenia",
-      "n_pedidos": 17,
+      "n_pedidos": 18,
       "primera_vez": "2026-08-20",
-      "ultima_vez": "2026-10-02"
+      "ultima_vez": "2026-10-06"
     },
     "Atlántico|Puerto Colombia": {
       "departamento": "Atlántico",
@@ -213,9 +213,9 @@
     "Atlántico|Barranquilla": {
       "departamento": "Atlántico",
       "municipio": "Barranquilla",
-      "n_pedidos": 40,
+      "n_pedidos": 42,
       "primera_vez": "2026-08-12",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-07"
     },
     "Bogotá D.C.|Puente Aranda": {
       "departamento": "Bogotá D.C.",
@@ -325,7 +325,7 @@
     "Valle del Cauca|Caicedonia": {
       "departamento": "Valle del Cauca",
       "municipio": "Caicedonia",
-      "n_pedidos": 5,
+      "n_pedidos": 6,
       "primera_vez": "2026-08-16",
       "ultima_vez": "2026-10-05"
     },
@@ -367,9 +367,9 @@
     "Bogotá D.C.|Tunjuelito": {
       "departamento": "Bogotá D.C.",
       "municipio": "Tunjuelito",
-      "n_pedidos": 16,
+      "n_pedidos": 17,
       "primera_vez": "2026-08-21",
-      "ultima_vez": "2026-10-01"
+      "ultima_vez": "2026-10-06"
     },
     "Norte de Santander|Cúcuta": {
       "departamento": "Norte de Santander",
@@ -416,9 +416,9 @@
     "Antioquia|Rionegro": {
       "departamento": "Antioquia",
       "municipio": "Rionegro",
-      "n_pedidos": 12,
+      "n_pedidos": 13,
       "primera_vez": "2026-08-24",
-      "ultima_vez": "2026-10-01"
+      "ultima_vez": "2026-10-06"
     },
     "Boyacá|Sutamarchán": {
       "departamento": "Boyacá",
@@ -458,9 +458,9 @@
     "Antioquia|Caldas": {
       "departamento": "Antioquia",
       "municipio": "Caldas",
-      "n_pedidos": 2,
+      "n_pedidos": 3,
       "primera_vez": "2026-08-25",
-      "ultima_vez": "2026-09-08"
+      "ultima_vez": "2026-10-05"
     },
     "Huila|Campoalegre": {
       "departamento": "Huila",
@@ -472,9 +472,9 @@
     "Risaralda|Pereira": {
       "departamento": "Risaralda",
       "municipio": "Pereira",
-      "n_pedidos": 17,
+      "n_pedidos": 19,
       "primera_vez": "2026-08-25",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-06"
     },
     "Cundinamarca|Funza": {
       "departamento": "Cundinamarca",
@@ -514,9 +514,9 @@
     "Antioquia|Sabaneta": {
       "departamento": "Antioquia",
       "municipio": "Sabaneta",
-      "n_pedidos": 16,
+      "n_pedidos": 18,
       "primera_vez": "2026-08-25",
-      "ultima_vez": "2026-10-05"
+      "ultima_vez": "2026-10-07"
     },
     "Cundinamarca|El Peñón": {
       "departamento": "Cundinamarca",
@@ -563,9 +563,9 @@
     "Cauca|Popayán": {
       "departamento": "Cauca",
       "municipio": "Popayán",
-      "n_pedidos": 7,
+      "n_pedidos": 8,
       "primera_vez": "2026-08-27",
-      "ultima_vez": "2026-10-01"
+      "ultima_vez": "2026-10-06"
     },
     "Caquetá|Puerto Rico": {
       "departamento": "Caquetá",
@@ -619,9 +619,9 @@
     "Bogotá D.C.|Santa Fe": {
       "departamento": "Bogotá D.C.",
       "municipio": "Santa Fe",
-      "n_pedidos": 7,
+      "n_pedidos": 9,
       "primera_vez": "2026-08-31",
-      "ultima_vez": "2026-09-29"
+      "ultima_vez": "2026-10-06"
     },
     "Tolima|Ibagué": {
       "departamento": "Tolima",
@@ -668,9 +668,9 @@
     "Cundinamarca|Soacha": {
       "departamento": "Cundinamarca",
       "municipio": "Soacha",
-      "n_pedidos": 11,
+      "n_pedidos": 13,
       "primera_vez": "2026-09-01",
-      "ultima_vez": "2026-10-06"
+      "ultima_vez": "2026-10-08"
     },
     "Casanare|Monterrey": {
       "departamento": "Casanare",
@@ -696,9 +696,9 @@
     "Valle del Cauca|Yumbo": {
       "departamento": "Valle del Cauca",
       "municipio": "Yumbo",
-      "n_pedidos": 2,
+      "n_pedidos": 3,
       "primera_vez": "2026-09-01",
-      "ultima_vez": "2026-09-04"
+      "ultima_vez": "2026-10-05"
     },
     "Magdalena|Santa Marta": {
       "departamento": "Magdalena",
@@ -752,9 +752,9 @@
     "Boyacá|Sogamoso": {
       "departamento": "Boyacá",
       "municipio": "Sogamoso",
-      "n_pedidos": 6,
+      "n_pedidos": 7,
       "primera_vez": "2026-09-03",
-      "ultima_vez": "2026-09-19"
+      "ultima_vez": "2026-10-07"
     },
     "Arauca|Arauca": {
       "departamento": "Arauca",
@@ -850,9 +850,9 @@
     "Cundinamarca|Fusagasugá": {
       "departamento": "Cundinamarca",
       "municipio": "Fusagasugá",
-      "n_pedidos": 7,
+      "n_pedidos": 8,
       "primera_vez": "2026-09-05",
-      "ultima_vez": "2026-09-24"
+      "ultima_vez": "2026-10-08"
     },
     "Cundinamarca|Choachí": {
       "departamento": "Cundinamarca",
@@ -927,9 +927,9 @@
     "Bogotá D.C.|Usme": {
       "departamento": "Bogotá D.C.",
       "municipio": "Usme",
-      "n_pedidos": 5,
+      "n_pedidos": 6,
       "primera_vez": "2026-09-08",
-      "ultima_vez": "2026-10-02"
+      "ultima_vez": "2026-10-06"
     },
     "Meta|Granada": {
       "departamento": "Meta",
@@ -1081,9 +1081,9 @@
     "Santander|San Gil": {
       "departamento": "Santander",
       "municipio": "San Gil",
-      "n_pedidos": 3,
+      "n_pedidos": 4,
       "primera_vez": "2026-09-14",
-      "ultima_vez": "2026-09-30"
+      "ultima_vez": "2026-10-06"
     },
     "Valle del Cauca|Guadalajara de Buga": {
       "departamento": "Valle del Cauca",
@@ -1364,6 +1364,20 @@
       "n_pedidos": 1,
       "primera_vez": "2026-10-05",
       "ultima_vez": "2026-10-05"
+    },
+    "Caldas|Marquetalia": {
+      "departamento": "Caldas",
+      "municipio": "Marquetalia",
+      "n_pedidos": 1,
+      "primera_vez": "2026-10-05",
+      "ultima_vez": "2026-10-05"
+    },
+    "Huila|Yaguará": {
+      "departamento": "Huila",
+      "municipio": "Yaguará",
+      "n_pedidos": 1,
+      "primera_vez": "2026-10-06",
+      "ultima_vez": "2026-10-06"
     }
   },
   "shipping_ids_vistos": [
@@ -2802,6 +2816,7 @@
     "48159455995",
     "48159993424",
     "48159995185",
+    "48160118783",
     "48160676883",
     "48161373852",
     "48161742823",
@@ -2824,6 +2839,7 @@
     "48165042708",
     "48165131662",
     "48165140396",
+    "48165179549",
     "48165458649",
     "48165648585",
     "48166415659",
@@ -2853,9 +2869,67 @@
     "48172881743",
     "48172891864",
     "48172893536",
-    "48173247460"
+    "48173247460",
+    "48173403972",
+    "48173491431",
+    "48173695101",
+    "48174169263",
+    "48174263559",
+    "48175299026",
+    "48175589711",
+    "48175652962",
+    "48175815042",
+    "48176161763",
+    "48176230904",
+    "48176324000",
+    "48176611007",
+    "48177236454",
+    "48177272407",
+    "48177646684",
+    "48178243114",
+    "48179488770",
+    "48179864092",
+    "48180913694",
+    "48181511549",
+    "48181570435",
+    "48181639234",
+    "48181712271",
+    "48181805604",
+    "48182135525",
+    "48182217777",
+    "48182314643",
+    "48182355036",
+    "48182837376",
+    "48183191042",
+    "48183290304",
+    "48184795863",
+    "48185178824",
+    "48185206859",
+    "48185536205",
+    "48186652317",
+    "48187144203",
+    "48187373910",
+    "48187654508",
+    "48187732874",
+    "48188380632",
+    "48188393307",
+    "48189145532",
+    "48189245987",
+    "48189768405",
+    "48190399440",
+    "48190452405",
+    "48190505862",
+    "48190849430",
+    "48190974122",
+    "48191262594",
+    "48191495126",
+    "48191604018",
+    "48192027328",
+    "48192091178",
+    "48192451669",
+    "48192467975"
   ],
-  "actualizado_en": "2026-10-07T06:51:09",
+  "actualizado_en": "2026-10-08T06:51:03",
   "envios_por_fecha": {
     "2026-08-13": 33,
     "2026-08-12": 9,
@@ -2905,7 +2979,9 @@
     "2026-10-02": 41,
     "2026-10-03": 11,
     "2026-10-04": 1,
-    "2026-10-05": 42,
-    "2026-10-06": 16
+    "2026-10-05": 58,
+    "2026-10-06": 39,
+    "2026-10-07": 17,
+    "2026-10-08": 4
   }
 }

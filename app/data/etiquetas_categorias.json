@@ -397,6 +397,11 @@
         "elastina hidrolizada",
         "colageno hidrolizado 30"
       ]
+    },
+    {
+      "id": "agro",
+      "etiqueta": "Agro",
+      "claves": []
     }
   ]
 }

@@ -1,0 +1,32 @@
+"Super Bomberman 4"
+TraducciÃ³n al EspaÃ±ol Ver. 1.1 (13/02/2026)
+por Max1323 (Traducciones Max1323).
+Basada en la gran traducciÃ³n de Svambo.
+---------------------------------------------------
+DescripciÃ³n:
+El cerebro de Bagura escapÃ³ de la explosiÃ³n en Super Bomberman 3, y ha invocado a los 4 Reyes Bomber y al Gran bomber para vengarse. Los dos hÃ©roes son enviados en el tiempo para pelear en las diferentes eras y vencer al quinteto malvado y asÃ­ enfrentar a Bagura.
+
+Desarrollado: Produce
+Publicado:    Hudson
+Lanzamiento:  26/04/1996 (JAP)
+---------------------------------------------------
+Acerca del proyecto:
+-La mayorÃ­a de los textos (sprites) estÃ¡n traducidos. Se agregaron los caracteres espaÃ±oles a algunas fuentes.
+-Algunos grÃ¡ficos estÃ¡n traducidos.
+-Basada en las notas de Svambo.
+Super Bomberman 4 no cuenta con muchos grÃ¡ficos comprimidos, es por eso que se pudo hacer una traducciÃ³n.
+-Se agregaron los acentos a los grÃ¡ficos de Ãrea y rÃ¡pido.
+-Se cambiÃ³ EON por ERA por la limitaciÃ³n de caracteres en esta pantalla.
+---------------------------------------------------
+Instrucciones del parche:
+Utilizar Lunar IPS (PC)
+Utilizar UniPatcher (Android)
+Utilizar Rom Patcher (Parcheador Online):
+https://romhackplaza.org/patch/
+
+Archivo IPS
+Super Bomberman 4 (Japan).sfc
+File Size:    2.00 MB
+File MD5      DF33E261104EFEE409DE8F294D80AD6E        
+File SHA-1    FF580E5A990B1EB4026FDC3669EC6F4A750B6309
+File CRC32    3BBAEB19

@@ -1,5 +1,6 @@
 import { Ico } from "../icons/Ico";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { tocarEarcon } from "../lib/lenguajeSonoro";
 
 export function fmtTiempo(seg: number): string {
   const h = Math.floor(seg / 3600);
@@ -292,18 +293,8 @@ function esHorarioSilencioAlarma(): boolean {
 }
 
 function beepRecordatorio() {
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.value = 0.25;
-    osc.start();
-    osc.stop(ctx.currentTime + 0.35);
-    setTimeout(() => ctx.close(), 500);
-  } catch { /* ignore */ }
+  // «Tarea en curso» del lenguaje sonoro: dos toques y una campana (antes, un pitido seco de 880 Hz).
+  tocarEarcon("mk_recordatorio", { volumen: 0.8 });
   if (typeof Notification !== "undefined" && Notification.permission === "granted") {
     navigator.serviceWorker?.ready
       .then((reg) => reg.showNotification("⏱ Acción en curso", {

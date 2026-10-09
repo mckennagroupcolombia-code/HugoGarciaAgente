@@ -3,14 +3,97 @@ import { createPortal } from "react-dom";
 import { useCanalesEquipo } from "../../hooks/useCanalesEquipo";
 import { useUsuariosEquipo } from "../../hooks/useConversaciones";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
-import { CATALOGO_SONIDOS, SILENCIO, reproducirSonido, sonidoDeCanal, sonidoPorId, useAlertasSonido, type Juego } from "../../lib/alertasSonido";
+import {
+  AJUSTES_INICIALES, CATALOGO_SONIDOS, FAMILIAS, SILENCIO, reproducirSonido, sonidoDeCanal, sonidoPorId, useAlertasSonido,
+} from "../../lib/alertasSonido";
+import { ETAPAS_APP } from "../../lib/flujoApp";
+import { tocarEarcon } from "../../lib/lenguajeSonoro";
 import { colorDePersona, iniciales } from "../../lib/personaColor";
+import { oirSonido } from "../../lib/sonidosJuego";
 import "./chatEquipo.css";
 
-const JUEGOS: Juego[] = ["Duck Hunt", "Circus Charlie"];
+/**
+ * «Qué significa cada sonido» (8-oct-2026): el lenguaje sonoro de la app (lib/lenguajeSonoro.ts)
+ * explicado en una lista con ▶ para oír cada uno. La FORMA dice qué pasó (dos notas = mensaje,
+ * tres que suben = te piden algo…); el timbre de la campanita dice de qué grupo.
+ */
+const SIGNIFICADOS: { icono: string; titulo: string; suena: string; sonido: string }[] = [
+  { icono: "💬", titulo: "Te escriben en un grupo", sonido: "mk_mensaje",
+    suena: "Dos notas de campanita. Cada grupo tiene su par (campanita, gota, burbuja, marimba…) para saber de dónde viene sin mirar." },
+  { icono: "📣", titulo: "Te nombran con @", sonido: "mencion",
+    suena: "La campanita del grupo y, encima, un destello agudo: es para ti." },
+  { icono: "🙋", titulo: "Te hacen una solicitud", sonido: "mk_solicitud",
+    suena: "Tres notas de marimba que suben, como una pregunta. Puedes darle otro a cada persona." },
+  { icono: "📳", titulo: "Zumbido", sonido: "zumbido",
+    suena: "Una vibración grave, tres veces, y la pantalla tiembla: alguien te está esperando." },
+  { icono: "🚨", titulo: "Algo urgente", sonido: "mk_urgente",
+    suena: "Dos tonos que se alternan, una sirena suave. Suena al tocar lo urgente en el Mapa." },
+  { icono: "⛔", titulo: "Algo detenido o que no se pudo", sonido: "error",
+    suena: "Dos notas graves que bajan. Suena al tocar «Detenido ahora» en el Mapa." },
+  { icono: "✅", titulo: "Paso revisado", sonido: "mk_resuelto",
+    suena: "Un arpegio brillante que sube: quedó listo." },
+  { icono: "🏆", titulo: "Tarea o flujo terminado", sonido: "logro",
+    suena: "El arpegio y un acorde que se abre (sale el perro). También al aprobar una ficha o una etiqueta." },
+  { icono: "🪙", titulo: "Ganas monedas", sonido: "mk_moneda",
+    suena: "La moneda: dos notas metálicas, corta la primera. En Empresa viva, también una venta nueva." },
+  { icono: "⏱️", titulo: "Tienes una tarea en curso", sonido: "mk_recordatorio",
+    suena: "Dos toques y una campana: sigue con tu acción." },
+];
+
+/** Las etapas del Mapa, en el orden del flujo: cada una sube un poco (lib/sonidosJuego.ts). */
+const ETAPAS_SONORAS = [{ id: "inicio", titulo: "Inicio" }, ...ETAPAS_APP.map((e) => ({ id: e.id, titulo: e.titulo }))];
+
+function BotonOir({ etiqueta, onOir }: { etiqueta: string; onOir: () => void }) {
+  return (
+    <button type="button" data-sin-sonido onClick={onOir} aria-label={`Oír: ${etiqueta}`} title="Oír"
+      className="mck-btn-no-fx flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-[15px] text-accent hover:border-accent">
+      ▶
+    </button>
+  );
+}
+
+/** La leyenda: qué significa cada sonido, con ▶ para oírlo (suena aunque los avisos estén apagados). */
+function QueSignificaCadaSonido({ volumen }: { volumen: number }) {
+  const oir = (id: string) => tocarEarcon(id, { volumen: Math.max(0.15, volumen / 100) });
+  return (
+    <details open className="mt-4 rounded-2xl border border-border bg-surface p-4">
+      <summary className="cursor-pointer text-[15px] font-bold text-ink">🎧 Qué significa cada sonido</summary>
+      <p className="mt-1 text-[13px] text-muted">
+        Todos son de la misma familia y en la misma tonalidad: la forma te dice qué pasó. Toca ▶ para oírlos.
+      </p>
+      <ul className="mt-3 space-y-2">
+        {SIGNIFICADOS.map((x) => (
+          <li key={x.sonido} className="flex items-center gap-3">
+            <span className="w-7 shrink-0 text-center text-[20px] leading-none" aria-hidden>{x.icono}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-bold text-ink">{x.titulo}</span>
+              <span className="block text-[12.5px] leading-snug text-muted">{x.suena}</span>
+            </span>
+            <BotonOir etiqueta={x.titulo} onOir={() => oir(x.sonido)} />
+          </li>
+        ))}
+        <li className="border-t border-border pt-3">
+          <span className="block text-[14px] font-bold text-ink">🗺️ Al moverte por la app</span>
+          <span className="block text-[12.5px] leading-snug text-muted">
+            Cada etapa del Mapa es una marimba de dos notas que sube; cuanto más adelante en el flujo, más aguda.
+            Vender suena a moneda y Entregar baja (el paquete se va). Se silencian con el 🔊 del Mapa.
+          </span>
+          <span className="mt-2 flex flex-wrap gap-1.5">
+            {[...ETAPAS_SONORAS, { id: "volver", titulo: "Volver al Mapa" }].map((e) => (
+              <button key={e.id} type="button" data-sin-sonido onClick={() => oirSonido(e.id)}
+                className="mck-btn-no-fx rounded-full border border-border bg-surface-input px-3 py-1.5 text-[13px] font-bold text-ink-secondary hover:border-accent hover:text-ink">
+                ▶ {e.titulo}
+              </button>
+            ))}
+          </span>
+        </li>
+      </ul>
+    </details>
+  );
+}
 
 /**
- * Elegir un sonido: lista desplegable agrupada por juego + ▶ para oírlo.
+ * Elegir un sonido: lista desplegable agrupada por familia (campanitas, avisos, clásicos) + ▶ para oírlo.
  * `heredado` es lo que sonaría sin regla propia (se muestra como primera opción).
  */
 export function SelectorSonido({ valor, onCambiar, heredado, etiqueta }: {
@@ -35,9 +118,9 @@ export function SelectorSonido({ valor, onCambiar, heredado, etiqueta }: {
         {heredado !== undefined && (
           <option value="">Por defecto{sonidoPorId(heredado) ? ` · ${sonidoPorId(heredado)!.icono} ${sonidoPorId(heredado)!.nombre}` : ""}</option>
         )}
-        {JUEGOS.map((j) => (
-          <optgroup key={j} label={j}>
-            {CATALOGO_SONIDOS.filter((s) => s.juego === j).map((s) => (
+        {FAMILIAS.map((f) => (
+          <optgroup key={f.id} label={f.titulo}>
+            {CATALOGO_SONIDOS.filter((s) => s.familia === f.id).map((s) => (
               <option key={s.id} value={s.id}>{s.icono} {s.nombre}</option>
             ))}
           </optgroup>
@@ -95,10 +178,10 @@ export default function AjustesSonidos({ onCerrar, canalInicial }: { onCerrar: (
       <div role="dialog" aria-label="Sonidos de los avisos" onMouseDown={(e) => e.stopPropagation()}
         className="mck-sonidos-modal flex max-h-[92dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-3xl border border-border bg-surface-panel shadow-paper-lg sm:rounded-3xl">
         <header className="flex items-center gap-3 border-b border-border px-5 py-4">
-          <span className="text-[28px] leading-none" aria-hidden>🎮</span>
+          <span className="text-[28px] leading-none" aria-hidden>🎧</span>
           <div className="min-w-0 flex-1">
             <h2 className="text-[19px] font-black text-ink">Sonidos de los avisos</h2>
-            <p className="text-[13px] text-muted">Reconoce de oído quién te pide algo o dónde te escriben. Sonidos de Duck Hunt y Circus Charlie.</p>
+            <p className="text-[13px] text-muted">Reconoce de oído qué pasó, quién te pide algo y dónde te escriben. Abajo, qué significa cada sonido.</p>
           </div>
           <button onClick={onCerrar} className="mck-btn-no-fx flex h-10 w-10 items-center justify-center rounded-full text-[18px] text-muted hover:bg-surface-hover hover:text-ink" aria-label="Cerrar">✕</button>
         </header>
@@ -124,7 +207,7 @@ export default function AjustesSonidos({ onCerrar, canalInicial }: { onCerrar: (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <p className="mb-1 text-[13px] font-bold text-ink-secondary">📋 Te hacen una solicitud</p>
-                <SelectorSonido etiqueta="solicitudes" valor={ajustes.solicitud} onCambiar={(v) => cambiar({ solicitud: v ?? "dh_ronda" })} />
+                <SelectorSonido etiqueta="solicitudes" valor={ajustes.solicitud} onCambiar={(v) => cambiar({ solicitud: v ?? AJUSTES_INICIALES.solicitud })} />
               </div>
               <div>
                 <p className="mb-1 text-[13px] font-bold text-ink-secondary">💬 Te escriben en un grupo</p>
@@ -133,11 +216,13 @@ export default function AjustesSonidos({ onCerrar, canalInicial }: { onCerrar: (
                   Cada grupo con su propio tono (se reconoce de oído)
                 </label>
                 {ajustes.tono_por_grupo === false && (
-                  <SelectorSonido etiqueta="mensajes de grupo" valor={ajustes.general} onCambiar={(v) => cambiar({ general: v ?? "dh_ladrido" })} />
+                  <SelectorSonido etiqueta="mensajes de grupo" valor={ajustes.general} onCambiar={(v) => cambiar({ general: v ?? AJUSTES_INICIALES.general })} />
                 )}
               </div>
             </div>
           </section>
+
+          <QueSignificaCadaSonido volumen={ajustes.volumen} />
 
           <div className="mt-4 flex items-center gap-2">
             <div className="flex rounded-full border border-border bg-surface p-1" role="tablist">

@@ -28,6 +28,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
+import { PanelLocal } from "../lib/panelLocal";
 import { Icon, PanelIcon } from "../icons";
 import { ETAPAS_APP, ORIGEN_APP, type EtapaApp, type TramoApp } from "../lib/flujoApp";
 import { etapaDeTicket } from "../lib/flujoTickets";
@@ -292,7 +293,9 @@ function Mapa() {
   // En el celular la secuencia va de arriba abajo: se lee con el pulgar.
   const vertical = ancho < 700;
 
-  const [modo, setModo] = useState<"mapa" | "juego">(() => (leer(CLAVE_MODO) === "juego" ? "juego" : "mapa"));
+  // Abierto dentro de Empresa viva (panel local): siempre el Mapa, nunca otro juego adentro del juego.
+  const dentroDelJuego = useContext(PanelLocal) !== null;
+  const [modo, setModo] = useState<"mapa" | "juego">(() => (!dentroDelJuego && leer(CLAVE_MODO) === "juego" ? "juego" : "mapa"));
   const cambiarModo = (m: "mapa" | "juego") => {
     if (m === modo) return;
     setModo(m);
@@ -517,7 +520,7 @@ function Mapa() {
         <span className="px-t mv-solo-ancho" style={{ fontSize: 11, color: "var(--ed-gris, #C2C3C7)" }}>
           {participa} de {cartas.length} etapas son tuyas
         </span>
-        <div className="flex shrink-0 gap-1" role="group" aria-label="Cómo ver la aplicación">
+        <div className={`${dentroDelJuego ? "hidden" : "flex"} shrink-0 gap-1`} role="group" aria-label="Cómo ver la aplicación">
           <button type="button" aria-pressed={modo === "mapa"} onClick={() => cambiarModo("mapa")} data-sin-sonido
                   className={`mv-nivel ${modo === "mapa" ? "mv-nivel-on" : ""}`} title="El tablero: la secuencia del negocio">Mapa</button>
           <button type="button" aria-pressed={modo === "juego"} onClick={() => cambiarModo("juego")} data-sin-sonido

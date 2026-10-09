@@ -315,6 +315,119 @@ def register_mapa_sistema_routes(app):
         # que se vea ya, sin esperar los 10 s del caché.
         return jsonify(empresa_viva.estado_para(usuario, refrescar=request.args.get("refrescar") == "1"))
 
+    def _persona_del_juego():
+        """(usuario, None) o (None, respuesta de error): el juego necesita a la PERSONA."""
+        from app.api_auth import bearer_token_from_request
+        from app.services import empresa_viva
+        from app.services.tickets_db import aplicar_privilegios_admin_cynthia, get_usuario_by_token
+
+        usuario = None
+        for tok in ((request.headers.get("X-Tickets-Token") or "").strip(), bearer_token_from_request()):
+            if tok:
+                try:
+                    usuario = aplicar_privilegios_admin_cynthia(get_usuario_by_token(tok))
+                except Exception:
+                    usuario = None
+                if usuario:
+                    break
+        if not usuario:
+            return None, (jsonify({"error": "No autorizado"}), 401)
+        if not empresa_viva.puede_ver_juego(usuario):
+            return None, (jsonify({"error": "No autorizado"}), 403)
+        return usuario, None
+
+    @_dual(app, "/api/empresa-viva/jugador", methods=["POST"])
+    def empresa_viva_jugador():
+        """Quien juega Empresa viva avisa dónde está su avatar y recibe a los demás jugadores.
+        Solo memoria del proceso: nada se guarda (empresa_viva.jugador)."""
+        from app.services import empresa_viva
+
+        usuario, err = _persona_del_juego()
+        if err:
+            return err
+        return jsonify(empresa_viva.jugador(usuario, request.get_json(silent=True) or {}))
+
+    def _ajedrez(fn):
+        """Corre una acción de los minijuegos (ajedrez, tenis) con la persona del juego y traduce los errores."""
+        usuario, err = _persona_del_juego()
+        if err:
+            return err
+        try:
+            return jsonify(fn(usuario))
+        except LookupError as e:
+            return jsonify({"error": str(e)}), 404
+        except PermissionError as e:
+            return jsonify({"error": str(e)}), 403
+        except (ValueError, TypeError) as e:
+            return jsonify({"error": str(e) or "Datos inválidos"}), 400
+
+    @_dual(app, "/api/empresa-viva/ajedrez", methods=["GET", "POST"])
+    def empresa_viva_ajedrez():
+        """GET: mis retos y partidas, y las que se están jugando (para mirar). POST {a}: retar a alguien.
+        El minijuego de la mesa del parque (empresa_viva_ajedrez)."""
+        from app.services import empresa_viva_ajedrez as A
+
+        if request.method == "POST":
+            datos = request.get_json(silent=True) or {}
+            return _ajedrez(lambda u: A.retar(u, int(datos.get("a") or 0)))
+        return _ajedrez(A.listar)
+
+    @_dual(app, "/api/empresa-viva/ajedrez/<int:pid>", methods=["GET"])
+    def empresa_viva_ajedrez_partida(pid: int):
+        from app.services import empresa_viva_ajedrez as A
+
+        return _ajedrez(lambda u: A.ver(u, pid))
+
+    @_dual(app, "/api/empresa-viva/tenis", methods=["GET", "POST"])
+    def empresa_viva_tenis():
+        """GET: los partidos de tenis (abiertos, en juego, recién terminados). POST: armar uno.
+        El minijuego en equipo de la cancha del parque (empresa_viva_tenis, en memoria)."""
+        from app.services import empresa_viva_tenis as T
+
+        if request.method == "POST":
+            return _ajedrez(T.crear)
+        return _ajedrez(T.listar)
+
+    @_dual(app, "/api/empresa-viva/tenis/<int:pid>", methods=["GET"])
+    def empresa_viva_tenis_partido(pid: int):
+        from app.services import empresa_viva_tenis as T
+
+        return _ajedrez(lambda u: T.ver(u, pid))
+
+    @_dual(app, "/api/empresa-viva/tenis/<int:pid>/<accion>", methods=["POST"])
+    def empresa_viva_tenis_accion(pid: int, accion: str):
+        """unirse {equipo} | salir | empezar | estado {raqueta, pelota?, punto?, punto_seq?}."""
+        from app.services import empresa_viva_tenis as T
+
+        datos = request.get_json(silent=True) or {}
+        acciones = {
+            "unirse": lambda u: T.unirse(u, pid, str(datos.get("equipo") or "")),
+            "salir": lambda u: T.salir(u, pid),
+            "empezar": lambda u: T.empezar(u, pid),
+            "estado": lambda u: T.estado(u, pid, datos),
+        }
+        if accion not in acciones:
+            return jsonify({"error": "Acción desconocida"}), 404
+        return _ajedrez(acciones[accion])
+
+    @_dual(app, "/api/empresa-viva/ajedrez/<int:pid>/<accion>", methods=["POST"])
+    def empresa_viva_ajedrez_accion(pid: int, accion: str):
+        """aceptar | rechazar | cancelar | jugada {uci, n, fin} | rendirse | tablas {accion}."""
+        from app.services import empresa_viva_ajedrez as A
+
+        datos = request.get_json(silent=True) or {}
+        acciones = {
+            "aceptar": lambda u: A.responder(u, pid, True),
+            "rechazar": lambda u: A.responder(u, pid, False),
+            "cancelar": lambda u: A.responder(u, pid, False),
+            "jugada": lambda u: A.jugar(u, pid, str(datos.get("uci") or ""), int(datos.get("n") or 0), str(datos.get("fin") or "")),
+            "rendirse": lambda u: A.rendirse(u, pid),
+            "tablas": lambda u: A.tablas(u, pid, str(datos.get("accion") or "")),
+        }
+        if accion not in acciones:
+            return jsonify({"error": "Acción desconocida"}), 404
+        return _ajedrez(acciones[accion])
+
     @_dual(app, "/api/mapa-sistema/quien-hace", methods=["GET"])
     def mapa_sistema_quien_hace():
         """Quién hace cada función de la operación (el Edificio del Mapa pone a cada persona en

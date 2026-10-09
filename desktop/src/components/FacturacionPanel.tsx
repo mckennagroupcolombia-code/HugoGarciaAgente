@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useAppStore } from "../stores/app";
+import { usePanelActual } from "../lib/panelLocal";
 import {
   FACTURACION_SUBTABS,
   guardarSubtabFacturacion,
@@ -31,7 +32,7 @@ function Cargando() {
  */
 export default function FacturacionPanel() {
   const { user } = useTicketsAuth();
-  const panel = useAppStore((s) => s.panel);
+  const panel = usePanelActual();
   const setFacturasBootVista = useAppStore((s) => s.setFacturasBootVista);
   // Cotizar/Facturar sin menú: se ocultan también estas pestañas.
   const cotizarEnfoque = useAppStore((s) => s.cotizarEnfoque);

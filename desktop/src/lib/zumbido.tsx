@@ -5,48 +5,19 @@
  * persona y solicitud); llegan con `/api/mensajes/resumen` → `useAvisosMensajes`.
  *
  * El sonido se sintetiza con Web Audio (no es un recorte de los juegos) y respeta el
- * interruptor y el volumen de las alertas sonoras (lib/alertasSonido.ts).
+ * interruptor y el volumen de las alertas sonoras (lib/alertasSonido.ts). Desde el 8-oct-2026
+ * es la vibración del lenguaje sonoro: grave y filtrada, ya no la sierra áspera de antes.
  */
 import { useState } from "react";
 import { api } from "../api/client";
 import { useAlertasSonido } from "./alertasSonido";
+import { tocarEarcon } from "./lenguajeSonoro";
 
-let ctx: AudioContext | null = null;
-
+/** «brrr · brrr · brrr»: la vibración grave del lenguaje sonoro (lib/lenguajeSonoro.ts). */
 function zumbar() {
   const a = useAlertasSonido.getState().ajustes;
   if (!a.activo) return;
-  try {
-    const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return;
-    ctx = ctx ?? new AC();
-    const t0 = ctx.currentTime;
-    const vol = Math.max(0, Math.min(1, a.volumen / 100)) * 0.35;
-    // Tres pulsos graves con un temblor rápido: «brrr · brrr · brrr».
-    for (let i = 0; i < 3; i++) {
-      const ini = t0 + i * 0.22;
-      const osc = ctx.createOscillator();
-      const lfo = ctx.createOscillator();
-      const lfoGain = ctx.createGain();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.value = 95;
-      lfo.frequency.value = 28;
-      lfoGain.gain.value = 30;
-      lfo.connect(lfoGain).connect(osc.frequency);
-      gain.gain.setValueAtTime(0, ini);
-      gain.gain.linearRampToValueAtTime(vol, ini + 0.02);
-      gain.gain.setValueAtTime(vol, ini + 0.15);
-      gain.gain.linearRampToValueAtTime(0, ini + 0.18);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(ini);
-      lfo.start(ini);
-      osc.stop(ini + 0.19);
-      lfo.stop(ini + 0.19);
-    }
-  } catch {
-    /* sin audio */
-  }
+  tocarEarcon("zumbido", { volumen: Math.max(0, Math.min(1, a.volumen / 100)) });
 }
 
 /** Sacude la pantalla (clase en <html>, ver index.css), zumba y vibra el celular. */

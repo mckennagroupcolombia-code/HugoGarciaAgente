@@ -106,6 +106,7 @@ interface Venta {
   avisos: string[];
   creado_por: string;
   actualizado: string;
+  cotizado?: string | null;
   soporte_path?: string;
   soporte_nombre?: string;
   soporte_mime?: string;
@@ -329,6 +330,14 @@ export default function CotizarFacturarPanel() {
   const [pendientes, setPendientes] = useState<ProductoExtraido[]>([]);
   const [importado, setImportado] = useState<string | null>(null);
   const [verRecientes, setVerRecientes] = useState(false);
+  const [verCotizaciones, setVerCotizaciones] = useState(false);
+  const [cotizacionesAbiertas, setCotizacionesAbiertas] = useState<number | null>(null);
+  useEffect(() => {
+    api
+      .get<{ ventas: Venta[] }>("/api/ventas-directas?estado=cotizada&limit=200")
+      .then((r) => setCotizacionesAbiertas(r.ventas.length))
+      .catch(() => undefined);
+  }, [venta?.estado]);
   const [verPreviaMovil, setVerPreviaMovil] = useState(false);
   const [casos, setCasos] = useState<CasoPorFacturar[] | null>(null);
   const [verCola, setVerCola] = useState(false);
@@ -709,6 +718,10 @@ export default function CotizarFacturarPanel() {
           <button type="button" className={btnHerramienta} onClick={() => setVerRecientes(true)}>
             <Icon name="clock" size={14} weight="bold" /> Ventas recientes
           </button>
+          <button type="button" className={btnHerramienta} onClick={() => setVerCotizaciones(true)}
+                  title="Cotizaciones enviadas: buscar, abrir y ver el PDF">
+            <Icon name="file" size={14} weight="bold" /> Cotizaciones{cotizacionesAbiertas ? ` (${cotizacionesAbiertas})` : ""}
+          </button>
           {(ventaId || clienteOk || lineas.length > 0) && (
             <button type="button" className={btnHerramienta} onClick={reiniciar}>
               <Icon name="plus" size={14} weight="bold" /> Nueva
@@ -951,6 +964,19 @@ export default function CotizarFacturarPanel() {
           </div>
         </aside>
       </div>
+
+      {verCotizaciones && (
+        <PanelCotizaciones
+          onCerrar={() => setVerCotizaciones(false)}
+          onAbiertas={setCotizacionesAbiertas}
+          onVenta={(v) => {
+            setEnlace(null);
+            setImportado(null);
+            cargarVenta(v, v.estado === "borrador" ? 2 : 3);
+            setVerCotizaciones(false);
+          }}
+        />
+      )}
 
       {verRecientes && (
         <PanelRecientes
@@ -2032,6 +2058,110 @@ function ComisionDetalle() {
           No cuentan {d.excluidas_meli.ventas} ventas de MeLi facturadas con RUT ({pesos(d.excluidas_meli.total)}).
         </p>
       )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════ Cotizaciones ═══════════════════════════════ */
+
+function PanelCotizaciones({
+  onCerrar,
+  onVenta,
+  onAbiertas,
+}: {
+  onCerrar: () => void;
+  onVenta: (v: Venta) => void;
+  onAbiertas: (n: number) => void;
+}) {
+  const [filtro, setFiltro] = useState("");
+  const [soloAbiertas, setSoloAbiertas] = useState(true);
+  const [ventas, setVentas] = useState<Venta[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const q = useDebounced(filtro, 300);
+
+  useEffect(() => {
+    api
+      .get<{ ventas: Venta[] }>(`/api/ventas-directas?limit=200&q=${encodeURIComponent(q)}`)
+      .then((r) => {
+        setVentas(r.ventas.filter((v) => v.cotizado || v.estado === "cotizada"));
+        if (!q) onAbiertas(r.ventas.filter((v) => v.estado === "cotizada").length);
+      })
+      .catch(() => setVentas([]));
+  }, [q, onAbiertas]);
+
+  useEffect(() => {
+    const tecla = (ev: KeyboardEvent) => ev.key === "Escape" && onCerrar();
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [onCerrar]);
+
+  const lista = (ventas ?? []).filter((v) => !soloAbiertas || v.estado === "cotizada");
+
+  async function verPdf(v: Venta) {
+    setError(null);
+    const url = await fetchAuthBlobUrl(`/api/ventas-directas/${v.id}/pdf`);
+    if (url) window.open(url, "_blank", "noopener");
+    else setError(`No se encontró el PDF de ${v.numero}.`);
+  }
+
+  const chip = (activo: boolean) =>
+    `rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${activo ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:text-ink"}`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" role="dialog" aria-modal="true" aria-label="Cotizaciones" onClick={onCerrar}>
+      <div
+        className="flex h-full w-[min(520px,100vw)] flex-col border-l border-border bg-surface-panel shadow-paper-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+          <p className="text-sm font-bold text-ink">Cotizaciones</p>
+          <button type="button" className="text-muted hover:text-ink" aria-label="Cerrar" onClick={onCerrar}>
+            <Icon name="close" size={18} />
+          </button>
+        </div>
+        <div className="space-y-3 overflow-y-auto p-4">
+          <input
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+            placeholder="Buscar por cliente, teléfono o número…"
+            className={input}
+            autoFocus
+          />
+          <div className="flex gap-1.5">
+            <button type="button" className={chip(soloAbiertas)} onClick={() => setSoloAbiertas(true)}>Esperando pago</button>
+            <button type="button" className={chip(!soloAbiertas)} onClick={() => setSoloAbiertas(false)}>Todas</button>
+          </div>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          {ventas === null ? (
+            <p className="text-xs text-muted">Cargando…</p>
+          ) : lista.length === 0 ? (
+            <p className="text-xs text-muted">Sin cotizaciones que coincidan.</p>
+          ) : (
+            <ul className="divide-y divide-border/60">
+              {lista.map((v) => (
+                <li key={v.id} className="flex items-center gap-2">
+                  <button type="button" onClick={() => onVenta(v)} className="flex min-w-0 flex-1 items-center gap-3 px-1 py-2 text-left text-xs hover:bg-surface-hover">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-ink">{v.cliente?.nombre || "Sin cliente"}</span>
+                      <span className="font-mono text-[10px] text-muted">
+                        {v.numero} · {hace(v.cotizado || v.actualizado)}
+                      </span>
+                    </span>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${ESTADO_UI[v.estado].cls}`}>
+                      {v.factura_numero || ESTADO_UI[v.estado].label}
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums text-ink">{pesos(v.total)}</span>
+                  </button>
+                  <button type="button" className="shrink-0 rounded p-1 text-muted hover:text-accent" title="Ver PDF" aria-label={`Ver PDF de ${v.numero}`}
+                          onClick={() => void verPdf(v)}>
+                    <Icon name="eye" size={16} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

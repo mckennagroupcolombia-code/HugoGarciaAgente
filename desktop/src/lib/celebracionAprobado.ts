@@ -1,6 +1,6 @@
 /**
  * El premio de aprobar: aprobar una ficha técnica o una etiqueta es una tarea de revisión y se
- * juega como una misión — sonido de 8 bits, animación y monedas que quedan en el perfil.
+ * juega como una misión — sonido, animación y monedas que quedan en el perfil.
  *
  *  - `grande`: aprobación final (etiqueta guardada, ficha FT+COA+SDS generada). Tarjeta al
  *    centro con la moneda que gira.
@@ -8,7 +8,9 @@
  *    Aviso pequeño abajo a la derecha con la moneda.
  *
  * Desde el 6-oct-2026 toda acción, flujo o formulario completado lo celebra el perro que se ríe
- * de Duck Hunt (`perroSeRie`), en lugar del confeti y la fanfarria/moneda de 8 bits.
+ * de Duck Hunt (`perroSeRie`), en lugar del confeti y la fanfarria/moneda de 8 bits. Desde el
+ * 8-oct-2026 el perro se sigue viendo, pero suena el «logro» del lenguaje sonoro (arpegio y
+ * acorde, lib/lenguajeSonoro.ts) y no la risa del juego: así cerrar algo suena igual en toda la app.
  *
  * Cuánto paga cada misión lo decide el servidor (`app/services/logros_usuario.py`): aquí solo
  * se dice cuál se cumplió y sobre qué referencia. La misma referencia paga una vez al día.
@@ -18,9 +20,8 @@
  * Se monta sola sobre `document.body` (no depende del panel abierto: la ficha puede volver al
  * taller justo al aprobar). El silencio es el mismo interruptor 🔊 del taller.
  */
-import { sonarMoneda, sonidoActivo } from "../components/combos/sonidoMoneda";
+import { sonarLogro, sonarMoneda } from "../components/combos/sonidoMoneda";
 import spritePerro from "../assets/duckhunt/laughing_dog.png";
-import risaPerro from "../assets/duckhunt/laughingDog.mp3";
 
 type Tipo = "grande" | "moneda";
 
@@ -290,7 +291,7 @@ function yaCelebradaHoy(id: number): boolean {
 }
 
 /**
- * El perro que se ríe de Duck Hunt (4-oct-2026): el sprite y la risa son los MISMOS archivos del
+ * El perro que se ríe de Duck Hunt (4-oct-2026): el sprite es el MISMO archivo del
  * juego interno de /app → Agenda → Juegos (`public/juegos/duckhunt`, copiados a
  * `assets/duckhunt/`; ver su LEEME: son de Nintendo, solo uso interno detrás de la sesión).
  * Se anima como en el juego (`src/Dog.js` → `makeDogLaugh`): dos cuadros de 112×78 a 10 fps,
@@ -323,8 +324,8 @@ export function celebrarTareaCumplida(id: number): boolean {
 }
 
 /**
- * El efecto de completar algo: el perro de Duck Hunt asoma abajo al centro y se ríe con su risa
- * del juego (callada con el mismo interruptor 🔊 del taller; el perro igual se ve). Si ya está
+ * El efecto de completar algo: el perro de Duck Hunt asoma abajo al centro y se ríe, con el sonido
+ * de «logro» (callado con el mismo interruptor 🔊 del taller; el perro igual se ve). Si ya está
  * afuera, vuelve a empezar en vez de apilarse.
  */
 export function perroSeRie() {
@@ -343,11 +344,5 @@ export function perroSeRie() {
   capa.appendChild(perro);
   document.body.appendChild(capa);
   window.setTimeout(() => capa.remove(), TOTAL_MS + 100);
-  if (sonidoActivo()) {
-    const risa = new Audio(risaPerro);
-    risa.volume = 0.6;
-    void risa.play().catch(() => {
-      /* el navegador no dejó sonar (sin un toque previo en la página): el perro igual se ve */
-    });
-  }
+  sonarLogro();
 }

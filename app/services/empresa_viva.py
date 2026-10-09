@@ -156,7 +156,8 @@ def _avatar_de(preferencias_ui: str | None) -> dict | None:
         emp = (json.loads(preferencias_ui or "{}") or {}).get("empresa")
     except Exception:
         return None
-    return emp if isinstance(emp, dict) and emp.get("avatar") else None
+    # El de pixel art ({pixel, color}); el viejo del barrio 3D ({avatar, accesorio}) ya no se dibuja.
+    return emp if isinstance(emp, dict) and isinstance(emp.get("pixel"), dict) else None
 
 
 def _funciones_por_persona(maximo: int = 4) -> dict[int, list[str]]:
@@ -216,6 +217,7 @@ def _interacciones() -> list[dict]:
             out.append({"id": f"r{r['id']}", "tipo": "respuesta", "de": r["usuario_id"], "para": [otro], "ts": r["ts"],
                         "ticket_id": r["tid"], "texto": (r["texto"] or "")[:120], "privado": True})
         canales = {int(r["id"]): r["nombre"] for r in con.execute("SELECT id, nombre FROM canales_internos WHERE archivado=0")}
+        directos = {int(r["id"]) for r in con.execute("SELECT id FROM canales_internos WHERE archivado=0 AND tipo='directo'")}
         miembros: dict[int, list[int]] = {}
         for r in con.execute("SELECT canal_id, usuario_id FROM canal_miembros"):
             miembros.setdefault(int(r["canal_id"]), []).append(int(r["usuario_id"]))
@@ -228,6 +230,13 @@ def _interacciones() -> list[dict]:
             if cid not in canales or r["usuario_id"] in ocultos:
                 continue
             texto = (r["texto"] or "").strip()
+            # Un chat de dos (directo, o un grupo que es solo de ellos): conversación privada.
+            if cid in directos or len(miembros.get(cid, [])) == 2:
+                otros = [u for u in miembros.get(cid, []) if u != r["usuario_id"]]
+                if otros and r["usuario_id"] in miembros.get(cid, []):
+                    out.append({"id": f"m{r['id']}", "tipo": "chat", "de": r["usuario_id"], "para": otros,
+                                "canal_id": cid, "ts": r["ts"], "texto": texto[:140], "privado": True})
+                continue
             out.append({"id": f"m{r['id']}", "tipo": "idea" if re.match(r"^\W*idea\b", texto, re.I) else "grupo",
                         "de": r["usuario_id"], "para": [u for u in miembros.get(cid, []) if u != r["usuario_id"] and u not in ocultos],
                         "todos": not miembros.get(cid), "canal_id": cid, "canal": canales[cid], "ts": r["ts"],
@@ -895,6 +904,9 @@ def estado_para(usuario: dict, refrescar: bool = False) -> dict:
     admin = _es_admin(usuario)
     interacciones = []
     for it in vivos.get("interacciones") or []:
+        # Un chat de dos no lo ve nadie más: ni el avioncito ni que hablaron.
+        if it["tipo"] == "chat" and yo != it["de"] and yo not in it["para"]:
+            continue
         if it["privado"]:
             ve = yo == it["de"] or yo in it["para"]
         else:
@@ -932,3 +944,48 @@ def estado_para(usuario: dict, refrescar: bool = False) -> dict:
         "hora": _iso_local(datetime.now()),
         "generado": d["generado"],
     }
+
+
+# ─── Jugar: dónde anda cada quien en el barrio ───────────────────────────────
+#
+# Quien abre Empresa viva maneja su avatar (pixel art, desktop/src/components/empresa/). El panel
+# manda su posición cada ~0,3 s mientras camina (cada 4 s quieto) y recibe la de los demás que
+# están jugando. Todo vive en la memoria de este proceso: no se guarda en disco ni en la base; al
+# reiniciar el agente nadie «está jugando» hasta que su panel vuelve a avisar (un instante).
+# Hablar con alguien en el juego abre el CHAT DIRECTO de los dos (canales_internos.canal_directo):
+# eso sí queda guardado, le llega aunque no esté jugando y lo ve en «Equipo».
+
+_VIDA_JUGADOR_S = 15
+_DIRS = ("arriba", "abajo", "izquierda", "derecha")
+_POSES = ("quieto", "camina", "corre", "sentado", "celebra")
+_jug_lock = threading.Lock()
+_jugadores: dict[int, dict] = {}
+_LIMITE_MAPA = (4000, 3000)   # el barrio mide 2560 × 1472 px; esto solo descarta basura
+
+
+def _limpiar_posicion(datos: dict) -> dict | None:
+    try:
+        x, y = int(datos.get("x")), int(datos.get("y"))
+    except (TypeError, ValueError):
+        return None
+    if not (0 <= x <= _LIMITE_MAPA[0] and 0 <= y <= _LIMITE_MAPA[1]):
+        return None
+    d, p = str(datos.get("dir") or ""), str(datos.get("pose") or "")
+    # El módulo que tiene abierto dentro del juego (los demás leen «Usando Libro Mayor»).
+    m = str(datos.get("modulo") or "")
+    return {"x": x, "y": y, "dir": d if d in _DIRS else "abajo", "pose": p if p in _POSES else "quieto",
+            "modulo": m if re.fullmatch(r"[a-z0-9-]{1,40}", m) else ""}
+
+
+def jugador(usuario: dict, datos: dict) -> dict:
+    """Anota dónde está quien juega y devuelve a los demás jugadores."""
+    uid = int(usuario.get("id") or 0)
+    ahora = time.time()
+    pos = _limpiar_posicion(datos or {})
+    with _jug_lock:
+        if pos and uid:
+            _jugadores[uid] = {**pos, "t": ahora}
+        for k in [k for k, v in _jugadores.items() if ahora - v["t"] > _VIDA_JUGADOR_S]:
+            del _jugadores[k]
+        otros = [{"id": k, **v} for k, v in _jugadores.items() if k != uid]
+    return {"jugadores": otros, "ahora": ahora}

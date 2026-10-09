@@ -141,7 +141,7 @@
  },
  "C-ACEGIR500ML": {
   "familia": "ACEGIRg",
-  "nombre": "ACEITE DE GIRASOL REFINADO"
+  "nombre": "ACEITE DE GIRASOL PRENSADO EN FRÍO"
  },
  "C-ACEJOJ30ML": {
   "familia": "ACEJOJGOLg",
@@ -766,6 +766,10 @@
  "C-GOMXANKG": {
   "familia": "GOMXANg",
   "nombre": "GOMA XANTANA"
+ },
+ "C-GOTPLA3ML10UN": {
+  "familia": "c-gotpla3ml10un",
+  "nombre": "GOTERO PLASTICO 3 mL 10 UN"
  },
  "C-GRADIG": {
   "familia": "c-gradig",

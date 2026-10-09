@@ -161,3 +161,13 @@
 {"tipo": "publicacion_nueva", "item_id": "MCO4514104058", "sku": "C-ACECOCVIRKg", "origen": "", "ts": "2026-10-07T23:53:52"}
 {"tipo": "registro_seguimiento", "item_id": "MCO4514117118", "sku": "C-ALBSEC250g", "origen": "desde_cero", "ts": "2026-10-07T23:53:59"}
 {"tipo": "publicacion_nueva", "item_id": "MCO4514117118", "sku": "C-ALBSEC250g", "origen": "", "ts": "2026-10-07T23:53:59"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2267210143", "sku": "C-SALMARAHU500g", "origen": "desde_cero", "ts": "2026-10-08T21:30:25"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2267210143", "sku": "C-SALMARAHU500g", "origen": "", "ts": "2026-10-08T21:30:26"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2267503215", "sku": "C-SALMARAHU250g", "origen": "desde_cero", "ts": "2026-10-08T22:30:21"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2267503215", "sku": "C-SALMARAHU250g", "origen": "", "ts": "2026-10-08T22:30:21"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4517849830", "sku": "C-MARTOS250g", "origen": "desde_cero", "ts": "2026-10-08T22:40:09"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4517849830", "sku": "C-MARTOS250g", "origen": "", "ts": "2026-10-08T22:40:13"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2267504305", "sku": "C-MARTOS500g", "origen": "desde_cero", "ts": "2026-10-08T22:47:50"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2267504305", "sku": "C-MARTOS500g", "origen": "", "ts": "2026-10-08T22:47:50"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2267504805", "sku": "C-NUEPEC250g", "origen": "desde_cero", "ts": "2026-10-08T22:55:30"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2267504805", "sku": "C-NUEPEC250g", "origen": "", "ts": "2026-10-08T22:55:30"}

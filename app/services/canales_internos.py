@@ -155,10 +155,13 @@ def _miembros(c: sqlite3.Connection, canal_id: int) -> list[int]:
 
 
 def _puede_ver(c: sqlite3.Connection, canal: sqlite3.Row, usuario: dict) -> bool:
-    """Un canal sin miembros es de todo el equipo; con miembros, solo de ellos (y admin)."""
+    """Un canal sin miembros es de todo el equipo; con miembros, solo de ellos (y admin).
+    Un chat directo (`tipo='directo'`, dos personas) es SOLO de los dos: administración tampoco lo lee."""
+    miembros = _miembros(c, int(canal["id"]))
+    if (canal["tipo"] or "") == "directo":
+        return int((usuario or {}).get("id") or 0) in miembros
     if _es_admin(usuario):
         return True
-    miembros = _miembros(c, int(canal["id"]))
     return not miembros or int(usuario["id"]) in miembros
 
 
@@ -243,6 +246,54 @@ def _modulo_valido(modulo: Any) -> str | None:
     if modulo not in MODULOS:
         raise ValueError("Módulo desconocido")
     return modulo
+
+
+def canal_directo(usuario: dict, otro_id: int) -> dict:
+    """El chat de dos personas (Empresa viva → «Hablar», o cualquier parte que quiera un chat 1:1).
+
+    Cualquiera del equipo lo abre con otra persona activa, sin ser administrador. Si ya existe un
+    grupo que es solo de los dos y no está enlazado a WhatsApp (p. ej. «Armando · Cynthia», creado
+    a mano antes), se usa ese y la conversación sigue donde iba; si no, se crea uno `tipo='directo'`
+    con clave `directo:<menor>-<mayor>`. Los mensajes van por `enviar_mensaje` (avisos y push de siempre)."""
+    yo = int((usuario or {}).get("id") or 0)
+    try:
+        otro = int(otro_id)
+    except (TypeError, ValueError):
+        raise ValueError("¿Con quién quieres hablar?")
+    if not yo or not otro or yo == otro:
+        raise ValueError("¿Con quién quieres hablar?")
+    a, b = sorted((yo, otro))
+    clave = f"directo:{a}-{b}"
+    with _conn() as c:
+        persona = c.execute("SELECT id, nombre, username, activo FROM usuarios WHERE id=?", (otro,)).fetchone()
+        if not persona or not persona["activo"]:
+            raise ValueError("Esa persona no está en el equipo")
+        r = c.execute("SELECT * FROM canales_internos WHERE clave=?", (clave,)).fetchone()
+        if not r:
+            for g in c.execute(
+                "SELECT ci.* FROM canales_internos ci WHERE ci.archivado=0 AND ci.wa_jid IS NULL "
+                "AND (SELECT COUNT(*) FROM canal_miembros m WHERE m.canal_id=ci.id)=2 ORDER BY ci.id"
+            ).fetchall():
+                if set(_miembros(c, int(g["id"]))) == {a, b}:
+                    r = g
+                    break
+        if not r:
+            yo_fila = c.execute("SELECT nombre, username FROM usuarios WHERE id=?", (yo,)).fetchone()
+            primero = lambda f: ((f["nombre"] or f["username"] or "").strip().split() or ["Alguien"])[0]
+            nombre = f"{primero(yo_fila)} · {primero(persona)}" if yo_fila else primero(persona)
+            cur = c.execute(
+                "INSERT OR IGNORE INTO canales_internos (nombre, descripcion, tipo, clave, creado_por, creado_en) "
+                "VALUES (?,?,?,?,?,?)",
+                (nombre[:80], "Chat directo", "directo", clave, yo, time.time()),
+            )
+            if cur.lastrowid:
+                for uid in (a, b):
+                    c.execute("INSERT OR IGNORE INTO canal_miembros (canal_id, usuario_id, agregado_en) VALUES (?,?,?)",
+                              (int(cur.lastrowid), uid, time.time()))
+            r = c.execute("SELECT * FROM canales_internos WHERE clave=?", (clave,)).fetchone()
+        fila = _fila_canal(c, r, yo)
+    fila["directo_con"] = otro
+    return fila
 
 
 def canal_por_clave(clave: str) -> dict | None:
@@ -640,10 +691,13 @@ def marcar_leido(canal_id: int, usuario: dict) -> None:
 def eliminar_mensaje(mensaje_id: int, usuario: dict) -> bool:
     """Solo el autor (o admin) y solo mensajes del panel: lo que vino de WhatsApp ya ocurrió allá."""
     with _conn() as c:
-        r = c.execute("SELECT usuario_id, origen FROM canal_mensajes WHERE id=?", (mensaje_id,)).fetchone()
+        r = c.execute("SELECT m.usuario_id, m.origen, ci.tipo FROM canal_mensajes m "
+                      "JOIN canales_internos ci ON ci.id = m.canal_id WHERE m.id=?", (mensaje_id,)).fetchone()
         if not r or r["origen"] != "panel":
             return False
-        if not _es_admin(usuario) and int(r["usuario_id"] or 0) != int(usuario["id"]):
+        # En un chat directo solo el autor borra lo suyo (administración no entra a chats de dos).
+        propio = int(r["usuario_id"] or 0) == int(usuario["id"])
+        if not propio and ((r["tipo"] or "") == "directo" or not _es_admin(usuario)):
             return False
         c.execute("UPDATE canal_mensajes SET eliminado=1 WHERE id=?", (mensaje_id,))
     return True

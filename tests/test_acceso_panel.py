@@ -140,15 +140,18 @@ def test_el_token_de_la_url_manda_sobre_la_cookie(cliente2):
     assert "sesion-colab" in r.headers.get("Set-Cookie", "")
 
 
-def test_los_modelos_del_juego_se_sirven_como_archivos_y_no_como_la_app(cliente):
+def test_los_archivos_del_juego_se_sirven_como_archivos_y_no_como_la_app(cliente):
     """8-oct-2026: /app/empresa/* caía al comodín de /app y devolvía index.html con 200; el
     juego (Empresa viva) quedaba sin personas, muebles ni estantes y nadie lo notaba."""
-    r = cliente.get("/app/empresa/personajes/character-male-e.glb")
+    r = cliente.get("/app/empresa/pixel/mapa.json")
     assert r.status_code == 403                       # sin sesión: nada
     cliente.set_cookie(spa_sesion.COOKIE, "sesion-viva", path="/app")
-    r = cliente.get("/app/empresa/personajes/character-male-e.glb")
+    r = cliente.get("/app/empresa/pixel/mapa.json")
     assert r.status_code in (200, 404)                # 404 si no hay build en esta máquina
-    assert "text/html" not in r.headers.get("Content-Type", "")
+    assert b"Panel de Operaciones" not in r.data      # nunca el index.html del comodín
     if r.status_code == 200:
-        assert r.data[:4] == b"glTF"
-        assert r.headers["Content-Type"] == "model/gltf-binary"
+        assert "text/html" not in r.headers.get("Content-Type", "")
+        assert r.get_json()["baldosa"] == 32
+    r = cliente.get("/app/empresa/pixel/suelo.png")
+    if r.status_code == 200:
+        assert r.data[:4] == b"\x89PNG"

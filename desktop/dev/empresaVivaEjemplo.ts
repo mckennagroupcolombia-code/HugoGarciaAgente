@@ -7,6 +7,8 @@
 const P = (id: number, nombre: string) => ({ id, nombre });
 import CASAS from "../../app/data/empresa_viva_casas.json";
 
+const inicioBanco = Date.now();
+
 export function estadoEmpresaEjemplo(yo: number) {
   const paso = Math.floor(Date.now() / 10_000) % 4;
   const base = Math.floor(Date.now() / 40_000) * 100; // seq crece de ciclo en ciclo
@@ -16,7 +18,7 @@ export function estadoEmpresaEjemplo(yo: number) {
   // El equipo del barrio (app/data/empresa_viva_casas.json); el ciclo los mueve de lugar.
   const personas = [
     { id: yo, nombre: "Armando García", username: "armando", en_linea: true, panel: "empresa-viva", via: "panel",
-      avatar: { avatar: "character-male-e", accesorio: "aid-sunglasses", color: "#FFE14D" },
+      avatar: { pixel: { ...CASAS.usuarios.armando.pixel, gafas: "sol" } as never, color: "#FFE14D" },
       funciones: ["Aprueba pagos", "Lleva el Libro Mayor y los impuestos", "Cotiza y monta solicitudes de pago"] },
     { id: 6, nombre: "Cynthia Ruiz", username: "@cynthia", en_linea: paso !== 0, panel: "etiquetas", via: "panel" },
     { id: 7, nombre: "Victor García", username: "vitor", en_linea: false, panel: "", via: "", presente: true,
@@ -25,7 +27,7 @@ export function estadoEmpresaEjemplo(yo: number) {
       tarea: { funcion: "empacar", hace: "Empaca, sella y etiqueta producto", titulo: "Empacar y etiquetar productos", ticket_id: 0, desde: "" } },
     { id: 10, nombre: "Jenniffer García", username: "jerry", en_linea: true, panel: "facturacion", via: "panel", presente: true,
       tarea: paso % 2 ? { funcion: "alistar", hace: "Alista los envíos de Colecta y Flex", titulo: "ALISTAR ENVIOS", ticket_id: 0, desde: "" } : null,
-      avatar: { avatar: "character-female-c", accesorio: "aid-glasses", color: "" },
+      avatar: null,
       funciones: ["Factura y resuelve facturas pendientes", "Atiende clientes por WhatsApp y chat web", "Alista los envíos de Colecta y Flex"] },
   ];
   const v = (id: string, tipo: "preventa" | "whatsapp", min: number, producto: string, texto: string) =>
@@ -65,6 +67,7 @@ export function estadoEmpresaEjemplo(yo: number) {
     ...(paso >= 1 ? [{ id: `t${base + 1}`, tipo: "pregunta", de: yo, para: [10], ts: ahora - 5, texto: "¿Ya salió la factura de la Glicerina?", ticket_id: 1 }] : []),
     ...(paso >= 2 ? [{ id: `r${base + 2}`, tipo: "respuesta", de: 10, para: [yo], ts: ahora - 3, texto: "Sí, la FE-1234 ya está en Alegra", ticket_id: 1 }] : []),
     ...(paso >= 3 ? [{ id: `m${base + 3}`, tipo: "idea", de: 6, para: [yo, 10], ts: ahora - 2, texto: "Idea: kit de bálsamo labial con envase y etiqueta", canal: "HORMIGUITAS DE MCKENNA", canal_id: 8 }] : []),
+    ...(Date.now() - inicioBanco > 90_000 ? [{ id: "mChat1", tipo: "chat", de: 10, para: [yo], ts: inicioBanco / 1000 + 90, texto: "¡Hola! ¿Ya viste que llegó el proveedor?", canal_id: 910 }] : []),
   ];
   const it = (etapa: string, n: number, texto: string, panel: string, severidad = "alta") => ({ etapa, id: `${etapa}-${panel}`, n, texto, panel, severidad });
   const grupo = (...xs: ReturnType<typeof it>[]) => ({ alta: 0, media: 0, items: xs });
@@ -88,4 +91,17 @@ export function estadoEmpresaEjemplo(yo: number) {
       ...(paso >= 2 ? [{ id: `a${base + 2}`, tipo: "resolvio", de: 10, ts: ahora - 2, ticket_id: 2, titulo: "Factura de la glicerina" }] : []),
     ], generado: new Date().toISOString().slice(0, 19),
   };
+}
+
+/** /api/empresa-viva/jugador de EJEMPLO: Jenniffer da vueltas por la oficina de la sede. */
+const inicio = Date.now();
+export function jugadoresEjemplo() {
+  const t = (Date.now() - inicio) / 1000;
+  const vuelta = (t % 24) / 24;
+  const puntos = [[36 * 32, 13 * 32], [40 * 32, 13 * 32], [40 * 32, 17 * 32], [36 * 32, 17 * 32]];
+  const k = Math.floor(vuelta * 4), f = vuelta * 4 - k;
+  const [ax, ay] = puntos[k], [bx, by] = puntos[(k + 1) % 4];
+  const dx = bx - ax, dy = by - ay;
+  const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "derecha" : "izquierda") : (dy > 0 ? "abajo" : "arriba");
+  return { jugadores: [{ id: 10, x: Math.round(ax + dx * f), y: Math.round(ay + dy * f), dir, pose: "camina", t: Date.now() / 1000 }], ahora: Date.now() / 1000 };
 }

@@ -1,6 +1,90 @@
 {
   "archivos": [
     {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_2.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_2.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_2.pdf",
+      "subido_at": "2026-10-08T10:28:51",
+      "bytes": 185528
+    },
+    {
+      "nombre": "COCO_DESHIDRATADO_1000g.pdf",
+      "ruta": "Etiquetas McKenna/COCO_DESHIDRATADO_1000g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/COCO_DESHIDRATADO_1000g.pdf",
+      "subido_at": "2026-10-08T10:23:04",
+      "bytes": 195628
+    },
+    {
+      "nombre": "COCO_DESHIDRATADO_HILOS_250g.pdf",
+      "ruta": "Etiquetas McKenna/COCO_DESHIDRATADO_HILOS_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/COCO_DESHIDRATADO_HILOS_250g.pdf",
+      "subido_at": "2026-10-08T10:22:05",
+      "bytes": 195192
+    },
+    {
+      "nombre": "SAL_MARINA_AHUMADA_500g.pdf",
+      "ruta": "Etiquetas McKenna/SAL_MARINA_AHUMADA_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_MARINA_AHUMADA_500g.pdf",
+      "subido_at": "2026-10-08T10:20:36",
+      "bytes": 197522
+    },
+    {
+      "nombre": "AJONJOLI_NEGRO_250g.pdf",
+      "ruta": "Etiquetas McKenna/AJONJOLI_NEGRO_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AJONJOLI_NEGRO_250g.pdf",
+      "subido_at": "2026-10-08T10:18:22",
+      "bytes": 188956
+    },
+    {
+      "nombre": "AJONJOLI_NEGRO_500g_20261008_101720.pdf",
+      "ruta": "Etiquetas McKenna/AJONJOLI_NEGRO_500g_20261008_101720.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AJONJOLI_NEGRO_500g_20261008_101720.pdf",
+      "subido_at": "2026-10-08T10:17:20",
+      "bytes": 190334
+    },
+    {
+      "nombre": "PISTACHOS_TOSTADOS_250g_20261008_101552.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_TOSTADOS_250g_20261008_101552.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_TOSTADOS_250g_20261008_101552.pdf",
+      "subido_at": "2026-10-08T10:15:52",
+      "bytes": 196226
+    },
+    {
+      "nombre": "PISTACHOS_TOSTADOS_250g.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_TOSTADOS_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_TOSTADOS_250g.pdf",
+      "subido_at": "2026-10-08T10:15:40",
+      "bytes": 196226
+    },
+    {
+      "nombre": "MANI_TOSTADO_PARTIDO_500g_20261008_101448.pdf",
+      "ruta": "Etiquetas McKenna/MANI_TOSTADO_PARTIDO_500g_20261008_101448.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_TOSTADO_PARTIDO_500g_20261008_101448.pdf",
+      "subido_at": "2026-10-08T10:14:48",
+      "bytes": 189702
+    },
+    {
+      "nombre": "MANI_TOSTADO_PARTIDO_500g_20261008_101439.pdf",
+      "ruta": "Etiquetas McKenna/MANI_TOSTADO_PARTIDO_500g_20261008_101439.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_TOSTADO_PARTIDO_500g_20261008_101439.pdf",
+      "subido_at": "2026-10-08T10:14:39",
+      "bytes": 189702
+    },
+    {
+      "nombre": "MANI_TOSTADO_PARTIDO_250g_20261008_101359.pdf",
+      "ruta": "Etiquetas McKenna/MANI_TOSTADO_PARTIDO_250g_20261008_101359.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_TOSTADO_PARTIDO_250g_20261008_101359.pdf",
+      "subido_at": "2026-10-08T10:13:59",
+      "bytes": 189209
+    },
+    {
+      "nombre": "MANI_TOSTADO_PARTIDO_250g_20261008_101316.pdf",
+      "ruta": "Etiquetas McKenna/MANI_TOSTADO_PARTIDO_250g_20261008_101316.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_TOSTADO_PARTIDO_250g_20261008_101316.pdf",
+      "subido_at": "2026-10-08T10:13:16",
+      "bytes": 189209
+    },
+    {
       "nombre": "MANI_NATURAL_TOSTADO_500g_20261007_120003.pdf",
       "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_20261007_120003.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_20261007_120003.pdf",
@@ -1315,90 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_GIRASOL_500mL_20260929_112611.pdf",
       "subido_at": "2026-09-29T11:26:11",
       "bytes": 355181
-    },
-    {
-      "nombre": "ACEITE_GIRASOL_500mL_20260929_112137.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_GIRASOL_500mL_20260929_112137.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_GIRASOL_500mL_20260929_112137.pdf",
-      "subido_at": "2026-09-29T11:21:37",
-      "bytes": 355181
-    },
-    {
-      "nombre": "ACEITE_GIRASOL_500mL.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_GIRASOL_500mL.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_GIRASOL_500mL.pdf",
-      "subido_at": "2026-09-29T11:21:14",
-      "bytes": 355181
-    },
-    {
-      "nombre": "LACTATO_CALCIO_250g_20260929_095304.pdf",
-      "ruta": "Etiquetas McKenna/LACTATO_CALCIO_250g_20260929_095304.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_CALCIO_250g_20260929_095304.pdf",
-      "subido_at": "2026-09-29T09:53:05",
-      "bytes": 316352
-    },
-    {
-      "nombre": "LACTATO_CALCIO_250g_20260929_095246.pdf",
-      "ruta": "Etiquetas McKenna/LACTATO_CALCIO_250g_20260929_095246.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_CALCIO_250g_20260929_095246.pdf",
-      "subido_at": "2026-09-29T09:52:46",
-      "bytes": 316352
-    },
-    {
-      "nombre": "LACTATO_CALCIO_250g.pdf",
-      "ruta": "Etiquetas McKenna/LACTATO_CALCIO_250g.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_CALCIO_250g.pdf",
-      "subido_at": "2026-09-29T09:52:33",
-      "bytes": 316352
-    },
-    {
-      "nombre": "BAYAS_DE_GOJI_BERRY_500g_20260929_095024.pdf",
-      "ruta": "Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_500g_20260929_095024.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_500g_20260929_095024.pdf",
-      "subido_at": "2026-09-29T09:50:25",
-      "bytes": 174714
-    },
-    {
-      "nombre": "BAYAS_DE_GOJI_BERRY_500g.pdf",
-      "ruta": "Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_500g.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BAYAS_DE_GOJI_BERRY_500g.pdf",
-      "subido_at": "2026-09-29T09:50:11",
-      "bytes": 174714
-    },
-    {
-      "nombre": "PROTEINA_AISLADA_SOYA_500g_2_20260929_094737.pdf",
-      "ruta": "Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094737.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094737.pdf",
-      "subido_at": "2026-09-29T09:47:37",
-      "bytes": 310352
-    },
-    {
-      "nombre": "PROTEINA_AISLADA_SOYA_500g_2_20260929_094716.pdf",
-      "ruta": "Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094716.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094716.pdf",
-      "subido_at": "2026-09-29T09:47:16",
-      "bytes": 310352
-    },
-    {
-      "nombre": "PROTEINA_AISLADA_SOYA_500g_2_20260929_094038.pdf",
-      "ruta": "Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094038.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_AISLADA_SOYA_500g_2_20260929_094038.pdf",
-      "subido_at": "2026-09-29T09:40:38",
-      "bytes": 310352
-    },
-    {
-      "nombre": "ALMENDRA_NATURAL_500g_20260929_093115.pdf",
-      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_20260929_093115.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_20260929_093115.pdf",
-      "subido_at": "2026-09-29T09:31:15",
-      "bytes": 181893
-    },
-    {
-      "nombre": "ALMENDRA_NATURAL_500g.pdf",
-      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g.pdf",
-      "subido_at": "2026-09-29T09:30:58",
-      "bytes": 181893
     }
   ]
 }

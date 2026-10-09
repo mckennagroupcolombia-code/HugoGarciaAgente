@@ -1,4 +1,4 @@
-import { useAppStore } from "../stores/app";
+import { usePanelActual } from "../lib/panelLocal";
 import { Icon } from "../icons";
 import type { IconName } from "../icons/types";
 import type { LogisticaPanel } from "../lib/logisticaAccess";
@@ -77,7 +77,7 @@ function panelActivo(raw: string): LogisticaPanel {
 }
 
 export default function LogisticaInternacionalPanel() {
-  const panel = useAppStore((s) => s.panel);
+  const panel = usePanelActual();
   const seccion = panelActivo(panel);
   const def = SECCIONES[seccion];
 

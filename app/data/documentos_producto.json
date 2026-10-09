@@ -828,7 +828,7 @@
     },
     "C-ACICITR500G": {
       "ref": "C-ACICITR500G",
-      "nombre": "ÁCIDO CÍTRICO",
+      "nombre": "ÁCIDO CÍTRICO (ANHIDRO MALLA 30-100)",
       "lotes": [
         {
           "lote_numero": "HLP434",
@@ -841,11 +841,25 @@
           "codigo_verificacion": "RPS3VT",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "6AX2604237",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-04-22",
+          "fecha_vencimiento": "2029-04-21",
+          "fecha_recepcion": "2026-10-08",
+          "codigo_verificacion": "AHCFPG",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-08T17:59:26+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-10-08T17:59:26+00:00"
     },
     "C-ACICIT250G": {
       "ref": "C-ACICIT250G",

@@ -1,910 +1,934 @@
 /**
- * La escena 3D del barrio con el «look» de juego (render.ts, referencia FarmVille 3): cámara en
- * perspectiva, luz cálida, oclusión ambiental, pasto vivo. Pueblo moderno: calle con andenes,
- * postes, carros y edificios vecinos (KayKit City), árboles redondos.
+ * La escena de Phaser: el barrio en pixel art y todo lo que se mueve en él. No decide nada de la
+ * operación (eso es motor.ts): dibuja, mueve figuras por sus rutas, sigue al jugador con la cámara
+ * y levanta el techo de la casa donde él entra.
  *
- * Las casas se arman aquí (muros, ventanas, puerta y techo aparte) para que el techo se levante:
- * de lejos se ven cerradas, como en FarmVille; al acercarse o al tocar una, el techo sube, los
- * muros del frente bajan y se ve quién trabaja adentro. Los muebles son de KayKit Furniture /
- * Restaurant (catálogo MUEBLE: el nombre lógico de barrio.ts → modelo y medida humana).
- *
- * Lo vivo (personas, clientes, paquetes, carros) lo pone motor.ts encima.
- * Controles: arrastrar = moverse; rueda o dos dedos = acercar; tocar = seleccionar o abrir una casa.
+ * Profundidad: cada cosa se ordena por la y de donde toca el piso (quien pasa detrás de un estante
+ * queda detrás). Los techos van con la y de su fachada; los avioncitos y lo de la interfaz, encima.
  */
-import * as THREE from "three";
-import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import {
-  ANDEN_Z, CALLE, CASAS, ESTANTES, LIMITE, LUGARES, type Casa, type CasaId, type Lugar, type LugarId, type Rect,
-} from "./barrio";
-import { objeto, objetoAlto } from "./recursos";
-import { Ambiente, type Calidad } from "./render";
+import Phaser from "phaser";
+import { colorModulo, infoModulo, tituloEtapa } from "./barrio";
+import { Rejilla } from "./camino";
+import { BASE_PIXEL, claveAvatar, componerAvatar, FILA } from "./personajes";
+import type { AvatarPixel, Dir, EstacionMapa, Examinable, Mapa, Pose, PuntoMapa } from "./tipos";
 
-export type Elegible = { tipo: string; id: string };
+export const FUENTE = "PixelifyMck";
+const CUADROS = 25;
+const PIE_Y = 60 / 64;                 // dónde están los pies dentro del cuadro de 64×64 de LPC
+const VEL_CAMINA = 92, VEL_CORRE = 168;
+const Z_TECHO = 0, Z_AVION = 40000, Z_NOCHE = 50000;
 
-const DIR_CAMARA = new THREE.Vector3(Math.sin(Math.PI / 4), 1.3, Math.cos(Math.PI / 4)).normalize();
-const DIST_MIN = 11, DIST_MAX = 100;
-const ALTO_MURO = 1.85, MURO_ABIERTO = 0.32, GROSOR = 0.14;
+export type TipoFigura = "persona" | "jugador" | "visitante" | "proveedor" | "mensajero" | "hugo" | "vehiculo" | "objeto";
+/** `sobre` = la y del mueble donde queda puesto (una caja en la mesa): se dibuja por delante de él. */
+export interface Paso { x: number; y: number; dir?: Dir; pose?: Pose; pausa?: number; sobre?: number }
 
-const K = "kaykit/";
-/** Nombre lógico de un mueble (barrio.ts) → modelo y medida. 1 unidad del mundo ≈ 1,4 m.
- *  KayKit Furniture/Restaurant miden ~0,7 m por unidad: van con UNA escala (`s: 0.5`) para que
- *  conserven sus proporciones (escalar por altura deforma lo plano: un mesón, una estufa).
- *  Lo de Kenney va por altura (`alto`). `y` = sobre qué altura se apoya (un mesón, un escritorio). */
-const KK = 0.5;
-const MESA = 0.5; // alto de mesas y mesones KayKit a esa escala
-const MUEBLE: Record<string, { ruta: string; s?: number; alto?: number; ancho?: number; y?: number }> = {
-  "muebles/desk": { ruta: `${K}muebles/table_medium.gltf`, s: KK },
-  "muebles/computerScreen": { ruta: "muebles/computerScreen", alto: 0.34, y: MESA },
-  "muebles/laptop": { ruta: "muebles/laptop", ancho: 0.3, y: MESA },
-  "muebles/chairDesk": { ruta: `${K}muebles/chair_A.gltf`, s: KK },
-  "muebles/chair": { ruta: `${K}muebles/chair_B.gltf`, s: KK },
-  "muebles/bedDouble": { ruta: `${K}muebles/bed_double_A.gltf`, s: KK },
-  "muebles/bedSingle": { ruta: `${K}muebles/bed_single_A.gltf`, s: KK },
-  "muebles/cabinetBedDrawer": { ruta: `${K}muebles/cabinet_small.gltf`, s: KK },
-  "muebles/rugRound": { ruta: `${K}muebles/rug_oval_A.gltf`, s: KK },
-  "muebles/rugRectangle": { ruta: `${K}muebles/rug_rectangle_stripes_A.gltf`, s: KK },
-  "muebles/lampRoundFloor": { ruta: `${K}muebles/lamp_standing.gltf`, s: KK },
-  "muebles/pottedPlant": { ruta: `${K}muebles/cactus_medium_A.gltf`, s: KK },
-  "muebles/plantSmall1": { ruta: `${K}muebles/cactus_small_A.gltf`, s: KK },
-  "muebles/bookcaseOpen": { ruta: "muebles/bookcaseOpen", alto: 1.3 },
-  "muebles/bookcaseClosedWide": { ruta: `${K}muebles/cabinet_medium_decorated.gltf`, s: KK },
-  "muebles/loungeSofa": { ruta: `${K}muebles/couch_pillows.gltf`, s: KK },
-  "muebles/table": { ruta: `${K}muebles/table_medium_long.gltf`, s: KK },
-  "muebles/televisionModern": { ruta: "muebles/televisionModern", alto: 0.55 },
-  "muebles/radio": { ruta: "muebles/radio", alto: 0.25 },
-  "muebles/cardboardBoxOpen": { ruta: "muebles/cardboardBoxOpen", alto: 0.3, y: MESA },
-  "muebles/cardboardBoxClosed": { ruta: "muebles/cardboardBoxClosed", alto: 0.3, y: MESA },
-  "muebles/kitchenFridgeLarge": { ruta: `${K}cocina/fridge_A.gltf`, s: 0.42 },
-  "muebles/kitchenStove": { ruta: `${K}cocina/stove_multi.gltf`, s: KK },
-  "muebles/kitchenSink": { ruta: `${K}cocina/kitchencounter_sink.gltf`, s: KK },
-  "muebles/kitchenCoffeeMachine": { ruta: `${K}cocina/pot_A.gltf`, s: KK, y: MESA },
-  "muebles/kitchenBar": { ruta: `${K}cocina/kitchencounter_straight_B.gltf`, s: KK },
-  "muebles/kitchenBarEnd": { ruta: `${K}cocina/kitchencounter_straight_A_decorated.gltf`, s: KK },
-};
-
-interface MuroVivo { mesh: THREE.Mesh; fijo: boolean }
-interface CasaViva {
-  casa: Casa;
-  muros: MuroVivo[];
-  techo: THREE.Group;
-  ventanas: THREE.Group;
-  modo: "auto" | "abierta" | "cerrada";
-  /** 0 = cerrada, 1 = abierta (se anima). */
-  k: number;
+export interface Figura {
+  id: string;
+  tipo: TipoFigura;
+  spr: Phaser.GameObjects.Sprite;
+  tex: string;
+  x: number;
+  y: number;
+  dir: Dir;
+  pose: Pose;
+  ruta: Paso[];
+  base: Paso | null;
+  vel: number;
+  sale?: boolean;
+  nombre?: Phaser.GameObjects.Text;
+  icono?: Phaser.GameObjects.Text;
+  globo?: { c: Phaser.GameObjects.Container; hasta: number };
+  ex?: Examinable;
+  lugar?: string;
+  momento?: { pose: Pose; hasta: number; dir?: Dir };
+  pausaHasta?: number;
+  /** Para lo que va y viene (alistar, aseo) y las pausas de la vida diaria. */
+  ronda?: Paso[];
+  rondaK?: number;
+  vidaEn?: number;
+  presente?: boolean;
+  ocupado?: boolean;
+  /** Persona que también está jugando: su posición llega por la red. */
+  remoto?: { x: number; y: number; dir: Dir; pose: Pose; t: number } | null;
+  /** Los vehículos solo miran a izquierda o derecha (se voltea el dibujo). */
+  vehiculo?: boolean;
+  look?: string;
+  alLlegar?: () => void;
+  aparecer?: number;
 }
 
-export class Escena {
-  readonly scene: THREE.Scene;
-  readonly camara: THREE.PerspectiveCamera;
-  private amb: Ambiente;
-  private etiquetas: CSS2DRenderer;
-  private objetivo = new THREE.Vector3(4, 0, -1);
-  private distancia = 40;
-  private obs: ResizeObserver;
-  private raf = 0;
-  private reloj = new THREE.Clock();
-  private visible = true;
-  private punteros = new Map<number, { x: number; y: number }>();
-  private arrastre: { x: number; y: number; obj: THREE.Vector3; movio: boolean; dist?: number; d0?: number } | null = null;
-  private elegibles: THREE.Object3D[] = [];
-  private anillo: THREE.Mesh;
-  private seguido: THREE.Object3D | null = null;
-  private casas = new Map<CasaId, CasaViva>();
-  /** A quién sigue la cámara (se suelta al arrastrar). */
-  private camSigue: THREE.Object3D | null = null;
-  private faroles: THREE.MeshStandardMaterial[] = [];
-  private vidrios: THREE.MeshStandardMaterial[] = [];
-  private luzNoche: THREE.PointLight[] = [];
-  private horaAplicada = -1;
-  readonly estantes: THREE.Group[] = [];
-  onFrame: (dt: number, t: number) => void = () => {};
-  onElegir: (e: Elegible | null) => void = () => {};
+export interface Ajustes {
+  onListo: () => void;
+  onExaminar: (e: Examinable | null) => void;
+  onCerca: (texto: string | null) => void;
+  onMover: (p: { x: number; y: number; dir: Dir; pose: Pose }) => void;
+  onError: (msg: string) => void;
+  onSonido: (n: string) => void;
+  posicionInicial: () => { x: number; y: number; dir: Dir } | null;
+  /** El jugador entró a otro cuarto o patio (null = la calle, un pasillo). */
+  onLugar: (lugar: string | null) => void;
+}
 
-  constructor(private cont: HTMLElement, calidad?: Calidad) {
-    this.amb = new Ambiente(cont, calidad);
-    this.scene = this.amb.scene;
-    this.camara = this.amb.camara;
+/** Teclas → acción. Ni se roban teclas cuando se escribe en un campo de texto. */
+const TECLAS: Record<string, string> = {
+  ArrowUp: "arriba", KeyW: "arriba", ArrowDown: "abajo", KeyS: "abajo", ArrowLeft: "izquierda", KeyA: "izquierda",
+  ArrowRight: "derecha", KeyD: "derecha", ShiftLeft: "correr", ShiftRight: "correr", KeyX: "correr",
+  Space: "accion", Enter: "accion", KeyE: "accion", KeyZ: "accion", NumpadEnter: "accion",
+};
 
-    this.etiquetas = new CSS2DRenderer();
-    // overflow hidden: una etiqueta que sale del borde no puede ensanchar ni correr el panel.
-    Object.assign(this.etiquetas.domElement.style, { position: "absolute", inset: "0", pointerEvents: "none", overflow: "hidden" });
-    cont.appendChild(this.etiquetas.domElement);
+function esCampo(t: EventTarget | null): boolean {
+  const el = t as HTMLElement | null;
+  if (!el || !el.tagName) return false;
+  return el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName);
+}
 
-    this.anillo = new THREE.Mesh(
-      new THREE.RingGeometry(0.4, 0.55, 40).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicMaterial({ color: "#FFE14D", transparent: true, opacity: 0.95, depthWrite: false }),
-    );
-    this.anillo.visible = false;
-    this.anillo.renderOrder = 2;
-    this.scene.add(this.anillo);
+export class EscenaBarrio extends Phaser.Scene {
+  mapa!: Mapa;
+  rejilla!: Rejilla;
+  ajustes!: Ajustes;
+  jugador: Figura | null = null;
+  figuras = new Map<string, Figura>();
+  private techos = new Map<string, { img: Phaser.GameObjects.Image; letrero: Phaser.GameObjects.Text; quien: Phaser.GameObjects.Text; rect: number[] }>();
+  private repisas = new Map<string, { clave: string; objs: Phaser.GameObjects.GameObject[] }>();
+  /** Los objetos de los módulos: ícono, nombre (sale al acercarse) y globito de pendientes. */
+  /** Cada objeto-módulo: `ico` = la placa flotante (marco del color de su etapa + ícono + globito de
+   *  pendientes), `nombre` = su rótulo. */
+  estaciones: { e: EstacionMapa; ico: Phaser.GameObjects.Container; nombre: Phaser.GameObjects.Text; badge: Phaser.GameObjects.Text; casa: string | null }[] = [];
+  private rotulos = new Map<string, Phaser.GameObjects.Text>();
+  private lugarActual: string | null = null;
+  private teclas = new Set<string>();
+  private virtuales = new Set<string>();
+  private bloqueado = false;
+  private rutaJugador: Paso[] = [];
+  private alLlegarJugador: (() => void) | null = null;
+  private cercaActual: string | null = null;
+  private ultimoEnvio = 0;
+  private ultimaPos = "";
+  private texturas = new Map<string, Promise<string>>();
+  private noche!: Phaser.GameObjects.Rectangle;
+  private luces: Phaser.GameObjects.Image[] = [];
+  private marca!: Phaser.GameObjects.Text;
+  private aviso!: Phaser.GameObjects.Text;
+  sinTechos = false;
+  zoom = 2;
+  private escuchas: [string, EventListener][] = [];
+  listo = false;
 
-    this.obs = new ResizeObserver(() => this.ajustar());
-    this.obs.observe(cont);
-    this.ajustar();
-    this.colocarCamara();
-
-    const c = this.amb.renderer.domElement;
-    c.addEventListener("pointerdown", this.alBajar);
-    c.addEventListener("pointermove", this.alMover);
-    c.addEventListener("pointerup", this.alSubir);
-    c.addEventListener("pointercancel", this.alSubir);
-    c.addEventListener("wheel", this.alRueda, { passive: false });
-    document.addEventListener("visibilitychange", this.alVisibilidad);
-    this.raf = requestAnimationFrame(this.cuadro);
+  constructor() {
+    super("barrio");
   }
 
-  get calidad(): Calidad { return this.amb.calidad; }
-  cambiarCalidad(c: Calidad) { this.amb.cambiarCalidad(c); }
-
-  destruir() {
-    cancelAnimationFrame(this.raf);
-    this.obs.disconnect();
-    const c = this.amb.renderer.domElement;
-    c.removeEventListener("pointerdown", this.alBajar);
-    c.removeEventListener("pointermove", this.alMover);
-    c.removeEventListener("pointerup", this.alSubir);
-    c.removeEventListener("pointercancel", this.alSubir);
-    c.removeEventListener("wheel", this.alRueda);
-    document.removeEventListener("visibilitychange", this.alVisibilidad);
-    this.amb.dispose();
-    this.etiquetas.domElement.remove();
+  init(datos: { ajustes: Ajustes }) {
+    this.ajustes = datos.ajustes;
   }
 
-  // ─── Cámara ────────────────────────────────────────────────────────────────
-
-  private ajustar() {
-    const w = Math.max(1, this.cont.clientWidth), h = Math.max(1, this.cont.clientHeight);
-    this.amb.ajustar(w, h);
-    this.etiquetas.setSize(w, h);
+  preload() {
+    const B = BASE_PIXEL;
+    this.load.json("mapa", `${B}mapa.json?v=1`);
+    this.load.image("suelo", `${B}suelo.png?v=1`);
+    this.load.atlas("muebles", `${B}muebles.png?v=1`, `${B}muebles.json?v=1`);
+    this.load.atlas("objetos", `${B}objetos.png?v=1`, `${B}objetos.json?v=1`);
+    this.load.spritesheet("hugo", `${B}hugo.png?v=1`, { frameWidth: 48, frameHeight: 64 });
+    for (const casa of ["bunker", "sede", "tienda"]) this.load.image(`techo-${casa}`, `${B}techos/${casa}.png?v=1`);
+    this.load.on("loaderror", (f: { key: string }) => this.ajustes.onError(`No cargó «${f.key}» del barrio. Recarga la página; si sigue, avisa a sistemas.`));
   }
 
-  private colocarCamara() {
-    this.camara.position.copy(this.objetivo).addScaledVector(DIR_CAMARA, this.distancia);
-    this.camara.lookAt(this.objetivo);
-    this.camara.updateMatrixWorld();
-    const fog = this.scene.fog as THREE.Fog | null;
-    if (fog) { fog.near = this.distancia * 1.5; fog.far = this.distancia * 3.4; }
-  }
-
-  /** Todo el barrio a la vista. */
-  encuadrar() {
-    this.objetivo.set(0, 0, 1);
-    this.distancia = this.cont.clientWidth < 640 ? DIST_MAX : 78;
-    this.colocarCamara();
-  }
-
-  /** Acercar (factor > 1) o alejar, hacia un punto de la pantalla. */
-  zoom(factor: number, sx?: number, sy?: number) {
-    const antes = sx !== undefined && sy !== undefined ? this.alPiso(sx, sy) : null;
-    this.distancia = Math.max(DIST_MIN, Math.min(DIST_MAX, this.distancia / factor));
-    this.colocarCamara();
-    if (antes && sx !== undefined && sy !== undefined) {
-      const despues = this.alPiso(sx, sy);
-      if (despues) this.objetivo.add(antes.sub(despues));
+  create() {
+    this.mapa = this.cache.json.get("mapa") as Mapa;
+    this.rejilla = new Rejilla(this.mapa.solido, this.mapa.celda);
+    this.add.image(0, 0, "suelo").setOrigin(0, 0).setDepth(-100000);
+    for (const m of this.mapa.muebles) {
+      const img = this.add.image(m.x, m.y, "muebles", m.f);
+      this.origenDeCuadro(img);
+      img.setDepth((m.zbase ?? m.y) + (m.z ?? 0) * 0.01);
     }
-    this.limitar();
-    this.colocarCamara();
-  }
-
-  /** Ir a un punto; `zoom` como en la vista ortográfica de antes (2 ≈ una casa de cerca). */
-  irA(x: number, z: number, zoom?: number) {
-    this.camSigue = null;
-    this.objetivo.set(x, 0, z);
-    if (zoom) this.distancia = Math.max(DIST_MIN, Math.min(DIST_MAX, 64 / zoom));
-    this.distanciaMeta = null;
-    this.limitar();
-    this.colocarCamara();
-  }
-
-  private limitar() {
-    this.objetivo.x = Math.max(LIMITE.x0, Math.min(LIMITE.x1, this.objetivo.x));
-    this.objetivo.z = Math.max(LIMITE.z0, Math.min(LIMITE.z1, this.objetivo.z));
-  }
-
-  private alPiso(cx: number, cy: number): THREE.Vector3 | null {
-    const r = this.amb.renderer.domElement.getBoundingClientRect();
-    const ndc = new THREE.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
-    const ray = new THREE.Raycaster();
-    ray.setFromCamera(ndc, this.camara);
-    const p = new THREE.Vector3();
-    return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), p);
-  }
-
-  private alBajar = (e: PointerEvent) => {
-    this.amb.renderer.domElement.setPointerCapture(e.pointerId);
-    this.punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (this.punteros.size === 2) {
-      const [a, b] = [...this.punteros.values()];
-      this.arrastre = { x: e.clientX, y: e.clientY, obj: this.objetivo.clone(), movio: true,
-                        dist: Math.hypot(a.x - b.x, a.y - b.y), d0: this.distancia };
-    } else {
-      this.arrastre = { x: e.clientX, y: e.clientY, obj: this.objetivo.clone(), movio: false };
+    this.crearEstaciones();
+    this.crearRotulos();
+    for (const [id, casa] of Object.entries(this.mapa.casas)) {
+      const t = casa.techo;
+      const img = this.add.image(t.x, t.y, `techo-${id}`).setOrigin(0, 0).setDepth(t.base_y + Z_TECHO);
+      const letrero = this.texto(t.letrero.x, t.letrero.y, t.letrero.texto, 9, "#ffffff", "#2b2d42")
+        .setOrigin(0.5, 0.5).setDepth(t.base_y + 1);
+      const quien = this.texto(t.x + t.w / 2, t.y + 30, "", 9, "#1d2b53", "#ffffff").setOrigin(0.5, 0).setDepth(t.base_y + 2);
+      this.techos.set(id, { img, letrero, quien, rect: casa.rect });
     }
-  };
-
-  private alMover = (e: PointerEvent) => {
-    if (!this.punteros.has(e.pointerId)) {
-      this.amb.renderer.domElement.style.cursor = this.elegir(e.clientX, e.clientY) ? "pointer" : "grab";
-      return;
+    // Luces de la calle (de noche) en cada poste: un halo con degradé, más fuerte bajo la lámpara.
+    if (!this.textures.exists("halo")) {
+      const c = document.createElement("canvas");
+      c.width = c.height = 128;
+      const g = c.getContext("2d")!;
+      const r = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+      r.addColorStop(0, "rgba(255,236,170,0.9)");
+      r.addColorStop(0.45, "rgba(255,226,150,0.35)");
+      r.addColorStop(1, "rgba(255,220,140,0)");
+      g.fillStyle = r;
+      g.fillRect(0, 0, 128, 128);
+      this.textures.addCanvas("halo", c);
     }
-    this.punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const a = this.arrastre;
-    if (!a) return;
-    if (this.punteros.size === 2 && a.dist && a.d0) {
-      const [p, q] = [...this.punteros.values()];
-      const d = Math.hypot(p.x - q.x, p.y - q.y);
-      this.zoom(this.distancia / (a.d0 / (d / a.dist)), (p.x + q.x) / 2, (p.y + q.y) / 2);
-      return;
+    for (const m of this.mapa.muebles) if (m.f === "poste") {
+      this.luces.push(this.add.image(m.x, m.y - 20, "halo").setScale(1.3, 0.9).setAlpha(0).setDepth(Z_NOCHE + 1).setBlendMode(Phaser.BlendModes.ADD));
     }
-    if (!a.movio && Math.hypot(e.clientX - a.x, e.clientY - a.y) < 6) return;
-    a.movio = true;
-    this.seguido = null;
-    this.camSigue = null;
-    // Lo que estaba bajo el dedo sigue bajo el dedo.
-    this.objetivo.copy(a.obj);
-    this.colocarCamara();
-    const p0 = this.alPiso(a.x, a.y), p1 = this.alPiso(e.clientX, e.clientY);
-    if (p0 && p1) this.objetivo.add(p0.sub(p1));
-    this.limitar();
-    this.colocarCamara();
-    this.amb.renderer.domElement.style.cursor = "grabbing";
-  };
-
-  private alSubir = (e: PointerEvent) => {
-    const a = this.arrastre;
-    this.punteros.delete(e.pointerId);
-    if (this.punteros.size > 0) return;
-    this.arrastre = null;
-    this.amb.renderer.domElement.style.cursor = "grab";
-    if (!a || a.movio) return;
-    const elegido = this.elegir(e.clientX, e.clientY);
-    // Tocar el techo (o un muro) de una casa cerrada: se abre.
-    if (elegido?.tipo === "casa") { this.alternarCasa(elegido.id as CasaId); return; }
-    this.onElegir(elegido);
-  };
-
-  private alRueda = (e: WheelEvent) => {
-    e.preventDefault();
-    this.zoom(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY);
-  };
-
-  private alVisibilidad = () => {
-    this.visible = document.visibilityState === "visible";
-    if (this.visible) {
-      this.reloj.getDelta();
-      cancelAnimationFrame(this.raf);
-      this.raf = requestAnimationFrame(this.cuadro);
-    }
-  };
-
-  // ─── Selección ─────────────────────────────────────────────────────────────
-
-  elegible(o: THREE.Object3D, e: Elegible) {
-    o.userData.elegible = e;
-    this.elegibles.push(o);
-  }
-  olvidar(o: THREE.Object3D) {
-    this.elegibles = this.elegibles.filter((x) => x !== o);
-    if (this.seguido === o) this.seguido = null;
+    this.noche = this.add.rectangle(0, 0, 10, 10, 0x1b2550, 0).setOrigin(0, 0).setScrollFactor(0).setDepth(Z_NOCHE)
+      .setBlendMode(Phaser.BlendModes.MULTIPLY);
+    this.marca = this.texto(0, 0, "▼", 10, "#ffe14d", "#1d2b53").setOrigin(0.5, 1).setDepth(Z_AVION).setVisible(false);
+    this.aviso = this.texto(0, 0, "", 9, "#ffffff", "#1d2b53").setOrigin(0.5, 1).setDepth(Z_AVION).setVisible(false);
+    const cam = this.cameras.main;
+    cam.setBounds(0, 0, this.mapa.ancho, this.mapa.alto);
+    cam.setBackgroundColor("#2f6b2f");
+    this.ajustarZoom();
+    this.scale.on("resize", () => this.ajustarZoom());
+    this.instalarTeclado();
+    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => this.tocar(p));
+    this.listo = true;
+    this.ajustes.onListo();
   }
 
-  private elegir(cx: number, cy: number): Elegible | null {
-    const r = this.amb.renderer.domElement.getBoundingClientRect();
-    const ndc = new THREE.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
-    const ray = new THREE.Raycaster();
-    ray.setFromCamera(ndc, this.camara);
-    const golpes = ray.intersectObjects(this.elegibles.filter((o) => o.visible !== false && this.visibleDeVerdad(o)), true);
-    const peso = (o: THREE.Object3D) => {
-      const t = this.de(o)?.tipo;
-      return t === "lugar" ? 2 : t === "casa" ? 1 : 0;
-    };
-    golpes.sort((a, b) => peso(a.object) - peso(b.object) || a.distance - b.distance);
-    for (const g of golpes) {
-      const e = this.de(g.object);
-      if (e) return e;
+  // ─── Los módulos de la app como objetos del barrio ─────────────────────────
+
+  private crearEstaciones() {
+    for (const e of this.mapa.estaciones ?? []) {
+      // Para que no se confunda con los muebles: una placa del color de la etapa del Mapa (con borde
+      // claro, que se lee en piso claro y oscuro), una puntita hacia el mueble y un vaivén suave.
+      const c = e.tipo === "modulo" ? colorModulo(e.panel)
+        : e.tipo === "ajedrez" ? { fondo: "#C2C3C7", tinta: "#000000" } : e.tipo === "tenis" ? { fondo: "#00E436", tinta: "#000000" }
+        : { fondo: "#FFF1E8", tinta: "#000000" };
+      const fondo = Phaser.Display.Color.HexStringToColor(c.fondo).color;
+      const marco = this.add.graphics();
+      marco.fillStyle(0xfff1e8, 1).fillRoundedRect(-15, -25, 30, 30, 7);
+      marco.fillStyle(0x0b0f2a, 1).fillRoundedRect(-14, -24, 28, 28, 6);
+      marco.fillStyle(fondo, 1).fillRoundedRect(-12, -22, 24, 24, 5);
+      marco.fillStyle(0xfff1e8, 1).fillTriangle(-6, 4, 6, 4, 0, 10);
+      marco.fillStyle(0x0b0f2a, 1).fillTriangle(-4, 4, 4, 4, 0, 8);
+      const img = this.add.image(0, 0, "objetos", `ico_${e.icono}`).setOrigin(0.5, 1);
+      const badge = this.texto(11, -22, "", 8, "#ffffff", "#c0392b").setOrigin(0.5, 0.5).setVisible(false);
+      const ico = this.add.container(e.x, e.y - 2, [marco, img, badge]).setDepth(e.z + 2).setSize(30, 34);
+      // La repisa de trofeos no lleva placa: lo que se ve son los trofeos mismos (queda
+      // transparente para que se pueda tocar).
+      if (e.tipo === "trofeos") ico.setAlpha(0);
+      else this.tweens.add({ targets: ico, y: e.y - 4, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: (e.x * 7 + e.y * 3) % 1100 });
+      const titulo = e.tipo === "directorio" ? "Directorio de la casa" : e.tipo === "ajedrez" ? "Mesa de ajedrez"
+        : e.tipo === "trofeos" ? "Repisa de trofeos" : e.tipo === "tenis" ? "Cancha de tenis" : infoModulo(e.panel).nombre;
+      const nombre = this.add.text(e.x, e.y - 30, titulo, {
+        fontFamily: FUENTE, fontSize: "8px", color: c.tinta, backgroundColor: c.fondo, padding: { x: 3, y: 1 },
+        resolution: Math.max(2, Math.ceil(this.zoom * (window.devicePixelRatio || 1))),
+      }).setOrigin(0.5, 1).setDepth(Z_AVION - 2).setVisible(false);
+      this.estaciones.push({ e, ico, nombre, badge, casa: this.casaDe(e.x, e.z - 2) });
     }
-    return null;
   }
-  private de(o: THREE.Object3D): Elegible | null {
-    let x: THREE.Object3D | null = o;
-    while (x && !x.userData.elegible) x = x.parent;
-    return (x?.userData.elegible as Elegible | undefined) ?? null;
-  }
-  private visibleDeVerdad(o: THREE.Object3D): boolean {
-    let x: THREE.Object3D | null = o;
-    while (x) {
-      if (x.userData.oculto) return false;
-      x = x.parent;
+
+  /** El nombre de cada cuarto en su muro (y la etapa del Mapa de la app que se trabaja ahí). */
+  private crearRotulos() {
+    for (const [id, l] of Object.entries(this.mapa.lugares)) {
+      if (!l.rotulo || id.startsWith("cuarto")) continue;
+      const etapas = l.etapas.map(tituloEtapa).join(" · ");
+      const casa = this.mapa.casas[l.casa];
+      const t = this.texto(l.rotulo.x, l.rotulo.y, etapas ? `${l.titulo.toUpperCase()}\n${etapas}` : l.titulo.toUpperCase(), 10, "#ffffff", "#1d2b53")
+        .setOrigin(0.5, 0).setLineSpacing(-1)
+        .setDepth(Z_AVION - 3);
+      void casa;
+      this.rotulos.set(id, t);
     }
+  }
+
+  /** Los cuartos llevan el nombre de quien duerme ahí (lo dice empresa_viva_casas.json). */
+  nombrarCuarto(lugar: string, texto: string) {
+    const l = this.mapa.lugares[lugar];
+    if (!l?.rotulo) return;
+    let t = this.rotulos.get(lugar);
+    if (!t) {
+      t = this.texto(l.rotulo.x, l.rotulo.y, "", 9, "#ffffff", "#1d2b53").setOrigin(0.5, 0).setDepth(Z_AVION - 3);
+      this.rotulos.set(lugar, t);
+    }
+    if (t.text !== texto) t.setText(texto);
+  }
+
+  /** Lo detenido de cada módulo (del Mapa): un globito rojo con el número sobre su objeto. */
+  pendientes(por: Record<string, { n: number; alta: boolean }>) {
+    for (const s of this.estaciones) {
+      const p = s.e.tipo === "modulo" ? por[s.e.panel] : undefined;
+      s.badge.setVisible(Boolean(p?.n));
+      if (p?.n) s.badge.setText(p.n > 999 ? "999+" : String(p.n)).setStroke(p.alta ? "#c0392b" : "#b9770e", 4);
+    }
+  }
+
+  /** Dónde está el objeto de un módulo (el más cercano a `cerca`, si hay varios: la agenda, el chat). */
+  estacionDe(panel: string, cerca?: { x: number; y: number }, casa?: string): EstacionMapa | null {
+    const todas = this.estaciones.filter((s) => s.e.panel === panel && s.e.tipo === "modulo");
+    if (!todas.length) return null;
+    const enCasa = casa ? todas.filter((s) => s.casa === casa) : [];
+    const lista = enCasa.length ? enCasa : todas;
+    if (!cerca) return lista[0].e;
+    return lista.reduce((a, b) => (Math.hypot(a.e.uso.x - cerca.x, a.e.uso.y - cerca.y) <= Math.hypot(b.e.uso.x - cerca.x, b.e.uso.y - cerca.y) ? a : b)).e;
+  }
+
+  private exDeEstacion(e: EstacionMapa): Examinable {
+    if (e.tipo === "ajedrez") return { tipo: "ajedrez" };
+    if (e.tipo === "trofeos") return { tipo: "trofeos", lugar: e.lugar };
+    if (e.tipo === "tenis") return { tipo: "tenis" };
+    return e.tipo === "directorio" ? { tipo: "directorio", casa: e.casa ?? "" } : { tipo: "modulo", panel: e.panel, lugar: e.lugar };
+  }
+
+  /** Los trofeos de cada cuarto en su repisa, al lado de la cama (`medallas` en el orden en que se
+   *  ganaron). Caben 8; desde el noveno, el último puesto dice cuántos más hay. */
+  trofeos(porCuarto: Record<string, string[]>) {
+    for (const [nombre, punto] of Object.entries(this.mapa.puntos)) {
+      if (!nombre.startsWith("trofeos_")) continue;
+      const p = punto as PuntoMapa;
+      const cuarto = nombre.slice("trofeos_".length);
+      const medallas = porCuarto[cuarto] ?? [];
+      const clave = medallas.join(",");
+      const antes = this.repisas.get(cuarto);
+      if (antes?.clave === clave) continue;
+      antes?.objs.forEach((o) => o.destroy());
+      const cols = p.columnas ?? 4, filas = p.filas ?? 2, caben = cols * filas;
+      const mostrar = medallas.length > caben ? medallas.slice(-(caben - 1)) : medallas;
+      const objs: Phaser.GameObjects.GameObject[] = mostrar.map((m, i) =>
+        this.add.image(p.x + (i % cols) * (p.paso ?? 10), p.y + Math.floor(i / cols) * (p.alto_fila ?? 22), "objetos", `trofeo_${m}`)
+          .setOrigin(0.5, 1).setDepth((p.sobre ?? p.y) + 0.5));
+      if (medallas.length > caben) {
+        const i = caben - 1;
+        objs.push(this.texto(p.x + (i % cols) * (p.paso ?? 10), p.y + Math.floor(i / cols) * (p.alto_fila ?? 22) - 4,
+          `+${medallas.length - mostrar.length}`, 8, "#ffe14d", "#1d2b53").setOrigin(0.5, 1).setDepth((p.sobre ?? p.y) + 0.5));
+      }
+      this.repisas.set(cuarto, { clave, objs });
+    }
+  }
+
+  /** A la cancha de tenis: al lado de tu equipo (A a la izquierda de la red), uno detrás de otro. */
+  irATenis(equipo: "A" | "B", i: number): boolean {
+    const p = this.mapa.puntos[`tenis_${equipo}`] as PuntoMapa | undefined;
+    if (!p || !this.jugador) return false;
+    const fila = [0, -1, 1][Math.max(0, Math.min(2, i))];
+    this.llevarJugador(p.x, p.y + fila * (p.paso ?? 24), p.dir);
     return true;
   }
 
-  marcar(o: THREE.Object3D | null) {
-    this.seguido = o;
-    this.anillo.visible = Boolean(o);
+  /** Camina hasta la repisa de trofeos de un cuarto y la mira. */
+  irATrofeos(cuarto: string): boolean {
+    const e = this.estaciones.find((s) => s.e.tipo === "trofeos" && s.e.lugar === cuarto)?.e;
+    if (!e || !this.jugador) return false;
+    this.irAEstacion(e, true);
+    return true;
   }
 
-  /** Seguir algo con la cámara (una persona). `acercar`: si está muy lejos, se acerca. */
-  seguir(o: THREE.Object3D | null, acercar = true) {
-    this.camSigue = o;
-    if (o && acercar && this.distancia > 30) this.distanciaMeta = 26;
-  }
-  get siguiendo(): THREE.Object3D | null { return this.camSigue; }
-  private distanciaMeta: number | null = null;
-
-  private moverCamara(dt: number) {
-    let mover = false;
-    if (this.camSigue) {
-      const p = this.camSigue.position;
-      const k = Math.min(1, dt * 3);
-      this.objetivo.x += (p.x - this.objetivo.x) * k;
-      this.objetivo.z += (p.z - this.objetivo.z) * k;
-      mover = true;
-    }
-    if (this.distanciaMeta !== null) {
-      this.distancia += (this.distanciaMeta - this.distancia) * Math.min(1, dt * 2.5);
-      if (Math.abs(this.distancia - this.distanciaMeta) < 0.2) this.distanciaMeta = null;
-      mover = true;
-    }
-    if (mover) this.colocarCamara();
-    // De lejos, los nombres van sin el «qué hace» (no tapan el barrio).
-    const lejos = this.distancia > 44 ? "1" : "";
-    if (this.etiquetas.domElement.dataset.lejos !== lejos) this.etiquetas.domElement.dataset.lejos = lejos;
+  /** A la mesa de ajedrez del parque: lado 0 = el banco de la izquierda, 1 = el de la derecha
+   *  (punto «ajedrez_der» de mapa.json). Se sienta de lado, mirando el tablero. */
+  irAMesaAjedrez(lado: 0 | 1, alLlegar?: () => void): boolean {
+    const mesa = this.estaciones.find((s) => s.e.tipo === "ajedrez")?.e;
+    const der = this.mapa.puntos.ajedrez_der;
+    if (!mesa || !this.jugador) return false;
+    const p = lado === 1 && der ? { x: der.x, y: der.y, dir: der.dir } : { x: mesa.uso.x, y: mesa.uso.y, dir: mesa.uso.dir };
+    this.llevarJugador(p.x, p.y, p.dir, alLlegar);
+    const ult = this.rutaJugador[this.rutaJugador.length - 1];
+    if (ult) ult.pose = "sentado";
+    return true;
   }
 
-  // ─── Día y noche (hora real de Bogotá) ─────────────────────────────────────
-
-  /** Aplica la hora del día: posición y color del sol, cielo, y de noche las ventanas y los
-   *  faroles encendidos. `h` en horas decimales (0–24), hora local. */
-  aplicarHora(h: number) {
-    if (Math.abs(h - this.horaAplicada) < 0.05) return;
-    this.horaAplicada = h;
-    // Bogotá: amanece ~5:45, anochece ~18:00 casi todo el año.
-    const dia = Math.max(0, Math.min(1, Math.min((h - 5.3) / 1.2, (18.6 - h) / 1.2)));
-    const atardecer = Math.max(0, 1 - Math.abs(h - 17.6) / 1.1) * dia + Math.max(0, 1 - Math.abs(h - 6.2) / 0.9) * dia * 0.7;
-    this.amb.ponerLuz(dia, atardecer);
-    const noche = 1 - dia;
-    for (const m of this.faroles) m.emissiveIntensity = noche * 3;
-    for (const m of this.vidrios) { m.emissive.set(noche > 0.3 ? "#FFC86B" : "#2A6A8A"); m.emissiveIntensity = 0.15 + noche * 1.6; }
-    for (const l of this.luzNoche) l.intensity = noche * 6;
-  }
-
-  // ─── Casas que se abren ────────────────────────────────────────────────────
-
-  /** Tocar una casa: si estaba en automático o cerrada, se abre; si estaba abierta, se cierra. */
-  alternarCasa(id: CasaId) {
-    const c = this.casas.get(id);
-    if (!c) return;
-    c.modo = c.k > 0.5 ? "cerrada" : "abierta";
-  }
-  /** Para la barra: todas abiertas, todas cerradas o automático (según la distancia). */
-  modoCasas(modo: CasaViva["modo"]) {
-    for (const c of this.casas.values()) c.modo = modo;
-  }
-
-  private animarCasas(dt: number) {
-    for (const c of this.casas.values()) {
-      const cx = (c.casa.casa.x0 + c.casa.casa.x1) / 2, cz = (c.casa.casa.z0 + c.casa.casa.z1) / 2;
-      const cerca = Math.hypot(cx - this.objetivo.x, cz - this.objetivo.z) < 16;
-      const abrir = c.modo === "abierta" || (c.modo === "auto" && this.distancia < 46 && cerca);
-      const meta = abrir ? 1 : 0;
-      if (Math.abs(c.k - meta) < 0.001) continue;
-      c.k += Math.sign(meta - c.k) * Math.min(Math.abs(meta - c.k), dt * 2.2);
-      const k = c.k * c.k * (3 - 2 * c.k); // suave
-      c.techo.position.y = k * 6;
-      c.techo.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (!m.isMesh) return;
-        // `transparent` ya viene encendido desde techo(): cambiarlo en caliente no surte efecto
-        // sin recompilar el material.
-        const mat = m.material as THREE.MeshStandardMaterial;
-        mat.opacity = 1 - k;
-        mat.depthWrite = k < 0.5;
-      });
-      c.techo.visible = k < 0.99;
-      c.techo.userData.oculto = k > 0.5;
-      for (const muro of c.muros) if (!muro.fijo) muro.mesh.scale.y = 1 - k * (1 - MURO_ABIERTO / ALTO_MURO);
-      c.ventanas.visible = k < 0.4;
-    }
-  }
-
-  // ─── Ciclo ─────────────────────────────────────────────────────────────────
-
-  private cuadro = () => {
-    if (!this.visible) return;
-    const dt = Math.min(0.05, this.reloj.getDelta());
-    const t = this.reloj.elapsedTime;
-    this.onFrame(dt, t);
-    this.moverCamara(dt);
-    this.animarCasas(dt);
-    if (this.seguido) {
-      this.anillo.position.set(this.seguido.position.x, 0.14, this.seguido.position.z);
-      this.anillo.scale.setScalar(1 + Math.sin(t * 5) * 0.06);
-    }
-    this.amb.render(t);
-    this.etiquetas.render(this.scene, this.camara);
-    this.raf = requestAnimationFrame(this.cuadro);
-  };
-
-  // ─── Etiquetas ─────────────────────────────────────────────────────────────
-
-  /** Una etiqueta HTML pegada a un punto del mundo (nombres, letreros, globos). */
-  static etiqueta(html: string, clase: string): CSS2DObject {
-    // El renderer mueve el <div> de afuera con `transform`; la clase (y sus animaciones) van en
-    // el de adentro para no pisarse.
-    const fuera = document.createElement("div");
-    const dentro = document.createElement("div");
-    dentro.className = clase;
-    dentro.innerHTML = html;
-    fuera.appendChild(dentro);
-    const o = new CSS2DObject(fuera);
-    o.center.set(0.5, 1);
-    return o;
-  }
-
-  /** Cambia el contenido y la clase de una etiqueta ya creada. */
-  static cambiar(o: CSS2DObject, html: string, clase: string) {
-    const dentro = o.element.firstElementChild as HTMLElement | null;
-    if (!dentro) return;
-    if (dentro.className !== clase) dentro.className = clase;
-    if (dentro.innerHTML !== html) dentro.innerHTML = html;
-  }
-
-  /** Centro de un lugar (para acercar la cámara). */
-  static centro(id: LugarId): { x: number; z: number } {
-    const l = LUGARES.find((x) => x.id === id)!;
-    return { x: (l.rect.x0 + l.rect.x1) / 2, z: (l.rect.z0 + l.rect.z1) / 2 };
-  }
-
-  // ─── El barrio fijo ────────────────────────────────────────────────────────
-
-  async construir(): Promise<void> {
-    this.amb.suelo(200, 140, 0, 2);
-    this.calle();
-    for (const c of CASAS) this.lote(c);
-    for (const l of LUGARES) this.lugar(l);
-    for (const c of CASAS) this.casa(c);
-    const pendientes: Promise<unknown>[] = [];
-    for (const l of LUGARES) for (const m of l.muebles) pendientes.push(this.mueble(m.m, m.x, m.z, m.rot ?? 0));
-    pendientes.push(this.bodegaEstantes(), this.cultivoHongos(), this.decorar());
-    await Promise.all(pendientes);
-    // El pasto y las flores al final: no crecen donde quedó algo.
-    const fuera: Rect[] = [
-      ...CASAS.map((c) => crecer(c.casa, 0.4)),
-      ...LUGARES.filter((l) => l.afuera).map((l) => crecer(l.rect, 0.2)),
-      { x0: -80, z0: CALLE.z0 - 1.2, x1: 80, z1: CALLE.z1 + 1.3 },
-      ...CASAS.map((c) => ({ x0: c.puertaFuera.x - 0.7, z0: c.puertaFuera.z - 0.5, x1: c.puertaFuera.x + 0.7, z1: ANDEN_Z })),
-      ...this.huellas,
-    ];
-    this.amb.pastoVivo({ x0: -48, z0: -24, x1: 48, z1: 30 }, 34000, fuera);
-    this.amb.flores({ x0: -34, z0: -13, x1: 34, z1: 8 }, 90, fuera);
-  }
-
-  private huellas: Rect[] = [];
-
-  private async mueble(nombre: string, x: number, z: number, rot = 0): Promise<THREE.Object3D | null> {
-    const def = MUEBLE[nombre] ?? { ruta: nombre, alto: 0.5 };
-    try {
-      let o: THREE.Object3D;
-      if (def.s) o = await objeto(def.ruta, def.s);
-      else if (def.ancho) {
-        o = await objeto(def.ruta, 1);
-        const t = new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3());
-        o.scale.setScalar(def.ancho / Math.max(t.x, t.z, 0.01));
-      } else o = await objetoAlto(def.ruta, def.alto ?? 0.5);
-      o.position.set(x, 0.12 + (def.y ?? 0), z);
-      o.rotation.y = THREE.MathUtils.degToRad(rot);
-      this.scene.add(o);
-      return o;
-    } catch {
-      return null; // un modelo que no cargó no tumba el barrio
-    }
-  }
-
-  async poner(ruta: string, x: number, z: number, rot = 0, alto = 1, y = 0): Promise<THREE.Object3D | null> {
-    try {
-      const o = await objetoAlto(ruta, alto);
-      o.position.set(x, y, z);
-      o.rotation.y = THREE.MathUtils.degToRad(rot);
-      this.scene.add(o);
-      return o;
-    } catch {
-      return null;
-    }
-  }
-
-  private textura(dibujar: (g: CanvasRenderingContext2D, n: number) => void, n = 256): THREE.CanvasTexture {
-    const c = document.createElement("canvas");
-    c.width = c.height = n;
-    dibujar(c.getContext("2d")!, n);
-    const t = new THREE.CanvasTexture(c);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 8;
-    return t;
-  }
-
-  private calle() {
-    // Asfalto con textura (no un gris plano) y línea amarilla discontinua.
-    const asfalto = this.textura((g, n) => {
-      g.fillStyle = "#62666E"; g.fillRect(0, 0, n, n);
-      let s = 5;
-      const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-      for (let i = 0; i < 2200; i++) { g.fillStyle = rnd() > 0.5 ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)"; g.fillRect(rnd() * n, rnd() * n, 2, 2); }
+  /** El jugador camina hasta el objeto de un módulo y lo examina al llegar. */
+  irAEstacion(e: EstacionMapa, examinar = true) {
+    this.llevarJugador(e.uso.x, e.uso.y, e.uso.pose === "sentado" ? "abajo" : e.uso.dir, () => {
+      if (examinar) { this.ajustes.onSonido("blip"); this.ajustes.onExaminar(this.exDeEstacion(e)); }
     });
-    asfalto.repeat.set(40, 2);
-    const ancho = CALLE.z1 - CALLE.z0;
-    const via = new THREE.Mesh(new THREE.PlaneGeometry(160, ancho).rotateX(-Math.PI / 2),
-      new THREE.MeshStandardMaterial({ map: asfalto, roughness: 0.95 }));
-    via.position.set(0, 0.005, (CALLE.z0 + CALLE.z1) / 2);
-    via.receiveShadow = true;
-    this.scene.add(via);
-    const linea = new THREE.MeshStandardMaterial({ color: "#FFD84A", roughness: 0.6 });
-    for (let x = -78; x < 78; x += 2.6) {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.01, 0.13), linea);
-      m.position.set(x, 0.012, (CALLE.z0 + CALLE.z1) / 2);
-      this.scene.add(m);
+    // Si el uso es sentado (un escritorio), al llegar se sienta.
+    const ult = this.rutaJugador[this.rutaJugador.length - 1];
+    if (ult && e.uso.pose === "sentado") ult.pose = "sentado";
+  }
+
+  /** El nombre del objeto más cercano (solo uno, para que no se monten) y, al cambiar de cuarto,
+   *  el letrero con el nombre del cuarto (lo muestra el panel). Con «sin techos» se ven los nombres
+   *  de todos los cuartos. */
+  private nombresCerca() {
+    const j = this.jugador;
+    if (!j) return;
+    const lugar = this.lugarDe(j.x, j.y);
+    // Los nombres de los módulos del cuarto donde estás (y lo que tengas a unos pasos), del más
+    // cercano al más lejano, sin que se monten: el que choca con uno ya puesto no sale.
+    const candidatos: { s: EscenaBarrio["estaciones"][number]; d: number }[] = [];
+    for (const s of this.estaciones) {
+      const techo = s.casa ? this.techos.get(s.casa) : null;
+      const visible = !techo || techo.img.alpha < 0.4;
+      s.ico.setVisible(visible);
+      s.nombre.setVisible(false);
+      if (!visible || s.e.tipo === "trofeos") continue;
+      const d = Math.hypot(s.e.uso.x - j.x, s.e.uso.y - j.y);
+      if (d < 110 || (lugar && s.e.lugar === lugar && d < 420)) candidatos.push({ s, d });
     }
-    // Andenes de baldosa con bordillo.
-    const baldosa = this.textura((g, n) => {
-      g.fillStyle = "#DCD6CB"; g.fillRect(0, 0, n, n);
-      g.strokeStyle = "rgba(0,0,0,0.13)"; g.lineWidth = 4;
-      for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo((i * n) / 4, 0); g.lineTo((i * n) / 4, n); g.stroke(); }
-      g.beginPath(); g.moveTo(0, n / 2); g.lineTo(n, n / 2); g.stroke();
+    candidatos.sort((a, b) => a.d - b.d);
+    const puestos: Phaser.Geom.Rectangle[] = [];
+    for (const { s, d } of candidatos.slice(0, 14)) {
+      const r = s.nombre.getBounds();
+      Phaser.Geom.Rectangle.Inflate(r, 2, 1);
+      if (puestos.some((o) => Phaser.Geom.Intersects.RectangleToRectangle(o, r))) continue;
+      puestos.push(r);
+      s.nombre.setVisible(true).setAlpha(d < 60 ? 1 : 0.88);
+    }
+    for (const [id, r] of this.rotulos) r.setVisible(this.sinTechos || Boolean(this.mapa.lugares[id]?.afuera));
+    if (lugar !== this.lugarActual) {
+      this.lugarActual = lugar;
+      this.ajustes.onLugar(lugar);
+    }
+  }
+
+  // ─── Utilidades de dibujo ──────────────────────────────────────────────────
+
+  texto(x: number, y: number, t: string, tam = 9, color = "#ffffff", borde = "#1d2b53"): Phaser.GameObjects.Text {
+    return this.add.text(x, y, t, {
+      fontFamily: FUENTE, fontSize: `${tam}px`, color, stroke: borde, strokeThickness: 3, align: "center",
+      resolution: Math.max(2, Math.ceil(this.zoom * (window.devicePixelRatio || 1))),
     });
-    baldosa.repeat.set(60, 1);
-    for (const z of [ANDEN_Z, CALLE.z1 + 0.55]) {
-      const anden = new THREE.Mesh(new THREE.BoxGeometry(160, 0.1, 1.1), new THREE.MeshStandardMaterial({ map: baldosa, roughness: 0.9 }));
-      anden.position.set(0, 0.05, z);
-      anden.receiveShadow = true;
-      this.scene.add(anden);
-      const bordillo = new THREE.Mesh(new THREE.BoxGeometry(160, 0.13, 0.12), new THREE.MeshStandardMaterial({ color: "#B8B2A6" }));
-      bordillo.position.set(0, 0.065, z + (z === ANDEN_Z ? 0.55 : -0.55));
-      bordillo.receiveShadow = true;
-      this.scene.add(bordillo);
-    }
   }
 
-  private lote(c: Casa) {
-    // Camino de concreto de la puerta al andén.
-    const mat = new THREE.MeshStandardMaterial({ color: "#E4DED2", roughness: 0.95 });
-    const largo = ANDEN_Z - c.puertaFuera.z;
-    const p = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.05, largo), mat);
-    p.position.set(c.puertaFuera.x, 0.025, c.puertaFuera.z + largo / 2);
-    p.receiveShadow = true;
-    this.scene.add(p);
-    const letrero = Escena.etiqueta(c.titulo, "ev-letrero-casa");
-    letrero.position.set((c.casa.x0 + c.casa.x1) / 2, 4.6, (c.casa.z0 + c.casa.z1) / 2);
-    this.scene.add(letrero);
+  origenDeCuadro(img: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite) {
+    const f = img.frame as Phaser.Textures.Frame & { customPivot?: boolean; pivotX?: number; pivotY?: number };
+    if (f.customPivot) img.setOrigin(f.pivotX, f.pivotY);
+    else img.setOrigin(0.5, 1);
   }
 
-  private lugar(l: Lugar) {
-    const w = l.rect.x1 - l.rect.x0, d = l.rect.z1 - l.rect.z0;
-    const cx = (l.rect.x0 + l.rect.x1) / 2, cz = (l.rect.z0 + l.rect.z1) / 2;
-    const tex = this.textura((g, n) => {
-      g.fillStyle = l.piso; g.fillRect(0, 0, n, n);
-      if (l.afuera) {
-        // Adoquín / concreto en losas.
-        g.strokeStyle = "rgba(0,0,0,0.12)"; g.lineWidth = 3;
-        for (let i = 0; i <= 2; i++) { g.strokeRect(0, (i * n) / 2, n, n / 2); g.strokeRect((i * n) / 2, 0, n / 2, n); }
-      } else {
-        // Tablas de madera con vetas.
-        for (let i = 0; i < 6; i++) {
-          g.fillStyle = i % 2 ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)";
-          g.fillRect(0, (i * n) / 6, n, n / 6);
-          g.fillStyle = "rgba(60,30,10,0.22)";
-          g.fillRect(0, (i * n) / 6, n, 2);
-          g.fillRect((i * 97) % n, (i * n) / 6, 2, n / 6);
-        }
+  ajustarZoom(forzar?: number) {
+    const w = this.scale.width, h = this.scale.height;
+    // De a medio paso (1, 1,5, 2…): ~17 × 9 baldosas a la vista, cerca del personaje como en
+    // los RPG de Super Nintendo, sin que el pixel art se deforme mucho.
+    const auto = Math.max(1, Math.min(4, Math.round(Math.min(w / 560, h / 300) * 2) / 2));
+    this.zoom = forzar ?? auto;
+    this.cameras.main.setZoom(this.zoom);
+    // Lo que no se mueve con la cámara igual se escala con el zoom (desde el centro): el velo de
+    // la noche se agranda para cubrir toda la pantalla con cualquier zoom.
+    const z = this.zoom;
+    this.noche.setSize(w / z + 4, h / z + 4).setPosition(w / 2 - w / (2 * z) - 2, h / 2 - h / (2 * z) - 2);
+  }
+
+  cambiarZoom(paso: number) {
+    this.ajustarZoom(Math.max(0.5, Math.min(4, this.zoom + paso * 0.5)));
+  }
+
+  // ─── Personajes ────────────────────────────────────────────────────────────
+
+  /** Registra la textura y las animaciones de un avatar (una vez por combinación). */
+  texturaAvatar(a: AvatarPixel): Promise<string> {
+    const clave = `av:${claveAvatar(a)}`;
+    let p = this.texturas.get(clave);
+    if (p) return p;
+    p = componerAvatar(a).then((lienzo) => {
+      if (!this.sys || !this.textures) return clave;
+      if (this.textures.exists(clave)) return clave;
+      const tex = this.textures.addCanvas(clave, lienzo);
+      if (!tex) return clave;
+      for (let fila = 0; fila < 4; fila++) for (let col = 0; col < CUADROS; col++) tex.add(fila * CUADROS + col, 0, col * 64, fila * 64, 64, 64);
+      const anim = (nombre: string, fila: number, cols: number[], fps: number, repetir = -1) =>
+        this.anims.create({ key: `${clave}:${nombre}`, frames: this.anims.generateFrameNumbers(clave, { frames: cols.map((c) => fila * CUADROS + c) }), frameRate: fps, repeat: repetir });
+      for (const [dir, fila] of Object.entries(FILA)) {
+        anim(`camina:${dir}`, fila, [1, 2, 3, 4, 5, 6, 7, 8], 11);
+        anim(`corre:${dir}`, fila, [17, 18, 19, 20, 21, 22, 23, 24], 15);
+        anim(`quieto:${dir}`, fila, [9, 9, 9, 10, 10, 10], 3);
+        anim(`sentado:${dir}`, fila, [13], 1);
+        anim(`celebra:${dir}`, FILA.abajo, [14, 15, 16, 16, 16, 15, 14], 8, 0);
       }
+      return clave;
     });
-    tex.repeat.set(w / 2, d / 2);
-    const piso = new THREE.Mesh(new THREE.BoxGeometry(w, 0.12, d), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75 }));
-    piso.position.set(cx, 0.06, cz);
-    piso.receiveShadow = true;
-    this.scene.add(piso);
-    this.elegible(piso, { tipo: "lugar", id: l.id });
-    if (!l.id.startsWith("cuarto")) {
-      const e = Escena.etiqueta(l.titulo, "ev-letrero-lugar");
-      e.position.set(cx, 0.2, l.rect.z0 + 0.4);
-      this.scene.add(e);
-    }
+    this.texturas.set(clave, p);
+    return p;
   }
 
-  /** Una casa: muros (con huecos de puerta), ventanas, y el techo aparte para que se levante. */
-  private casa(c: Casa) {
-    const lugares = LUGARES.filter((l) => l.casa === c.id && !l.afuera);
-    const puertas = [c.puertaDentro, ...lugares.map((l) => l.puerta),
-                     ...LUGARES.filter((l) => l.casa === c.id && l.afuera).map((l) => l.puerta)];
-    const matExt = new THREE.MeshStandardMaterial({ color: c.muro, roughness: 0.85 });
-    const matInt = new THREE.MeshStandardMaterial({ color: "#F7F1E6", roughness: 0.9 });
-    const viva: CasaViva = { casa: c, muros: [], techo: new THREE.Group(), ventanas: new THREE.Group(), modo: "auto", k: 0 };
+  crearFigura(id: string, tipo: TipoFigura, x: number, y: number, dir: Dir = "abajo"): Figura {
+    const spr = this.add.sprite(x, y, "objetos", "papeles1").setOrigin(0.5, PIE_Y).setVisible(false);
+    const f: Figura = { id, tipo, spr, tex: "", x, y, dir, pose: "quieto", ruta: [], base: null, vel: VEL_CAMINA * 0.85 };
+    this.figuras.set(id, f);
+    // La cámara va con el jugador (un poco por delante de los pies, a la altura de la cara).
+    if (tipo === "jugador") this.cameras.main.startFollow(spr, true, 0.12, 0.12, 0, 24);
+    return f;
+  }
 
-    const segmentos = new Map<string, { x0: number; z0: number; x1: number; z1: number; exterior: boolean; fijo: boolean }>();
-    for (const l of lugares) {
-      const { x0, z0, x1, z1 } = l.rect;
-      const bordes = [
-        { x0, z0, x1, z1: z0 }, { x0, z0, x1: x0, z1 }, { x0, z0: z1, x1, z1 }, { x0: x1, z0, x1, z1 },
-      ];
-      for (const b of bordes) {
-        const exterior = b.z0 === c.casa.z0 && b.z1 === c.casa.z0 || b.x0 === c.casa.x0 && b.x1 === c.casa.x0
-          || b.z0 === c.casa.z1 && b.z1 === c.casa.z1 || b.x0 === c.casa.x1 && b.x1 === c.casa.x1;
-        // Los muros del fondo (norte y occidente de la casa) no bajan: la cámara mira desde el sureste.
-        const fijo = (b.z0 === c.casa.z0 && b.z1 === c.casa.z0) || (b.x0 === c.casa.x0 && b.x1 === c.casa.x0);
-        segmentos.set(`${b.x0},${b.z0},${b.x1},${b.z1}`, { ...b, exterior, fijo });
+  async vestir(f: Figura, a: AvatarPixel) {
+    const look = claveAvatar(a);
+    if (f.look === look) return;
+    f.look = look;
+    const tex = await this.texturaAvatar(a);
+    if (!this.figuras.has(f.id) && f !== this.jugador) return;
+    f.tex = tex;
+    f.spr.setTexture(tex, FILA[f.dir] * CUADROS + 9).setOrigin(0.5, PIE_Y).setVisible(true);
+    this.animar(f, true);
+  }
+
+  quitarFigura(f: Figura) {
+    f.spr.destroy();
+    f.nombre?.destroy();
+    f.icono?.destroy();
+    f.globo?.c.destroy();
+    this.figuras.delete(f.id);
+  }
+
+  ponerNombre(f: Figura, nombre: string, sub: string, color?: string, yo = false) {
+    const txt = sub ? `${nombre}\n${sub}` : nombre;
+    if (!f.nombre) {
+      f.nombre = this.texto(f.x, f.y - 52, txt, 8, yo ? "#ffe14d" : "#ffffff", "#1d2b53").setOrigin(0.5, 1).setLineSpacing(-2);
+    } else if (f.nombre.text !== txt) f.nombre.setText(txt);
+    if (color) f.nombre.setColor(color);
+  }
+
+  ponerIcono(f: Figura, t: string | null, color = "#ffe14d") {
+    if (!t) { f.icono?.destroy(); f.icono = undefined; return; }
+    if (!f.icono) f.icono = this.texto(f.x + 16, f.y - 50, t, 10, color, "#1d2b53").setOrigin(0.5, 1);
+    else { f.icono.setText(t); f.icono.setColor(color); }
+  }
+
+  /** Globo de texto sobre la cabeza (lo que dice o lo que acaba de pasar). */
+  ponerGlobo(f: Figura, texto: string, ms = 5000, color = 0xffffff) {
+    f.globo?.c.destroy();
+    const t = this.add.text(0, 0, texto, {
+      fontFamily: FUENTE, fontSize: "8px", color: "#1d2b53", align: "center", wordWrap: { width: 120 },
+      resolution: Math.max(2, Math.ceil(this.zoom * (window.devicePixelRatio || 1))),
+    }).setOrigin(0.5, 1);
+    const w = Math.max(24, t.width + 10), h = t.height + 6;
+    const g = this.add.graphics();
+    g.fillStyle(color, 0.96).fillRoundedRect(-w / 2, -h - 4, w, h, 4);
+    g.lineStyle(1, 0x1d2b53, 1).strokeRoundedRect(-w / 2, -h - 4, w, h, 4);
+    g.fillStyle(color, 0.96).fillTriangle(-4, -5, 4, -5, 0, 1);
+    g.lineStyle(1, 0x1d2b53, 1).lineBetween(-4, -4, 0, 1).lineBetween(4, -4, 0, 1);
+    t.setPosition(0, -7);
+    const c = this.add.container(f.x, f.y - 60, [g, t]);
+    f.globo = { c, hasta: this.time.now + ms };
+  }
+
+  animar(f: Figura, forzar = false) {
+    if (f.tipo === "hugo" || f.vehiculo || f.tipo === "objeto") return;
+    if (!f.tex) return;
+    const pose = f.momento && this.time.now < f.momento.hasta ? f.momento.pose : f.pose;
+    const dir = f.momento?.dir && this.time.now < f.momento.hasta ? f.momento.dir : f.dir;
+    const clave = `${f.tex}:${pose}:${dir}`;
+    if (forzar || f.spr.anims.currentAnim?.key !== clave) f.spr.play(clave, true);
+  }
+
+  // ─── Movimiento ────────────────────────────────────────────────────────────
+
+  /** Manda a una figura a un punto por un camino que no atraviese muros. */
+  irA(f: Figura, destino: Paso, antes: Paso[] = []): boolean {
+    const desde = antes.length ? antes[antes.length - 1] : f;
+    const camino = this.rejilla.buscar(desde.x, desde.y, destino.x, destino.y);
+    if (!camino) { f.ruta = [...antes, destino]; return false; }
+    const ult = camino[camino.length - 1];
+    Object.assign(ult, { dir: destino.dir, pose: destino.pose, pausa: destino.pausa });
+    f.ruta = [...antes, ...camino];
+    return true;
+  }
+
+  private mover(f: Figura, dt: number) {
+    const ahora = this.time.now;
+    if (f.remoto) {
+      // Otro jugador: se acerca suave a donde dice la red.
+      const r = f.remoto;
+      const dx = r.x - f.x, dy = r.y - f.y, d = Math.hypot(dx, dy);
+      if (d > 220) { f.x = r.x; f.y = r.y; }
+      else if (d > 0.5) {
+        const paso = Math.min(d, (r.pose === "corre" ? VEL_CORRE : VEL_CAMINA) * 1.25 * dt);
+        f.x += (dx / d) * paso; f.y += (dy / d) * paso;
       }
+      f.dir = r.dir;
+      f.pose = d > 2 ? (r.pose === "corre" ? "corre" : "camina") : (r.pose === "camina" || r.pose === "corre" ? "quieto" : r.pose);
+      return;
     }
-    const HUECO = 0.55;
-    for (const s of segmentos.values()) {
-      const horizontal = s.z0 === s.z1;
-      const largo = horizontal ? s.x1 - s.x0 : s.z1 - s.z0;
-      const cortes = puertas
-        .filter((p) => horizontal
-          ? Math.abs(p.z - s.z0) < 0.75 && p.x > s.x0 && p.x < s.x1
-          : Math.abs(p.x - s.x0) < 0.75 && p.z > s.z0 && p.z < s.z1)
-        .map((p) => (horizontal ? p.x - s.x0 : p.z - s.z0))
-        .sort((a, b) => a - b);
-      let desde = 0;
-      const tramos: [number, number][] = [];
-      for (const c0 of cortes) { if (c0 - HUECO > desde) tramos.push([desde, c0 - HUECO]); desde = c0 + HUECO; }
-      if (desde < largo) tramos.push([desde, largo]);
-      for (const [a, b] of tramos) {
-        const geo = horizontal ? new THREE.BoxGeometry(b - a, ALTO_MURO, GROSOR) : new THREE.BoxGeometry(GROSOR, ALTO_MURO, b - a);
-        geo.translate(0, ALTO_MURO / 2, 0);
-        const m = new THREE.Mesh(geo, s.exterior ? matExt : matInt);
-        m.position.set(horizontal ? s.x0 + (a + b) / 2 : s.x0, 0.1, horizontal ? s.z0 : s.z0 + (a + b) / 2);
-        m.castShadow = true;
-        m.receiveShadow = true;
-        this.scene.add(m);
-        viva.muros.push({ mesh: m, fijo: s.fijo });
-        this.elegible(m, { tipo: "casa", id: c.id });
-        // Ventanas en los muros de afuera que dan a la cámara (sur y oriente).
-        const daAFrente = s.exterior && !s.fijo;
-        if (daAFrente && b - a > 1.6) {
-          for (let v = a + 0.9; v < b - 0.7; v += 2.2) this.ventana(viva.ventanas, c, horizontal, s.x0, s.z0, v);
+    if (f.momento && ahora < f.momento.hasta) return;
+    f.momento = undefined;
+    if (f.pausaHasta && ahora < f.pausaHasta) { if (f.pose === "camina" || f.pose === "corre") f.pose = "quieto"; return; }
+    f.pausaHasta = undefined;
+    const destino = f.ruta[0] ?? (f.sale ? null : f.base);
+    if (!destino) {
+      if (f.sale) this.quitarFigura(f);
+      return;
+    }
+    const dx = destino.x - f.x, dy = destino.y - f.y, d = Math.hypot(dx, dy);
+    const paso = f.vel * dt;
+    if (d <= paso || d < 0.5) {
+      f.x = destino.x; f.y = destino.y;
+      if (f.ruta.length) {
+        const p = f.ruta.shift()!;
+        if (p.pausa) {
+          f.momento = { pose: p.pose ?? "quieto", hasta: ahora + p.pausa, dir: p.dir };
+          if (p.dir) f.dir = p.dir;
         }
+        if (!f.ruta.length && f.alLlegar) { const cb = f.alLlegar; f.alLlegar = undefined; cb(); }
+        return;
       }
+      if (f.sale) { this.quitarFigura(f); return; }
+      if (destino.dir) f.dir = destino.dir;
+      f.pose = destino.pose ?? "quieto";
+      return;
     }
-    // Zócalo de color en todo el contorno exterior: amarra la casa al piso.
-    this.scene.add(viva.ventanas);
-    this.techo(viva);
-    this.casas.set(c.id, viva);
+    f.x += (dx / d) * paso; f.y += (dy / d) * paso;
+    f.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "derecha" : "izquierda") : (dy > 0 ? "abajo" : "arriba");
+    f.pose = "camina";
   }
 
-  private ventana(grupo: THREE.Group, c: Casa, horizontal: boolean, x0: number, z0: number, v: number) {
-    const marco = new THREE.MeshStandardMaterial({ color: "#FFFFFF", roughness: 0.6 });
-    const vidrio = new THREE.MeshStandardMaterial({ color: "#9ED8F5", roughness: 0.15, metalness: 0.2, emissive: "#2A6A8A", emissiveIntensity: 0.15 });
-    this.vidrios.push(vidrio);
-    const g = new THREE.Group();
-    const f = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.75, 0.06), marco);
-    const vi = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.07), vidrio);
-    const cruz = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.6, 0.08), marco);
-    const jardinera = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.12, 0.16), new THREE.MeshStandardMaterial({ color: c.acento }));
-    jardinera.position.set(0, -0.42, 0.06);
-    g.add(f, vi, cruz, jardinera);
-    g.position.set(horizontal ? x0 + v : x0 + 0.08, 1.15, horizontal ? z0 + 0.08 : z0 + v);
-    if (!horizontal) g.rotation.y = Math.PI / 2;
-    g.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).castShadow = true; });
-    grupo.add(g);
-  }
-
-  private techo(viva: CasaViva) {
-    const { casa: c } = viva;
-    const r = c.casa;
-    const w = r.x1 - r.x0, d = r.z1 - r.z0, cx = (r.x0 + r.x1) / 2, cz = (r.z0 + r.z1) / 2;
-    const base = 0.1 + ALTO_MURO;
-    const VUELO = 0.45;
-    const g = viva.techo;
-    if (c.techo === "teja") {
-      // Dos aguas con teja de barro (textura de filas de tejas redondeadas).
-      const teja = this.textura((ctx, n) => {
-        ctx.fillStyle = c.acento; ctx.fillRect(0, 0, n, n);
-        for (let fila = 0; fila < 8; fila++) {
-          for (let col = 0; col < 8; col++) {
-            const x = col * (n / 8) + (fila % 2) * (n / 16), y = fila * (n / 8);
-            const gr = ctx.createLinearGradient(0, y, 0, y + n / 8);
-            gr.addColorStop(0, "rgba(255,255,255,0.18)");
-            gr.addColorStop(1, "rgba(0,0,0,0.28)");
-            ctx.fillStyle = gr;
-            ctx.beginPath();
-            ctx.ellipse(x + n / 16, y + n / 12, n / 17, n / 13, 0, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-      });
-      const alto = d * 0.32;
-      const faldon = Math.hypot(d / 2 + VUELO, alto);
-      const ang = Math.atan2(alto, d / 2 + VUELO);
-      teja.repeat.set((w + VUELO * 2) / 1.6, faldon / 1.6);
-      const mat = new THREE.MeshStandardMaterial({ map: teja, roughness: 0.75 });
-      for (const lado of [-1, 1]) {
-        const f = new THREE.Mesh(new THREE.BoxGeometry(w + VUELO * 2, 0.12, faldon), mat);
-        f.position.set(cx, base + alto / 2, cz + lado * (d / 4 + VUELO / 2));
-        f.rotation.x = lado * ang;
-        f.castShadow = true;
-        g.add(f);
-      }
-      // Hastiales (los triángulos de los extremos), del color de la casa.
-      const tri = new THREE.Shape();
-      tri.moveTo(-d / 2, 0); tri.lineTo(d / 2, 0); tri.lineTo(0, alto); tri.closePath();
-      const geo = new THREE.ExtrudeGeometry(tri, { depth: GROSOR, bevelEnabled: false });
-      for (const x of [r.x0, r.x1 - GROSOR]) {
-        const h = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: c.muro, roughness: 0.85 }));
-        h.rotation.y = Math.PI / 2;
-        h.position.set(x + GROSOR, base, cz);
-        h.castShadow = true;
-        g.add(h);
-      }
-      // Cumbrera.
-      const cumbrera = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, w + VUELO * 2, 10), new THREE.MeshStandardMaterial({ color: "#8E3B2A" }));
-      cumbrera.rotation.z = Math.PI / 2;
-      cumbrera.position.set(cx, base + alto + 0.04, cz);
-      g.add(cumbrera);
-    } else {
-      // Techo plano moderno: losa, antepecho del color de acento y detalles en la azotea.
-      const losa = new THREE.Mesh(new THREE.BoxGeometry(w + VUELO, 0.22, d + VUELO), new THREE.MeshStandardMaterial({ color: "#D9D4CC", roughness: 0.9 }));
-      losa.position.set(cx, base + 0.11, cz);
-      losa.castShadow = true;
-      g.add(losa);
-      const ante = new THREE.MeshStandardMaterial({ color: c.acento, roughness: 0.7 });
-      for (const [bx, bz, bw, bd] of [[cx, r.z0 - VUELO / 2, w + VUELO, 0.18], [cx, r.z1 + VUELO / 2, w + VUELO, 0.18],
-                                       [r.x0 - VUELO / 2, cz, 0.18, d + VUELO], [r.x1 + VUELO / 2, cz, 0.18, d + VUELO]]) {
-        const a = new THREE.Mesh(new THREE.BoxGeometry(bw, 0.4, bd), ante);
-        a.position.set(bx, base + 0.4, bz);
-        a.castShadow = true;
-        g.add(a);
-      }
-      if (c.id === "bunker") {
-        // Paneles solares en la azotea del Búnker.
-        const panel = new THREE.MeshStandardMaterial({ color: "#1F3B73", roughness: 0.25, metalness: 0.5 });
-        for (let i = 0; i < 5; i++) {
-          const p = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.06, 1), panel);
-          p.position.set(r.x0 + 2 + i * 2.2, base + 0.45, cz - 1);
-          p.rotation.x = -0.35;
-          p.castShadow = true;
-          g.add(p);
+  private moverJugador(f: Figura, dt: number) {
+    // Con un diálogo o un módulo abierto no se maneja con el teclado, pero si iba caminando solo
+    // hacia el objeto del módulo que abrió, sigue (los demás lo ven llegar).
+    if (this.bloqueado && !this.rutaJugador.length) { f.pose = f.pose === "sentado" ? "sentado" : "quieto"; return; }
+    const t = this.bloqueado ? new Set<string>() : new Set([...this.teclas, ...this.virtuales]);
+    let dx = (t.has("derecha") ? 1 : 0) - (t.has("izquierda") ? 1 : 0);
+    let dy = (t.has("abajo") ? 1 : 0) - (t.has("arriba") ? 1 : 0);
+    const corre = t.has("correr");
+    if (dx || dy) {
+      this.rutaJugador = [];
+      this.alLlegarJugador = null;
+      const n = Math.hypot(dx, dy);
+      dx /= n; dy /= n;
+      const v = (corre ? VEL_CORRE : VEL_CAMINA) * dt;
+      const nx = f.x + dx * v, ny = f.y + dy * v;
+      // Se intenta por ejes: así se resbala por los muros en vez de quedarse pegado.
+      if (this.rejilla.cabe(nx, f.y)) f.x = nx;
+      if (this.rejilla.cabe(f.x, ny)) f.y = ny;
+      f.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "derecha" : "izquierda") : (dy > 0 ? "abajo" : "arriba");
+      f.pose = corre ? "corre" : "camina";
+      return;
+    }
+    const p = this.rutaJugador[0];
+    if (p) {
+      const ddx = p.x - f.x, ddy = p.y - f.y, d = Math.hypot(ddx, ddy);
+      const v = VEL_CORRE * 0.9 * dt;
+      if (d <= v) {
+        f.x = p.x; f.y = p.y;
+        this.rutaJugador.shift();
+        if (!this.rutaJugador.length) {
+          if (p.dir) f.dir = p.dir;
+          f.pose = p.pose === "sentado" ? "sentado" : "quieto";
+          const cb = this.alLlegarJugador;
+          this.alLlegarJugador = null;
+          cb?.();
         }
       } else {
-        // Tienda digital: toldo a rayas sobre la puerta y letrero.
-        const rayas = this.textura((ctx, n) => {
-          for (let i = 0; i < 8; i++) { ctx.fillStyle = i % 2 ? "#FFFFFF" : c.acento; ctx.fillRect((i * n) / 8, 0, n / 8, n); }
-        });
-        rayas.repeat.set(2, 1);
-        const toldo = new THREE.Mesh(new THREE.BoxGeometry(w * 0.6, 0.06, 1.3), new THREE.MeshStandardMaterial({ map: rayas, roughness: 0.8 }));
-        toldo.position.set(c.puertaFuera.x, base - 0.25, r.z1 + 0.55);
-        toldo.rotation.x = 0.32;
-        toldo.castShadow = true;
-        this.scene.add(toldo); // el toldo no se levanta con el techo: es de la fachada
+        f.x += (ddx / d) * v; f.y += (ddy / d) * v;
+        f.dir = Math.abs(ddx) > Math.abs(ddy) ? (ddx > 0 ? "derecha" : "izquierda") : (ddy > 0 ? "abajo" : "arriba");
+        f.pose = "corre";
       }
+      return;
     }
-    for (const o of g.children) this.elegible(o, { tipo: "casa", id: c.id });
-    // Materiales propios y transparentes desde ya, para poder desvanecer el techo al abrir.
-    g.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh) return;
-      m.material = (m.material as THREE.Material).clone();
-      (m.material as THREE.Material).transparent = true;
-    });
-    this.scene.add(g);
+    if (f.pose === "camina" || f.pose === "corre") f.pose = "quieto";
   }
 
-  /** Bodega: 3 filas × 6 estantes; `userData.casillas` = dónde va cada frasco o caja (motor.ts los
-   *  llena según el stock). */
-  private async bodegaEstantes() {
-    for (const z of ESTANTES.filas) {
-      for (let i = 0; i < ESTANTES.porFila; i++) {
-        const x = ESTANTES.x0 + 0.65 + i * ESTANTES.paso;
-        const g = new THREE.Group();
-        g.position.set(x, 0.12, z);
-        const est = await objetoAlto("muebles/bookcaseOpen", 1.35);
-        g.add(est);
-        const t = new THREE.Box3().setFromObject(est).getSize(new THREE.Vector3());
-        g.userData.casillas = [0.04, 0.36, 0.68].flatMap((nivel) => [-1, 1].map((lado) =>
-          new THREE.Vector3(lado * t.x * 0.22, t.y * nivel + 0.02, 0.02)));
-        this.scene.add(g);
-        this.estantes.push(g);
-      }
+  /** Dónde pararse para hablarle a alguien: delante (al sur) si se puede, si no a un lado;
+   *  a ~40 px, para que los dos se vean y los nombres no se monten. */
+  puntoParaHablar(f: Figura): { x: number; y: number; dir: Dir } {
+    const opciones: [number, number, Dir][] = [[0, 40, "arriba"], [-36, 4, "derecha"], [36, 4, "izquierda"], [0, -34, "abajo"]];
+    for (const [dx, dy, dir] of opciones) {
+      if (this.rejilla.cabe(f.x + dx, f.y + dy)) return { x: f.x + dx, y: f.y + dy, dir };
+    }
+    const p = this.rejilla.cercaLibre(f.x, f.y + 40);
+    return { ...p, dir: "arriba" };
+  }
+
+  /** El jugador y con quien habla se miran (si el otro no está sentado trabajando ni lo maneja alguien). */
+  mirarse(f: Figura) {
+    const j = this.jugador;
+    if (!j) return;
+    const dx = f.x - j.x, dy = f.y - j.y;
+    j.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "derecha" : "izquierda") : (dy > 0 ? "abajo" : "arriba");
+    if ((f.tipo === "persona" || f.tipo === "visitante" || f.tipo === "proveedor" || f.tipo === "mensajero") && f.pose !== "sentado" && !f.remoto) {
+      const haciaJ: Dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "izquierda" : "derecha") : (dy > 0 ? "arriba" : "abajo");
+      f.momento = { pose: "quieto", hasta: this.time.now + 6000, dir: haciaJ };
     }
   }
 
-  /** Camas de cultivo con hongos hechos con formas (tallo + sombrero), bajo un techito. */
-  private async cultivoHongos() {
-    const tallo = new THREE.MeshStandardMaterial({ color: "#F3E9D2", roughness: 0.8 });
-    const sombreros = ["#C8875A", "#B5703F", "#E0B48A"].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.6 }));
-    const tierra = new THREE.MeshStandardMaterial({ color: "#5B3B24", roughness: 1 });
-    const madera = new THREE.MeshStandardMaterial({ color: "#9A6B43", roughness: 0.9 });
-    for (let cama = 0; cama < 2; cama++) {
-      const cx = 2.2 + cama * 2.6, cz = 5.4;
-      const marco = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.26, 1.2), madera);
-      marco.position.set(cx, 0.13, cz);
-      const suelo = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.05, 1.05), tierra);
-      suelo.position.set(cx, 0.27, cz);
-      marco.castShadow = marco.receiveShadow = suelo.receiveShadow = true;
-      this.scene.add(marco, suelo);
-      for (let i = 0; i < 14; i++) {
-        const hx = cx - 0.82 + (i % 7) * 0.27, hz = cz - 0.28 + Math.floor(i / 7) * 0.56 + ((i * 13) % 5) * 0.03;
-        const alto = 0.08 + ((i * 7) % 4) * 0.025;
-        const t = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, alto, 8), tallo);
-        t.position.set(hx, 0.29 + alto / 2, hz);
-        const s = new THREE.Mesh(new THREE.SphereGeometry(0.09, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), sombreros[i % 3]);
-        s.position.set(hx, 0.29 + alto, hz);
-        s.scale.y = 0.75;
-        s.castShadow = true;
-        this.scene.add(t, s);
-      }
+  /** El jugador camina solo hasta un punto (tocar el piso, «ir donde» alguien). */
+  llevarJugador(x: number, y: number, dir?: Dir, alLlegar?: () => void) {
+    const f = this.jugador;
+    if (!f) return;
+    const camino = this.rejilla.buscar(f.x, f.y, x, y);
+    if (!camino) { this.avisar("No hay por dónde llegar ahí"); return; }
+    const ruta: Paso[] = camino;
+    if (dir) ruta[ruta.length - 1].dir = dir;
+    this.rutaJugador = ruta;
+    this.alLlegarJugador = alLlegar ?? null;
+  }
+
+  // ─── Cuadro a cuadro ───────────────────────────────────────────────────────
+
+  update(_t: number, dms: number) {
+    if (!this.listo) return;
+    const dt = Math.min(0.05, dms / 1000);
+    const ahora = this.time.now;
+    for (const f of [...this.figuras.values()]) {
+      if (f.tipo === "jugador") this.moverJugador(f, dt);
+      else this.mover(f, dt);
+      if (!this.figuras.has(f.id)) continue;
+      this.colocar(f, ahora);
     }
-    const lona = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.06, 2.4), new THREE.MeshStandardMaterial({ color: "#3F8E5A", roughness: 0.9 }));
-    lona.position.set(3.5, 1.65, 5.4);
-    lona.castShadow = true;
-    this.scene.add(lona);
-    for (const [x, z] of [[0.8, 4.3], [6.2, 4.3], [0.8, 6.5], [6.2, 6.5]]) {
-      const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.65, 8), madera);
-      poste.position.set(x, 0.83, z);
-      poste.castShadow = true;
-      this.scene.add(poste);
+    this.techosSegunJugador();
+    this.nombresCerca();
+    this.revisarCerca();
+    this.enviarPosicion(ahora);
+  }
+
+  private colocar(f: Figura, ahora: number) {
+    const s = f.spr;
+    let dy = 0;
+    if (f.tipo === "hugo") {
+      const k = f.momento && ahora < f.momento.hasta ? 3 : Math.floor(ahora / 450) % 3;
+      s.setFrame(k);
+      dy = Math.sin(ahora / 420) * 1.5;
+    } else if (f.aparecer && ahora < f.aparecer) {
+      s.setScale(Math.max(0.2, 1 - (f.aparecer - ahora) / 500));
+    } else if (s.scale !== 1) s.setScale(1);
+    if (f.vehiculo) s.setFlipX(f.dir === "derecha" ? s.getData("miraIzquierda") : !s.getData("miraIzquierda"));
+    s.setPosition(Math.round(f.x), Math.round(f.y + dy));
+    const quieto = !f.ruta.length && f.base && Math.abs(f.x - f.base.x) < 1 && Math.abs(f.y - f.base.y) < 1;
+    s.setDepth(quieto && f.base?.sobre ? f.base.sobre : f.y);
+    this.animar(f);
+    const alto = f.vehiculo ? s.displayHeight : f.tipo === "objeto" ? s.displayHeight + 4 : f.pose === "sentado" ? 50 : 56;
+    if (f.nombre) f.nombre.setPosition(Math.round(f.x), Math.round(f.y - alto)).setDepth(f.y + 0.6);
+    if (f.icono) f.icono.setPosition(Math.round(f.x + 14), Math.round(f.y - alto - (f.nombre ? 14 : 0))).setDepth(f.y + 0.7);
+    if (f.globo) {
+      if (ahora > f.globo.hasta) { f.globo.c.destroy(); f.globo = undefined; }
+      else f.globo.c.setPosition(Math.round(f.x), Math.round(f.y - alto - (f.nombre ? 16 : 2))).setDepth(f.y + 0.8);
     }
   }
 
-  private async decorar() {
-    const tareas: Promise<unknown>[] = [];
-    const p = (ruta: string, x: number, z: number, rot: number, alto: number, ocupa = 0) => {
-      tareas.push(this.poner(ruta, x, z, rot, alto));
-      if (ocupa) this.huellas.push({ x0: x - ocupa, z0: z - ocupa, x1: x + ocupa, z1: z + ocupa });
+  /** El techo de la casa donde está el jugador se levanta (y vuelve al salir). */
+  private techosSegunJugador() {
+    const j = this.jugador;
+    for (const [id, t] of this.techos) {
+      const [x0, y0, x1, y1] = t.rect;
+      const dentro = j ? j.x > x0 && j.x < x1 && j.y > y0 && j.y < y1 + 2 : false;
+      const meta = this.sinTechos || dentro ? 0 : 1;
+      const a = t.img.alpha + (meta - t.img.alpha) * 0.18;
+      t.img.setAlpha(Math.abs(a - meta) < 0.01 ? meta : a);
+      t.letrero.setAlpha(t.img.alpha);
+      t.quien.setAlpha(t.img.alpha);
+      void id;
+    }
+  }
+
+  /** Nombres de quién está adentro de cada casa, escritos sobre el techo. */
+  ocupantes(casa: string, nombres: string[]) {
+    const t = this.techos.get(casa);
+    if (!t) return;
+    const txt = nombres.length ? `Adentro: ${nombres.slice(0, 4).join(", ")}${nombres.length > 4 ? ` y ${nombres.length - 4} más` : ""}` : "";
+    if (t.quien.text !== txt) t.quien.setText(txt);
+  }
+
+  casaDe(x: number, y: number): string | null {
+    for (const [id, c] of Object.entries(this.mapa.casas)) {
+      const [x0, y0, x1, y1] = c.rect;
+      if (x > x0 && x < x1 && y > y0 && y < y1 + 2) return id;
+    }
+    return null;
+  }
+
+  lugarDe(x: number, y: number): string | null {
+    for (const [id, l] of Object.entries(this.mapa.lugares)) {
+      const [x0, y0, x1, y1] = l.rect;
+      if (x >= x0 && x < x1 && y >= y0 && y < y1 + 2) return id;
+    }
+    return null;
+  }
+
+  // ─── Hablar y examinar ─────────────────────────────────────────────────────
+
+  private enfrente(): { f: Figura | null; lugar: string | null; est: EstacionMapa | null } {
+    const j = this.jugador;
+    if (!j) return { f: null, lugar: null, est: null };
+    const v = { arriba: [0, -1], abajo: [0, 1], izquierda: [-1, 0], derecha: [1, 0] }[j.dir];
+    let mejor: Figura | null = null, dmin = 999;
+    for (const f of this.figuras.values()) {
+      if (f === j || !f.ex || !f.spr.visible) continue;
+      const dx = f.x - j.x, dy = (f.y - 10) - (j.y - 10), d = Math.hypot(dx, dy);
+      const alcance = f.tipo === "vehiculo" ? 90 : f.tipo === "objeto" ? 40 : 50;
+      if (d > alcance) continue;
+      const frente = d < 18 ? 1 : (dx * v[0] + dy * v[1]) / d;
+      if (frente < 0.35) continue;
+      if (d < dmin) { dmin = d; mejor = f; }
+    }
+    // El objeto de un módulo: estar parado en su sitio de uso, o tenerlo justo enfrente.
+    let est: EstacionMapa | null = null, dEst = 999;
+    const fx = j.x + v[0] * 26, fy = j.y + v[1] * 26;
+    for (const s of this.estaciones) {
+      if (!s.ico.visible) continue;
+      const enSitio = Math.hypot(s.e.uso.x - j.x, s.e.uso.y - j.y);
+      const alFrente = Math.hypot(s.e.x - fx, s.e.z - 10 - fy);
+      const d = Math.min(enSitio < 26 ? enSitio : 999, alFrente < 30 ? alFrente + 4 : 999);
+      if (d < dEst) { dEst = d; est = s.e; }
+    }
+    // Si hay una persona y un objeto, gana el que esté más cerca (la persona, por poquito).
+    if (mejor && est && dEst + 8 >= dmin) est = null;
+    else if (est) mejor = null;
+    const lugar = this.lugarDe(j.x + v[0] * 30, j.y + v[1] * 30);
+    return { f: mejor, lugar, est };
+  }
+
+  private revisarCerca() {
+    const { f, est } = this.enfrente();
+    const j = this.jugador;
+    let texto: string | null = null;
+    if (est && j && !this.bloqueado) {
+      texto = est.tipo === "directorio" ? "Leer el directorio" : est.tipo === "ajedrez" ? "Jugar ajedrez"
+        : est.tipo === "trofeos" ? "Ver los trofeos" : est.tipo === "tenis" ? "Jugar tenis" : `Ver ${infoModulo(est.panel).nombre}`;
+      this.marca.setPosition(est.x, est.y - 22 + Math.sin(this.time.now / 160) * 2).setVisible(true);
+      if (texto !== this.cercaActual) { this.cercaActual = texto; this.ajustes.onCerca(texto); }
+      return;
+    }
+    if (f && j && !this.bloqueado) {
+      const nombre = f.ex?.tipo === "persona" ? `Hablar con ${f.ex.datos.nombre.split(" ")[0]}` :
+        f.ex?.tipo === "visitante" ? "Atender al cliente" : f.ex?.tipo === "hugo" ? "Hablar con Hugo" :
+        f.ex?.tipo === "paquete" ? "Ver el paquete" : f.ex?.tipo === "proveedor" ? "Hablar con el proveedor" :
+        f.ex?.tipo === "mensajero" ? "Hablar con el mensajero" : "Examinar";
+      texto = nombre;
+      const alto = f.vehiculo ? f.spr.displayHeight : 62;
+      this.marca.setPosition(Math.round(f.x), Math.round(f.y - alto - (f.nombre ? 18 : 0) + Math.sin(this.time.now / 160) * 2)).setVisible(true);
+    } else this.marca.setVisible(false);
+    if (texto !== this.cercaActual) {
+      this.cercaActual = texto;
+      this.ajustes.onCerca(texto);
+    }
+  }
+
+  /** Botón A: habla con quien tiene enfrente, o examina el lugar. */
+  accion() {
+    if (this.bloqueado || !this.jugador) return;
+    const { f, lugar, est } = this.enfrente();
+    if (est) {
+      this.ajustes.onSonido("blip");
+      this.ajustes.onExaminar(this.exDeEstacion(est));
+      return;
+    }
+    if (f?.ex) {
+      this.mirarse(f);
+      this.ajustes.onSonido("blip");
+      this.ajustes.onExaminar(f.ex);
+      return;
+    }
+    if (lugar && !lugar.startsWith("pasillo")) {
+      this.ajustes.onSonido("blip");
+      this.ajustes.onExaminar({ tipo: "lugar", lugar });
+    }
+  }
+
+  private tocar(p: Phaser.Input.Pointer) {
+    if (this.bloqueado || !this.jugador) return;
+    const x = p.worldX, y = p.worldY;
+    // ¿Tocó a alguien? Camina hasta quedar a su lado y le habla.
+    let toco: Figura | null = null;
+    for (const f of this.figuras.values()) {
+      if (!f.ex || f === this.jugador || !f.spr.visible) continue;
+      const b = f.spr.getBounds();
+      if (b.contains(x, y)) { if (!toco || f.y > toco.y) toco = f; }
+    }
+    if (!toco) {
+      // ¿Tocó el ícono de un módulo? Camina hasta su sitio y lo examina.
+      for (const x of this.estaciones) {
+        if (x.ico.visible && x.ico.getBounds().contains(p.worldX, p.worldY)) { this.irAEstacion(x.e); return; }
+      }
+    }
+    if (toco) {
+      const objetivo = toco;
+      const lado = this.puntoParaHablar(objetivo);
+      const dist = Math.hypot(this.jugador.x - objetivo.x, this.jugador.y - objetivo.y);
+      const hablar = () => {
+        if (!this.jugador) return;
+        this.mirarse(objetivo);
+        if (objetivo.ex) { this.ajustes.onSonido("blip"); this.ajustes.onExaminar(objetivo.ex); }
+      };
+      if (dist < 56) { hablar(); return; }
+      this.llevarJugador(lado.x, lado.y, lado.dir, hablar);
+      return;
+    }
+    this.llevarJugador(x, y);
+  }
+
+  // ─── Teclado y controles en pantalla ───────────────────────────────────────
+
+  private instalarTeclado() {
+    const abajo = (e: KeyboardEvent) => {
+      if (esCampo(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+      const a = TECLAS[e.code];
+      // Bloqueado (un diálogo, el chat o un módulo abierto encima): las flechas y el espacio son de
+      // lo que está abierto (desplazar el módulo, elegir una opción), no del juego.
+      if (!a || this.bloqueado || !this.activo()) return;
+      e.preventDefault();
+      if (a === "accion") { if (!e.repeat) this.accion(); return; }
+      this.teclas.add(a);
     };
-    const C = `${K}ciudad/`, N = `${K}medieval/decoration/nature/`;
-    // Al otro lado de la calle: edificios del pueblo, árboles en el andén.
-    const vecinos = ["building_A", "building_B", "building_C", "building_D", "building_E", "building_F", "building_G", "building_H"];
-    for (let i = 0; i < 10; i++) {
-      p(`${C}${vecinos[i % vecinos.length]}_withoutBase.gltf`, -34 + i * 7.6, 17.5, 180, 4.2 + ((i * 37) % 4) * 0.9, 3);
-    }
-    for (let i = 0; i < 14; i++) p(`${N}tree_single_${i % 2 ? "A" : "B"}.gltf`, -33 + i * 5, 14.2, i * 40, 2.8 + (i % 3) * 0.3);
-    // Postes de luz en los dos andenes, hidrante, bancas y canecas.
-    const bombilla = new THREE.MeshStandardMaterial({ color: "#FFF4C8", emissive: "#FFC86B", emissiveIntensity: 0 });
-    this.faroles.push(bombilla);
-    for (let i = 0; i < 9; i++) {
-      for (const [x, z, rot] of [[-32 + i * 8, ANDEN_Z + 0.35, 180], [-28 + i * 8, CALLE.z1 + 0.7, 0]]) {
-        p(`${C}streetlight.gltf`, x, z, rot, 2.7);
-        // El globo de luz del farol (se enciende de noche; el bloom le da el halo).
-        const b = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), bombilla);
-        b.position.set(x, 2.62, z + (rot === 180 ? 0.55 : -0.55));
-        this.scene.add(b);
-      }
-    }
-    // Pocas luces de verdad (son caras): frente a cada casa.
-    for (const c of CASAS) {
-      const l = new THREE.PointLight("#FFC86B", 0, 9, 1.6);
-      l.position.set(c.puertaFuera.x, 2.4, c.puertaFuera.z + 0.8);
-      this.scene.add(l);
-      this.luzNoche.push(l);
-    }
-    p(`${C}firehydrant.gltf`, -9.4, ANDEN_Z + 0.2, 0, 0.45);
-    p(`${C}bench.gltf`, 14.4, ANDEN_Z, 180, 0.55);
-    p(`${C}trash_A.gltf`, 15.8, ANDEN_Z + 0.1, 0, 0.6);
-    p(`${C}dumpster.gltf`, 12.6, -10.2, 0, 0.9, 1);
-    // Carros parqueados enfrente.
-    p(`${C}car_sedan.gltf`, -20, CALLE.z1 - 0.7, 90, 0.85);
-    p(`${C}car_taxi.gltf`, 4.5, CALLE.z1 - 0.7, 90, 0.85);
-    p(`${C}car_hatchback.gltf`, 26, CALLE.z1 - 0.7, 90, 0.85);
-    // Fondo: bosque que cierra el barrio.
-    for (let i = 0; i < 22; i++) p(`${N}trees_A_${i % 3 ? "large" : "medium"}.gltf`, -38 + i * 3.6, -15 - (i % 3) * 1.4, i * 31, 3.6 + (i % 4) * 0.4);
-    // Jardines: setos (bush) junto a la cerca, árboles y la huerta del Búnker.
-    for (const c of CASAS) {
-      for (let x = c.lote.x0 + 0.8; x < c.lote.x1 - 0.4; x += 1.6) {
-        if (Math.abs(x - c.puertaFuera.x) < 1.4) continue;
-        if (c.id === "sede" && (Math.abs(x - 10.2) < 1.8 || Math.abs(x + 5) < 4.4)) continue;
-        p(`${C}bush.gltf`, x, 7.9, x * 20, 0.6);
-      }
-    }
-    for (const [x, z] of [[-17, 4.6], [-29.6, 3], [-14.6, 6.4], [12.6, 4.2], [-10.2, 5.6], [18.2, 4.2], [29.4, 4], [30.2, -2]]) {
-      p(`${N}tree_single_${x > 0 ? "A" : "B"}.gltf`, x, z, x * 10, 2.7, 0.8);
-    }
-    for (let i = 0; i < 6; i++) p("naturaleza/crops_cornStageD", -28.4 + i * 0.9, 5.6, 0, 1.0);
-    for (let i = 0; i < 4; i++) p("naturaleza/crop_pumpkin", -28 + i * 1.3, 6.8, i * 30, 0.45);
-    this.huellas.push({ x0: -29, z0: 5, x1: -22.5, z1: 7.4 });
-    await Promise.all(tareas);
+    const arriba = (e: KeyboardEvent) => {
+      const a = TECLAS[e.code];
+      if (a) this.teclas.delete(a);
+    };
+    const fuera = () => this.teclas.clear();
+    window.addEventListener("keydown", abajo);
+    window.addEventListener("keyup", arriba);
+    window.addEventListener("blur", fuera);
+    this.escuchas.push(["keydown", abajo as EventListener], ["keyup", arriba as EventListener], ["blur", fuera]);
   }
-}
 
-function crecer(r: Rect, m: number): Rect {
-  return { x0: r.x0 - m, z0: r.z0 - m, x1: r.x1 + m, z1: r.z1 + m };
+  /** El juego atiende el teclado solo si está a la vista y nadie escribe en otro lado. */
+  private activo(): boolean {
+    const lienzo = this.game.canvas;
+    if (!lienzo || !lienzo.isConnected || lienzo.offsetParent === null) return false;
+    const foco = document.activeElement;
+    return !foco || foco === document.body || lienzo.parentElement?.contains(foco) || foco === lienzo;
+  }
+
+  /** Con un diálogo abierto el personaje se queda quieto; si iba caminando solo (tocó el piso o
+   *  «ir donde»), sigue al cerrarlo. */
+  bloquear(b: boolean) {
+    this.bloqueado = b;
+    if (b) { this.teclas.clear(); this.virtuales.clear(); }
+  }
+
+  virtual(accion: string, presionada: boolean) {
+    if (accion === "accion") { if (presionada) this.accion(); return; }
+    if (presionada) this.virtuales.add(accion); else this.virtuales.delete(accion);
+  }
+
+  // ─── Red: dónde está el jugador ────────────────────────────────────────────
+
+  private enviarPosicion(ahora: number) {
+    const j = this.jugador;
+    if (!j) return;
+    const clave = `${Math.round(j.x)}|${Math.round(j.y)}|${j.dir}|${j.pose}`;
+    const moviendo = j.pose === "camina" || j.pose === "corre";
+    const cada = moviendo ? 300 : 4000;
+    if (clave === this.ultimaPos && ahora - this.ultimoEnvio < 4000) return;
+    if (ahora - this.ultimoEnvio < cada && clave !== this.ultimaPos && moviendo) return;
+    this.ultimoEnvio = ahora;
+    this.ultimaPos = clave;
+    this.ajustes.onMover({ x: Math.round(j.x), y: Math.round(j.y), dir: j.dir, pose: j.pose });
+  }
+
+  // ─── Avisos, noche, avioncitos ─────────────────────────────────────────────
+
+  avisar(t: string) {
+    const j = this.jugador;
+    if (!j) return;
+    this.aviso.setText(t).setPosition(j.x, j.y - 70).setVisible(true);
+    this.time.delayedCall(2200, () => this.aviso.setVisible(false));
+  }
+
+  /** De noche se oscurece el barrio y se prenden los postes (hora de Bogotá). */
+  aplicarHora(h: number) {
+    const noche = h < 5.5 || h > 19 ? 1 : h < 6.5 ? 1 - (h - 5.5) : h > 18 ? h - 18 : 0;
+    this.noche.setFillStyle(0x1b2550, 0.55 * noche);
+    for (const l of this.luces) l.setAlpha(0.75 * noche);
+  }
+
+  /** Un avioncito de papel de un avatar a otro (una pregunta, una respuesta, una idea). */
+  avion(de: Figura, para: Figura, tipo: string, retraso: number, alLlegar: () => void) {
+    const s = this.add.image(de.x, de.y - 44, "objetos", `avion_${tipo}`).setDepth(Z_AVION).setVisible(false);
+    const ax = de.x, ay = de.y - 44;
+    const dist = Math.hypot(para.x - de.x, para.y - de.y);
+    const dur = 1500 + Math.min(1800, dist * 2.2);
+    const altura = 30 + dist * 0.15;
+    this.tweens.addCounter({
+      from: 0, to: 1, duration: dur, delay: retraso, ease: "Sine.easeInOut",
+      onStart: () => s.setVisible(true),
+      onUpdate: (tw) => {
+        const k = tw.getValue() ?? 0;
+        const bx = para.x, by = para.y - 44;
+        const x = ax + (bx - ax) * k, y = ay + (by - ay) * k - Math.sin(Math.PI * k) * altura;
+        s.setFlipX(bx < ax).setPosition(x, y).setRotation((by - ay) * 0.0006 + (k < 0.5 ? -0.25 : 0.25) * (bx < ax ? -1 : 1));
+      },
+      onComplete: () => { s.destroy(); alLlegar(); },
+    });
+  }
+
+  destruir() {
+    for (const [ev, fn] of this.escuchas) window.removeEventListener(ev, fn);
+    this.escuchas = [];
+  }
 }
