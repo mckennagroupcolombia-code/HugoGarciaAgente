@@ -25,6 +25,7 @@ import { useBandeja, useBandejaAngosta } from "../../lib/bandeja";
 import { esSolicitudDePago, irASolicitudPago } from "../../lib/irAPago";
 import { abrirCanalEnBandeja } from "../tickets/BandejaUnificada";
 import { BotonZumbido } from "../../lib/zumbido";
+import VisorFotos, { type FotoVisor } from "../tickets/VisorFotos";
 
 /**
  * Burbuja de chat global (portal a body, mismo patrón que CrearSiigoFab): mensajería
@@ -582,6 +583,14 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
     return out.sort((x, y) => x.ts.localeCompare(y.ts));
   }, [eventos, adjuntos]);
 
+  // Las fotos del hilo en orden: tocar una abre el visor y se pasa a la anterior o la siguiente.
+  const [visor, setVisor] = useState<number | null>(null);
+  const fotos = useMemo<FotoVisor[]>(() => items.flatMap((it) =>
+    it.kind === "adjunto" && esImagen(it.adjunto)
+      ? [{ src: ticketsUploadUrl(it.adjunto.nombre_archivo, token), pie: `${it.adjunto.creado_por_nombre ?? "?"} · ${horaDe(it.ts)}` }]
+      : []), [items, token]);
+  const verFoto = (src: string) => { const i = fotos.findIndex((f) => f.src === src); if (i >= 0) setVisor(i); };
+
   const conNoLeidos = conversacion.no_leidos > 0;
   useEffect(() => {
     if (conNoLeidos) marcarVisto.mutate(conversacion.id);
@@ -660,11 +669,11 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
                     esAudio(it.adjunto) ? (
                       <audio src={ticketsUploadUrl(it.adjunto.nombre_archivo, token)} controls preload="metadata" className="h-10 w-60 max-w-full" />
                     ) : esImagen(it.adjunto) ? (
-                      <a href={ticketsUploadUrl(it.adjunto.nombre_archivo, token)} target="_blank" rel="noreferrer"
-                        className="block overflow-hidden rounded-2xl border border-border" title="Ver imagen completa">
+                      <button type="button" onClick={() => verFoto(ticketsUploadUrl(it.adjunto.nombre_archivo, token))}
+                        className="mck-btn-no-fx block overflow-hidden rounded-2xl border border-border p-0" title="Ver imagen completa">
                         <img src={ticketsUploadUrl(it.adjunto.nombre_archivo, token)} alt={it.adjunto.nombre_original}
-                          className="max-h-56 w-full max-w-[240px] object-cover" />
-                      </a>
+                          className="max-h-56 w-full max-w-[240px] cursor-zoom-in object-cover" />
+                      </button>
                     ) : (
                       <a href={ticketsUploadUrl(it.adjunto.nombre_archivo, token)} target="_blank" rel="noreferrer"
                         className={`flex items-center gap-1.5 rounded-2xl px-3 py-2 text-xs ${burbuja}`}>
@@ -717,6 +726,9 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
           iconosSinTexto={<BotonCaja onClick={() => fotoRef.current?.click()} titulo="Tomar una foto"><IconoCamara /></BotonCaja>}
         />
       </div>
+      {visor !== null && fotos.length > 0 && (
+        <VisorFotos fotos={fotos} inicio={Math.min(visor, fotos.length - 1)} onCerrar={() => setVisor(null)} />
+      )}
     </>
   );
 }

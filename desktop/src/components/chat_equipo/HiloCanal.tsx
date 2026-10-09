@@ -24,6 +24,7 @@ import { sonidoDeMensaje, sonidoPorId, useAlertasSonido, SILENCIO } from "../../
 import { colorDePersona, colorTextoPersona, iniciales } from "../../lib/personaColor";
 import { tramosMencion, type Persona } from "../../lib/menciones";
 import "./chatEquipo.css";
+import VisorFotos, { type FotoVisor } from "../tickets/VisorFotos";
 
 type Letra = "normal" | "grande" | "enorme";
 const CLAVE_LETRA = "mck-chat-letra";
@@ -181,9 +182,9 @@ function reportarIncidente(canal: CanalEquipo, m?: MensajeCanal) {
   st.setPanel("hugo");
 }
 
-function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, resaltado, primero, yo }: {
+function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, onVerFoto, resaltado, primero, yo }: {
   m: MensajeCanal; propio: boolean; token: string; modulos: ModuloCanal[];
-  onIncidente: () => void; onResponder: () => void; onIrA: (id: number) => void; resaltado: boolean;
+  onIncidente: () => void; onResponder: () => void; onIrA: (id: number) => void; onVerFoto: (src: string) => void; resaltado: boolean;
   /** Primero de una racha del mismo autor: lleva nombre y avatar. */
   primero: boolean;
   yo?: number;
@@ -235,9 +236,10 @@ function Burbuja({ m, propio, token, modulos, onIncidente, onResponder, onIrA, r
         )}
         {m.cita && <div className="mb-1.5 mt-0.5"><Cita cita={m.cita} onClick={() => onIrA(m.cita!.id)} /></div>}
         {url && esImagen(m) && (
-          <a href={url} target="_blank" rel="noreferrer" className="my-1 block">
-            <img src={url} alt={m.adjunto_nombre || "foto"} loading="lazy" className="max-h-80 w-auto max-w-full rounded-xl border border-border object-contain" />
-          </a>
+          <div className="my-1">
+            <img src={url} alt={m.adjunto_nombre || "foto"} loading="lazy" onClick={() => onVerFoto(url)} title="Ver foto"
+              className="max-h-80 w-auto max-w-full cursor-zoom-in rounded-xl border border-border object-contain" />
+          </div>
         )}
         {url && esAudio(m) && (
           <audio src={url} controls preload="metadata" className="my-1 h-11 w-72 max-w-full" />
@@ -291,6 +293,13 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
   const archivoRef = useRef<HTMLInputElement>(null);
 
   const lista = mensajes.data?.mensajes ?? [];
+  // Todas las fotos del grupo en orden: tocar una abre el visor y se pasa a la anterior o la siguiente.
+  const [visor, setVisor] = useState<number | null>(null);
+  const fotos = useMemo<FotoVisor[]>(() => lista.flatMap((m) => {
+    const url = urlAdjunto(m, token);
+    return url && esImagen(m) ? [{ src: url, pie: `${m.autor_nombre} · ${hora(m.creado_en)}` }] : [];
+  }), [lista, token]);
+  const verFoto = (src: string) => { const i = fotos.findIndex((f) => f.src === src); if (i >= 0) setVisor(i); };
   const [letra, setLetra] = useState<Letra>(leerLetra);
   const [ajustesSonido, setAjustesSonido] = useState(false);
   const sonidoCanal = useAlertasSonido((st) => st.ajustes.canales[String(canal.id)] ?? null);
@@ -445,6 +454,9 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
         <div className="flex items-center justify-end gap-1.5 border-b border-border bg-surface-panel px-2 py-1.5">{botonesCabecera}</div>
       )}
       {ajustesSonido && <AjustesSonidos canalInicial={canal.id} onCerrar={() => setAjustesSonido(false)} />}
+      {visor !== null && fotos.length > 0 && (
+        <VisorFotos fotos={fotos} inicio={Math.min(visor, fotos.length - 1)} onCerrar={() => setVisor(null)} />
+      )}
 
       <SolicitudesDelGrupo canal={canal} modulo={moduloCanal} desde={tareaDesde} onDesdeUsado={() => setTareaDesde(null)} />
 
@@ -481,7 +493,7 @@ export default function HiloCanal({ canal, onVolver, compacto }: { canal: CanalE
                   )}
                   <Burbuja m={m} propio={m.origen === "panel" && m.usuario_id === yo} token={token} modulos={modulos} yo={yo}
                     primero={nuevoDia || esNuevo || !mismaRacha(previo, m)}
-                    onIncidente={() => setTareaDesde(m)} onResponder={() => responder(m)} onIrA={irA} resaltado={resaltado === m.id} />
+                    onIncidente={() => setTareaDesde(m)} onResponder={() => responder(m)} onIrA={irA} onVerFoto={verFoto} resaltado={resaltado === m.id} />
                 </div>
               );
             })}

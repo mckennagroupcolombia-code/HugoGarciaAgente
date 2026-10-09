@@ -5480,3 +5480,29 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `DELETE /api/fichas/borradores/<slug>` → `eliminar_borrador_completo`: solo `borrador_ft_coa_sds_*`; no borra, mueve a `fichas_word/_borradores_eliminados/` con fecha; se niega si hay etiquetas enlazadas al borrador.
 - **Verificado:** `npm run build` limpio; `agente-pro` reiniciado; ruta responde 401 sin token; prueba con una copia (se movió y salió de la lista; un documento final no se puede borrar por esta vía).
 - **Archivos Modificados:** `app/routes.py`, `app/services/ficha_tecnica.py`, `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-08 — Llave Bre-B Bancolombia en la cotización
+- Pedido del usuario: enlazar la llave de Bancolombia de la empresa en la cotización.
+- `cotizacion_pdf.py`: bloque «FORMA DE PAGO» (llave 0066302076 a nombre de la razón social) entre totales y condiciones, y línea 🏦 en el mensaje de WhatsApp. Sale de `app/data/datos_pago.json` (misma fuente del bot); si se borra la llave allí, desaparece de la cotización.
+- **Verificado:** PDF de prueba generado y revisado; `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/tools/cotizacion_pdf.py`, `docs/team-recaps.md`
+
+## 2026-10-08 — Botón «Cotizaciones» en Cotizar/Facturar
+- Pedido del usuario: no encontraba la cotización de Adolfo; debe haber un botón o menú lateral para consultar las cotizaciones.
+- `CotizarFacturarPanel.tsx`: botón «Cotizaciones (n)» junto a «Ventas recientes» (n = cotizaciones esperando pago). Abre un panel lateral con buscador (cliente, teléfono, número), filtros «Esperando pago» / «Todas», clic para abrir la venta y ojo para ver el PDF. Usa `GET /api/ventas-directas` sin cambios en el backend.
+- **Verificado:** `npm run build` limpio.
+- **Archivos Modificados:** `desktop/src/components/CotizarFacturarPanel.tsx`, `docs/team-recaps.md`
+
+## 2026-10-08 — Rediseño de la plantilla de cotización + QR Bre-B original
+- Pedido del usuario: plantilla más limpia (paleta #086672/#EFF6F7/#173640/#D5E4E7, Montserrat, bordes 5 pt, sin sombras) y QR oficial junto a la llave.
+- `cotizacion_pdf.py`: paleta propia `COT_*` (la vieja ACENTO/TINTA/… sigue igual para comprobantes y expediente, y `_pie_de_pagina` para cotizaciones a proveedor). Carta (el tamaño configurado) con márgenes de 12 mm; tarjetas DE/PARA de igual alto; tabla #·Producto(ref.)·Cant.·Precio·IVA·Total con importes sin salto, encabezado repetido; fila con tarjeta de pago (banco, titular, llave como texto, QR 45 mm) + totales; condiciones en viñetas; pie con contacto, aviso y página. Sin QR → recuadro «QR original pendiente», nunca un QR generado.
+- QR: recorte sin retocar del PDF de Bancolombia a resolución nativa (2642 px, ~1490 ppi en el PDF, sin pérdida) en `app/data/qr_breb_bancolombia.png`, referenciado en `datos_pago.json` (`qr`). Las franjas de color son del arte original del banco.
+- **Verificado:** el QR se decodifica desde el PDF a 300 y 150 dpi con el mismo contenido que el original (llave 0066302076, MCKENNA GROUP SAS); texto seleccionable; casos: cotización real (1 página), 35 productos con nombres/dirección largos (4 páginas, sin filas cortadas), sin QR.
+- **Archivos Modificados:** `app/tools/cotizacion_pdf.py`, `app/data/datos_pago.json`, `app/data/qr_breb_bancolombia.png`, `docs/team-recaps.md`
+
+## 2026-10-08 — Visor de fotos con anterior / siguiente en todos los chats
+- Pedido del usuario: en los chats, al abrir una imagen adjunta poder pasar a la anterior y a la siguiente desde el mismo visor.
+- `tickets/VisorFotos.tsx`: va en un portal (en la burbuja flotante un `fixed` quedaba encerrado), flechas ‹ › a los lados de la foto, teclado ← → y deslizar el dedo (dos dedos = zoom, no pasa de foto). Hoja propia `visorFotos.css` (`vf-*`); se quitó `.hp-visor` de `hiloPixel.css`.
+- Grupos (`chat_equipo/HiloCanal.tsx`) y el mini chat de la burbuja (`nav/SolicitudesEnProcesoFab.tsx`) abrían la foto en otra pestaña (`target="_blank"`); ahora abren el visor con todas las fotos del chat en orden y el pie «quién · hora». El hilo de Solicitudes ya lo usaba.
+- **Verificado:** `tsc --noEmit` sin errores en los archivos tocados; `npm run build` limpio.
+- **Archivos Modificados:** `desktop/src/components/tickets/VisorFotos.tsx`, `desktop/src/components/tickets/visorFotos.css`, `desktop/src/components/tickets/hiloPixel.css`, `desktop/src/components/chat_equipo/HiloCanal.tsx`, `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`
