@@ -1,3 +1,11 @@
+### 2026-10-08 23:15 - MeLi + web: nuez pecán 250 g publicada
+- **Autor:** Armando García
+- **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.
+- **Qué se implementó:**
+  - `C-NUEPEC250g` → MeLi **MCO2267504805** «Nuez Pecán Natural En Mitades 250g», $20.900, stock 20, envío a cargo del comprador, cat. MCO442340 «Frutos Secos» (taxonomía de nuez del Brasil 250 g MCO4158346500), GTIN 7702572502649, empaque 19×16×5 cm / 300 g. Web $18.810 (MeLi −10 %).
+  - Alegra: precio de lista $0 → $20.900.
+- **Archivos Modificados:** `app/data/despliegue_ventas.json`, `app/data/publicaciones_overrides.json`, `docs/team-recaps.md`.
+
 ### 2026-10-08 23:05 - MeLi + web: marañón tostado 500 g publicado
 - **Autor:** Armando García
 - **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.

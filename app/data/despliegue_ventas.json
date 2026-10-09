@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-08T22:47:56",
+ "actualizado": "2026-10-08T22:55:37",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
@@ -1978,6 +1978,15 @@
    "meli_ids": [
     "MCO2267504305"
    ]
+  },
+  "C-NUEPEC250G": {
+   "nombre": "NUEZ PECAN 250g",
+   "titulo_meli": "Nuez Pecán Natural En Mitades 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2267504805"
+   ]
   }
  },
  "excluidas": [
@@ -2431,6 +2440,12 @@
    "sku": "C-MARTOS500G",
    "titulo": "Marañón Entero Tostado 500g",
    "desde": "2026-10-08T22:47:56",
+   "por": "armando"
+  },
+  "MCO2267504805": {
+   "sku": "C-NUEPEC250G",
+   "titulo": "Nuez Pecán Natural En Mitades 250g",
+   "desde": "2026-10-08T22:55:37",
    "por": "armando"
   }
  }
