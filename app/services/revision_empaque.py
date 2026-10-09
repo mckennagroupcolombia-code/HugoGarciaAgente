@@ -24,6 +24,15 @@ Fuentes: recetas y catálogo de la copia local de Alegra (`insumos._catalogo`); 
 cada componente con la regla del mapa del producto (`mapa_producto._casilla`); publicaciones
 de MeLi en vivo (solo al crear, al refrescar y al aplicar). Base propia:
 app/data/revision_empaque.db (gitignored). Sin LLM.
+
+También es la pieza «Envío» de cada presentación en Diseño de producto → Árbol del producto
+(9-oct-2026): el mismo wizard para un solo combo, sobre la misma base. Lo que se pesa en el
+árbol cuenta en la solicitud y al revés. Ver «Por producto» al final.
+
+Lo que MeLi pide (verificado el 9-oct-2026 contra `/categories/{id}/attributes` en las 138
+categorías de la cuenta): SELLER_PACKAGE_WEIGHT en g y SELLER_PACKAGE_LENGTH / _WIDTH /
+_HEIGHT en cm — «paquete del seller», el paquete de envío tal como se despacha, no el
+producto suelto. Los PACKAGE_* sin SELLER son los de fábrica y MeLi no deja escribirlos.
 """
 
 from __future__ import annotations
@@ -32,6 +41,7 @@ import json
 import math
 import re
 import sqlite3
+import time
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -49,6 +59,7 @@ CAJAS = ("BOX11X4X4", "BOX12X8X4", "BOX17X11X4", "CAJCAR5mL")
 _PREFIJOS_SEGURIDAD = ("BOLSEG", "SOBSEG")
 
 _PESO_MAX_G = 50_000
+_CAMPOS_ITEM = "id,title,status,thumbnail,seller_custom_field,attributes,shipping"
 _LADO_MAX_CM = 200
 _MELI = "https://api.mercadolibre.com"
 
@@ -245,6 +256,8 @@ def _ref_publicacion(body: dict) -> dict:
         "largo_cm": _num(a.get("SELLER_PACKAGE_LENGTH")),
         "ancho_cm": _num(a.get("SELLER_PACKAGE_WIDTH")),
         "alto_cm": _num(a.get("SELLER_PACKAGE_HEIGHT")),
+        # En Full (fulfillment) MeLi mide el paquete en su bodega y puede reemplazar lo nuestro.
+        "logistica": (body.get("shipping") or {}).get("logistic_type") or "",
         "_sku": (a.get("SELLER_SKU") or body.get("seller_custom_field") or "").strip().upper(),
     }
 
@@ -261,7 +274,7 @@ def _publicaciones_por_sku(token: str) -> dict[str, list[dict]]:
     for estado in ("active", "paused"):
         off = 0
         while True:
-            r = requests.get(f"{_MELI}/users/{seller}/items/search", headers=h, timeout=30,
+            r = _con_reintento(requests.get, f"{_MELI}/users/{seller}/items/search", headers=h, timeout=30,
                              params={"status": estado, "limit": 100, "offset": off})
             r.raise_for_status()
             j = r.json()
@@ -271,9 +284,9 @@ def _publicaciones_por_sku(token: str) -> dict[str, list[dict]]:
                 break
     por_sku: dict[str, list[dict]] = defaultdict(list)
     for i in range(0, len(ids), 20):
-        r = requests.get(f"{_MELI}/items", headers=h, timeout=30, params={
+        r = _con_reintento(requests.get, f"{_MELI}/items", headers=h, timeout=30, params={
             "ids": ",".join(ids[i:i + 20]),
-            "attributes": "id,title,status,thumbnail,seller_custom_field,attributes"})
+            "attributes": _CAMPOS_ITEM})
         r.raise_for_status()
         for x in r.json() or []:
             ref = _ref_publicacion(x.get("body") or {})
@@ -393,6 +406,37 @@ def _difiere(a: float | None, b: float | None, tolerancia: float) -> bool:
     return abs(a - b) > tolerancia
 
 
+def _enriquecer(p: dict, g: dict | None) -> dict:
+    """La fila de un producto con lo que se deduce: medidas finales (las propias o las de su
+    tipo de empaque), lo que dice MeLi, si está listo y si difiere de MeLi."""
+    p["empaque_receta"] = json.loads(p["empaque_receta"] or "[]")
+    p["meli"] = json.loads(p["meli"] or "[]")
+    p["empaque_ok"] = json.loads(p["empaque_ok"]) if p.get("empaque_ok") else None
+    p["aplicado_resultado"] = json.loads(p["aplicado_resultado"]) if p.get("aplicado_resultado") else None
+    fin = _medidas_finales(p, g)
+    p["medidas_finales"] = list(fin) if fin else None
+    p["peso_meli"] = next((m["peso_g"] for m in p["meli"] if m.get("peso_g")), None)
+    p["medidas_meli"] = list(_medidas_meli(p["meli"]) or []) or None
+    p["listo"] = bool(p["peso_g"] and fin and not p["omitido"])
+    p["diferencia"] = bool(p["listo"] and p["meli"] and (
+        _difiere(p["peso_g"], p["peso_meli"], max(10.0, (p["peso_g"] or 0) * 0.05))
+        or not p["medidas_meli"]
+        or any(_difiere(float(math.ceil(a)), b, 0.5) for a, b in zip(fin, p["medidas_meli"]))
+    ))
+    return p
+
+
+def _resumir_grupo(g: dict, miembros: list[dict]) -> dict:
+    sugeridas = Counter(tuple(p["medidas_meli"]) for p in miembros if p["medidas_meli"])
+    g["productos"] = len(miembros)
+    g["ejemplos"] = [p["nombre"] for p in miembros[:3]]
+    g["skus"] = [p["sku"] for p in miembros]
+    g["sugerido_meli"] = list(sugeridas.most_common(1)[0][0]) if sugeridas else None
+    g["medido"] = bool(g["largo_cm"] and g["ancho_cm"] and g["alto_cm"])
+    g["solo"] = g["clave"].startswith("solo:")
+    return g
+
+
 def estado(rid: int, usuario: dict | None) -> dict:
     with _conn() as c:
         rev = _revision(c, rid)
@@ -407,21 +451,7 @@ def estado(rid: int, usuario: dict | None) -> dict:
     productos = []
     listos = aplicados = pesados = omitidos = 0
     for p in filas:
-        p["empaque_receta"] = json.loads(p["empaque_receta"] or "[]")
-        p["meli"] = json.loads(p["meli"] or "[]")
-        p["empaque_ok"] = json.loads(p["empaque_ok"]) if p.get("empaque_ok") else None
-        p["aplicado_resultado"] = json.loads(p["aplicado_resultado"]) if p.get("aplicado_resultado") else None
-        g = grupos.get(p["grupo_clave"])
-        fin = _medidas_finales(p, g)
-        p["medidas_finales"] = list(fin) if fin else None
-        p["peso_meli"] = next((m["peso_g"] for m in p["meli"] if m.get("peso_g")), None)
-        p["medidas_meli"] = list(_medidas_meli(p["meli"]) or []) or None
-        p["listo"] = bool(p["peso_g"] and fin and not p["omitido"])
-        p["diferencia"] = bool(p["listo"] and p["meli"] and (
-            _difiere(p["peso_g"], p["peso_meli"], max(10.0, (p["peso_g"] or 0) * 0.05))
-            or not p["medidas_meli"]
-            or any(_difiere(float(math.ceil(a)), b, 0.5) for a, b in zip(fin, p["medidas_meli"]))
-        ))
+        _enriquecer(p, grupos.get(p["grupo_clave"]))
         pesados += bool(p["peso_g"] and not p["omitido"])
         omitidos += bool(p["omitido"])
         listos += p["listo"]
@@ -429,17 +459,7 @@ def estado(rid: int, usuario: dict | None) -> dict:
         miembros[p["grupo_clave"]].append(p)
         productos.append(p)
 
-    lista_grupos = []
-    for clave, g in grupos.items():
-        ms = miembros.get(clave, [])
-        sugeridas = Counter(tuple(p["medidas_meli"]) for p in ms if p["medidas_meli"])
-        g["productos"] = len(ms)
-        g["ejemplos"] = [p["nombre"] for p in ms[:3]]
-        g["skus"] = [p["sku"] for p in ms]
-        g["sugerido_meli"] = list(sugeridas.most_common(1)[0][0]) if sugeridas else None
-        g["medido"] = bool(g["largo_cm"] and g["ancho_cm"] and g["alto_cm"])
-        g["solo"] = clave.startswith("solo:")
-        lista_grupos.append(g)
+    lista_grupos = [_resumir_grupo(g, miembros.get(clave, [])) for clave, g in grupos.items()]
     lista_grupos.sort(key=lambda g: (g["medido"], g["solo"], -g["productos"], g["nombre"]))
 
     return {
@@ -487,16 +507,19 @@ def _medidas(d: dict, obligatorias: bool) -> tuple[float | None, float | None, f
     return m
 
 
-def _abierta_para(c: sqlite3.Connection, rid: int, usuario: dict | None) -> dict:
+def _abierta_para(c: sqlite3.Connection, rid: int, usuario: dict | None, arbol: bool = False) -> dict:
+    """`arbol=True`: llega desde la pieza «Envío» del Árbol del producto, cuya ruta ya exigió
+    el permiso del árbol; quien diseña el producto también puede pesarlo y medirlo (aplicar
+    en MeLi sigue siendo solo de `puede_aprobar`)."""
     rev = _revision(c, rid)
-    if not puede_ver(rev, usuario):
+    if not arbol and not puede_ver(rev, usuario):
         raise PermissionError("Esta revisión es de otra persona")
     return rev
 
 
-def guardar_producto(rid: int, sku: str, d: dict, usuario: dict | None) -> dict:
+def guardar_producto(rid: int, sku: str, d: dict, usuario: dict | None, arbol: bool = False) -> dict:
     with _conn() as c:
-        _abierta_para(c, rid, usuario)
+        _abierta_para(c, rid, usuario, arbol)
         fila = c.execute("SELECT empaque_receta FROM productos WHERE revision_id=? AND sku=?",
                          (rid, sku)).fetchone()
         if not fila:
@@ -532,10 +555,10 @@ def guardar_producto(rid: int, sku: str, d: dict, usuario: dict | None) -> dict:
     return {"ok": True, "sku": sku, "peso_g": peso}
 
 
-def guardar_grupo(rid: int, clave: str, d: dict, usuario: dict | None) -> dict:
+def guardar_grupo(rid: int, clave: str, d: dict, usuario: dict | None, arbol: bool = False) -> dict:
     largo, ancho, alto = _medidas(d, obligatorias=True)
     with _conn() as c:
-        _abierta_para(c, rid, usuario)
+        _abierta_para(c, rid, usuario, arbol)
         cur = c.execute(
             "UPDATE grupos SET largo_cm=?, ancho_cm=?, alto_cm=?, nota=?, medido_por=?, medido_en=? "
             "WHERE revision_id=? AND clave=?",
@@ -589,16 +612,35 @@ def refrescar_meli(rid: int, usuario: dict | None) -> dict:
     return {"ok": True}
 
 
+# Lo que MeLi pide del paquete de envío, con la única unidad que acepta cada atributo.
+ATRIBUTOS_MELI = (
+    {"id": "SELLER_PACKAGE_WEIGHT", "nombre": "Peso", "unidad": "g"},
+    {"id": "SELLER_PACKAGE_LENGTH", "nombre": "Largo", "unidad": "cm"},
+    {"id": "SELLER_PACKAGE_WIDTH", "nombre": "Ancho", "unidad": "cm"},
+    {"id": "SELLER_PACKAGE_HEIGHT", "nombre": "Alto", "unidad": "cm"},
+)
+
+
 def atributos_meli(peso_g: float, medidas: tuple[float, float, float]) -> list[dict]:
     """Peso redondeado al gramo; medidas hacia arriba al centímetro (MeLi cobra por el
-    paquete: quedarse corto sale más caro que pasarse un poco)."""
+    paquete: quedarse corto sale más caro que pasarse un poco). Enteros, en la única unidad
+    que acepta cada atributo, con `value_struct` como los crea el publicador de compliance."""
     largo, ancho, alto = (int(math.ceil(x)) for x in medidas)
+    numeros = (int(round(peso_g)), largo, ancho, alto)
     return [
-        {"id": "SELLER_PACKAGE_WEIGHT", "value_name": f"{int(round(peso_g))} g"},
-        {"id": "SELLER_PACKAGE_LENGTH", "value_name": f"{largo} cm"},
-        {"id": "SELLER_PACKAGE_WIDTH", "value_name": f"{ancho} cm"},
-        {"id": "SELLER_PACKAGE_HEIGHT", "value_name": f"{alto} cm"},
+        {"id": a["id"], "value_name": f"{n} {a['unidad']}", "value_struct": {"number": n, "unit": a["unidad"]}}
+        for a, n in zip(ATRIBUTOS_MELI, numeros)
     ]
+
+
+def _con_reintento(fn, *args, **kwargs) -> requests.Response:
+    """Una llamada a MeLi con un reintento si se corta la conexión (pasa a menudo: «Connection
+    reset by peer»). Un corte en una publicación no debe tumbar el lote entero."""
+    try:
+        return fn(*args, **kwargs)
+    except (requests.ConnectionError, requests.Timeout):
+        time.sleep(2)
+        return fn(*args, **kwargs)
 
 
 def aplicar_meli(rid: int, skus: list[str], usuario: dict | None) -> dict:
@@ -621,8 +663,12 @@ def aplicar_meli(rid: int, skus: list[str], usuario: dict | None) -> dict:
         attrs = atributos_meli(p["peso_g"], tuple(p["medidas_finales"]))
         pubs = []
         for ref in p["meli"]:
-            r = requests.get(f"{_MELI}/items/{ref['id']}", headers=h, timeout=25,
-                             params={"attributes": "id,status,seller_custom_field,attributes"})
+            try:
+                r = _con_reintento(requests.get, f"{_MELI}/items/{ref['id']}", headers=h, timeout=25,
+                                   params={"attributes": "id,status,seller_custom_field,attributes"})
+            except requests.RequestException as exc:
+                pubs.append({"id": ref["id"], "ok": False, "error": f"Sin conexión con MeLi: {type(exc).__name__}"})
+                continue
             if not r.ok:
                 pubs.append({"id": ref["id"], "ok": False, "error": f"No se pudo leer ({r.status_code})"})
                 continue
@@ -633,7 +679,13 @@ def aplicar_meli(rid: int, skus: list[str], usuario: dict | None) -> dict:
             if vivo["_sku"] != sku.upper():
                 pubs.append({"id": ref["id"], "ok": False, "error": f"Ahora tiene el SKU {vivo['_sku']}"})
                 continue
-            w = requests.put(f"{_MELI}/items/{ref['id']}", headers=h, json={"attributes": attrs}, timeout=25)
+            try:
+                # Reintentar es seguro: escribe los mismos valores.
+                w = _con_reintento(requests.put, f"{_MELI}/items/{ref['id']}", headers=h,
+                                   json={"attributes": attrs}, timeout=25)
+            except requests.RequestException as exc:
+                pubs.append({"id": ref["id"], "ok": False, "error": f"Sin conexión con MeLi: {type(exc).__name__}"})
+                continue
             pubs.append({"id": ref["id"], "ok": w.ok,
                          **({} if w.ok else {"error": (w.text or "")[:200]})})
         ok = bool(pubs) and all(x["ok"] for x in pubs)
@@ -654,3 +706,215 @@ def aplicar_meli(rid: int, skus: list[str], usuario: dict | None) -> dict:
         resultados.append({"sku": sku, "ok": ok, "publicaciones": pubs,
                            **({} if pubs else {"error": "Sin publicaciones en MeLi"})})
     return {"resultados": resultados}
+
+
+# ── Por producto: la pieza «Envío» del Árbol del producto ──────────────────────────────
+#
+# El mismo trabajo para un solo combo, desde Diseño de producto, sobre la misma base: lo que
+# se pesa aquí cuenta en la solicitud y al revés. De cada SKU manda la fila de la revisión
+# más nueva donde ya se verificó (si en ninguna, la de la más nueva que lo tiene): lo que el
+# árbol muestra es lo que el wizard edita. Un combo creado después de la revisión se agrega
+# a la última con `incluir_sku`. Las rutas /api/revision-empaque/sku/* exigen el permiso del
+# árbol y pasan `arbol=True`; aplicar en MeLi sigue siendo solo de `puede_aprobar`.
+
+
+def _fila_de_sku(c: sqlite3.Connection, sku: str) -> sqlite3.Row | None:
+    return c.execute(
+        "SELECT * FROM productos WHERE UPPER(sku)=? ORDER BY verificado_en IS NULL, revision_id DESC LIMIT 1",
+        (sku.strip().upper(),)).fetchone()
+
+
+def _ultima_revision(c: sqlite3.Connection) -> int | None:
+    r = c.execute("SELECT MAX(id) FROM revisiones").fetchone()
+    return int(r[0]) if r and r[0] else None
+
+
+def _fila_o_error(sku: str) -> sqlite3.Row:
+    with _conn() as c:
+        fila = _fila_de_sku(c, sku)
+    if not fila:
+        raise LookupError(f"{sku} no está en la revisión de empaques: agrégalo primero")
+    return fila
+
+
+def _fmt_g(g: float) -> str:
+    return f"{g / 1000:g} kg".replace(".", ",") if g >= 1000 else f"{round(g)} g"
+
+
+def _fmt_cm(m: list[float]) -> str:
+    return " × ".join(f"{x:g}".replace(".", ",") for x in m) + " cm"
+
+
+def pieza_envio(p: dict | None) -> dict:
+    """La pieza «Envío» del árbol a partir de un producto ya enriquecido (`_enriquecer`)."""
+    if not p or not (p.get("peso_g") or p.get("omitido")):
+        return {"estado": "falta", "detalle": "Sin pesar ni medir el paquete."}
+    base = {"peso_g": p.get("peso_g"), "medidas": p.get("medidas_finales")}
+    if p.get("omitido"):
+        return {"estado": "aviso", "detalle": f"No se pudo pesar: {p.get('motivo_omitido') or 'sin motivo'}.", **base}
+    peso = _fmt_g(p["peso_g"])
+    if not p.get("medidas_finales"):
+        return {"estado": "aviso", "detalle": f"{peso} · falta medir el paquete.", **base}
+    texto = f"{peso} · {_fmt_cm(p['medidas_finales'])}"
+    if p.get("diferencia"):
+        return {"estado": "aviso", "detalle": f"{texto} · MeLi tiene otro dato: falta aplicarlo.", **base}
+    sufijo = " · aplicado en MeLi" if p.get("aplicado_en") else " · igual en MeLi" if p.get("meli") else ""
+    return {"estado": "ok", "detalle": texto + sufijo, **base}
+
+
+def resumen_por_sku() -> dict[str, dict]:
+    """SKU en mayúsculas → pieza «Envío». Solo la base local: el árbol no llama a MeLi."""
+    with _conn() as c:
+        grupos = {(g["revision_id"], g["clave"]): dict(g) for g in c.execute("SELECT * FROM grupos")}
+        filas = [dict(f) for f in c.execute(
+            "SELECT * FROM productos ORDER BY verificado_en IS NULL, revision_id DESC")]
+    out: dict[str, dict] = {}
+    for f in filas:
+        k = f["sku"].upper()
+        if k not in out:
+            out[k] = pieza_envio(_enriquecer(f, grupos.get((f["revision_id"], f["grupo_clave"]))))
+    return out
+
+
+def _folio(ticket_id: int | None) -> str:
+    if not ticket_id:
+        return ""
+    try:
+        from app.services import tickets_db
+
+        t = tickets_db._conn()
+        try:
+            r = t.execute("SELECT numero FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        finally:
+            t.close()
+        return str(r["numero"]) if r else ""
+    except Exception:
+        return ""
+
+
+def producto_arbol(sku: str, usuario: dict | None) -> dict:
+    """Todo lo del wizard de un combo: su fila, su tipo de empaque (con los otros productos
+    que lo comparten), lo que MeLi pide y lo que se le enviaría."""
+    with _conn() as c:
+        fila = _fila_de_sku(c, sku)
+        if not fila:
+            return {"en_revision": False, "sku": sku, "hay_revision": bool(_ultima_revision(c)),
+                    "meli_pide": list(ATRIBUTOS_MELI)}
+        rev = _revision(c, fila["revision_id"])
+        g_fila = c.execute("SELECT * FROM grupos WHERE revision_id=? AND clave=?",
+                           (fila["revision_id"], fila["grupo_clave"])).fetchone()
+        g = dict(g_fila) if g_fila else None
+        miembros = [_enriquecer(dict(m), g) for m in c.execute(
+            "SELECT * FROM productos WHERE revision_id=? AND grupo_clave=? ORDER BY orden",
+            (fila["revision_id"], fila["grupo_clave"]))]
+    p = next(m for m in miembros if m["sku"] == fila["sku"])
+    return {
+        "en_revision": True,
+        "sku": p["sku"],
+        "revision": {"id": rev["id"], "titulo": rev["titulo"], "folio": _folio(rev.get("ticket_id")),
+                     "creada_por": rev.get("creada_por"), "meli_refrescado_en": rev.get("meli_refrescado_en")},
+        "producto": p,
+        "grupo": _resumir_grupo(g, miembros) if g else None,
+        "pieza": pieza_envio(p),
+        "cajas": list(CAJAS),
+        "puede_aprobar": puede_aprobar(rev, usuario),
+        "meli_pide": list(ATRIBUTOS_MELI),
+        "a_enviar": atributos_meli(p["peso_g"], tuple(p["medidas_finales"])) if p["listo"] else None,
+    }
+
+
+def _publicaciones_de_sku(token: str, sku: str) -> list[dict]:
+    """Las publicaciones activas y pausadas de un SKU, con la misma regla que
+    `_publicaciones_por_sku` (SELLER_SKU en mayúsculas), sin recorrer toda la cuenta."""
+    from app.services.meli import _obtener_seller_id_meli
+
+    seller = _obtener_seller_id_meli(token)
+    if not seller:
+        raise RuntimeError("No se pudo leer el vendedor de MeLi")
+    h = {"Authorization": f"Bearer {token}"}
+    ids: list[str] = []
+    for variante in dict.fromkeys((sku, sku.upper())):
+        for estado_pub in ("active", "paused"):
+            r = _con_reintento(requests.get, f"{_MELI}/users/{seller}/items/search", headers=h, timeout=30,
+                             params={"seller_sku": variante, "status": estado_pub, "limit": 50})
+            r.raise_for_status()
+            ids += [i for i in r.json().get("results") or [] if i not in ids]
+    out = []
+    for i in range(0, len(ids), 20):
+        r = _con_reintento(requests.get, f"{_MELI}/items", headers=h, timeout=30,
+                         params={"ids": ",".join(ids[i:i + 20]), "attributes": _CAMPOS_ITEM})
+        r.raise_for_status()
+        for x in r.json() or []:
+            ref = _ref_publicacion(x.get("body") or {})
+            if ref.pop("_sku") == sku.upper():
+                out.append(ref)
+    return out
+
+
+def incluir_sku(sku: str, usuario: dict | None) -> dict:
+    """Agrega a la última revisión un combo que no estaba (creado después de ella)."""
+    with _conn() as c:
+        if _fila_de_sku(c, sku):
+            return {"ok": True, "ya_estaba": True}
+        rid = _ultima_revision(c)
+    if not rid:
+        raise LookupError("Todavía no hay ninguna revisión de empaques")
+    combo = next((x for x in _combos_activos() if x["sku"].upper() == sku.strip().upper()), None)
+    if not combo:
+        raise LookupError(f"{sku} no es un combo activo con receta en la copia de Alegra")
+    pubs = _publicaciones_de_sku(_token(), combo["sku"])
+    with _conn() as c:
+        if _fila_de_sku(c, sku):
+            return {"ok": True, "ya_estaba": True}
+        c.execute("INSERT OR IGNORE INTO grupos (revision_id, clave, nombre, rigido) VALUES (?,?,?,?)",
+                  (rid, combo["grupo_clave"], _nombre_grupo(combo["grupo_clave"], combo["empaque"]),
+                   int(combo["rigido"])))
+        orden = (c.execute("SELECT MAX(orden) FROM productos WHERE revision_id=?", (rid,)).fetchone()[0] or 0) + 1
+        c.execute(
+            "INSERT INTO productos (revision_id, sku, nombre, presentacion, grupo_clave, orden, "
+            "empaque_receta, meli) VALUES (?,?,?,?,?,?,?,?)",
+            (rid, combo["sku"], combo["nombre"], combo["presentacion"], combo["grupo_clave"], orden,
+             json.dumps(combo["empaque"], ensure_ascii=False), json.dumps(pubs, ensure_ascii=False)))
+    return {"ok": True, "revision_id": rid}
+
+
+def guardar_producto_arbol(sku: str, d: dict, usuario: dict | None) -> dict:
+    f = _fila_o_error(sku)
+    return guardar_producto(f["revision_id"], f["sku"], d, usuario, arbol=True)
+
+
+def guardar_grupo_arbol(sku: str, d: dict, usuario: dict | None) -> dict:
+    """Mide el tipo de empaque de este combo: vale para todos los que lo comparten."""
+    f = _fila_o_error(sku)
+    return guardar_grupo(f["revision_id"], f["grupo_clave"], d, usuario, arbol=True)
+
+
+def guardar_medidas_propias_arbol(sku: str, d: dict, usuario: dict | None) -> dict:
+    """Solo las medidas propias de este combo (cuando no mide como su tipo de empaque). Sin
+    medidas vuelve a usar las del tipo. No toca el peso ni el empaque confirmado."""
+    f = _fila_o_error(sku)
+    largo, ancho, alto = _medidas(d, obligatorias=False)
+    with _conn() as c:
+        _abierta_para(c, f["revision_id"], usuario, arbol=True)
+        c.execute("UPDATE productos SET largo_cm=?, ancho_cm=?, alto_cm=? WHERE revision_id=? AND sku=?",
+                  (largo, ancho, alto, f["revision_id"], f["sku"]))
+    return {"ok": True, "sku": f["sku"], "medidas": [largo, ancho, alto] if largo else None}
+
+
+def releer_meli_arbol(sku: str, usuario: dict | None) -> dict:
+    """Vuelve a leer de MeLi las publicaciones de este combo (solo lectura)."""
+    f = _fila_o_error(sku)
+    pubs = _publicaciones_de_sku(_token(), f["sku"])
+    with _conn() as c:
+        c.execute("UPDATE productos SET meli=? WHERE revision_id=? AND sku=?",
+                  (json.dumps(pubs, ensure_ascii=False), f["revision_id"], f["sku"]))
+    return {"ok": True, "publicaciones": len(pubs)}
+
+
+def aplicar_meli_arbol(sku: str, usuario: dict | None) -> dict:
+    f = _fila_o_error(sku)
+    with _conn() as c:
+        rev = _revision(c, f["revision_id"])
+    if not puede_aprobar(rev, usuario):
+        raise PermissionError("Aplicar en MeLi lo hace quien creó la revisión o un administrador")
+    return aplicar_meli(f["revision_id"], [f["sku"]], usuario)

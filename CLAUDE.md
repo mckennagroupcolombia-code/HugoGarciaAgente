@@ -289,7 +289,8 @@ El hilo del grupo tiene Aa (3 tamaños), separadores por día, autores con color
 
 **Revisión de pesos, medidas y empaques** (`operacion-equipo.md`, AG). Solicitud `subtipo=revision_empaque` con wizard
 (pesar cada combo → medir cada tipo de empaque → entregar → el admin aprueba y aplica en MeLi). Es la fuente de verdad
-de peso/medidas por SKU; nada se escribe en MeLi sin aprobar y antes se relee la publicación.
+de peso/medidas por SKU; nada se escribe en MeLi sin aprobar y antes se relee la publicación. Desde el 9-oct también es
+la pieza **«Envío»** de cada presentación en el Árbol del producto (misma base; MeLi pide `SELLER_PACKAGE_*`: g y cm).
 
 **RRHH y horas** (`rrhh-horas.md`). ⚠️ **Nunca** poner horario de entrada/salida (convierte honorarios en contrato
 laboral). Tiempos solo cronometrados (≥5 muestras) o huella real, nunca estimados a mano. Salarios fuera de git.

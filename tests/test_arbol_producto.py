@@ -1,6 +1,6 @@
 """Studio → Árbol del producto: une el taller de combos con Canales del producto."""
 
-from app.services import arbol_producto, canales_producto, fotos_producto, mapa_producto
+from app.services import arbol_producto, canales_producto, fotos_producto, mapa_producto, revision_empaque
 
 
 def _combo(ref, nombre, familia, linea="Conservantes", etiqueta=None, pres=""):
@@ -48,6 +48,9 @@ def test_arbol_agrupa_por_categoria_y_familia(monkeypatch):
     ]})
 
     monkeypatch.setattr(fotos_producto, "por_sku", lambda: {})
+    monkeypatch.setattr(revision_empaque, "resumen_por_sku", lambda: {
+        "C-SORPOT250G": {"estado": "ok", "detalle": "270 g · 13 × 21 × 3 cm", "peso_g": 270, "medidas": [13, 21, 3]},
+    })
     d = arbol_producto.arbol()
     assert [c["nombre"] for c in d["categorias"]] == ["Conservantes"]
     fam = d["categorias"][0]["familias"][0]
@@ -55,7 +58,10 @@ def test_arbol_agrupa_por_categoria_y_familia(monkeypatch):
     # Ordenadas por tamaño: 100 g < 250 g < 1 kg.
     assert [p["ref"] for p in fam["presentaciones"]] == ["C-SORPOT100g", "C-SORPOT250g", "C-SORPOTKg"]
     p100, p250, pkg = fam["presentaciones"]
-    assert p250["listas"] == 7 and fam["completas"] == 1
+    assert p250["listas"] == len(arbol_producto.PIEZAS) == 8 and fam["completas"] == 1
+    # El paquete de envío es una pieza más: sin pesar ni medir, falta.
+    assert p250["piezas"]["envio"]["peso_g"] == 270
+    assert pkg["piezas"]["envio"]["estado"] == "falta"
     # Sin la variante desenfocada, el par está a medias; y el SKU que Alegra no factura, falta.
     assert p100["piezas"]["etiquetas"]["estado"] == "aviso"
     assert p100["piezas"]["factura"]["estado"] == "falta"
@@ -72,11 +78,13 @@ def test_arbol_sigue_sin_canales(monkeypatch):
 
     monkeypatch.setattr(canales_producto, "tabla_maestra", roto)
     monkeypatch.setattr(fotos_producto, "por_sku", lambda: {})
+    monkeypatch.setattr(revision_empaque, "resumen_por_sku", roto)
     d = arbol_producto.arbol()
-    assert d["sin_senal"] and d["sin_senal"][0]["fuente"] == "Canales del producto"
+    assert [s["fuente"] for s in d["sin_senal"]] == ["Canales del producto", "Revisión de pesos y medidas"]
     fam = d["categorias"][0]["familias"][0]
     assert fam["clave"] == "solo:C-X1"
     assert fam["presentaciones"][0]["piezas"]["factura"]["estado"] == "aviso"
+    assert fam["presentaciones"][0]["piezas"]["envio"]["estado"] == "aviso"
 
 
 def test_fotos_cuentan_como_pieza_y_se_comparan_con_la_etiqueta():

@@ -4,6 +4,10 @@ Lógica en app/services/revision_empaque.py. Sin LLM.
 
 Ver y diligenciar: el asignado de la revisión, quien la creó y los administradores.
 Refrescar MeLi y aplicar: solo quien la creó o un administrador (`puede_aprobar`).
+
+/api/revision-empaque/sku/<sku>/*: la pieza «Envío» de un combo en el Árbol del producto.
+Las abre el mismo permiso del árbol (`routes_mapa_sistema._auth_studio`): quien diseña el
+producto también lo pesa y lo mide. Aplicar en MeLi sigue siendo de `puede_aprobar`.
 """
 
 from __future__ import annotations
@@ -30,6 +34,50 @@ def register_revision_empaque_routes(app):
             return jsonify({"error": str(e)}), 400
         except RuntimeError as e:
             return jsonify({"error": str(e)}), 502
+
+    def _por_sku(fn, *args):
+        """Como `_responder`, pero con el permiso del Árbol del producto."""
+        from app.routes_mapa_sistema import _usuario_puede
+        from app.services.tickets_db import puede_ver_etiquetas_avanzado
+
+        if not (_usuario_puede(_u()) or puede_ver_etiquetas_avanzado(_u())):
+            return jsonify({"error": "Pesar y medir desde el árbol requiere el Studio visual o el taller de combos"}), 403
+        return _responder(fn, *args)
+
+    @app.route("/api/revision-empaque/sku/<sku>", methods=["GET"])
+    @_auth
+    def revision_empaque_sku(sku: str):
+        return _por_sku(R.producto_arbol, sku, _u())
+
+    @app.route("/api/revision-empaque/sku/<sku>/incluir", methods=["POST"])
+    @_auth
+    def revision_empaque_sku_incluir(sku: str):
+        return _por_sku(R.incluir_sku, sku, _u())
+
+    @app.route("/api/revision-empaque/sku/<sku>/producto", methods=["POST"])
+    @_auth
+    def revision_empaque_sku_producto(sku: str):
+        return _por_sku(R.guardar_producto_arbol, sku, request.get_json(silent=True) or {}, _u())
+
+    @app.route("/api/revision-empaque/sku/<sku>/medidas", methods=["POST"])
+    @_auth
+    def revision_empaque_sku_medidas(sku: str):
+        return _por_sku(R.guardar_medidas_propias_arbol, sku, request.get_json(silent=True) or {}, _u())
+
+    @app.route("/api/revision-empaque/sku/<sku>/grupo", methods=["POST"])
+    @_auth
+    def revision_empaque_sku_grupo(sku: str):
+        return _por_sku(R.guardar_grupo_arbol, sku, request.get_json(silent=True) or {}, _u())
+
+    @app.route("/api/revision-empaque/sku/<sku>/meli/releer", methods=["POST"])
+    @_auth
+    def revision_empaque_sku_releer(sku: str):
+        return _por_sku(R.releer_meli_arbol, sku, _u())
+
+    @app.route("/api/revision-empaque/sku/<sku>/meli/aplicar", methods=["POST"])
+    @_auth
+    def revision_empaque_sku_aplicar(sku: str):
+        return _por_sku(R.aplicar_meli_arbol, sku, _u())
 
     @app.route("/api/revision-empaque/por-ticket/<int:ticket_id>", methods=["GET"])
     @_auth

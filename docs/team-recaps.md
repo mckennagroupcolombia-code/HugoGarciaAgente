@@ -1,3 +1,15 @@
+### 2026-10-09 14:40 - Revisión de empaques: tabla de Jenniffer cargada y 43 publicaciones de MeLi corregidas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Operación (MeLi) + corrección. Sin LLM.
+- **Qué se implementó:**
+  - La tabla que Jenniffer subió como captura al TKT-2026-1639 el 6-oct (18 filas pesadas y medidas en Excel, fuera del wizard) quedó cargada en la revisión: 12 por SKU directo y 30 por regla de Armando (mismo dato para colores y presentaciones iguales: karité, cápsulas x1000, proteína kilo, 3 kits reparadores, 18 activos de 30 mL). La revisión va en 42 de 304.
+  - Aplicado en MeLi: 43 de 44 publicaciones con peso y medidas reales (antes había pesos de relleno, p. ej. lanolina 40 g con 1.000 g → 66 g, DPG 500 mL 1.200 g → 555 g). Releídas una por una después de escribir.
+  - MeLi rechazó la cafeína 500 g (MCO610805503): el paquete medido (4×15×20) es menor que las medidas de fábrica de su ficha (8,4×12,2×20,6). Queda para volver a medir, con el citrato 250 g (1 cm) y la proteína kilo (2 cm).
+  - `aplicar_meli` y las lecturas de MeLi reintentan una vez si se corta la conexión, y un corte en una publicación ya no tumba el lote (queda como error de esa publicación).
+  - Comentario a Jenniffer en el TKT: lo cargado, la respuesta a su pregunta de envíos con varios productos y que siga en «Continuar revisión».
+  - Pendiente: la regla de tipos de empaque pone los kits de 4 frascos con el gotero suelto (las medidas quedaron por producto para no pisarlos).
+- **Archivos Modificados:** `app/services/revision_empaque.py`, `tests/test_revision_empaque.py`, `app/data/revision_empaque.db` (fuera de git), `docs/team-recaps.md`.
+
 ### 2026-10-09 13:55 - Árbol del producto: pieza «Envío» (peso y medidas que pide MeLi)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

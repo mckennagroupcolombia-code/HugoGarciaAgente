@@ -246,6 +246,20 @@ pesos menores al contenido). MeLi cobra el flete por ese peso. La revisión crea
   se fotografían al crear y con «Releer MeLi». Base `app/data/revision_empaque.db` (gitignored). Sin LLM.
 - Banco sin backend: `/app/dev/revision.html` (Jenniffer) y `?admin=1` (Armando). Tests: `tests/test_revision_empaque.py`.
 - Crear otra revisión: `revision_empaque.crear_con_solicitud(creador_id, asignado_id)` (lee MeLi, ~20 llamadas).
+- **Lo que MeLi pide** (verificado el 9-oct-2026 en `/categories/{id}/attributes` de las 138 categorías de la cuenta,
+  497 publicaciones): `SELLER_PACKAGE_WEIGHT` (solo g) y `SELLER_PACKAGE_LENGTH` / `_WIDTH` / `_HEIGHT` (solo cm),
+  «paquete del seller» = el paquete de envío tal como se despacha. Los `PACKAGE_*` sin SELLER son los de fábrica y son
+  read-only. `atributos_meli` manda enteros con `value_struct` (formato del publicador de compliance). 18 publicaciones
+  no tenían los 4 atributos; 16 están en Full (3 de combos de la revisión), donde MeLi mide en su bodega y puede
+  reemplazar el dato.
+- **Pieza «Envío» del Árbol del producto** (9-oct-2026): el mismo trabajo para UN combo desde Diseño de producto
+  (`EnvioEmergente.tsx`, 3 pasos: Pesar · Medir · MeLi). Rutas `/api/revision-empaque/sku/<sku>/*` con el permiso del
+  árbol (`_usuario_puede` o `puede_ver_etiquetas_avanzado`): quien diseña el producto pesa y mide; aplicar en MeLi
+  sigue siendo de `puede_aprobar`. De cada SKU manda la fila de la revisión más nueva donde ya se verificó (si en
+  ninguna, la más nueva que lo tiene). Un combo creado después de la revisión se agrega con «Agregar y empezar»
+  (`incluir_sku`, lee MeLi por `seller_sku`: 2-4 llamadas). «Medidas propias» se guardan aparte
+  (`guardar_medidas_propias_arbol`) para no pisar peso ni empaque; medir el tipo de empaque quita las propias.
+  Banco sin backend: `/app/dev/envio.html` (`?admin=1`, `?full=1`, `?nuevo=1`).
 
 ### AK. COA por foto → documento técnico al día (7-oct-2026)
 

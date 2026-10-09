@@ -28,9 +28,12 @@ export type Pieza = {
   // fotos: una por canal, posterior a la etiqueta aprobada
   canales?: Partial<Record<"web" | "meli", { n: number; ultima: string; desactualizada: boolean }>>;
   foto_estado?: string;
+  // envio: el paquete listo para despachar (lo que MeLi pide como SELLER_PACKAGE_*)
+  peso_g?: number | null;
+  medidas?: number[] | null;
 };
 
-export type ClavePieza = "etiquetas" | "fotos" | "ean" | "receta" | "factura" | "meli" | "web";
+export type ClavePieza = "etiquetas" | "fotos" | "ean" | "receta" | "envio" | "factura" | "meli" | "web";
 
 /** Costo de la receta (última compra de cada componente) contra el precio publicado.
  *  app/services/costo_receta.py. Precios con IVA; margen sobre el precio sin IVA. */
@@ -122,6 +125,7 @@ export const PIEZAS: { clave: ClavePieza; nombre: string }[] = [
   { clave: "fotos", nombre: "Fotos" },
   { clave: "ean", nombre: "EAN" },
   { clave: "receta", nombre: "Receta" },
+  { clave: "envio", nombre: "Envío" },
   { clave: "factura", nombre: "Factura" },
   { clave: "meli", nombre: "MeLi" },
   { clave: "web", nombre: "Web" },
@@ -129,9 +133,11 @@ export const PIEZAS: { clave: ClavePieza; nombre: string }[] = [
 export const TOTAL_PIEZAS = PIEZAS.length;
 
 /** Qué pieza del taller resuelve cada hoja del árbol. «factura» no es del taller (se revisa en
- *  Canales del producto) y «fotos» se pega en la columna derecha, bajo su etiqueta. */
+ *  Canales del producto), «fotos» se pega en la columna derecha, bajo su etiqueta, y «envio»
+ *  abre su propio emergente (pesar y medir el paquete: revisionEmpaque/EnvioEmergente). */
 export function piezaTaller(p: Presentacion, clave: ClavePieza): string | null {
   if (clave === "etiquetas") return "etiqueta";
+  if (clave === "envio") return "envio";
   if (clave === "ean") return "ean";
   if (clave === "receta") return p.piezas.receta.pieza_taller || "receta";
   if (clave === "meli" || clave === "web") return "publicacion";

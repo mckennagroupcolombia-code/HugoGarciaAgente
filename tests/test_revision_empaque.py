@@ -200,3 +200,118 @@ def test_entregar_solo_cambia_estado_si_esta_abierta(R, monkeypatch):
     R.entregar(rid, JENNI)  # ya está esperando aprobación: solo comenta
     assert llamadas == ["comentario", "resuelto", "comentario"]
     assert R.estado(rid, JENNI)["revision"]["entregada_en"]
+
+
+# ── La pieza «Envío» del Árbol del producto ─────────────────────────────────────────────
+
+CYNTHIA = {"id": 3, "nombre": "Cynthia"}  # diseña el producto; no es parte de la solicitud
+
+
+def test_atributos_meli_son_los_del_paquete_del_seller_en_su_unidad():
+    from app.services.revision_empaque import atributos_meli
+
+    a = {x["id"]: x["value_struct"] for x in atributos_meli(629.6, (20.1, 16.5, 6.0))}
+    assert a == {"SELLER_PACKAGE_WEIGHT": {"number": 630, "unit": "g"},
+                 "SELLER_PACKAGE_LENGTH": {"number": 21, "unit": "cm"},
+                 "SELLER_PACKAGE_WIDTH": {"number": 17, "unit": "cm"},
+                 "SELLER_PACKAGE_HEIGHT": {"number": 6, "unit": "cm"}}
+
+
+def test_pieza_envio_por_estado(R):
+    rid = R.crear_revision(ADMIN, asignado_id=10)
+    piezas = R.resumen_por_sku()
+    assert piezas["C-POL500G"]["estado"] == "falta"
+
+    # Desde el árbol pesa quien diseña el producto, aunque no sea de la solicitud.
+    R.guardar_producto_arbol("c-pol500g", {"peso_g": 630, "empaque_ok": ["BLS13X21"]}, CYNTHIA)
+    assert R.resumen_por_sku()["C-POL500G"]["estado"] == "aviso"  # falta medir
+
+    R.guardar_grupo_arbol("C-POL500g", {"largo_cm": 21, "ancho_cm": 17, "alto_cm": 6}, CYNTHIA)
+    p = R.resumen_por_sku()["C-POL500G"]
+    assert p["estado"] == "aviso" and "falta aplicarlo" in p["detalle"]  # MeLi dice 2900 g
+
+    # Medir el tipo de empaque sirve a los que lo comparten; 632 g ≈ 630 g en MeLi → listo.
+    R.guardar_producto_arbol("C-OTRO500g", {"peso_g": 632}, CYNTHIA)
+    assert R.resumen_por_sku()["C-OTRO500G"]["estado"] == "ok"
+
+    # Lo del árbol cuenta en la solicitud.
+    assert R.estado(rid, JENNI)["progreso"]["pesados"] == 2
+
+
+def test_wizard_del_arbol_y_medidas_propias(R):
+    R.crear_revision(ADMIN, asignado_id=10)
+    R.guardar_producto_arbol("C-POL500g", {"peso_g": 640, "empaque_ok": ["BLS13X21"], "caja": "ninguna",
+                                           "nota": "con papel burbuja"}, CYNTHIA)
+    R.guardar_grupo_arbol("C-POL500g", {"largo_cm": 21, "ancho_cm": 17, "alto_cm": 6}, CYNTHIA)
+    d = R.producto_arbol("C-POL500g", CYNTHIA)
+    assert d["en_revision"] and not d["puede_aprobar"]
+    assert d["grupo"]["productos"] == 2 and d["grupo"]["medido"]
+    assert [a["value_name"] for a in d["a_enviar"]] == ["640 g", "21 cm", "17 cm", "6 cm"]
+
+    # Las medidas propias no borran el peso ni el empaque confirmado; vacías vuelven a las del tipo.
+    R.guardar_medidas_propias_arbol("C-POL500g", {"largo_cm": 23, "ancho_cm": 18, "alto_cm": 7}, CYNTHIA)
+    p = R.producto_arbol("C-POL500g", CYNTHIA)["producto"]
+    assert p["medidas_finales"] == [23, 18, 7] and p["peso_g"] == 640 and p["empaque_ok"] == ["BLS13X21"]
+    assert p["nota"] == "con papel burbuja"
+    R.guardar_medidas_propias_arbol("C-POL500g", {}, CYNTHIA)
+    assert R.producto_arbol("C-POL500g", CYNTHIA)["producto"]["medidas_finales"] == [21, 17, 6]
+
+    with pytest.raises(PermissionError):
+        R.aplicar_meli_arbol("C-POL500g", CYNTHIA)
+
+
+def test_combo_nuevo_se_agrega_a_la_ultima_revision(R, monkeypatch):
+    rid = R.crear_revision(ADMIN, asignado_id=10)
+    ITEMS["C-POL1000g"] = {"name": "POLVO 1000g", "status": "active"}
+    RECETAS["C-POL1000g"] = [("POLg", 1000), ("BLS13X21", 1)]
+    try:
+        assert R.producto_arbol("C-POL1000g", CYNTHIA) == {
+            "en_revision": False, "sku": "C-POL1000g", "hay_revision": True, "meli_pide": list(R.ATRIBUTOS_MELI)}
+        assert R.resumen_por_sku().get("C-POL1000G") is None
+        with pytest.raises(LookupError):
+            R.guardar_producto_arbol("C-POL1000g", {"peso_g": 1100}, CYNTHIA)
+
+        monkeypatch.setattr(R, "_publicaciones_de_sku", lambda token, sku: [_pub("MCO9", 1200, (25, 18, 8))])
+        R.incluir_sku("C-POL1000g", CYNTHIA)
+        assert R.incluir_sku("C-POL1000g", CYNTHIA)["ya_estaba"]
+        d = R.producto_arbol("C-POL1000g", CYNTHIA)
+        assert d["revision"]["id"] == rid and d["producto"]["meli"][0]["id"] == "MCO9"
+        assert d["grupo"]["clave"] == "BLS13X21 · 1 kg"
+        assert R.estado(rid, ADMIN)["progreso"]["total"] == 7
+        with pytest.raises(LookupError):
+            R.incluir_sku("C-NO-EXISTE", CYNTHIA)
+    finally:
+        ITEMS.pop("C-POL1000g")
+        RECETAS.pop("C-POL1000g")
+
+
+def test_aplicar_sigue_si_se_corta_la_conexion(R, monkeypatch):
+    rid = R.crear_revision(ADMIN, asignado_id=10)
+    R.guardar_producto(rid, "C-LIQ500mL", {"peso_g": 930}, JENNI)
+    R.guardar_grupo(rid, "ENVBTR500cc", {"largo_cm": 22, "ancho_cm": 13, "alto_cm": 9}, JENNI)
+    monkeypatch.setattr(R.time, "sleep", lambda s: None)
+
+    class Resp:
+        ok, status_code, text = True, 200, ""
+
+        def json(self):
+            return {"id": "x", "status": "active", "attributes": [{"id": "SELLER_SKU", "value_name": "C-LIQ500mL"}]}
+
+    intentos = {"MCO3": 0}
+
+    def put(url, **kw):
+        id_ = url.rsplit("/", 1)[-1]
+        if id_ == "MCO4":
+            raise R.requests.ConnectionError("reset")       # siempre se corta
+        intentos["MCO3"] += 1
+        if intentos["MCO3"] == 1:
+            raise R.requests.ConnectionError("reset")       # se corta una vez y el reintento entra
+        return Resp()
+
+    monkeypatch.setattr(R.requests, "get", lambda url, **kw: Resp())
+    monkeypatch.setattr(R.requests, "put", put)
+    r = R.aplicar_meli(rid, ["C-LIQ500mL"], ADMIN)["resultados"][0]
+    pubs = {p["id"]: p for p in r["publicaciones"]}
+    assert pubs["MCO3"]["ok"] and intentos["MCO3"] == 2
+    assert not pubs["MCO4"]["ok"] and "Sin conexión" in pubs["MCO4"]["error"]
+    assert not r["ok"]  # queda pendiente para volver a aplicar

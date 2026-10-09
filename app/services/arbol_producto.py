@@ -5,9 +5,11 @@ Categoría → familia (materia prima) → presentación (combo C-…) → pieza
 
 No calcula nada nuevo: junta lo que ya producen el taller de combos
 (`mapa_producto.anatomia_combos`: receta, documento, EAN, etiqueta con sus dos PNG,
-foto) y Canales del producto (`canales_producto.tabla_maestra`: MeLi, web y si el
-SKU se puede facturar en Alegra, contra la copia local). Así el árbol, el taller y
-Canales no pueden contar distinto. Solo lectura, sin LLM y sin llamadas vivas.
+foto), Canales del producto (`canales_producto.tabla_maestra`: MeLi, web y si el
+SKU se puede facturar en Alegra, contra la copia local) y la revisión de pesos y
+medidas (`revision_empaque.resumen_por_sku`: el paquete de envío que MeLi pide). Así
+el árbol, el taller, Canales y la solicitud no pueden contar distinto. Solo lectura,
+sin LLM y sin llamadas vivas.
 
 La categoría es la `linea` del combo, la misma regla de la web
 (`website._combo_category_from_siigo`, vía `mapa_producto._categoria_web`).
@@ -23,8 +25,9 @@ from typing import Any
 
 SIN_CATEGORIA = "Sin categoría en la web"
 
-# Las seis piezas de una presentación, en el orden en que se leen en el árbol.
-PIEZAS = ("etiquetas", "fotos", "ean", "receta", "factura", "meli", "web")
+# Las piezas de una presentación, en el orden en que se leen en el árbol. «envio» = peso y
+# medidas del paquete listo para despachar (lo que MeLi pide como SELLER_PACKAGE_*).
+PIEZAS = ("etiquetas", "fotos", "ean", "receta", "envio", "factura", "meli", "web")
 
 CANALES_FOTO = (("web", "web"), ("meli", "MeLi"))
 
@@ -147,6 +150,15 @@ def _meli(fila: dict | None, esl: dict) -> dict:
     return _pieza("aviso", "Sin publicación en MeLi.", **extra)
 
 
+def _envio(envios: dict | None, ref: Any) -> dict:
+    if envios is None:
+        return _pieza("aviso", "No se pudo leer la revisión de pesos y medidas.")
+    e = envios.get(_u(ref))
+    if not e:
+        return _pieza("falta", "Sin pesar ni medir el paquete.")
+    return _pieza(e["estado"], e["detalle"], **{k: v for k, v in e.items() if k not in ("estado", "detalle")})
+
+
 def _web(fila: dict | None) -> dict:
     w = ((fila or {}).get("canales") or {}).get("web") or {}
     if w.get("estado") == "publicado":
@@ -255,6 +267,14 @@ def arbol(refrescar: bool = False) -> dict:
         fotos_sku = {}
         sin_senal.append({"fuente": "Fotos de producto", "error": str(exc)[:160]})
 
+    try:
+        from app.services import revision_empaque
+
+        envios = revision_empaque.resumen_por_sku()
+    except Exception as exc:
+        envios = None
+        sin_senal.append({"fuente": "Revisión de pesos y medidas", "error": str(exc)[:160]})
+
     # Costo de la receta contra el precio publicado (última compra de cada componente).
     try:
         from app.services import costo_receta
@@ -277,6 +297,7 @@ def arbol(refrescar: bool = False) -> dict:
                           (esl.get("ean") or {}).get("detalle") or "",
                           codigo=(esl.get("ean") or {}).get("codigo") or ""),
             "receta": _receta(esl),
+            "envio": _envio(envios, c.get("ref")),
             "factura": _factura(fila),
             "meli": _meli(fila, esl),
             "web": _web(fila),

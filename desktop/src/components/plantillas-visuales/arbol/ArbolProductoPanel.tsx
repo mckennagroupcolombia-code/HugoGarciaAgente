@@ -10,14 +10,17 @@
  * Categoría → familia (materia prima) → presentación (combo) → pieza.
  *
  * Datos: `GET /api/mapa-sistema/arbol-producto` (app/services/arbol_producto.py), que junta el
- * taller, Canales y las fotos; no calcula nada propio. Ninguna escritura nace aquí: los emergentes
- * son los de siempre (components/combos/PiezasCombo.tsx) y editar la etiqueta abre el editor del Studio.
+ * taller, Canales, las fotos y la revisión de pesos y medidas; no calcula nada propio. Ninguna
+ * escritura nace aquí: los emergentes son los de siempre (components/combos/PiezasCombo.tsx), la
+ * pieza «Envío» abre el de la revisión (revisionEmpaque/EnvioEmergente.tsx) y editar la etiqueta
+ * abre el editor del Studio.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fetchAuthBlobUrl } from "../../../api/client";
 import { useAppStore } from "../../../stores/app";
 import { CrearComboVentana, ResolverPieza } from "../../combos/PiezasCombo";
+import EnvioEmergente from "../../revisionEmpaque/EnvioEmergente";
 import { Sprite } from "../../colaboradores/pixel";
 import "../../colaboradores/pixel.css";
 import type { Respuesta } from "../../combos/comun";
@@ -79,6 +82,7 @@ function siguientePieza(p: Presentacion, f: Familia): string | null {
     [f.documento.estado, "documento"],
     [p.piezas.ean.estado, "ean"],
     [p.piezas.etiquetas.estado, "etiqueta"],
+    [p.piezas.envio.estado, "envio"],
     [p.piezas.meli.estado === "ok" && p.piezas.web.estado === "ok" ? "ok" : "aviso", "publicacion"],
   ];
   return orden.find(([e]) => e === "falta")?.[1] ?? orden.find(([e]) => e === "aviso")?.[1] ?? null;
@@ -171,7 +175,15 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
     enabled: Boolean(resolver),
     staleTime: 30_000,
   });
-  const abrirPieza = (ref: string, pieza: string) => setResolver((r) => ({ ref, pieza, n: (r?.n ?? 0) + 1 }));
+  // «Envío» (pesar y medir el paquete) tiene su propio emergente, el de la revisión de empaques.
+  const [envio, setEnvio] = useState<{ ref: string; nombre: string } | null>(null);
+  const abrirPieza = (ref: string, pieza: string) => {
+    if (pieza === "envio") {
+      const p = cats.flatMap((c) => c.familias.flatMap((f) => f.presentaciones)).find((x) => x.ref === ref);
+      return setEnvio({ ref, nombre: p?.nombre ?? ref });
+    }
+    setResolver((r) => ({ ref, pieza, n: (r?.n ?? 0) + 1 }));
+  };
   /** Documento técnico ya generado: el botón muestra el PDF aprobado, no el formulario. La
    *  pestaña se abre antes del fetch (dentro del clic) para que el navegador no la bloquee. */
   const verPdfAprobado = async (archivo: string) => {
@@ -351,6 +363,10 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
       {resolver && combos.data && (
         <ResolverPieza key={resolver.n} datos={combos.data} refCombo={resolver.ref} pieza={resolver.pieza}
           onCerrar={() => { setResolver(null); void qc.invalidateQueries({ queryKey: ["arbol-producto"] }); }} />
+      )}
+      {envio && (
+        <EnvioEmergente key={envio.ref} sku={envio.ref} nombre={envio.nombre}
+          onCerrar={() => { setEnvio(null); void qc.invalidateQueries({ queryKey: ["arbol-producto"] }); }} />
       )}
       {crearCombo && <CrearComboVentana refProducto={crearCombo.ref} nombre={crearCombo.nombre} onCerrar={() => setCrearCombo(null)} />}
       {datos.data?.sin_senal?.length ? (
@@ -578,6 +594,8 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
         )}
         <Fila estado={p.alegra.estado} titulo="Alegra" valor={`${p.alegra.detalle}${p.precio_lista ? ` · lista ${pesos(p.precio_lista)}` : ""}`} onClick={() => onPieza("receta")} accion="resolver" />
         <Fila estado={p.piezas.receta.estado} titulo="Receta" valor={p.piezas.receta.detalle} onClick={() => onPieza(p.piezas.receta.pieza_taller || "receta")} accion="resolver" />
+        <Fila estado={p.piezas.envio.estado} titulo="Envío" valor={p.piezas.envio.detalle} onClick={() => onPieza("envio")}
+          accion={p.piezas.envio.estado === "falta" ? "pesar" : "revisar"} />
         <Fila estado={p.piezas.factura.estado} titulo="Factura" valor={p.piezas.factura.detalle} />
         <Fila estado={p.piezas.ean.estado} titulo="EAN" valor={p.piezas.ean.codigo || p.piezas.ean.detalle} onClick={() => onPieza("ean")} accion="resolver" />
         <Fila estado={familia.documento.estado} titulo="Doc. técnico" valor={familia.documento.detalle || "Sin documento"} onClick={() => onPieza("documento")} accion="resolver" />

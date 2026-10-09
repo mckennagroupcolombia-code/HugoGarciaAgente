@@ -1,7 +1,7 @@
 /**
  * El cladograma: la materia prima es la raíz (con su documento técnico, que heredan todas
  * sus presentaciones), de ella sale una rama por presentación (combo C-…) y cada rama se
- * abre en sus siete hojas. Tocar la presentación la elige; tocar una hoja la resuelve en su
+ * abre en sus hojas (las piezas). Tocar la presentación la elige; tocar una hoja la resuelve en su
  * emergente, encima del árbol.
  *
  * Estilo pixel del Mapa (arbol.css, variables --ed-* que cada tema recolorea): nodos como
@@ -20,6 +20,7 @@ export const SPRITE_PIEZA: Record<ClavePieza, SpriteId> = {
   fotos: "foto",
   ean: "codigo",
   receta: "bolsa",
+  envio: "camion",
   factura: "moneda",
   meli: "estrella",
   web: "ventana",

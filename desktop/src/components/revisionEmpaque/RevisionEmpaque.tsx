@@ -13,7 +13,7 @@ import { Ico } from "../../icons/Ico";
  * creó la revisión o un administrador). Backend: /api/revision-empaque/* (sin LLM).
  */
 
-type MeliRef = {
+export type MeliRef = {
   id: string;
   status: string;
   titulo: string;
@@ -22,10 +22,12 @@ type MeliRef = {
   largo_cm: number | null;
   ancho_cm: number | null;
   alto_cm: number | null;
+  /** cross_docking, fulfillment (Full), self_service (Flex)… */
+  logistica?: string;
 };
-type Pieza = { sku: string; nombre: string; cantidad: number; casilla: string };
+export type Pieza = { sku: string; nombre: string; cantidad: number; casilla: string };
 type Resultado = { publicaciones: { id: string; ok: boolean; error?: string }[] };
-type Producto = {
+export type Producto = {
   sku: string;
   nombre: string;
   presentacion: string;
@@ -52,7 +54,7 @@ type Producto = {
   listo: boolean;
   diferencia: boolean;
 };
-type Grupo = {
+export type Grupo = {
   clave: string;
   nombre: string;
   rigido: number;
@@ -97,14 +99,14 @@ type Paso = "pesar" | "medir" | "entregar" | "aprobar";
 export const SUBTIPO_REVISION_EMPAQUE = "revision_empaque";
 
 // Lo que se confirma a la vista; etiquetas, tapas y protección siguen en la receta sin preguntar.
-const CASILLAS_VISIBLES = new Set(["envase", "bolsa", "caja", "kit"]);
+export const CASILLAS_VISIBLES = new Set(["envase", "bolsa", "caja", "kit"]);
 
-function fmtPeso(g: number | null | undefined): string {
+export function fmtPeso(g: number | null | undefined): string {
   if (!g) return "—";
   return g >= 1000 ? `${(g / 1000).toLocaleString("es-CO", { maximumFractionDigits: 2 })} kg` : `${Math.round(g)} g`;
 }
 
-function fmtMedidas(m: (number | null)[] | null | undefined): string {
+export function fmtMedidas(m: (number | null)[] | null | undefined): string {
   if (!m || m.length !== 3 || m.some((x) => !x)) return "—";
   return `${m.map((x) => Number(x).toLocaleString("es-CO", { maximumFractionDigits: 1 })).join(" × ")} cm`;
 }

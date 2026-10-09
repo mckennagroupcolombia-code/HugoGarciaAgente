@@ -348,9 +348,14 @@ web vs MeLi (MeLi sin dato local todavía). Alimenta el bloqueo de «Publicar» 
 El grupo del menú «Diseño» se llama **«Diseño de producto»**. Studio visual abre en **«Árbol del producto»**
 (`plantillas-visuales/arbol/`, `app/services/arbol_producto.py`, `GET /api/mapa-sistema/arbol-producto`): categoría (la
 `linea` de la web) → familia (materia prima, con su documento técnico como raíz) → presentación (combo C-…, con la foto
-de la vitrina) → **siete** hojas: etiquetas · fotos · EAN · receta · factura · MeLi · web. **Una sola vista**, sin
-pantallas aparte. **No calcula nada propio**: junta `mapa_producto.anatomia_combos`, `canales_producto.tabla_maestra` y
-`fotos_producto.por_sku()`.
+de la vitrina) → **ocho** hojas: etiquetas · fotos · EAN · receta · **envío** · factura · MeLi · web. **Una sola vista**,
+sin pantallas aparte. **No calcula nada propio**: junta `mapa_producto.anatomia_combos`, `canales_producto.tabla_maestra`,
+`fotos_producto.por_sku()` y `revision_empaque.resumen_por_sku()`.
+- **La pieza «Envío»** (9-oct-2026): peso y medidas del paquete listo para despachar, lo que MeLi pide como
+  `SELLER_PACKAGE_*`. Es la revisión del TKT-2026-1639 vista desde el producto (ficha `operacion-equipo.md`, AG): misma
+  base, lo que se pesa en el árbol cuenta en la solicitud y al revés. La hoja (o la fila «Envío») abre
+  `revisionEmpaque/EnvioEmergente.tsx` encima del árbol, no `ResolverPieza`. Al agregarla ningún combo quedó completo
+  (0 de 331 pesados): es lo esperado hasta que se pesen.
 - **El «Taller de combos» ya no existe como panel** (se borraron `CombosPanel.tsx` y `MisionCombos.tsx`: tablero, lista,
   marcador). Lo que servía quedó en `components/combos/PiezasCombo.tsx`: `ResolverPieza` = el emergente de cada pieza
   (pregunta que guía, «siguiente pendiente», ventanas de Códigos EAN / Docs técnicos / kit de Alegra, moneda y
