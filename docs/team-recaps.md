@@ -5692,3 +5692,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `static/js/prod-zoom.js`: lupa redonda (190 px) que aumenta la foto en vivo. Computador: sigue al cursor sobre la foto y la rueda cambia el aumento (1,5× a 6×, se muestra en la lupa). Celular: mantener el dedo 250 ms saca la lupa 110 px encima del dedo y se arrastra; al soltar desaparece (no abre el visor). Clic/toque corto sigue abriendo el visor de pantalla completa. `producto.html` sube a `?v=20261009b`.
 - **Verificado:** Chrome headless en mckennagroup.co/producto/c-aceesealb5ml, escritorio (lupa + rueda a 3×) y Pixel 7 emulado (lupa al mantener el dedo), sin errores JS.
 - **Archivos Modificados:** `PAGINA_WEB/site/static/js/prod-zoom.js`, `PAGINA_WEB/site/templates/producto.html`, `docs/team-recaps.md`
+
+## 2026-10-09 — Jabón potásico de vuelta en «Agro» del Árbol del producto
+- Pedido del usuario: `C-JABPOTLt` se perdió del Árbol; su categoría es Agro, no «Otros».
+- Causa 1: el documento `ft_coa_sds_jabon_potasico_con_fito_hormonas.yaml` declaraba `JABPOTLt` (sin `C-`), así que el combo no lo encontraba y heredaba el del ácido salicílico (salía como «ÁCIDO SALICÍLICO»). Se fijó `referencia: C-JABPOTLt` con `mapa_producto.fijar_sku_documento`.
+- Causa 2: el jabón no está en la web y la regla de la tienda lo deja en «Otros». `arbol_producto.arbol`: un combo sin publicar que cae en «Otros» toma la carpeta de ETIQUETAS STUDIO de su etiqueta (`categoria_png`, aquí «Agro»); `_CARPETA_A_CATEGORIA` traduce «Semillas & Frutos Secos» → «Frutos secos y semillas».
+- Archivos: `app/services/arbol_producto.py`, `fichas_word/datos/ft_coa_sds_jabon_potasico_con_fito_hormonas.yaml`, `docs/team-recaps.md`.

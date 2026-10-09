@@ -28,6 +28,9 @@ PIEZAS = ("etiquetas", "fotos", "ean", "receta", "factura", "meli", "web")
 
 CANALES_FOTO = (("web", "web"), ("meli", "MeLi"))
 
+# Carpetas de ETIQUETAS STUDIO que en la web tienen otro nombre de sección.
+_CARPETA_A_CATEGORIA = {"Semillas & Frutos Secos": "Frutos secos y semillas"}
+
 
 def _u(s: Any) -> str:
     return str(s or "").strip().upper()
@@ -305,6 +308,11 @@ def arbol(refrescar: bool = False) -> dict:
             "listas": sum(1 for p in piezas.values() if p["estado"] == "ok"),
         }
         linea = c.get("linea") or SIN_CATEGORIA
+        # Sin publicar en la web, la regla de la tienda deja en «Otros» lo que no reconoce (el
+        # jabón potásico, que es Agro). Ahí manda la carpeta del Studio donde está su etiqueta.
+        carpeta = piezas["etiquetas"].get("categoria_png") or ""
+        if carpeta and not c.get("linea_publicada") and linea in ("Otros", SIN_CATEGORIA):
+            linea = _CARPETA_A_CATEGORIA.get(carpeta, carpeta)
         mp = next((k for k in c.get("componentes") or [] if k.get("casilla") == "materia_prima"), None)
         clave = c.get("familia") or f"solo:{c.get('ref')}"
         fam = categorias.setdefault(linea, {}).setdefault(clave, {
