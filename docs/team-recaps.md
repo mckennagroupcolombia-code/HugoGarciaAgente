@@ -5707,7 +5707,7 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 
 ## 2026-10-09 — C-JABPOTLt publicado: MeLi $22.900 con foto nueva y alta en la web (Agrícola → Agro)
 - Pedido del usuario: publicar `C-JABPOTLt` a $22.900; la publicación de MeLi ya existía (MCO3793586824), faltaba foto nueva y no estaba en la web.
-- MeLi: precio 25.000 → 22.900; fotos = la nueva de Cynthia (marca desenfocada) + infografía + beaker (salieron las dos con la etiqueta vieja); GTIN 7703050012643. Envío gratis quedó como estaba (activo).
+- MeLi: precio 25.000 → 22.900; fotos = la nueva de Cynthia (marca desenfocada) + infografía + beaker (salieron las dos con la etiqueta vieja); GTIN 7703050012643. Envío gratis propio quitado (free_shipping=false, como la sal de 6.400): aplica el de MeLi por carrito ≥ $60.000.
 - Alegra `precio_lista` 22.900; despliegue (`registrar_publicacion_nueva`), foto web, stock 3 en todas las plataformas, Hoja 1 fila 389. Web $20.610 (−10 %).
 - `website._combo_category_from_siigo`: jabón potásico → «Agrícola» (línea Agro); antes caía en «Otros».
 - `website._presentation_label`: un nombre que termina en «LITRO» sin número es «1L» (el título salía «… C-JABPOTLt»).
