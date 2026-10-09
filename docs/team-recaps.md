@@ -5666,3 +5666,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `ProductLabelForm.tsx`: en Agro el bloque GHS + información técnica + modo de uso ocupa las 3 filas de la columna derecha (`row-span-3`) y Pureza/CAS + cuchara quedan al fondo de esa misma celda. Así el texto baja hasta la fila 3 en vez de estirar toda la cuadrícula. El resto de categorías sigue igual (filas 1-2 + fila 3). Pureza/CAS + cuchara pasan a `identidadYCuchara` para no duplicarlos.
 - **Verificado:** `npm run build` limpio. No se capturó la etiqueta.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+## 2026-10-09 — «Modo de uso» Agro centrado
+- Pedido del usuario: el texto del modo de uso centrado como los demás textos de la columna.
+- `TechnicalDocuments.tsx`: título y texto del recuadro pasan de `text-left` a `text-center`.
+- **Verificado:** `npm run build` limpio.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/TechnicalDocuments.tsx`, `docs/team-recaps.md`

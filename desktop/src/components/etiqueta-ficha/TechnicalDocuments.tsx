@@ -65,7 +65,7 @@ export default function TechnicalDocuments({
         />
       </div>
       {onModoUsoChange && (
-        <div className="mt-[10px] w-full rounded-[4px] border-[1.5px] border-[color:var(--acento)] px-3 py-2 text-left">
+        <div className="mt-[10px] w-full rounded-[4px] border-[1.5px] border-[color:var(--acento)] px-3 py-2 text-center">
           <EditableLabel
             texto="Modo de uso:"
             editMode={editMode}
@@ -81,7 +81,7 @@ export default function TechnicalDocuments({
             multiline
             styleKey="modoUso"
             defaultFontSize={12}
-            className="mt-[4px] block whitespace-pre-line break-words text-left text-[#111111]"
+            className="mt-[4px] block whitespace-pre-line break-words text-center text-[#111111]"
           />
         </div>
       )}
