@@ -274,6 +274,8 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     // «Modo de uso» del formulario FT+COA+SDS, resumido: en la ficha es un
     // párrafo y en la etiqueta 30 mL la casilla tiene tres renglones.
     modoUso: sintetizarModoUso(texto(datos.modo_uso)) || FICHA_SIN_DATO,
+    // La casilla de la etiqueta Agro es más grande: el mismo resumen, más largo.
+    modoUsoAgro: sintetizarModoUso(texto(datos.modo_uso), MAX_PALABRAS_MODO_USO_AGRO) || FICHA_SIN_DATO,
     // Beneficios del formato vertical 38 × 102: dos, de máximo 10 palabras.
     ...beneficiosDesdeFicha(datos),
     peso: pesoRaw || FICHA_SIN_DATO,
@@ -493,6 +495,9 @@ function quitarEncabezadosModoUso(texto: string): string {
 
 /** Tope de la casilla «Modo de uso» (30 mL): tres renglones, como Conservación. */
 export const MAX_PALABRAS_MODO_USO = 25;
+
+/** Tope de la casilla «Modo de uso» de la etiqueta Agro (regla del usuario). */
+export const MAX_PALABRAS_MODO_USO_AGRO = 70;
 
 /** Resume el modo de uso de la ficha técnica a sus primeras frases
  *  completas, sin muletillas («Se recomienda…», «Es importante…»), hasta

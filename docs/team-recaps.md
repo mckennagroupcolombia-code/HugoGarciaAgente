@@ -5653,3 +5653,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `lib/fichaTecnicaCampos.ts`: se descartan fragmentos sin letras y, en textos por secciones, `quitarEncabezadosModoUso` quita numerales, subtítulos cortos sin punto ni cifras y renglones de presentación que terminan en «:». Jabón → «Preventivo / Mantenimiento: 5 a 10 g por litro de agua (0.5% - 1.0%).»
 - **Verificado:** comparación viejo/nuevo sobre los 180 documentos con modo de uso: cambian 3 (jabón potásico y los dos de alcohol cetoestearílico, que pierden el subtítulo «Cremas Hidratantes y Lociones Corporales:»). `npm run build` limpio.
 - **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `docs/team-recaps.md`
+
+## 2026-10-09 — «Modo de uso» de la etiqueta Agro hasta 70 palabras
+- Pedido del usuario: en la etiqueta Agro el modo de uso puede llevar un texto de unas 70 palabras (antes se resumía a 25, el tope de la casilla del 30 mL).
+- Campo nuevo `modoUsoAgro`: el mismo `modo_uso` del documento técnico resumido con `sintetizarModoUso(…, MAX_PALABRAS_MODO_USO_AGRO = 70)`. Se mapea y sincroniza como los demás campos de producto (`fichaTecnicaAplicar`, `fichaTecnicaSync`, `CAMPOS_PRODUCTO`).
+- `ProductLabelForm.tsx`: la casilla Agro muestra `modoUsoAgro || modoUso` y lo editado a mano va a `modoUsoAgro`. El 30 mL sigue con `modoUso` (25 palabras).
+- **Verificado:** `npm run build` limpio.
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `desktop/src/lib/fichaTecnicaAplicar.ts`, `desktop/src/lib/fichaTecnicaSync.ts`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`

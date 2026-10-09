@@ -108,6 +108,10 @@ export interface ProductLabelData {
    *  trae el `modo_uso` de la ficha técnica, resumido (ver
    *  `sintetizarModoUso`); se corrige a mano en la etiqueta. */
   modoUso?: string;
+  /** Casilla «Modo de uso» de la etiqueta Agro: el mismo `modo_uso` de la
+   *  ficha, resumido hasta `MAX_PALABRAS_MODO_USO_AGRO` (70). Vacío → se
+   *  muestra `modoUso`. */
+  modoUsoAgro?: string;
   /** Razón social sobre el arco izquierdo. Dato de plantilla. */
   empresa?: string;
   /** Registro sanitario, sobre el arco inferior izquierdo. */
@@ -349,6 +353,7 @@ export const PRODUCTO_VACIO: ProductLabelData = {
   descripcionProducto: "",
   aplicaciones: "",
   modoUso: "",
+  modoUsoAgro: "",
   registro: "",
 };
 
@@ -381,6 +386,7 @@ export const CAMPOS_PRODUCTO = [
   "descripcionProducto",
   "aplicaciones",
   "modoUso",
+  "modoUsoAgro",
   "beneficio1",
   "beneficio2",
   "beneficio3",

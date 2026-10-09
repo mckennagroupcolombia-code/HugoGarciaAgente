@@ -1698,8 +1698,8 @@ function ProductLabelFormInner({
                 onTechnicalDocumentsChange={(v) => onChange({ technicalDocuments: v })}
                 onWebsiteChange={(v) => onChange({ website: v })}
                 editMode={editMode}
-                modoUso={data.modoUso}
-                onModoUsoChange={categoria === "agro" ? (v) => onChange({ modoUso: v }) : undefined}
+                modoUso={data.modoUsoAgro || data.modoUso}
+                onModoUsoChange={categoria === "agro" ? (v) => onChange({ modoUsoAgro: v }) : undefined}
               />
             </div>
             <div className="flex flex-col items-center justify-center gap-[14px] py-4">

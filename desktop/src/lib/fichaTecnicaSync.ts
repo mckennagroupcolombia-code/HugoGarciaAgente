@@ -67,6 +67,7 @@ export const NOMBRE_CAMPO: Record<string, string> = {
   descripcionProducto: "descripción",
   aplicaciones: "aplicaciones",
   modoUso: "modo de uso",
+  modoUsoAgro: "modo de uso",
   beneficio1: "beneficio 1",
   beneficio2: "beneficio 2",
   ghs: "pictograma GHS",

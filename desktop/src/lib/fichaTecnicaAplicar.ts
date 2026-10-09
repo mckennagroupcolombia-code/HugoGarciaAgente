@@ -33,6 +33,7 @@ const MAPA_A_PRODUCT_LABEL: Partial<Record<string, keyof ProductLabelData>> = {
   descripcion: "descripcionProducto",
   aplicaciones: "aplicaciones",
   modoUso: "modoUso",
+  modoUsoAgro: "modoUsoAgro",
   beneficio1: "beneficio1",
   beneficio2: "beneficio2",
   peso: "netContent",
