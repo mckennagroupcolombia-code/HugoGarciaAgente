@@ -471,6 +471,26 @@ export function sintetizarConservacion(
   return out;
 }
 
+/** Modo de uso escrito por secciones («1. Dosificación estándar», «Al ser una
+ *  pasta…, se calcula por volumen de agua:», luego las dosis): se quitan los
+ *  numerales y subtítulos sin punto final y los renglones que solo presentan
+ *  lo que viene (terminan en «:»), para que el resumen empiece por la
+ *  instrucción. Un párrafo de un solo renglón pasa igual. */
+function quitarEncabezadosModoUso(texto: string): string {
+  const renglones = texto
+    .split(/\n+/)
+    .map((l) => l.replace(/^[\s.\-•·*]*(?:\d+[.)]\s*)?/, "").trim())
+    .filter(Boolean);
+  if (renglones.length < 2) return texto;
+  const utiles = renglones.filter((l, i) => {
+    if (!/\p{L}/u.test(l)) return false;
+    const subtitulo = !/[.!?;:]$/.test(l) && !/\d/.test(l) && l.split(/\s+/).length <= 8;
+    const presentacion = /:$/.test(l) && i < renglones.length - 1;
+    return !subtitulo && !presentacion;
+  });
+  return utiles.length ? utiles.join("\n") : texto;
+}
+
 /** Tope de la casilla «Modo de uso» (30 mL): tres renglones, como Conservación. */
 export const MAX_PALABRAS_MODO_USO = 25;
 
@@ -480,12 +500,13 @@ export const MAX_PALABRAS_MODO_USO = 25;
  *  oleosa…» → «Uso externo y siempre diluido.» Si la primera frase ya se
  *  pasa, se recorta por cláusulas. */
 export function sintetizarModoUso(texto: string, maxPalabras = MAX_PALABRAS_MODO_USO): string {
-  const limpio = (texto || "").replace(/\s+/g, " ").trim();
+  const limpio = quitarEncabezadosModoUso(texto || "").replace(/\s+/g, " ").trim();
   if (!limpio) return "";
   const frases = limpio
     .split(/(?<=[.;])\s+/)
     .map((f) => limpiarFrase(f.trim()))
-    .filter(Boolean);
+    // Un «.» o «1.» suelto no es una frase (antes quedaba como resumen).
+    .filter((f) => /\p{L}/u.test(f));
   let out = "";
   for (const frase of frases) {
     if (!out) {

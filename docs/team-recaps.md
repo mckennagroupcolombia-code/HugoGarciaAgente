@@ -5646,3 +5646,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `ProductLabelForm.tsx` lo pasa solo cuando la categoría es `agro`; el resto de fichas de dos columnas no cambia. Ejemplo gris en `EJEMPLO_ETIQUETA.modoUso`.
 - **Verificado:** `npm run build` limpio.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/TechnicalDocuments.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `docs/team-recaps.md`
+
+## 2026-10-09 — «Modo de uso» del documento técnico salía como «.»
+- Pedido del usuario: la casilla nueva de la plantilla Agro no traía el modo de uso del documento técnico.
+- Causa: el documento del jabón potásico empieza con «. Dosificación estándar» (se perdió el «1.») y `sintetizarModoUso` tomaba ese «.» como primera frase.
+- `lib/fichaTecnicaCampos.ts`: se descartan fragmentos sin letras y, en textos por secciones, `quitarEncabezadosModoUso` quita numerales, subtítulos cortos sin punto ni cifras y renglones de presentación que terminan en «:». Jabón → «Preventivo / Mantenimiento: 5 a 10 g por litro de agua (0.5% - 1.0%).»
+- **Verificado:** comparación viejo/nuevo sobre los 180 documentos con modo de uso: cambian 3 (jabón potásico y los dos de alcohol cetoestearílico, que pierden el subtítulo «Cremas Hidratantes y Lociones Corporales:»). `npm run build` limpio.
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `docs/team-recaps.md`
