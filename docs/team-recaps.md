@@ -1,3 +1,11 @@
+### 2026-10-08 22:40 - MeLi + web: sal marina ahumada 250 g publicada
+- **Autor:** Armando García
+- **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.
+- **Qué se implementó:**
+  - `C-SALMARAHU250g` → MeLi **MCO2267503215** «Sal Marina Ahumada Gruesa Grano 2-5 Mm 250g», $6.700, stock 20, envío a cargo del comprador, cat. MCO413201 «Sal» (taxonomía y empaque de la sal rosada gruesa 250 g MCO2240817125), GTIN 7702772502647. Web $6.030 (MeLi −10 %); con la de 500 g forma la ficha «Sal marina ahumada» de dos presentaciones.
+  - Alegra: precio de lista $0 → $6.700.
+- **Archivos Modificados:** `app/data/despliegue_ventas.json`, `app/data/publicaciones_overrides.json`, `docs/team-recaps.md`.
+
 ### 2026-10-08 21:35 - MeLi + web: sal marina ahumada 500 g publicada
 - **Autor:** Armando García
 - **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.

@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-08T21:30:34",
+ "actualizado": "2026-10-08T22:30:27",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
@@ -1951,6 +1951,15 @@
    "meli_ids": [
     "MCO2267210143"
    ]
+  },
+  "C-SALMARAHU250G": {
+   "nombre": "SAL MARINA AHUMADA 250g",
+   "titulo_meli": "Sal Marina Ahumada Gruesa Grano 2-5 Mm 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2267503215"
+   ]
   }
  },
  "excluidas": [
@@ -2386,6 +2395,12 @@
    "sku": "C-SALMARAHU500G",
    "titulo": "Sal Marina Ahumada Gruesa Grano 2-5 Mm 500g",
    "desde": "2026-10-08T21:30:34",
+   "por": "armando"
+  },
+  "MCO2267503215": {
+   "sku": "C-SALMARAHU250G",
+   "titulo": "Sal Marina Ahumada Gruesa Grano 2-5 Mm 250g",
+   "desde": "2026-10-08T22:30:27",
    "por": "armando"
   }
  }
