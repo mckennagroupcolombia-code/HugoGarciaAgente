@@ -1,3 +1,13 @@
+### 2026-10-09 13:35 - WhatsApp: datos de pago a una cliente y cuenta bancaria falsa eliminada
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (operación + limpieza de datos). Sin LLM.
+- **Qué se implementó:**
+  - Pedido IA #60 (Ana María Hincapie, Ácido Láctico 85 % 30 mL + envío Bogotá = $27.250): el bot le prometió que un asesor le daría los datos de pago y nadie se los dio en 2 h. Se verificaron precio, stock y envío y se le envió el total + la llave Bre-B 0066302076 con la tarjeta QR oficial, por el endpoint del panel (queda como mensaje humano).
+  - La biblioteca de WhatsApp tenía un ítem «Cuenta Bancolombia» con datos de relleno (Nro 123-456789-00, NIT 900.123.456-7): eliminado. Solo se había enviado una vez, el 27-may, al número interno del equipo; ningún cliente lo recibió.
+  - Esa prueba quedó copiada 3 veces como «respuesta humana» en `candidatos_casos_whatsapp.json`: quitadas (2.251 → 2.248 pares). El cambio ya lo había subido el backup nocturno (a4a92959).
+  - Pendiente: la etiqueta de `C-ACDLAC85P30ML` sigue sin aprobar (está fuera del despliegue MeLi/web); un ítem de archivo enviado desde la biblioteca queda registrado dos veces en el chat del panel.
+- **Archivos Modificados:** `app/training/candidatos_casos_whatsapp.json`, `app/data/wa_biblioteca.db` (fuera de git), `docs/team-recaps.md`.
+
 ### 2026-10-09 00:55 - MeLi + web: nuez del nogal 500 g publicada
 - **Autor:** Armando García
 - **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.
