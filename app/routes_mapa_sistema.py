@@ -412,6 +412,34 @@ def register_mapa_sistema_routes(app):
             return jsonify({"error": "Acción desconocida"}), 404
         return _ajedrez(acciones[accion])
 
+    @_dual(app, "/api/empresa-viva/vecindario", methods=["GET"])
+    def empresa_viva_vecindario():
+        """El vecindario: terrenos, casas y lo que hay en cada una (lo ve todo el equipo) y mi billetera
+        de monedas del mes (empresa_viva_vecindario)."""
+        from app.services import empresa_viva_vecindario as V
+
+        return _ajedrez(V.estado)
+
+    @_dual(app, "/api/empresa-viva/vecindario/<accion>", methods=["POST"])
+    def empresa_viva_vecindario_accion(accion: str):
+        """terreno {lote} | construir {modelo} | ampliar | pintar {modelo} | poner {item, cx, cy} |
+        mover {id, cx, cy} | quitar {id}. Todo con las monedas del mes de quien lo hace."""
+        from app.services import empresa_viva_vecindario as V
+
+        datos = request.get_json(silent=True) or {}
+        acciones = {
+            "terreno": lambda u: V.comprar_terreno(u, str(datos.get("lote") or "")),
+            "construir": lambda u: V.construir(u, str(datos.get("modelo") or "")),
+            "ampliar": V.ampliar,
+            "pintar": lambda u: V.pintar(u, str(datos.get("modelo") or "")),
+            "poner": lambda u: V.poner_item(u, str(datos.get("item") or ""), int(datos.get("cx")), int(datos.get("cy"))),
+            "mover": lambda u: V.mover_item(u, int(datos.get("id")), int(datos.get("cx")), int(datos.get("cy"))),
+            "quitar": lambda u: V.quitar_item(u, int(datos.get("id"))),
+        }
+        if accion not in acciones:
+            return jsonify({"error": "Acción desconocida"}), 404
+        return _ajedrez(acciones[accion])
+
     @_dual(app, "/api/empresa-viva/ajedrez/<int:pid>/<accion>", methods=["POST"])
     def empresa_viva_ajedrez_accion(pid: int, accion: str):
         """aceptar | rechazar | cancelar | jugada {uci, n, fin} | rendirse | tablas {accion}."""

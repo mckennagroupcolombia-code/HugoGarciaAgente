@@ -387,6 +387,29 @@ Agenda → **Empresa viva** (panel `empresa-viva`) y el selector **Mapa · Juego
     tome el relevo.
   - Rutas: `GET|POST /api/empresa-viva/tenis` (POST `{invitar: [ids]}`), `GET …/<id>`, `POST …/<id>/unirse|invitar|salir|empezar|estado`. Cuadro y física en
     `Tenis.tsx` (canvas, coordenadas 0-1, cancha 2 × 1); con el dedo se arrastra la raqueta.
+- **Vecindario: cada quien su casa** (9-oct, pedido: «cada personaje vive en su casa independiente y la decora con flores,
+  ampliaciones, muebles, accesorios, con un monto cerrado de dinero al mes; primero compra un terreno»). La empresa y
+  los lugares de trabajo no cambian: el mapa creció hacia el sur (`ALTO_T` 46 → 70) con un andén, tres pasajes, la calle
+  de las casas y **16 terrenos** de 8 × 8 baldosas (`armar_mapa.py::vecindario`, `mapa.json → lotes`: id, frente,
+  precio 320-450).
+  - **Monedas**: del juego, **iguales para todos** y sin relación con sueldos, horas ni rendimiento (nada de rankings).
+    1.000 al mes, lo que no se gasta se acumula, quitar algo devuelve la mitad; todo en
+    `app/data/empresa_viva_vecindario.json` (monto, `acumula`, precios, catálogo de 33 cosas, 3 estilos y 3 niveles de
+    casa). Libro `ev_billetera` (asignación del mes —y la de los meses sin entrar—, compras, devoluciones).
+  - **Flujo**: letrero del terreno → comprar (uno por persona) → construir (Ladrillo, Colonial o Moderna, 400) → decorar
+    (`Casa.tsx`: catálogo por Jardín/Muebles/Accesorios/Casa; el juego pinta en verde o rojo dónde cabe y se pone tocando
+    el terreno; tocar algo = moverlo o quitarlo) → ampliar (6 × 4 y 6 × 6; antes hay que mover lo del jardín que estorbe)
+    o pintar (100). Botón «◉ saldo» en la barra = mis monedas; «Atender» recuerda comprar terreno o construir.
+  - **Geometría** igual en `empresa_viva_vecindario.py` y `vecindario.ts` (si cambia una, la otra): casa centrada a lo
+    ancho y pegada al fondo opuesto a la calle, la fila de arriba es la cara del muro norte, la puerta y su camino ocupan
+    las columnas 3-4 (no se pueden tapar), alfombras en capa de suelo (sí pueden ir debajo de un mueble).
+  - **En el juego** (`casas.ts`): las casas se dibujan en vivo (piso, muro con ventanas, puerta, **techo que se levanta**
+    al entrar), los muros y muebles bloquean el paso en una capa en vivo de la rejilla (`Rejilla.bloqueosDinamicos`) y
+    cada casa es un lugar (`casa_<lote>`): quien no está conectado duerme en su casa (`motor`), y si pone la **repisa de
+    trofeos** sus trofeos se mudan del cuarto de la empresa a su casa.
+  - Servidor: `app/services/empresa_viva_vecindario.py` (tickets.db: `ev_terrenos`, `ev_casas`, `ev_casa_items`,
+    `ev_billetera`); rutas `GET /api/empresa-viva/vecindario`, `POST …/vecindario/terreno|construir|ampliar|pintar|poner|
+    mover|quitar`.
 - **Objetos que se distinguen del mapa** (8-oct noche, pedido: «los nombres e íconos de los módulos no se distinguen»).
   Cada objeto-módulo flota en una **placa del color de su etapa del Mapa** (`barrio.colorModulo` lee `mapaComun.COLOR`,
   paleta PICO-8: Contar azul noche, Facturar vino, Vender verde…), con borde claro, una puntita hacia el mueble y un vaivén;
@@ -407,6 +430,8 @@ Agenda → **Empresa viva** (panel `empresa-viva`) y el selector **Mapa · Juego
   `dev/ajedrezEjemplo.ts`: partidas en memoria; el rival acepta y responde con jugadas al azar, Cynthia y Victor juegan
   una (para mirar) y Jenniffer te reta a los 25 s; trae el oro de Armando y una plata de Victor en sus repisas.
   `dev/tenisEjemplo.ts`: Victor se une al equipo B y su raqueta sigue la pelota; Cynthia arma un partido a los 40 s.
+  `dev/vecindarioEjemplo.ts`: Cynthia con casa colonial decorada, Stella moderna, Victor solo terreno; tú con 1.000.
+  `?sin_retos=1` apaga los retos de ejemplo (ajedrez a los 25 s, tenis a los 40 s) para probar sin interrupciones.
   En `npm run dev` el juego
   queda en `window.__empresaViva`. Capturas: Chrome headless + CDP con tiempo real (ver memoria de capturas).
 - ⚠️ Nada de puntajes, rankings ni tiempos por persona (RRHH).

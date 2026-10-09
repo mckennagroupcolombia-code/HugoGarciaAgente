@@ -3,7 +3,8 @@
  * une la escena (escena.ts) con el motor (motor.ts) y le da al panel React una interfaz corta.
  */
 import Phaser from "phaser";
-import { EscenaBarrio, FUENTE, type Ajustes } from "./escena";
+import { EscenaBarrio, FUENTE, type Ajustes, type Decorar } from "./escena";
+import type { EstadoVecindario, LoteMapa } from "./vecindario";
 import { Motor, marcarRespuestaLeida } from "./motor";
 import { BASE_PIXEL, cargarCatalogo, type Catalogo } from "./personajes";
 import type { Dir, EstacionMapa, EstadoEmpresa, Examinable, InteraccionApi, JugadorApi, LugarMapa, Pose } from "./tipos";
@@ -207,6 +208,30 @@ export class JuegoEmpresa {
   /** Los trofeos de cada cuarto (medallas en orden) en la repisa al lado de su cama. */
   trofeos(porCuarto: Record<string, string[]>) {
     this.escena?.trofeos(porCuarto);
+  }
+
+  /** El vecindario: terrenos, casas y lo que hay en cada una (casas.ts). */
+  vecindario(v: EstadoVecindario, nombres: Record<number, string>) {
+    this.escena?.casasV.sincronizar(v, nombres);
+  }
+
+  /** La repisa de trofeos de su casa (`casa_<lote>`), si la puso. */
+  repisaDe(usuario: number): string | null {
+    return this.escena?.casasV?.repisaDe(usuario) ?? null;
+  }
+
+  /** Caminar hasta el letrero de un terreno (y mirarlo al llegar). */
+  irALote(id: string, examinar = true): boolean {
+    return this.escena?.irALote(id, examinar) ?? false;
+  }
+
+  lote(id: string): LoteMapa | null {
+    return this.escena?.casasV.lote(id) ?? null;
+  }
+
+  /** Decorar mi casa: ver Decorar (escena.ts). null = salir. */
+  modoDecorar(d: Decorar | null) {
+    this.escena?.modoDecorar(d);
   }
 
   /** A la cancha de tenis, al lado de tu equipo. */

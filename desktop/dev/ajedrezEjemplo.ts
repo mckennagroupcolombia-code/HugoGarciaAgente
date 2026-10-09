@@ -66,7 +66,7 @@ export function ajedrezEjemplo(ruta: string, init: RequestInit | undefined, yo: 
   if (!ruta.startsWith("/api/empresa-viva/ajedrez")) return null;
   const metodo = init?.method ?? "GET";
   const cuerpo = (() => { try { return JSON.parse(String(init?.body || "{}")); } catch { return {}; } })();
-  if (!retoJenniffer && Date.now() - inicio > 25_000) {
+  if (!retoJenniffer && !new URLSearchParams(location.search).has("sin_retos") && Date.now() - inicio > 25_000) {
     retoJenniffer = true;
     nueva(10, yo, 10, "invitada");
   }

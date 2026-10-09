@@ -44,7 +44,7 @@ export function tenisEjemplo(ruta: string, init: RequestInit | undefined, yo: nu
   const metodo = init?.method ?? "GET";
   const cuerpo = (() => { try { return JSON.parse(String(init?.body || "{}")); } catch { return {}; } })();
   // Cynthia te invita a un partido a los 40 s (sale el diálogo con «Unirme»).
-  if (!deCynthia && Date.now() - inicio > 40_000) { deCynthia = true; nuevo(6, [yo]); }
+  if (!deCynthia && !new URLSearchParams(location.search).has("sin_retos") && Date.now() - inicio > 40_000) { deCynthia = true; nuevo(6, [yo]); }
   if (ruta === "/api/empresa-viva/tenis") {
     if (metodo === "POST") {
       if (partidos.some((p) => p.estado !== "terminada" && [...p.equipos.A, ...p.equipos.B].includes(yo))) return falla("Ya estás en un partido");

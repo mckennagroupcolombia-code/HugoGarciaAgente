@@ -1,3 +1,13 @@
+### 2026-10-09 00:10 - Empresa viva: el vecindario, cada quien con su casa
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Al sur del parque hay un **vecindario** con 16 terrenos (el mapa creció de 46 a 70 baldosas de alto): andén, tres pasajes y la calle de las casas. La empresa y los lugares de trabajo no cambian.
+  - Cada quien **compra su terreno** (uno por persona, 320-450), **construye** su casa (Ladrillo, Colonial o Moderna) y la **decora**: 33 cosas de jardín, muebles y accesorios, puestas en una cuadrícula que marca en verde o rojo dónde caben; se pueden mover o quitar (devuelve la mitad). La casa se amplía dos veces y se puede pintar.
+  - **Monedas del juego, iguales para todos** (1.000 al mes, lo no gastado se acumula; sin relación con sueldos ni rendimiento), en `app/data/empresa_viva_vecindario.json`. Libro de monedas por persona en tickets.db.
+  - Las casas se dibujan en vivo con techo que se levanta al entrar, muros y muebles que bloquean el paso; quien no está conectado duerme en su casa y, si pone la repisa de trofeos, sus trofeos se mudan allá.
+- **Archivos Modificados:** `app/services/empresa_viva_vecindario.py` (nuevo), `app/data/empresa_viva_vecindario.json` (nuevo), `app/routes_mapa_sistema.py`, `scripts/empresa_viva/armar_mapa.py` + `desktop/public/empresa/pixel/*` (regenerados), `desktop/src/components/empresa/{casas,vecindario}.ts` y `Casa.tsx` (nuevos), `EmpresaViva.tsx`, `escena.ts`, `juego.ts`, `motor.ts`, `camino.ts`, `tipos.ts`, `VentanaModulo.tsx`, `desktop/dev/{vecindarioEjemplo (nuevo),ajedrezEjemplo,tenisEjemplo,app}`, `tests/test_empresa_viva.py`, `docs/agentic/modules/operacion-equipo.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-08 23:20 - Empresa viva: invitar a jugar tenis al hablarle a alguien
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (el usuario solo veía «Jugar ajedrez»). Sin LLM.

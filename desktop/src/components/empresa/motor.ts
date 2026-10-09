@@ -177,7 +177,8 @@ export class Motor {
       const presente = Boolean(remoto) || (p.presente ?? p.en_linea);
       const t = p.tarea ? TAREA[p.tarea.funcion] : undefined;
       let l: string | null;
-      if (!presente) l = c.cuarto ?? null;
+      // Ausente: duerme en su casa del vecindario si ya la construyó; si no, en su cuarto de siempre.
+      if (!presente) l = this.esc.casasV?.lugarDe(p.id) ?? c.cuarto ?? null;
       else l = t?.lugar ?? lugarDePanel(p.panel) ?? c.trabaja ?? (c.vive === "bunker" ? "gerencia" : "oficina_sede");
       if (!l || !this.mapa.lugares[l]) continue;
       // Con un módulo abierto (y sin tarea con las manos), va al objeto de ese módulo: Facturación

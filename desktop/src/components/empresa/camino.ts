@@ -9,18 +9,33 @@ export class Rejilla {
   readonly ancho: number;
   readonly alto: number;
   private libre: Uint8Array;
+  /** Lo que se bloquea en vivo (muros y muebles de las casas del vecindario): 1 = no se pasa. */
+  private extra: Uint8Array;
 
   constructor(filas: string[], readonly celda: number) {
     this.alto = filas.length;
     this.ancho = filas[0]?.length ?? 0;
     this.libre = new Uint8Array(this.ancho * this.alto);
+    this.extra = new Uint8Array(this.ancho * this.alto);
     filas.forEach((f, y) => {
       for (let x = 0; x < f.length; x++) this.libre[y * this.ancho + x] = f.charCodeAt(x) === 48 ? 1 : 0;
     });
   }
 
   libreEn(cx: number, cy: number): boolean {
-    return cx >= 0 && cy >= 0 && cx < this.ancho && cy < this.alto && this.libre[cy * this.ancho + cx] === 1;
+    const i = cy * this.ancho + cx;
+    return cx >= 0 && cy >= 0 && cx < this.ancho && cy < this.alto && this.libre[i] === 1 && this.extra[i] === 0;
+  }
+
+  /** Reemplaza los bloqueos que cambian en vivo: rectángulos [x0, y0, x1, y1) en px. */
+  bloqueosDinamicos(rects: [number, number, number, number][]) {
+    this.extra.fill(0);
+    const c = this.celda;
+    for (const [x0, y0, x1, y1] of rects) {
+      for (let cy = Math.max(0, Math.floor(y0 / c)); cy < Math.min(this.alto, Math.ceil(y1 / c)); cy++)
+        for (let cx = Math.max(0, Math.floor(x0 / c)); cx < Math.min(this.ancho, Math.ceil(x1 / c)); cx++)
+          this.extra[cy * this.ancho + cx] = 1;
+    }
   }
 
   /** ¿Cabe un pie de `w`×`h` px centrado en (x, y)? (y = la planta de los pies). */

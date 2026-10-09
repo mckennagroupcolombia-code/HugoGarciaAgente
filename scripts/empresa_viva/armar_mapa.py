@@ -39,7 +39,7 @@ REPO = Path(__file__).resolve().parents[2]
 SALIDA = REPO / "desktop" / "public" / "empresa" / "pixel"
 T = 32            # baldosa
 C = 16            # celda de choques
-ANCHO_T, ALTO_T = 80, 46
+ANCHO_T, ALTO_T = 80, 70    # 46 de la empresa y el parque + 24 del vecindario (8-oct-2026)
 W, H = ANCHO_T * T, ALTO_T * T
 OGA = "https://opengameart.org/sites/default/files/"
 FUENTES = {
@@ -216,6 +216,16 @@ FILA_CALLE = (34, 39)
 FILA_ANDEN_S = (39, 41)
 CARRIL_VUELTA_Y = int(35.5 * T)   # hacia el occidente (izquierda)
 CARRIL_IDA_Y = int(37.7 * T)      # hacia el oriente (derecha)
+
+# El vecindario (8-oct-2026): al sur del parque, terrenos de 8 × 8 baldosas donde cada quien compra el
+# suyo y construye su casa (app/services/empresa_viva_vecindario.py; lo de cada casa lo dibuja el juego).
+# Fila de arriba: la puerta mira al sur (a la calle de las casas); fila de abajo: mira al norte.
+FILA_ANDEN_V = (46, 48)                       # andén del parque al vecindario
+FILA_CALLE_V = (56, 59)                       # la calle de las casas (sin carros)
+LOTE = 8                                      # baldosas por lado de un terreno
+LOTES_X = [4, 13, 22, 31, 41, 50, 59, 68]     # x de cada terreno (en baldosas)
+PASAJES_X = [(2, 4), (39, 41), (76, 78)]      # del andén a la calle, entre los terrenos de arriba
+FILAS_LOTES = [(48, "abajo", 400, 450), (59, "arriba", 320, 360)]   # y, frente, precio, precio junto al pasaje central
 
 
 @dataclass
@@ -925,6 +935,8 @@ def iconos() -> dict[str, Image.Image]:
     im = _ic(); d(im).ellipse([1, 1, 10, 10], fill=rgb("ff9f1c"), outline=OUT); d(im).ellipse([3, 3, 8, 8], fill=rgb("ffe0b0"))
     _r(im, 9, 9, 15, 11, rgb("6e4128")); d(im).ellipse([9, 9, 15, 15], fill=rgb("d9f75a"), outline=OUT)
     I["tenis"] = im
+    im = _ic(); _p(im, [(1, 8), (8, 2), (15, 8)], rgb("c0563b")); _r(im, 3, 8, 13, 15, rgb("f3ead6")); _r(im, 7, 10, 10, 15, rgb("8f5a35"))
+    I["casa"] = im
     # Marco para que el ícono se vea sobre cualquier mueble: placa clara con borde.
     out = {}
     for k, im in I.items():
@@ -1069,6 +1081,100 @@ def textura_cancha_tenis(w=176, h=96):
     return im
 
 
+def m_flores(color):
+    """Matica de flores (jardín): tres flores sobre un poco de hojas."""
+    c = rgb(color)
+    im = lienzo(22, 16)
+    d = ImageDraw.Draw(im)
+    for x, y in ((3, 7), (10, 9), (15, 6)):
+        d.ellipse([x, y + 3, x + 6, y + 8], fill=rgb("3f8f3a"), outline=rgb("2a5f27"))
+    for x, y in ((2, 2), (9, 4), (14, 1)):
+        d.ellipse([x, y, x + 6, y + 6], fill=c, outline=oscurecer(c, 0.45))
+        d.point((x + 3, y + 3), fill=rgb("ffe14d"))
+    return im, (11, 15)
+
+
+def m_fuente():
+    im = lienzo(60, 44)
+    sombra_suelo(im, 30, 40, 28, 4)
+    d = ImageDraw.Draw(im)
+    d.ellipse([0, 14, 59, 42], fill=rgb("a9a39a"), outline=OUT)
+    d.ellipse([5, 17, 54, 37], fill=rgb("5db8ff"), outline=rgb("2d6fa8"))
+    rect(im, 27, 4, 33, 26, rgb("c9c3b6")); borde(im, 27, 4, 33, 26)
+    d.ellipse([22, 0, 38, 8], fill=rgb("c9c3b6"), outline=OUT)
+    for x in (24, 30, 36):
+        d.point((x, 12), fill=rgb("bfe6f5")); d.point((x - 2, 16), fill=rgb("bfe6f5"))
+    return im, (30, 41)
+
+
+def m_buzon():
+    im = lienzo(16, 30)
+    rect(im, 6, 12, 10, 30, MADERA[1])
+    rect(im, 0, 0, 16, 13, rgb("c0392b")); borde(im, 0, 0, 16, 13)
+    rect(im, 13, 2, 15, 7, rgb("ffe14d"))
+    return im, (8, 29)
+
+
+def m_casita_perro():
+    im = lienzo(44, 40)
+    sombra_suelo(im, 22, 37, 20, 3)
+    rect(im, 4, 16, 40, 38, MADERA[2]); borde(im, 4, 16, 40, 38)
+    ImageDraw.Draw(im).polygon([(0, 18), (22, 2), (44, 18)], fill=rgb("c0563b"), outline=OUT)
+    ImageDraw.Draw(im).ellipse([15, 22, 29, 40], fill=rgb("2a1d17"))
+    return im, (22, 38)
+
+
+def m_huerta():
+    im = lienzo(62, 30)
+    rect(im, 0, 6, 62, 28, rgb("7a5a3c")); borde(im, 0, 6, 62, 28)
+    ruido(im, 2, 8, 60, 26, [rgb("6a4c32"), rgb("8b6a48")], 0.25, 4)
+    d = ImageDraw.Draw(im)
+    for x in range(6, 58, 10):
+        for y in (10, 18):
+            d.ellipse([x, y - 6, x + 6, y + 2], fill=rgb("4fb04a"), outline=rgb("2a5f27"))
+    return im, (31, 28)
+
+
+def m_lampara():
+    im = lienzo(18, 48)
+    sombra_suelo(im, 9, 46, 7, 2)
+    rect(im, 8, 12, 10, 46, GRIS[0])
+    rect(im, 4, 44, 14, 47, GRIS[0])
+    ImageDraw.Draw(im).polygon([(2, 14), (16, 14), (13, 2), (5, 2)], fill=rgb("ffe9a8"), outline=OUT)
+    return im, (9, 46)
+
+
+def m_pecera():
+    im = lienzo(36, 40)
+    sombra_suelo(im, 18, 37, 16, 3)
+    rect(im, 4, 22, 32, 38, MADERA[1]); borde(im, 4, 22, 32, 38)
+    rect(im, 2, 2, 34, 22, rgb("8fd3f5")); borde(im, 2, 2, 34, 22)
+    rect(im, 3, 3, 33, 6, rgb("c7ecff"))
+    d = ImageDraw.Draw(im)
+    d.ellipse([10, 10, 18, 15], fill=rgb("ff9f1c")); d.ellipse([21, 13, 27, 17], fill=rgb("ff77a8"))
+    rect(im, 4, 18, 32, 21, rgb("d8c7a0"))
+    return im, (18, 38)
+
+
+def m_tv_casa(base):
+    """El televisor de LPC sobre un mueble bajo."""
+    im = lienzo(64, 58)
+    sombra_suelo(im, 32, 55, 30, 3)
+    caja(im, 2, 32, 60, 6, 18, MADERA[3], MADERA[1])
+    tv = base.resize((60, 40), Image.NEAREST) if base.width > 60 else base
+    im.alpha_composite(tv, ((64 - tv.width) // 2, max(0, 34 - tv.height)))
+    return im, (32, 56)
+
+
+def m_letrero_lote():
+    """El letrero de cada terreno (el texto lo pone el juego: «Se vende · 400», «Casa de …»)."""
+    im = lienzo(80, 40)
+    rect(im, 38, 18, 42, 40, MADERA[1])
+    rect(im, 0, 0, 80, 20, MADERA[3]); borde(im, 0, 0, 80, 20)
+    rect(im, 2, 2, 78, 4, aclarar(MADERA[3], 0.2))
+    return im, (40, 39)
+
+
 def m_banquito():
     """Banco de piedra redondo (la mesa de ajedrez tiene dos)."""
     im = lienzo(18, 16)
@@ -1175,6 +1281,7 @@ class Barrio:
         self.techos: dict[str, dict] = {}
         self.estantes: list[dict] = []
         self.estaciones: list[dict] = []
+        self.lotes: list[dict] = []
         self.pilas: dict[str, dict] = {}
         self.lpc_cargar()
 
@@ -1336,6 +1443,68 @@ class Barrio:
                        x * T, y * T, (60, 20))
         # Fuera del mapa por los lados no se camina
         self.bloquear(0, 0, W, 2 * T)
+
+    def vecindario(self):
+        """Al sur del parque: andén, tres pasajes, la calle de las casas y 16 terrenos con su cerca."""
+        r = random.Random(7)
+        a, b = FILA_ANDEN_V
+        self.pegar_suelo(textura_concreto(W, (b - a) * T, rgb("c9c6bf"), 32, a), 0, a * T)
+        rect(self.suelo, 0, a * T, W, a * T + 3, rgb("9e9a92"))
+        for x0, x1 in PASAJES_X:
+            self.pegar_suelo(textura_concreto((x1 - x0) * T, (FILA_CALLE_V[0] - b) * T, rgb("c9c6bf"), 32, x0), x0 * T, b * T)
+        y0, y1 = FILA_CALLE_V[0] * T, FILA_CALLE_V[1] * T
+        rect(self.suelo, 0, y0, W, y1, rgb("55575f"))
+        ruido(self.suelo, 0, y0, W, y1, [rgb("5f616a"), rgb("4c4e56")], 0.15, 21)
+        for x in range(0, W, 80):
+            rect(self.suelo, x + 20, (y0 + y1) // 2 - 2, x + 56, (y0 + y1) // 2 + 1, rgb("e8e8e8"))
+        rect(self.suelo, 0, y0, W, y0 + 4, rgb("9e9a92")); rect(self.suelo, 0, y1 - 4, W, y1, rgb("9e9a92"))
+        madera, poste = rgb("a8754a"), rgb("6e4128")
+        n = 0
+        for fy, frente, precio, precio_centro in FILAS_LOTES:
+            for k, fx in enumerate(LOTES_X):
+                n += 1
+                lid = f"L{n:02d}"
+                x0, ly0 = fx * T, fy * T
+                x1, ly1 = x0 + LOTE * T, ly0 + LOTE * T
+                # El terreno: pasto un poco más claro, para que se vea dónde empieza y termina
+                velo = lienzo(LOTE * T, LOTE * T)
+                rect(velo, 0, 0, LOTE * T, LOTE * T, (180, 220, 120, 34))
+                self.pegar_suelo(velo, x0, ly0)
+                # La cerca: tablas bajas por los cuatro lados, con la entrada (baldosas 3 y 4) hacia la calle
+                ent0, ent1 = x0 + 3 * T, x0 + 5 * T
+                lado_calle = ly1 if frente == "abajo" else ly0
+                for (ax, ay, bx, by) in ((x0, ly0, x1, ly0), (x0, ly1, x1, ly1), (x0, ly0, x0, ly1), (x1, ly0, x1, ly1)):
+                    horizontal = ay == by
+                    if horizontal:
+                        tramos = [(ax, bx)] if ay != lado_calle else [(ax, ent0), (ent1, bx)]
+                        for t0, t1 in tramos:
+                            yy = ay - 4 if ay == ly1 else ay
+                            rect(self.suelo, t0, yy + 1, t1, yy + 3, madera)
+                            for px in range(t0, t1 + 1, 16):
+                                rect(self.suelo, px - 1, yy - 1, px + 2, yy + 5, poste)
+                            self.bloquear(t0, yy - 2, t1, yy + 6)
+                    else:
+                        xx = ax - 4 if ax == x1 else ax
+                        rect(self.suelo, xx + 1, ay, xx + 3, by, madera)
+                        for py in range(ay, by + 1, 16):
+                            rect(self.suelo, xx - 1, py - 1, xx + 5, py + 2, poste)
+                        self.bloquear(xx - 2, ay, xx + 6, by)
+                # Piedritas en la entrada
+                for j in range(2):
+                    yy = (ly1 - 20 - j * 18) if frente == "abajo" else (ly0 + 6 + j * 18)
+                    ImageDraw.Draw(self.suelo).rounded_rectangle([x0 + 4 * T - 16, yy, x0 + 4 * T + 16, yy + 12], 4,
+                                                                 fill=rgb("cfc8b8"), outline=rgb("8f8778"))
+                entrada = {"x": x0 + 4 * T, "y": (ly1 + 16) if frente == "abajo" else (ly0 - 12)}
+                letrero = {"x": x0 + 6 * T + 8, "y": (ly1 - 6) if frente == "abajo" else (ly0 + 44)}
+                self.poner("letrero_lote", m_letrero_lote(), letrero["x"], letrero["y"], (10, 6))
+                self.estacion("", "casa", letrero["x"], letrero["y"] - 44, letrero["y"] + 1,
+                              (entrada["x"], entrada["y"], "arriba" if frente == "abajo" else "abajo", "parado"), tipo="lote", lote=lid)
+                self.lotes.append({"id": lid, "x": x0, "y": ly0, "lado": LOTE, "baldosa": T, "frente": frente,
+                                   "precio": precio_centro if k in (3, 4) else precio, "entrada": entrada, "letrero": letrero})
+        # Árboles al fondo del vecindario y borde sur del mapa
+        for x in range(3, ANCHO_T, 6):
+            self.arbol(x * T + r.randint(-6, 6), 68 * T + 20, r.choice(["redondo", "pino", "joven"]))
+        self.bloquear(0, H - T // 2, W, H)
 
     def arbol(self, x, y, tipo):
         im = {"redondo": self.arbol_redondo, "pino": self.pino, "joven": self.arbol_joven}[tipo]
@@ -1676,14 +1845,14 @@ class Barrio:
         self.punto("llegada_oeste", -T, tx(33) - 4, "derecha")
         self.punto("llegada_este", W + T, tx(33) - 4, "izquierda")
 
-    def estacion(self, panel: str, icono: str, x, y, zbase, uso: tuple, tipo: str = "modulo", casa: str = ""):
+    def estacion(self, panel: str, icono: str, x, y, zbase, uso: tuple, tipo: str = "modulo", casa: str = "", **extra):
         """El objeto de un módulo de la app: el ícono en (x, y) por encima del mueble (zbase = la y
         del mueble) y `uso` = (x, y, dir, pose) donde se para o se sienta quien lo usa."""
         ux, uy, udir, upose = uso
         lugar = self.lugar_de(ux, uy) or self.lugar_de(x, zbase) or ""
         self.estaciones.append({"panel": panel, "icono": icono, "x": int(x), "y": int(y), "z": int(zbase), "lugar": lugar,
                                 "uso": {"x": int(ux), "y": int(uy), "dir": udir, "pose": upose}, "tipo": tipo,
-                                **({"casa": casa} if casa else {})})
+                                **({"casa": casa} if casa else {}), **extra})
 
     def directorio(self, casa: str, x, y, uso: tuple):
         """El directorio de la entrada: dice qué cuarto tiene qué módulos y te lleva."""
@@ -1818,6 +1987,9 @@ class Barrio:
         extras.agregar("trofeo_oro", m_trofeo(("9a6a00", "e0a91b", "f6d55c", "fff6c2")))
         extras.agregar("trofeo_plata", m_trofeo(("6b7280", "a9b0c2", "d3d9e6", "ffffff")))
         extras.agregar("trofeo_tenis", m_trofeo(("1f6b3a", "3fae5b", "8fe08a", "e6ffd9")))
+        # Lo que se compra para la casa propia (catálogo: app/data/empresa_viva_vecindario.json)
+        for nombre, im_ancla in self.catalogo_casa().items():
+            extras.agregar(f"casa_{nombre}", im_ancla)
         for n in (1, 3, 6, 10):
             extras.agregar(f"papeles{n}", m_papeles(n))
         for nombre, im in iconos().items():
@@ -1849,9 +2021,32 @@ class Barrio:
             "calle": {"vuelta_y": CARRIL_VUELTA_Y, "ida_y": CARRIL_IDA_Y},
             "lugares": lugares, "casas": casas, "puntos": self.puntos, "pilas": self.pilas,
             "muebles": self.instancias, "estantes": self.estantes, "estaciones": self.estaciones, "solido": rejilla,
+            "lotes": self.lotes,
             "hugo": {"archivo": "hugo.png", "cuadro": [48, 64], "ancla": [24, 60]},
         }
         (SALIDA / "mapa.json").write_text(json.dumps(mapa, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+
+    def catalogo_casa(self) -> dict:
+        """Los sprites de lo que cada quien compra para su casa: el id = el del catálogo del servidor."""
+        arbusto = self.arbusto[0].resize((self.arbusto[0].width * 11 // 20, self.arbusto[0].height * 11 // 20), Image.NEAREST)
+        arbolito = self.arbol_joven
+        al = lambda im: (im, (im.width // 2, im.height - 4))
+        c = {
+            "flor_roja": m_flores("#e74c3c"), "flor_amarilla": m_flores("#f1c40f"), "flor_morada": m_flores("#9b59b6"),
+            "flor_blanca": m_flores("#f4f1e8"), "maceta": m_planta(30, "#3f8f3a"), "arbusto": al(arbusto),
+            "arbolito": al(arbolito), "cerca": m_reja(64), "banca": m_banca(), "farol": m_poste(), "fuente": m_fuente(),
+            "buzon": m_buzon(), "casita_perro": m_casita_perro(),
+            "mesa_jardin": m_mesa(56, 26, [rgb("8a8f9e"), rgb("c9ced8"), rgb("e8ebf0"), rgb("f4f6f8"), rgb("ffffff")]),
+            "huerta": m_huerta(),
+            "cama": m_cama("#4a7fbf"), "cama_doble": m_cama("#c0567a", doble=True), "sofa": m_sofa(64, "#4f6d8f"),
+            "mesa": m_mesa(64, 30), "silla": m_silla_oficina("#8e5cc8"), "biblioteca": m_biblioteca(64), "nevera": m_nevera(),
+            "cocina": m_meson(64, ("estufa",)), "escritorio": m_escritorio(64), "tv": m_tv_casa(self.tv),
+            "mesa_noche": m_mesa_noche(), "arcade": m_arcade(), "repisa_trofeos": m_repisa_trofeos(),
+            "alfombra_azul": (textura_alfombra(64, 64, rgb("3b7dd8"), rgb("1d4f8f")), (32, 63)),
+            "alfombra_roja": (textura_alfombra(64, 64, rgb("c0392b"), rgb("7d2219")), (32, 63)),
+            "lampara": m_lampara(), "planta_interior": m_planta(44, "#2f7d4a"), "pecera": m_pecera(),
+        }
+        return c
 
     def vista(self, ruta: Path, escala: float = 0.4, techos=False):
         """Imagen de control: el suelo + los muebles en su orden (y los techos, si se piden)."""
@@ -1875,6 +2070,7 @@ def main() -> int:
     args = ap.parse_args()
     b = Barrio(Fuentes(Path(args.cache)))
     b.afuera()
+    b.vecindario()
     b.pisos_y_muros()
     b.amoblar()
     b.techos_y_fachadas()

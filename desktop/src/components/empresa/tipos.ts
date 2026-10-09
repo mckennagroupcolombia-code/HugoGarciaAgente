@@ -5,6 +5,8 @@
 
 // ─── /api/empresa-viva/estado (app/services/empresa_viva.py) ─────────────────
 
+import type { LoteMapa } from "./vecindario";
+
 export type Por = { id: number | null; nombre: string; bot?: boolean } | null;
 
 /** El avatar en pixel art: piezas del catálogo LPC (public/empresa/pixel/personajes/personajes.json)
@@ -104,7 +106,9 @@ export interface LugarMapa {
 export interface EstacionMapa {
   panel: string; icono: string; x: number; y: number; z: number; lugar: string;
   uso: { x: number; y: number; dir: Dir; pose: "sentado" | "parado" };
-  tipo: "modulo" | "directorio" | "ajedrez" | "trofeos" | "tenis"; casa?: string;
+  tipo: "modulo" | "directorio" | "ajedrez" | "trofeos" | "tenis" | "lote"; casa?: string;
+  /** Para `tipo: "lote"`: el terreno del vecindario de ese letrero. */
+  lote?: string;
 }
 export interface TechoMapa {
   archivo: string; x: number; y: number; w: number; h: number; base_y: number;
@@ -125,6 +129,8 @@ export interface Mapa {
   estaciones: EstacionMapa[];
   solido: string[];
   hugo: { archivo: string; cuadro: [number, number]; ancla: [number, number] };
+  /** Los terrenos del vecindario (vecindario.ts; el dueño y su casa llegan del servidor). */
+  lotes?: LoteMapa[];
 }
 
 // ─── Lo que se toca en el juego ──────────────────────────────────────────────
@@ -146,5 +152,7 @@ export type Examinable =
   | { tipo: "ajedrez" }
   /** La cancha de tenis del parque (minijuego en equipo: Tenis.tsx). */
   | { tipo: "tenis" }
+  /** El letrero de un terreno del vecindario (comprar, construir, decorar: Casa.tsx). */
+  | { tipo: "lote"; lote: string }
   /** La repisa de trofeos al lado de la cama de un cuarto (`lugar` = el cuarto). */
   | { tipo: "trofeos"; lugar: string };

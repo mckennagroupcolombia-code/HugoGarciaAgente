@@ -10,6 +10,7 @@
  */
 import { ajedrezEjemplo } from "./ajedrezEjemplo";
 import { tenisEjemplo } from "./tenisEjemplo";
+import { vecindarioEjemplo } from "./vecindarioEjemplo";
 import { estadoEmpresaEjemplo, jugadoresEjemplo } from "./empresaVivaEjemplo";
 
 const chatsEjemplo: Record<string, { id: number; usuario_id: number; autor_nombre: string; texto: string; creado_en: number }[]> = {};
@@ -121,6 +122,8 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
   { const r = ajedrezEjemplo(ruta, init, Number(usuario.id)); if (r) return r; }
   // Tenis de EJEMPLO en la cancha del parque: Victor se une y su raqueta sigue la pelota (dev/tenisEjemplo.ts).
   { const r = tenisEjemplo(ruta, init, Number(usuario.id)); if (r) return r; }
+  // Vecindario de EJEMPLO: terrenos, casas y monedas del mes (dev/vecindarioEjemplo.ts).
+  { const r = vecindarioEjemplo(ruta, init, Number(usuario.id)); if (r) return r; }
   // Otro jugador de EJEMPLO (Jenniffer) que camina por la oficina de la sede y te saluda una vez.
   if (ruta === "/api/empresa-viva/jugador") return json(jugadoresEjemplo());
   // Chat directo de EJEMPLO (Empresa viva → «Hablar»): un canal por persona, mensajes en memoria.

@@ -44,6 +44,28 @@ export function IconoModulo({ icono, tam = 40 }: { icono: string | null; tam?: n
   );
 }
 
+/** Cualquier cuadro del atlas de objetos (p. ej. `casa_sofa`), escalado para caber en `tam` × `tam`. */
+export function CuadroAtlas({ frame, tam = 40 }: { frame: string; tam?: number }) {
+  const [f, setF] = useState<{ x: number; y: number; w: number; h: number; W: number; H: number } | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    void cargarAtlas().then((a) => {
+      const fr = a.frames[frame]?.frame;
+      if (vivo && fr) setF({ ...fr, W: a.meta.size.w, H: a.meta.size.h });
+    }).catch(() => {});
+    return () => { vivo = false; };
+  }, [frame]);
+  if (!f) return <span className="inline-block shrink-0" style={{ width: tam, height: tam }} />;
+  const k = Math.min(tam / f.w, tam / f.h, 2);
+  return (
+    <span aria-hidden className="inline-flex shrink-0 items-end justify-center" style={{ width: tam, height: tam }}>
+      <span className="ev-retrato inline-block"
+            style={{ width: f.w * k, height: f.h * k, backgroundImage: `url(${BASE_PIXEL}objetos.png?v=1)`, backgroundRepeat: "no-repeat",
+                     backgroundSize: `${f.W * k}px ${f.H * k}px`, backgroundPosition: `-${f.x * k}px -${f.y * k}px` }} />
+    </span>
+  );
+}
+
 export function VentanaModulo({ pila, iconoDe, onIr, onAtras, onCerrar, origen }: {
   /** Los módulos abiertos uno tras otro; el último es el que se ve. */
   pila: Panel[];

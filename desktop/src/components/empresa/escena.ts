@@ -11,6 +11,20 @@ import { colorModulo, infoModulo, tituloEtapa } from "./barrio";
 import { Rejilla } from "./camino";
 import { BASE_PIXEL, claveAvatar, componerAvatar, FILA } from "./personajes";
 import type { AvatarPixel, Dir, EstacionMapa, Examinable, Mapa, Pose, PuntoMapa } from "./tipos";
+import { CasasVecindario } from "./casas";
+import type { LoteMapa } from "./vecindario";
+
+/** Decorar mi casa (Casa.tsx): en qué terreno, qué zonas se pintan y qué se está poniendo. */
+export interface Decorar {
+  lote: LoteMapa;
+  adentro: Set<string>;
+  jardin: Set<string>;
+  /** Lo que se va a poner (o mover); null = tocar algo de la casa para moverlo o quitarlo. */
+  colocar: { frame: string; w: number; h: number; donde: string } | null;
+  valido: (cx: number, cy: number) => boolean;
+  onCelda: (cx: number, cy: number) => void;
+  onItem: (id: number) => void;
+}
 
 export const FUENTE = "PixelifyMck";
 const CUADROS = 25;
@@ -85,6 +99,12 @@ function esCampo(t: EventTarget | null): boolean {
 export class EscenaBarrio extends Phaser.Scene {
   mapa!: Mapa;
   rejilla!: Rejilla;
+  /** Las casas del vecindario (casas.ts): se dibujan en vivo con lo que diga el servidor. */
+  casasV!: CasasVecindario;
+  private decorar: Decorar | null = null;
+  private decorarG: Phaser.GameObjects.Graphics | null = null;
+  private fantasma: Phaser.GameObjects.Image | null = null;
+  private celdaDecorar: { cx: number; cy: number } | null = null;
   ajustes!: Ajustes;
   jugador: Figura | null = null;
   figuras = new Map<string, Figura>();
@@ -144,6 +164,7 @@ export class EscenaBarrio extends Phaser.Scene {
     }
     this.crearEstaciones();
     this.crearRotulos();
+    this.casasV = new CasasVecindario(this);
     for (const [id, casa] of Object.entries(this.mapa.casas)) {
       const t = casa.techo;
       const img = this.add.image(t.x, t.y, `techo-${id}`).setOrigin(0, 0).setDepth(t.base_y + Z_TECHO);
@@ -179,6 +200,7 @@ export class EscenaBarrio extends Phaser.Scene {
     this.scale.on("resize", () => this.ajustarZoom());
     this.instalarTeclado();
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => this.tocar(p));
+    this.input.on("pointermove", (p: Phaser.Input.Pointer) => this.moverDecorar(p));
     this.listo = true;
     this.ajustes.onListo();
   }
@@ -204,10 +226,11 @@ export class EscenaBarrio extends Phaser.Scene {
       const ico = this.add.container(e.x, e.y - 2, [marco, img, badge]).setDepth(e.z + 2).setSize(30, 34);
       // La repisa de trofeos no lleva placa: lo que se ve son los trofeos mismos (queda
       // transparente para que se pueda tocar).
-      if (e.tipo === "trofeos") ico.setAlpha(0);
+      if (e.tipo === "trofeos" || e.tipo === "lote") ico.setAlpha(0);
       else this.tweens.add({ targets: ico, y: e.y - 4, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: (e.x * 7 + e.y * 3) % 1100 });
       const titulo = e.tipo === "directorio" ? "Directorio de la casa" : e.tipo === "ajedrez" ? "Mesa de ajedrez"
-        : e.tipo === "trofeos" ? "Repisa de trofeos" : e.tipo === "tenis" ? "Cancha de tenis" : infoModulo(e.panel).nombre;
+        : e.tipo === "trofeos" ? "Repisa de trofeos" : e.tipo === "tenis" ? "Cancha de tenis" : e.tipo === "lote" ? "Terreno"
+        : infoModulo(e.panel).nombre;
       const nombre = this.add.text(e.x, e.y - 30, titulo, {
         fontFamily: FUENTE, fontSize: "8px", color: c.tinta, backgroundColor: c.fondo, padding: { x: 3, y: 1 },
         resolution: Math.max(2, Math.ceil(this.zoom * (window.devicePixelRatio || 1))),
@@ -265,12 +288,19 @@ export class EscenaBarrio extends Phaser.Scene {
     if (e.tipo === "ajedrez") return { tipo: "ajedrez" };
     if (e.tipo === "trofeos") return { tipo: "trofeos", lugar: e.lugar };
     if (e.tipo === "tenis") return { tipo: "tenis" };
+    if (e.tipo === "lote") return { tipo: "lote", lote: e.lote ?? "" };
     return e.tipo === "directorio" ? { tipo: "directorio", casa: e.casa ?? "" } : { tipo: "modulo", panel: e.panel, lugar: e.lugar };
   }
 
   /** Los trofeos de cada cuarto en su repisa, al lado de la cama (`medallas` en el orden en que se
    *  ganaron). Caben 8; desde el noveno, el último puesto dice cuántos más hay. */
   trofeos(porCuarto: Record<string, string[]>) {
+    // Repisas que ya no están (quitaron la de su casa): fuera sus trofeos.
+    for (const [cuarto, r] of [...this.repisas]) {
+      if (this.mapa.puntos[`trofeos_${cuarto}`]) continue;
+      r.objs.forEach((o) => o.destroy());
+      this.repisas.delete(cuarto);
+    }
     for (const [nombre, punto] of Object.entries(this.mapa.puntos)) {
       if (!nombre.startsWith("trofeos_")) continue;
       const p = punto as PuntoMapa;
@@ -292,6 +322,99 @@ export class EscenaBarrio extends Phaser.Scene {
       }
       this.repisas.set(cuarto, { clave, objs });
     }
+  }
+
+  /** Al letrero de un terreno del vecindario (y lo mira al llegar). */
+  irALote(id: string, examinar = true): boolean {
+    const e = this.estaciones.find((s) => s.e.tipo === "lote" && s.e.lote === id)?.e;
+    if (!e || !this.jugador) return false;
+    this.irAEstacion(e, examinar);
+    return true;
+  }
+
+  /** Decorar: la cámara se queda sobre el terreno, se pintan las celdas donde va cada cosa y el
+   *  toque pone (o elige) en vez de caminar. `null` = salir y volver a seguir al personaje. */
+  modoDecorar(d: Decorar | null) {
+    const antes = this.decorar?.lote.id;
+    this.decorar = d;
+    this.decorarG?.destroy();
+    this.decorarG = null;
+    this.fantasma?.destroy();
+    this.fantasma = null;
+    this.casasV.ocultarTecho = d ? d.lote.id : null;
+    if (!d) {
+      this.celdaDecorar = null;
+      this.seguirJugador();
+      return;
+    }
+    if (antes !== d.lote.id) {
+      const cam = this.cameras.main;
+      cam.stopFollow();
+      // En pantalla vertical (celular) el panel tapa la mitad de abajo: el terreno queda más arriba.
+      const baja = cam.height > cam.width ? (cam.height * 0.22) / cam.zoom : 0;
+      cam.pan(d.lote.x + (d.lote.lado * d.lote.baldosa) / 2, d.lote.y + (d.lote.lado * d.lote.baldosa) / 2 + baja, 450, "Sine.easeInOut");
+    }
+    this.decorarG = this.add.graphics().setDepth(Z_AVION - 5);
+    if (d.colocar) {
+      this.fantasma = this.add.image(0, 0, "objetos", d.colocar.frame).setAlpha(0.8).setDepth(Z_AVION - 4).setVisible(false);
+      this.origenDeCuadro(this.fantasma);
+    }
+    this.pintarDecorar();
+  }
+
+  seguirJugador() {
+    if (this.jugador) this.cameras.main.startFollow(this.jugador.spr, true, 0.12, 0.12, 0, 24);
+  }
+
+  private pintarDecorar() {
+    const d = this.decorar, g = this.decorarG;
+    if (!d || !g) return;
+    const { lote } = d, T = lote.baldosa;
+    g.clear();
+    const zona = (z: Set<string>, color: number) => {
+      for (const c of z) {
+        const [x, y] = c.split(",").map(Number);
+        g.fillStyle(color, 0.16).fillRect(lote.x + x * T + 1, lote.y + y * T + 1, T - 2, T - 2);
+      }
+    };
+    const donde = d.colocar?.donde;
+    if (!donde || donde !== "jardin") zona(d.adentro, 0x5db8ff);
+    if (!donde || donde !== "adentro") zona(d.jardin, 0x8fe08a);
+    g.lineStyle(2, 0xffe14d, 0.9).strokeRect(lote.x, lote.y, lote.lado * T, lote.lado * T);
+    const c = this.celdaDecorar;
+    if (d.colocar && c) {
+      const ok = d.valido(c.cx, c.cy);
+      const x0 = lote.x + c.cx * T, y0 = lote.y + c.cy * T;
+      g.fillStyle(ok ? 0x2ecc71 : 0xe74c3c, 0.35).fillRect(x0, y0, d.colocar.w * T, d.colocar.h * T);
+      g.lineStyle(2, ok ? 0x2ecc71 : 0xe74c3c, 1).strokeRect(x0, y0, d.colocar.w * T, d.colocar.h * T);
+      if (this.fantasma) {
+        this.fantasma.setPosition(x0 + (d.colocar.w * T) / 2, y0 + d.colocar.h * T - 2).setVisible(true);
+        if (ok) this.fantasma.clearTint(); else this.fantasma.setTint(0xff8888);
+      }
+    }
+  }
+
+  private moverDecorar(p: Phaser.Input.Pointer) {
+    const d = this.decorar;
+    if (!d?.colocar) return;
+    const T = d.lote.baldosa;
+    const pcx = Math.floor((p.worldX - d.lote.x) / T), pcy = Math.floor((p.worldY - d.lote.y) / T);
+    const cx = pcx - Math.floor((d.colocar.w - 1) / 2), cy = pcy - Math.floor((d.colocar.h - 1) / 2);
+    if (this.celdaDecorar?.cx === cx && this.celdaDecorar?.cy === cy) return;
+    this.celdaDecorar = { cx, cy };
+    this.pintarDecorar();
+  }
+
+  private tocarDecorar(p: Phaser.Input.Pointer) {
+    const d = this.decorar!;
+    if (d.colocar) {
+      this.moverDecorar(p);
+      const c = this.celdaDecorar;
+      if (c) d.onCelda(c.cx, c.cy);
+      return;
+    }
+    const id = this.casasV.itemEn(d.lote.id, p.worldX, p.worldY);
+    if (id != null) d.onItem(id);
   }
 
   /** A la cancha de tenis: al lado de tu equipo (A a la izquierda de la red), uno detrás de otro. */
@@ -349,7 +472,7 @@ export class EscenaBarrio extends Phaser.Scene {
       const visible = !techo || techo.img.alpha < 0.4;
       s.ico.setVisible(visible);
       s.nombre.setVisible(false);
-      if (!visible || s.e.tipo === "trofeos") continue;
+      if (!visible || s.e.tipo === "trofeos" || s.e.tipo === "lote") continue;
       const d = Math.hypot(s.e.uso.x - j.x, s.e.uso.y - j.y);
       if (d < 110 || (lugar && s.e.lugar === lugar && d < 420)) candidatos.push({ s, d });
     }
@@ -652,6 +775,7 @@ export class EscenaBarrio extends Phaser.Scene {
       this.colocar(f, ahora);
     }
     this.techosSegunJugador();
+    if (this.jugador) this.casasV.techos(this.jugador.x, this.jugador.y);
     this.nombresCerca();
     this.revisarCerca();
     this.enviarPosicion(ahora);
@@ -713,11 +837,13 @@ export class EscenaBarrio extends Phaser.Scene {
   }
 
   lugarDe(x: number, y: number): string | null {
+    // El más chico que lo contenga: la casa del vecindario está dentro de su terreno.
+    let mejor: string | null = null, area = Infinity;
     for (const [id, l] of Object.entries(this.mapa.lugares)) {
       const [x0, y0, x1, y1] = l.rect;
-      if (x >= x0 && x < x1 && y >= y0 && y < y1 + 2) return id;
+      if (x >= x0 && x < x1 && y >= y0 && y < y1 + 2 && (x1 - x0) * (y1 - y0) < area) { mejor = id; area = (x1 - x0) * (y1 - y0); }
     }
-    return null;
+    return mejor;
   }
 
   // ─── Hablar y examinar ─────────────────────────────────────────────────────
@@ -759,7 +885,8 @@ export class EscenaBarrio extends Phaser.Scene {
     let texto: string | null = null;
     if (est && j && !this.bloqueado) {
       texto = est.tipo === "directorio" ? "Leer el directorio" : est.tipo === "ajedrez" ? "Jugar ajedrez"
-        : est.tipo === "trofeos" ? "Ver los trofeos" : est.tipo === "tenis" ? "Jugar tenis" : `Ver ${infoModulo(est.panel).nombre}`;
+        : est.tipo === "trofeos" ? "Ver los trofeos" : est.tipo === "tenis" ? "Jugar tenis" : est.tipo === "lote" ? "Ver el terreno"
+        : `Ver ${infoModulo(est.panel).nombre}`;
       this.marca.setPosition(est.x, est.y - 22 + Math.sin(this.time.now / 160) * 2).setVisible(true);
       if (texto !== this.cercaActual) { this.cercaActual = texto; this.ajustes.onCerca(texto); }
       return;
@@ -801,6 +928,7 @@ export class EscenaBarrio extends Phaser.Scene {
   }
 
   private tocar(p: Phaser.Input.Pointer) {
+    if (this.decorar) { this.tocarDecorar(p); return; }
     if (this.bloqueado || !this.jugador) return;
     const x = p.worldX, y = p.worldY;
     // ¿Tocó a alguien? Camina hasta quedar a su lado y le habla.

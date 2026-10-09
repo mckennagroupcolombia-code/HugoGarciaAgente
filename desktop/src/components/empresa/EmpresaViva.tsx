@@ -37,6 +37,8 @@ import { VentanaModulo } from "./VentanaModulo";
 import { VentanaAjedrez, meToca, rivalDe, type ListaAjedrez, type PartidaAjedrez } from "./Ajedrez";
 import { MenuAtencion, type ItemAtencion } from "./MenuAtencion";
 import { VentanaTenis, equipoDe, type Equipo, type ListaTenis, type PartidoTenis } from "./Tenis";
+import { DecorarCasa } from "./Casa";
+import { nivelDe, type EstadoVecindario } from "./vecindario";
 import { useResumenMensajes } from "../../hooks/useCanalesEquipo";
 import { guardarVistaMensajes } from "../chat_equipo/SelectorMensajes";
 import { ETAPAS_APP } from "../../lib/flujoApp";
@@ -157,6 +159,8 @@ export default function EmpresaViva() {
   const [buscando, setBuscando] = useState(false);
   /** El menú «Atender» (tecla Q): lo que necesita tu atención. */
   const [atencion, setAtencion] = useState(false);
+  /** Decorando mi casa del vecindario (Casa.tsx). */
+  const [decorando, setDecorando] = useState(false);
   /** Los módulos abiertos dentro del juego (el último es el que se ve). */
   const [pila, setPila] = useState<Panel[]>([]);
   const pilaRef = useRef<Panel[]>([]);
@@ -188,6 +192,12 @@ export default function EmpresaViva() {
     queryKey: ["ev-ajedrez-lista", user?.id],
     queryFn: () => api.get<ListaAjedrez>("/api/empresa-viva/ajedrez"),
     refetchInterval: 4_000,
+    enabled: Boolean(user?.id),
+  });
+  const { data: vecindario } = useQuery({
+    queryKey: ["ev-vecindario", user?.id],
+    queryFn: () => api.get<EstadoVecindario>("/api/empresa-viva/vecindario"),
+    refetchInterval: 15_000,
     enabled: Boolean(user?.id),
   });
   const { data: tenis } = useQuery({
@@ -279,22 +289,22 @@ export default function EmpresaViva() {
 
   useEffect(() => { if (data) juegoRef.current?.sincronizar(data); }, [data]);
   useEffect(() => {
-    juegoRef.current?.bloquear(Boolean(dialogo || modal || chatCon || buscando || atencion || pila.length || ajedrezId !== null || tenisId !== null));
-  }, [dialogo, modal, chatCon, buscando, atencion, pila.length, ajedrezId, tenisId]);
+    juegoRef.current?.bloquear(Boolean(dialogo || modal || chatCon || buscando || atencion || decorando || pila.length || ajedrezId !== null || tenisId !== null));
+  }, [dialogo, modal, chatCon, buscando, atencion, decorando, pila.length, ajedrezId, tenisId]);
   // Q abre «Atender» (y lo cierra el propio menú), si no hay otra ventana encima ni se está escribiendo.
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
       if (e.code !== "KeyQ" || e.ctrlKey || e.metaKey || e.altKey || e.repeat || atencion) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) return;
-      if (dialogo || modal || chatCon || buscando || pila.length || ajedrezId !== null || tenisId !== null) return;
+      if (dialogo || modal || chatCon || buscando || decorando || pila.length || ajedrezId !== null || tenisId !== null) return;
       if (!contRef.current?.isConnected || contRef.current.offsetParent === null) return;
       e.preventDefault();
       setAtencion(true);
     };
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
-  }, [atencion, dialogo, modal, chatCon, buscando, pila.length, ajedrezId, tenisId]);
+  }, [atencion, dialogo, modal, chatCon, buscando, decorando, pila.length, ajedrezId, tenisId]);
   // Con un módulo abierto, lo que se navegue desde su ventana (aunque vaya por el store) se queda
   // en el juego. Solo si el clic salió de la ventana: la barra de la app sigue funcionando normal.
   useEffect(() => {
@@ -464,7 +474,7 @@ export default function EmpresaViva() {
       const antes = visto.get(p.id);
       if (antes === p.estado) continue;
       if (p.estado === "invitada" && p.reta !== yoId) {
-        if (dialogo || modal || chatCon || ajedrezId !== null || pila.length) continue;   // espera a que se libere
+        if (dialogo || modal || chatCon || ajedrezId !== null || pila.length || decorando || tenisId !== null) continue;   // espera a que se libere
         visto.set(p.id, p.estado);
         tocarSonido("reto");
         setDialogo(dialogoReto(p));
@@ -476,12 +486,12 @@ export default function EmpresaViva() {
       if (p.estado === "jugando") {
         tocarSonido("reto");
         avisar(`${rival} aceptó el reto: ¡a jugar!`);
-        if (ajedrezId === null && !pila.length && !chatCon && !modal) abrirAjedrez(p);
+        if (ajedrezId === null && tenisId === null && !decorando && !pila.length && !chatCon && !modal) abrirAjedrez(p);
       } else if (p.estado === "rechazada") avisar(`${rival} no puede jugar ahora.`);
       else if (p.estado === "vencida") avisar(`El reto a ${rival} venció.`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ajedrez, data?.yo, dialogo, modal, chatCon, ajedrezId, pila.length]);
+  }, [ajedrez, data?.yo, dialogo, modal, chatCon, ajedrezId, pila.length, decorando, tenisId]);
   // ── Trofeos: cada partida ganada queda en la repisa al lado de la cama de quien ganó (su cuarto
   // en empresa_viva_casas.json). Quien no tiene cuarto en el barrio los tiene guardados igual.
   const cuartoDe = useCallback((id: number) => {
@@ -492,11 +502,12 @@ export default function EmpresaViva() {
     if (!listo || !ajedrez) return;
     const por: Record<string, string[]> = {};
     for (const t of ajedrez.trofeos ?? []) {
-      const c = cuartoDe(t.usuario);
+      // Si puso la repisa en su casa del vecindario, los trofeos viven allá.
+      const c = juegoRef.current?.repisaDe(t.usuario) ?? cuartoDe(t.usuario);
       if (c) (por[c] ??= []).push(t.medalla);
     }
     juegoRef.current?.trofeos(por);
-  }, [listo, ajedrez, cuartoDe]);
+  }, [listo, ajedrez, cuartoDe, vecindario]);
   const trofeosVistos = useRef<Set<number> | null>(null);
   useEffect(() => {
     if (!ajedrez || !data) return;
@@ -595,7 +606,7 @@ export default function EmpresaViva() {
   const tenisPrimera = useRef(true);
   useEffect(() => {
     if (!tenis || !data) return;
-    const libre = !dialogo && !modal && !chatCon && tenisId === null && ajedrezId === null && !pila.length && !atencion && !buscando;
+    const libre = !dialogo && !modal && !chatCon && tenisId === null && ajedrezId === null && !pila.length && !atencion && !buscando && !decorando;
     if (tenisPrimera.current) {
       tenisPrimera.current = false;
       tenis.partidos.forEach((p) => { tenisVisto.current.add(p.id); if (p.estado === "jugando") tenisAutoAbierto.current.add(p.id); });
@@ -621,7 +632,73 @@ export default function EmpresaViva() {
     const mia = tenis.partidos.find((p) => p.estado === "jugando" && equipoDe(p, data.yo) && !tenisAutoAbierto.current.has(p.id));
     if (mia && libre) { tenisAutoAbierto.current.add(mia.id); abrirTenis(mia); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenis, data?.yo, dialogo, modal, chatCon, tenisId, ajedrezId, pila.length, atencion, buscando]);
+  }, [tenis, data?.yo, dialogo, modal, chatCon, tenisId, ajedrezId, pila.length, atencion, buscando, decorando]);
+
+  // ── El vecindario: cada quien compra su terreno, construye y decora (casas.ts, Casa.tsx,
+  // app/services/empresa_viva_vecindario.py). Las monedas son del juego: iguales para todos.
+  useEffect(() => {
+    if (!listo || !vecindario || !data) return;
+    juegoRef.current?.vecindario(vecindario, Object.fromEntries(data.personas.map((p) => [p.id, primerNombre(p.nombre)])));
+  }, [listo, vecindario, data?.personas]);
+  const miLote = vecindario?.lotes.find((l) => l.dueno === data?.yo) ?? null;
+  // Los diálogos que siguen a una compra se arman con la respuesta, no con lo de antes de comprar.
+  const vecindarioRef = useRef<EstadoVecindario | undefined>(vecindario);
+  vecindarioRef.current = vecindario ?? vecindarioRef.current;
+  const accionCasa = useCallback(async (ruta: string, cuerpo: object = {}): Promise<EstadoVecindario | null> => {
+    try {
+      const r = await api.post<EstadoVecindario>(`/api/empresa-viva/vecindario/${ruta}`, cuerpo);
+      vecindarioRef.current = r;
+      qc.setQueryData(["ev-vecindario", user?.id], r);
+      return r;
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : "No se pudo");
+      tocarSonido("error");
+      return null;
+    }
+  }, [qc, user?.id, avisar]);
+  const miLoteAhora = () => vecindarioRef.current?.lotes.find((l) => l.dueno === dataRef.current?.yo) ?? null;
+  function irAMiCasa() {
+    setDialogo(null);
+    const v = vecindarioRef.current;
+    if (!v) return;
+    const miLote = miLoteAhora();
+    const destino = miLote?.id ?? v.lotes.find((l) => !l.dueno && l.precio <= v.billetera.saldo)?.id ?? v.lotes.find((l) => !l.dueno)?.id;
+    if (!destino || !juegoRef.current?.irALote(destino)) avisar("No encontré un terreno en el vecindario");
+    contRef.current?.focus();
+  }
+  function empezarDecorar() {
+    setDialogo(null);
+    const miLote = miLoteAhora();
+    if (!miLote?.casa) { avisar("Primero construye tu casa"); return; }
+    juegoRef.current?.irALote(miLote.id, false);
+    setDecorando(true);
+  }
+  function dialogoCuentas(): Dialogo {
+    const v = vecindarioRef.current!;
+    const movs = v.billetera.movimientos.slice(0, 10);
+    return {
+      hablante: "Mis monedas", retrato: null,
+      paginas: [
+        <div key="cuentas" data-no-avanza>
+          <p>Tienes <span className="text-[#ffe14d]">◉ {v.billetera.saldo}</span> {v.moneda}. Cada mes llegan {v.asignacion_mensual}
+            {v.acumula ? " y lo que no gastes se guarda" : " (lo que no gastes no se acumula)"}. Son del juego: iguales para todo el equipo.</p>
+          <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto pr-1 text-sm">
+            {movs.map((m, i) => (
+              <li key={i} className="flex gap-2">
+                <span className={`w-16 shrink-0 text-right ${m.monto < 0 ? "text-[#ffb4b4]" : "text-[#8fe08a]"}`}>{m.monto > 0 ? "+" : ""}{m.monto}</span>
+                <span className="min-w-0 flex-1 truncate">{m.concepto}</span>
+              </li>
+            ))}
+          </ul>
+        </div>,
+      ],
+      opciones: [
+        { texto: miLoteAhora() ? "Ir a mi casa" : "Ver terrenos", hacer: () => irAMiCasa() },
+        ...(miLoteAhora()?.casa ? [{ texto: "Decorar mi casa", hacer: () => empezarDecorar() }] : []),
+        { texto: "Cerrar", hacer: () => cerrar() },
+      ],
+    };
+  }
 
   // ── «Atender»: lo que necesita tu atención (MenuAtencion.tsx)
   const { data: resumen } = useResumenMensajes(Boolean(user?.id));
@@ -685,6 +762,15 @@ export default function EmpresaViva() {
                    detalle: `Equipo ${eq}`, alta: p.estado === "jugando", color: "#00E436", icono: "tenis",
                    atender: y(() => abrirTenis(p)), ir: y(() => { juegoRef.current?.irATenis(eq, p.equipos[eq].indexOf(d.yo)); }) });
       }
+    }
+    if (vecindario && !miLote) {
+      out.push({ clave: "casa", grupo: "Para ti", titulo: "Tu casa en el vecindario: compra un terreno",
+                 detalle: `Tienes ${vecindario.billetera.saldo} ${vecindario.moneda} este mes · los terrenos están al sur del parque`,
+                 color: "#FFA300", icono: "casa", atender: y(() => irAMiCasa()), ir: y(() => irAMiCasa()) });
+    } else if (vecindario && miLote && !miLote.casa) {
+      out.push({ clave: "casa", grupo: "Para ti", titulo: "Ya tienes terreno: construye tu casa",
+                 detalle: `Tienes ${vecindario.billetera.saldo} ${vecindario.moneda}`, color: "#FFA300", icono: "casa",
+                 atender: y(() => irAMiCasa()), ir: y(() => irAMiCasa()) });
     }
     // Detenido en tus módulos (el «Detenido ahora» del Mapa, ya recortado a tus permisos en el servidor)
     const orden = ETAPAS_APP.map((e) => e.id as string);
@@ -896,6 +982,74 @@ export default function EmpresaViva() {
                      { texto: "Cerrar", hacer: () => cerrar() }],
         };
       }
+      case "lote": {
+        const v = vecindarioRef.current;
+        const lm = juegoRef.current?.lote(ex.lote);
+        const le = v?.lotes.find((l) => l.id === ex.lote);
+        const miLote = v?.lotes.find((l) => l.dueno === d?.yo) ?? null;
+        if (!v || !lm || !le) return { paginas: ["Este terreno todavía no carga. Intenta de nuevo en un momento."], opciones: [salir] };
+        const saldo = v.billetera.saldo, mon = v.moneda;
+        const frente = lm.frente === "abajo" ? "La puerta mira a la calle de las casas; el fondo da al parque." : "La puerta mira a la calle de las casas.";
+        if (!le.dueno) {
+          const puede = !miLote && saldo >= le.precio;
+          return {
+            hablante: `Terreno ${le.id} · en venta`, retrato: null,
+            paginas: [`Se vende: ${le.precio} ${mon}. Mide 8 × 8 baldosas. ${frente}\nTienes ${saldo} ${mon}.${miLote ? " Ya tienes tu terreno: cada quien tiene uno." : ""}`],
+            opciones: [
+              ...(!miLote ? [{ texto: `Comprar este terreno (${le.precio})`, deshabilitada: !puede,
+                               hacer: () => void accionCasa("terreno", { lote: le.id }).then((r) => {
+                                 if (!r) return;
+                                 tocarSonido("vender");
+                                 setDialogo(construirRef.current({ tipo: "lote", lote: le.id }));
+                               }) }] : []),
+              { texto: "Mis monedas", hacer: () => setDialogo(dialogoCuentas()) },
+              { texto: "Cerrar", hacer: () => cerrar() },
+            ],
+          };
+        }
+        const dueno = d?.personas.find((p) => p.id === le.dueno);
+        const nombre = primerNombre(dueno?.nombre) || "alguien";
+        if (le.dueno !== d?.yo) {
+          const nivel = nivelDe(v, le.casa?.nivel);
+          return {
+            hablante: le.casa ? `Casa de ${nombre}` : `Terreno de ${nombre}`, retrato: dueno ? retratos[dueno.id] ?? null : null,
+            paginas: [le.casa ? `${nivel?.nombre ?? "Casa"}, con ${le.items.length} cosa${le.items.length === 1 ? "" : "s"} entre jardín, muebles y accesorios.` : "Todavía no ha construido."],
+            opciones: [salir],
+          };
+        }
+        if (!le.casa) {
+          const precio = v.catalogo.casa.precio;
+          return {
+            hablante: "Tu terreno", retrato: null,
+            paginas: [`Ya es tuyo. Para vivir aquí, construye tu casa (${precio} ${mon}; después la puedes ampliar). Tienes ${saldo} ${mon}. ¿De qué estilo?`],
+            opciones: [
+              ...v.catalogo.casa.modelos.map((m): OpcionDialogo => ({
+                texto: `Construir: ${m.nombre} (${precio})`, deshabilitada: saldo < precio,
+                hacer: () => void accionCasa("construir", { modelo: m.id }).then((r) => {
+                  if (!r) return;
+                  tocarSonido("logro");
+                  avisar("¡Tu casa quedó lista! Ahora decórala a tu gusto.");
+                  setDialogo(construirRef.current({ tipo: "lote", lote: le.id }));
+                }),
+              })),
+              { texto: "Cerrar", hacer: () => cerrar() },
+            ],
+          };
+        }
+        const nivel = nivelDe(v, le.casa.nivel);
+        const siguiente = v.catalogo.niveles.find((n) => n.nivel === le.casa!.nivel + 1);
+        return {
+          hablante: "Tu casa", retrato: null,
+          paginas: [`${nivel?.nombre ?? "Casa"} · ${le.items.length} cosa${le.items.length === 1 ? "" : "s"}. Tienes ${saldo} ${mon}.`],
+          opciones: [
+            { texto: "Decorar", hacer: () => empezarDecorar() },
+            ...(siguiente ? [{ texto: `${siguiente.nombre} (${siguiente.precio})`, deshabilitada: saldo < siguiente.precio,
+                               hacer: () => void accionCasa("ampliar").then((r) => { if (r) { tocarSonido("logro"); setDialogo(construirRef.current({ tipo: "lote", lote: le.id })); } }) }] : []),
+            { texto: "Mis monedas", hacer: () => setDialogo(dialogoCuentas()) },
+            { texto: "Cerrar", hacer: () => cerrar() },
+          ],
+        };
+      }
       case "tenis": {
         const lista = tenis?.partidos ?? [];
         const salas = lista.filter((p) => p.estado === "sala");
@@ -1072,6 +1226,12 @@ export default function EmpresaViva() {
           <button type="button" className="ev-boton mck-btn-no-fx" onClick={() => juegoRef.current?.zoom(-1)} title="Alejar">−</button>
           <button type="button" className="ev-boton mck-btn-no-fx" onClick={() => juegoRef.current?.zoom(1)} title="Acercar">+</button>
           <button type="button" className="ev-boton mck-btn-no-fx" onClick={cambiarSonido} aria-pressed={sonido} title={sonido ? "Silenciar" : "Activar sonidos"}>♪</button>
+          {vecindario && (
+            <button type="button" className="ev-boton mck-btn-no-fx" onClick={() => setDialogo(dialogoCuentas())}
+                    title={`Tus ${vecindario.moneda} del mes para tu casa del vecindario`}>
+              ◉ {vecindario.billetera.saldo}
+            </button>
+          )}
           <button type="button" className="ev-boton mck-btn-no-fx" onClick={() => setBuscando(true)} title="Buscar un módulo de la app y caminar hasta él" aria-pressed="true">¿Dónde está…?</button>
           <button type="button" className="ev-boton mck-btn-no-fx" onClick={() => setAyuda(true)} title="Cómo se juega">?</button>
           <button type="button" className="ev-boton mck-btn-no-fx" onClick={() => setModal("compartir")} title="Compartir una idea o un mensaje con un grupo del equipo">Idea</button>
@@ -1173,6 +1333,11 @@ export default function EmpresaViva() {
                         onCerrar={() => { setTenisId(null); contRef.current?.focus(); void qc.invalidateQueries({ queryKey: ["ev-tenis-lista"] }); }}
                         onLado={(eq: Equipo, i: number) => { tenisJugador.current = true; juegoRef.current?.irATenis(eq, i); }}
                         onVerTrofeo={cuartoDe(data.yo) ? () => { setTenisId(null); juegoRef.current?.irATrofeos(cuartoDe(data.yo)!); } : undefined} />
+        )}
+
+        {decorando && miLote?.casa && vecindario && juegoRef.current?.lote(miLote.id) && (
+          <DecorarCasa juego={juegoRef.current} lote={juegoRef.current.lote(miLote.id)!} mio={miLote} v={vecindario}
+                       onAccion={accionCasa} onCerrar={() => { setDecorando(false); contRef.current?.focus(); }} />
         )}
 
         {atencion && <MenuAtencion items={itemsAtender} onCerrar={() => { setAtencion(false); contRef.current?.focus(); }} />}

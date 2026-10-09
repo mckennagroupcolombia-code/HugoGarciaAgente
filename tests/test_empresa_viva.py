@@ -367,3 +367,110 @@ def test_tenis_invitar_al_hablarle(monkeypatch, tmp_path):
     with pytest.raises(PermissionError):
         T.invitar(eq[6], p["id"], [12])                 # solo invita quien está en el partido
     T._partidas.clear()
+
+
+# ─── Vecindario: terreno → casa → decorar, con monedas del mes ───────────────
+
+def test_vecindario_terreno_casa_y_decorar(monkeypatch, tmp_path):
+    import pytest
+
+    from app.services import empresa_viva_vecindario as V
+
+    _, eq = _ajedrez(monkeypatch, tmp_path)
+    V._listo.clear()
+    lotes = V.lotes()
+    assert len(lotes) == 16 and {l["frente"] for l in lotes.values()} == {"abajo", "arriba"}
+    e = V.estado(eq[8])
+    assert e["billetera"]["saldo"] == 1000
+    with pytest.raises(ValueError):
+        V.construir(eq[8], "ladrillo")                       # sin terreno no hay casa
+    with pytest.raises(LookupError):
+        V.comprar_terreno(eq[8], "L99")
+    e = V.comprar_terreno(eq[8], "L01")                      # 400
+    with pytest.raises(ValueError):
+        V.comprar_terreno(eq[8], "L02")                      # uno por persona
+    with pytest.raises(ValueError):
+        V.comprar_terreno(eq[6], "L01")                      # ya tiene dueño
+    with pytest.raises(ValueError):
+        V.poner_item(eq[8], "flor_roja", 0, 7)                # sin casa no se decora
+    e = V.construir(eq[8], "colonial")                       # 400
+    assert e["billetera"]["saldo"] == 200
+    lote = next(l for l in e["lotes"] if l["id"] == "L01")
+    assert lote["dueno"] == 8 and lote["casa"] == {"modelo": "colonial", "nivel": 1}
+    # L01 mira al sur: casa en x 2..5, y 1..4; la fila 1 es el muro; la puerta y el camino en x 3-4
+    with pytest.raises(ValueError):
+        V.poner_item(eq[8], "cama", 3, 3)                     # tapa la entrada de la puerta (fila 4)
+    with pytest.raises(ValueError):
+        V.poner_item(eq[8], "flor_roja", 3, 6)                # en el camino a la puerta
+    with pytest.raises(ValueError):
+        V.poner_item(eq[8], "cama", 2, 0)                     # la cama va adentro
+    e = V.poner_item(eq[8], "cama", 2, 2)
+    e = V.poner_item(eq[8], "alfombra_azul", 4, 2)           # alfombra (capa suelo)…
+    e = V.poner_item(eq[8], "lampara", 4, 2)                  # …y encima un mueble: se puede
+    with pytest.raises(ValueError):
+        V.poner_item(eq[8], "silla", 2, 3)                    # encima de la cama: no
+    e = V.poner_item(eq[8], "flor_roja", 0, 7)
+    assert e["billetera"]["saldo"] == 200 - 80 - 30 - 20 - 5
+    with pytest.raises(ValueError):
+        V.poner_item(eq[8], "fuente", 6, 6)                   # 120: no alcanza (quedan 65)
+    # Quitar devuelve la mitad
+    cama = next(i for i in next(l for l in e["lotes"] if l["id"] == "L01")["items"] if i["item"] == "cama")
+    e = V.quitar_item(eq[8], cama["id"])
+    assert e["billetera"]["saldo"] == 65 + 40
+    with pytest.raises(LookupError):
+        V.quitar_item(eq[6], cama["id"])                      # no es de Cynthia
+    # Mover: la flor a otra celda del jardín
+    flor = next(i for i in next(l for l in e["lotes"] if l["id"] == "L01")["items"] if i["item"] == "flor_roja")
+    e = V.mover_item(eq[8], flor["id"], 7, 7)
+    with pytest.raises(ValueError):
+        V.mover_item(eq[8], flor["id"], 3, 3)                 # adentro de la casa: no es su sitio
+
+
+def test_vecindario_mes_nuevo_y_ampliacion(monkeypatch, tmp_path):
+    """Cada mes llega la asignación (y la de los meses sin entrar); ampliar pide mover lo que estorba."""
+    import pytest
+
+    from app.services import empresa_viva_vecindario as V
+
+    _, eq = _ajedrez(monkeypatch, tmp_path)
+    V._listo.clear()
+    monkeypatch.setattr(V, "_mes", lambda ahora=None: "2026-10")
+    V.comprar_terreno(eq[6], "L09")                           # fila de abajo: mira al norte (320)
+    V.construir(eq[6], "moderna")
+    # L09 mira al norte: casa x 2..5, y 3..6 (nivel 1); el jardín de los lados queda libre
+    V.poner_item(eq[6], "maceta", 1, 4)                       # donde llega la ampliación (x 1)
+    monkeypatch.setattr(V, "_mes", lambda ahora=None: "2026-12")
+    e = V.estado(eq[6])
+    assert e["billetera"]["saldo"] == 1000 - 320 - 400 - 15 + 2000   # noviembre y diciembre
+    with pytest.raises(ValueError):
+        V.ampliar(eq[6])                                      # la matera estorba
+    m = next(i for l in e["lotes"] if l["id"] == "L09" for i in l["items"])
+    V.mover_item(eq[6], m["id"], 0, 4)
+    e = V.ampliar(eq[6])
+    assert next(l for l in e["lotes"] if l["id"] == "L09")["casa"]["nivel"] == 2
+
+
+def test_vecindario_rutas(monkeypatch, tmp_path):
+    from flask import Flask
+
+    from app import routes_mapa_sistema
+    from app.services import empresa_viva_vecindario as V
+    from app.services import tickets_db
+
+    _, eq = _ajedrez(monkeypatch, tmp_path)
+    V._listo.clear()
+    app = Flask(__name__)
+    routes_mapa_sistema.register_mapa_sistema_routes(app)
+    c = app.test_client()
+    usuarios = {"tok-armando": eq[8], "tok-contador": eq[12]}
+    monkeypatch.setattr(tickets_db, "get_usuario_by_token", lambda tok: usuarios.get(tok))
+    monkeypatch.setattr(tickets_db, "aplicar_privilegios_admin_cynthia", lambda u: u)
+    h = lambda tok: {"Authorization": f"Bearer {tok}"}
+    assert c.get("/api/empresa-viva/vecindario").status_code == 401
+    assert c.get("/api/empresa-viva/vecindario", headers=h("tok-contador")).status_code == 403
+    r = c.get("/api/empresa-viva/vecindario", headers=h("tok-armando")).get_json()
+    assert r["billetera"]["saldo"] == 1000 and len(r["lotes"]) == 16
+    assert c.post("/api/empresa-viva/vecindario/terreno", json={"lote": "L03"}, headers=h("tok-armando")).status_code == 200
+    assert c.post("/api/empresa-viva/vecindario/poner", json={"item": "sofa", "cx": "x", "cy": 1},
+                  headers=h("tok-armando")).status_code == 400
+    assert c.post("/api/empresa-viva/vecindario/volar", headers=h("tok-armando")).status_code == 404

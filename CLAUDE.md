@@ -275,6 +275,9 @@ Barrio, objetos-módulo y `mapa.json` salen de `scripts/empresa_viva/armar_mapa.
 solicitud. **Ajedrez entre dos** en la mesa del parque (`empresa_viva_ajedrez.py`, `ev_ajedrez` en tickets.db; reglas con chess.js
 en el navegador) y **tenis en equipo** en la cancha (`empresa_viva_tenis.py`, en memoria); lo ganado deja **trofeos** en la repisa
 al lado de la cama (`ev_trofeos`). «Atender» (Q) junta lo que necesita tu atención; las placas de los objetos usan el color de su etapa del Mapa.
+**Vecindario** (9-oct): al sur del parque, 16 terrenos; cada quien compra el suyo, construye y decora con **monedas del juego iguales
+para todos** (1.000/mes, `app/data/empresa_viva_vecindario.json`; nunca ligarlas a sueldo ni rendimiento) — `empresa_viva_vecindario.py`,
+`casas.ts`, `Casa.tsx`; la geometría del terreno está duplicada a propósito en Python y en `vecindario.ts`.
 
 **Zumbidos en solicitudes** (`operacion-equipo.md`, AJ, 7-oct): «📳 Zumbido» sacude la app de los demás miembros
 (uno cada 20 s, solo con el panel abierto; `ticket_zumbidos`, llega por `/api/mensajes/resumen`).

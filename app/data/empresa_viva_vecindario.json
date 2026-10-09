@@ -1,0 +1,61 @@
+{
+  "_doc": "Vecindario de Empresa viva (8-oct-2026): cada quien compra un terreno, construye su casa y la decora con un monto fijo de monedas al mes (igual para todos, ficticio, sin relación con sueldos ni rendimiento). Lo lee app/services/empresa_viva_vecindario.py; los terrenos y sus precios salen de desktop/public/empresa/pixel/mapa.json (scripts/empresa_viva/armar_mapa.py) y los sprites de cada cosa son casa_<id> en objetos.png. Medidas en baldosas de 32 px; el terreno mide 8 × 8.",
+  "moneda": "monedas",
+  "asignacion_mensual": 1000,
+  "acumula": true,
+  "devolucion_al_quitar": 0.5,
+  "casa": {
+    "precio": 400,
+    "pintar": 100,
+    "modelos": [
+      {"id": "ladrillo", "nombre": "Ladrillo", "pared": "#b5543c", "piso": "#b07848", "techo": "#8b2f23"},
+      {"id": "colonial", "nombre": "Colonial", "pared": "#f3ead6", "piso": "#d98b5f", "techo": "#c0563b"},
+      {"id": "moderna", "nombre": "Moderna", "pared": "#5d6475", "piso": "#d9dde3", "techo": "#3b3f4a"}
+    ]
+  },
+  "niveles": [
+    {"nivel": 1, "w": 4, "h": 4, "precio": 400, "nombre": "Casa pequeña"},
+    {"nivel": 2, "w": 6, "h": 4, "precio": 300, "nombre": "Ampliación: sala más grande"},
+    {"nivel": 3, "w": 6, "h": 6, "precio": 450, "nombre": "Ampliación: segundo cuarto"}
+  ],
+  "categorias": [
+    {"id": "jardin", "nombre": "Jardín"},
+    {"id": "muebles", "nombre": "Muebles"},
+    {"id": "accesorios", "nombre": "Accesorios"}
+  ],
+  "items": [
+    {"id": "flor_roja", "nombre": "Flores rojas", "categoria": "jardin", "precio": 5, "w": 1, "h": 1, "donde": "jardin", "pisable": true},
+    {"id": "flor_amarilla", "nombre": "Flores amarillas", "categoria": "jardin", "precio": 5, "w": 1, "h": 1, "donde": "jardin", "pisable": true},
+    {"id": "flor_morada", "nombre": "Flores moradas", "categoria": "jardin", "precio": 5, "w": 1, "h": 1, "donde": "jardin", "pisable": true},
+    {"id": "flor_blanca", "nombre": "Flores blancas", "categoria": "jardin", "precio": 5, "w": 1, "h": 1, "donde": "jardin", "pisable": true},
+    {"id": "maceta", "nombre": "Matera", "categoria": "jardin", "precio": 15, "w": 1, "h": 1, "donde": "jardin"},
+    {"id": "arbusto", "nombre": "Arbusto", "categoria": "jardin", "precio": 20, "w": 2, "h": 1, "donde": "jardin"},
+    {"id": "arbolito", "nombre": "Arbolito", "categoria": "jardin", "precio": 40, "w": 2, "h": 1, "donde": "jardin"},
+    {"id": "cerca", "nombre": "Tramo de reja", "categoria": "jardin", "precio": 10, "w": 2, "h": 1, "donde": "jardin"},
+    {"id": "banca", "nombre": "Banca", "categoria": "jardin", "precio": 30, "w": 2, "h": 1, "donde": "jardin"},
+    {"id": "farol", "nombre": "Farol", "categoria": "jardin", "precio": 35, "w": 1, "h": 1, "donde": "jardin"},
+    {"id": "fuente", "nombre": "Fuente", "categoria": "jardin", "precio": 120, "w": 2, "h": 2, "donde": "jardin"},
+    {"id": "buzon", "nombre": "Buzón", "categoria": "jardin", "precio": 15, "w": 1, "h": 1, "donde": "jardin"},
+    {"id": "casita_perro", "nombre": "Casita del perro", "categoria": "jardin", "precio": 60, "w": 2, "h": 1, "donde": "jardin"},
+    {"id": "mesa_jardin", "nombre": "Mesa de jardín", "categoria": "jardin", "precio": 45, "w": 2, "h": 1, "donde": "jardin"},
+    {"id": "huerta", "nombre": "Huerta", "categoria": "jardin", "precio": 40, "w": 2, "h": 1, "donde": "jardin", "pisable": true},
+    {"id": "cama", "nombre": "Cama sencilla", "categoria": "muebles", "precio": 80, "w": 2, "h": 2, "donde": "adentro"},
+    {"id": "cama_doble", "nombre": "Cama doble", "categoria": "muebles", "precio": 130, "w": 2, "h": 2, "donde": "adentro"},
+    {"id": "sofa", "nombre": "Sofá", "categoria": "muebles", "precio": 70, "w": 2, "h": 1, "donde": "adentro"},
+    {"id": "mesa", "nombre": "Mesa", "categoria": "muebles", "precio": 40, "w": 2, "h": 1, "donde": "adentro"},
+    {"id": "silla", "nombre": "Silla", "categoria": "muebles", "precio": 15, "w": 1, "h": 1, "donde": "adentro"},
+    {"id": "biblioteca", "nombre": "Biblioteca", "categoria": "muebles", "precio": 60, "w": 2, "h": 1, "donde": "adentro"},
+    {"id": "nevera", "nombre": "Nevera", "categoria": "muebles", "precio": 70, "w": 1, "h": 1, "donde": "adentro"},
+    {"id": "cocina", "nombre": "Cocina", "categoria": "muebles", "precio": 60, "w": 2, "h": 1, "donde": "adentro"},
+    {"id": "escritorio", "nombre": "Escritorio", "categoria": "muebles", "precio": 50, "w": 2, "h": 1, "donde": "adentro"},
+    {"id": "tv", "nombre": "Televisor", "categoria": "muebles", "precio": 80, "w": 2, "h": 1, "donde": "adentro"},
+    {"id": "mesa_noche", "nombre": "Mesa de noche", "categoria": "muebles", "precio": 20, "w": 1, "h": 1, "donde": "adentro"},
+    {"id": "arcade", "nombre": "Máquina de arcade", "categoria": "muebles", "precio": 150, "w": 1, "h": 1, "donde": "adentro"},
+    {"id": "repisa_trofeos", "nombre": "Repisa de trofeos", "categoria": "muebles", "precio": 50, "w": 2, "h": 1, "donde": "adentro", "maximo": 1},
+    {"id": "alfombra_azul", "nombre": "Alfombra azul", "categoria": "accesorios", "precio": 30, "w": 2, "h": 2, "donde": "adentro", "pisable": true, "capa": "suelo"},
+    {"id": "alfombra_roja", "nombre": "Alfombra roja", "categoria": "accesorios", "precio": 30, "w": 2, "h": 2, "donde": "adentro", "pisable": true, "capa": "suelo"},
+    {"id": "lampara", "nombre": "Lámpara de pie", "categoria": "accesorios", "precio": 20, "w": 1, "h": 1, "donde": "adentro"},
+    {"id": "planta_interior", "nombre": "Planta grande", "categoria": "accesorios", "precio": 15, "w": 1, "h": 1, "donde": "ambos"},
+    {"id": "pecera", "nombre": "Pecera", "categoria": "accesorios", "precio": 45, "w": 1, "h": 1, "donde": "adentro"}
+  ]
+}
