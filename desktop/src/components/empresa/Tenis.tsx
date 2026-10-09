@@ -23,6 +23,8 @@ export interface PartidoTenis {
   saca: Equipo; ganador: Equipo | null; motivo: string;
   pelota: { x: number; y: number; vx: number; vy: number; t: number; quieta?: boolean } | null;
   punto_seq: number; raquetas: Record<string, { x: number; y: number; t: number }>; activos: number[];
+  /** A quiénes se invitó al hablarles («Jugar tenis»): les sale el diálogo con «Unirme». */
+  invitados: number[];
   juegos_para_ganar: number; max_por_equipo: number; creada: number; actualizada: number; ahora: number;
 }
 export interface ListaTenis { partidos: PartidoTenis[]; ahora: number }

@@ -375,13 +375,17 @@ Agenda → **Empresa viva** (panel `empresa-viva`) y el selector **Mapa · Juego
   Alguien **arma un partido** (sala), los demás se unen al equipo A (izquierda de la red) o B (hasta 3 por lado), quien lo
   armó lo empieza; a todos los que andan por el barrio les sale el aviso y queda en «Atender». Tiempo real, gana quien se
   lleve **2 juegos** (15-30-40, iguales, ventaja).
+  - **Se invita hablándole a alguien** (8-oct, el usuario solo veía «Jugar ajedrez»): «Jugar tenis» arma el partido con
+    esa persona en `invitados` (o la invita al que ya tienes armado: `POST …/<id>/invitar`); a ella le sale el diálogo
+    «Unirme al equipo X / Ver la cancha primero / Ahora no» (el equipo con menos gente). Si la persona ya está en un partido
+    que no ha empezado: «Unirme a su partido de tenis». También desde la mesa de ajedrez y la repisa de trofeos.
   - **Red sin sockets**: cada jugador manda su raqueta cada 100 ms (`POST /api/empresa-viva/tenis/<id>/estado`); el
     **anfitrión** (quien lo armó, o el siguiente vivo si se va 6 s) simula la pelota en su navegador y la manda, y anota los
     puntos con `punto_seq` (un reenvío no cuenta dos veces). Los demás dibujan la pelota adelantada con su velocidad. El
     servidor (`app/services/empresa_viva_tenis.py`) solo reparte y lleva el marcador; vive **en memoria** (un reinicio corta
     los partidos; los trofeos ya ganados quedan). ⚠️ Si el anfitrión cierra la ventana, la pelota se detiene hasta que otro
     tome el relevo.
-  - Rutas: `GET|POST /api/empresa-viva/tenis`, `GET …/<id>`, `POST …/<id>/unirse|salir|empezar|estado`. Cuadro y física en
+  - Rutas: `GET|POST /api/empresa-viva/tenis` (POST `{invitar: [ids]}`), `GET …/<id>`, `POST …/<id>/unirse|invitar|salir|empezar|estado`. Cuadro y física en
     `Tenis.tsx` (canvas, coordenadas 0-1, cancha 2 × 1); con el dedo se arrastra la raqueta.
 - **Objetos que se distinguen del mapa** (8-oct noche, pedido: «los nombres e íconos de los módulos no se distinguen»).
   Cada objeto-módulo flota en una **placa del color de su etapa del Mapa** (`barrio.colorModulo` lee `mapaComun.COLOR`,

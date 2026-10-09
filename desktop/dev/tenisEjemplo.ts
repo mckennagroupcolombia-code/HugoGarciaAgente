@@ -2,13 +2,13 @@
  * Tenis de EJEMPLO para el banco de pruebas (Empresa viva → cancha del parque). Mismas reglas que
  * app/services/empresa_viva_tenis.py (sala → equipos → el anfitrión anota con el conteo de tenis).
  * Victor (7) se une al equipo B a los 2 s de armar un partido y su raqueta sigue la pelota (con
- * algo de retraso, para que se le puedan ganar puntos). Cynthia arma uno a los 40 s de abrir el banco.
+ * algo de retraso, para que se le puedan ganar puntos). Cynthia te invita a uno a los 40 s de abrir el banco.
  */
 interface Partido {
   id: number; creador: number; host: number; estado: string; equipos: { A: number[]; B: number[] };
   puntos: { A: number; B: number }; juegos: { A: number; B: number }; saca: "A" | "B"; ganador: "A" | "B" | null; motivo: string;
   pelota: { x: number; y: number; vx: number; vy: number; t: number; quieta?: boolean } | null; punto_seq: number;
-  raquetas: Record<string, { x: number; y: number; t: number }>; creada: number; actualizada: number;
+  raquetas: Record<string, { x: number; y: number; t: number }>; creada: number; actualizada: number; invitados: number[];
 }
 
 const inicio = Date.now();
@@ -21,9 +21,9 @@ const respuesta = (cuerpo: unknown, status = 200) =>
 const falla = (texto: string, status = 400) => respuesta({ error: texto }, status);
 const vista = (p: Partido) => ({ ...p, activos: [...p.equipos.A, ...p.equipos.B], juegos_para_ganar: 2, max_por_equipo: 3, ahora: ahora() });
 
-function nuevo(creador: number): Partido {
+function nuevo(creador: number, invitados: number[] = []): Partido {
   const p: Partido = { id: sig++, creador, host: creador, estado: "sala", equipos: { A: [creador], B: [] }, puntos: { A: 0, B: 0 },
-    juegos: { A: 0, B: 0 }, saca: "A", ganador: null, motivo: "", pelota: null, punto_seq: 0, raquetas: {}, creada: ahora(), actualizada: ahora() };
+    juegos: { A: 0, B: 0 }, saca: "A", ganador: null, motivo: "", pelota: null, punto_seq: 0, raquetas: {}, creada: ahora(), actualizada: ahora(), invitados };
   partidos.push(p);
   return p;
 }
@@ -43,11 +43,12 @@ export function tenisEjemplo(ruta: string, init: RequestInit | undefined, yo: nu
   if (!ruta.startsWith("/api/empresa-viva/tenis")) return null;
   const metodo = init?.method ?? "GET";
   const cuerpo = (() => { try { return JSON.parse(String(init?.body || "{}")); } catch { return {}; } })();
-  if (!deCynthia && Date.now() - inicio > 40_000) { deCynthia = true; nuevo(6); }
+  // Cynthia te invita a un partido a los 40 s (sale el diálogo con «Unirme»).
+  if (!deCynthia && Date.now() - inicio > 40_000) { deCynthia = true; nuevo(6, [yo]); }
   if (ruta === "/api/empresa-viva/tenis") {
     if (metodo === "POST") {
       if (partidos.some((p) => p.estado !== "terminada" && [...p.equipos.A, ...p.equipos.B].includes(yo))) return falla("Ya estás en un partido");
-      const p = nuevo(yo);
+      const p = nuevo(yo, Array.isArray(cuerpo.invitar) ? cuerpo.invitar.map(Number) : []);
       window.setTimeout(() => { if (p.estado === "sala" && !p.equipos.B.includes(7)) p.equipos.B.push(7); }, 2000);
       return respuesta(vista(p));
     }
@@ -67,6 +68,9 @@ export function tenisEjemplo(ruta: string, init: RequestInit | undefined, yo: nu
       p.equipos[e].push(yo);
       return respuesta(vista(p));
     }
+    case "invitar":
+      p.invitados = [...new Set([...p.invitados, ...(Array.isArray(cuerpo.a) ? cuerpo.a.map(Number) : [])])];
+      return respuesta(vista(p));
     case "salir":
       p.equipos.A = p.equipos.A.filter((u) => u !== yo);
       p.equipos.B = p.equipos.B.filter((u) => u !== yo);

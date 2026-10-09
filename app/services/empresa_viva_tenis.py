@@ -96,6 +96,7 @@ def _vista(p: dict, ahora: float) -> dict:
         "motivo": p["motivo"], "pelota": p["pelota"], "punto_seq": p["punto_seq"],
         "raquetas": {str(u): r for u, r in p["raquetas"].items() if u in _miembros(p)},
         "activos": [u for u in _miembros(p) if ahora - p["vistos"].get(u, 0) <= _VIDA_JUGADOR_S],
+        "invitados": sorted(p["invitados"]),
         "juegos_para_ganar": JUEGOS_PARA_GANAR, "max_por_equipo": MAX_POR_EQUIPO,
         "creada": p["creada"], "actualizada": p["actualizada"], "ahora": ahora,
     }
@@ -112,7 +113,22 @@ def _ya_juega(uid: int, salvo: int | None = None) -> bool:
     return any(pid != salvo and p["estado"] in ("sala", "jugando") and uid in _miembros(p) for pid, p in _partidas.items())
 
 
-def crear(usuario: dict) -> dict:
+def _ids(valores, uid: int) -> set[int]:
+    """Los invitados: ids de personas (sin uno mismo), máximo 6."""
+    out: set[int] = set()
+    for v in (valores or [])[:6] if isinstance(valores, list) else []:
+        try:
+            i = int(v)
+        except (TypeError, ValueError):
+            continue
+        if i > 0 and i != uid:
+            out.add(i)
+    return out
+
+
+def crear(usuario: dict, invitar: list | None = None) -> dict:
+    """Arma un partido (sala). `invitar` = a quiénes les llega la invitación con «Unirme» (al hablarles
+    en el juego: «Jugar tenis»); a todos los demás que anden por el barrio les llega el aviso igual."""
     uid = _uid(usuario)
     if not uid:
         raise ValueError("Falta la persona")
@@ -126,6 +142,7 @@ def crear(usuario: dict) -> dict:
             "id": pid, "creador": uid, "host": uid, "estado": "sala", "equipos": {"A": [uid], "B": []},
             "puntos": {"A": 0, "B": 0}, "juegos": {"A": 0, "B": 0}, "saca": "A", "ganador": None, "motivo": "",
             "pelota": None, "punto_seq": 0, "raquetas": {}, "vistos": {uid: ahora}, "creada": ahora, "actualizada": ahora,
+            "invitados": _ids(invitar, uid),
         }
         return _vista(_partidas[pid], ahora)
 
@@ -149,6 +166,21 @@ def unirse(usuario: dict, pid: int, equipo: str) -> dict:
                 p["equipos"][e].remove(uid)
         p["equipos"][equipo].append(uid)
         p["vistos"][uid] = ahora
+        p["actualizada"] = ahora
+        return _vista(p, ahora)
+
+
+def invitar(usuario: dict, pid: int, a: list) -> dict:
+    """Invitar a alguien más a un partido que todavía no empieza (solo quien está en él)."""
+    uid = _uid(usuario)
+    ahora = time.time()
+    with _lock:
+        p = _partida(pid)
+        if not _equipo_de(p, uid):
+            raise PermissionError("No estás en ese partido")
+        if p["estado"] != "sala":
+            raise ValueError("El partido ya empezó")
+        p["invitados"] |= _ids(a, uid)
         p["actualizada"] = ahora
         return _vista(p, ahora)
 

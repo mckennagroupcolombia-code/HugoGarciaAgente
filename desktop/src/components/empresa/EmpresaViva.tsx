@@ -538,16 +538,78 @@ export default function EmpresaViva() {
       avisar(e instanceof Error ? e.message : "No se pudo armar el partido");
     }
   }
+  /** «Jugar tenis» al hablarle a alguien: arma el partido con esa persona invitada (o la invita al
+   *  que ya tienes armado); a ella le sale el diálogo con «Unirme». */
+  async function jugarTenisCon(persona: PersonaApi) {
+    setDialogo(null);
+    const yoId = dataRef.current?.yo ?? 0;
+    const mio = tenis?.partidos.find((p) => p.estado !== "terminada" && equipoDe(p, yoId));
+    try {
+      if (mio?.estado === "jugando") { avisar("Ya estás jugando un partido: termínalo primero"); abrirTenis(mio); return; }
+      const p = mio
+        ? await api.post<PartidoTenis>(`/api/empresa-viva/tenis/${mio.id}/invitar`, { a: [persona.id] })
+        : await api.post<PartidoTenis>("/api/empresa-viva/tenis", { invitar: [persona.id] });
+      tenisVisto.current.add(p.id);
+      tocarSonido("reto");
+      avisar(`Le llegó tu invitación a ${primerNombre(persona.nombre)}: cuando se una, empiezan en la cancha del parque.`);
+      void qc.invalidateQueries({ queryKey: ["ev-tenis-lista"] });
+      abrirTenis(p);
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : "No se pudo armar el partido");
+    }
+  }
+  async function unirseTenis(p: PartidoTenis, equipo: Equipo) {
+    setDialogo(null);
+    try {
+      const r = await api.post<PartidoTenis>(`/api/empresa-viva/tenis/${p.id}/unirse`, { equipo });
+      void qc.invalidateQueries({ queryKey: ["ev-tenis-lista"] });
+      abrirTenis(r);
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : "No se pudo unir al partido");
+    }
+  }
+  /** El equipo que le conviene a quien llega: el que tenga menos gente (si empatan, el contrario al de quien lo armó). */
+  const equipoParaMi = (p: PartidoTenis): Equipo =>
+    p.equipos.A.length === p.equipos.B.length ? (p.equipos.A.includes(p.creador) ? "B" : "A") : p.equipos.A.length < p.equipos.B.length ? "A" : "B";
+  function dialogoInvitacionTenis(p: PartidoTenis): Dialogo {
+    const eq = equipoParaMi(p);
+    const companeros = p.equipos[eq].map((u) => nombreDe(u));
+    return {
+      hablante: nombreDe(p.creador), retrato: retratos[p.creador] ?? null,
+      paginas: [`¡Vamos a jugar tenis en la cancha del parque! Equipo A: ${nombresDe(p.equipos.A) || "nadie"} · Equipo B: ${nombresDe(p.equipos.B) || "nadie"}. Gana quien se lleve 2 juegos.`],
+      opciones: [
+        { texto: `Unirme al equipo ${eq}${companeros.length ? ` (con ${companeros.join(", ")})` : ""}`, hacer: () => void unirseTenis(p, eq) },
+        { texto: "Ver la cancha primero", hacer: () => abrirTenis(p) },
+        { texto: "Ahora no", hacer: () => cerrar() },
+      ],
+    };
+  }
   function nombresDe(uids: number[]) {
     return uids.map((u) => nombreDe(u)).join(", ");
   }
-  // Un partido nuevo que armó otra persona: aviso para unirse (los que ya estaban al abrir, no).
+  // Un partido nuevo que armó otra persona: aviso para unirse (los que ya estaban al abrir, no). Si
+  // me invitaron a mí, en vez del aviso sale el diálogo con «Unirme» (cuando no haya otra ventana).
   const tenisVisto = useRef(new Set<number>());
+  const invitacionVista = useRef(new Set<number>());
+  const tenisAutoAbierto = useRef(new Set<number>());
   const tenisPrimera = useRef(true);
   useEffect(() => {
     if (!tenis || !data) return;
-    if (tenisPrimera.current) { tenisPrimera.current = false; tenis.partidos.forEach((p) => tenisVisto.current.add(p.id)); return; }
+    const libre = !dialogo && !modal && !chatCon && tenisId === null && ajedrezId === null && !pila.length && !atencion && !buscando;
+    if (tenisPrimera.current) {
+      tenisPrimera.current = false;
+      tenis.partidos.forEach((p) => { tenisVisto.current.add(p.id); if (p.estado === "jugando") tenisAutoAbierto.current.add(p.id); });
+    }
     for (const p of tenis.partidos) {
+      const invitado = p.estado === "sala" && (p.invitados ?? []).includes(data.yo) && !equipoDe(p, data.yo);
+      if (invitado && !invitacionVista.current.has(p.id)) {
+        tenisVisto.current.add(p.id);
+        if (!libre) continue;                                  // espera a que se libere la pantalla
+        invitacionVista.current.add(p.id);
+        tocarSonido("reto");
+        setDialogo(dialogoInvitacionTenis(p));
+        break;
+      }
       if (tenisVisto.current.has(p.id)) continue;
       tenisVisto.current.add(p.id);
       if (p.estado === "sala" && p.creador !== data.yo) {
@@ -555,11 +617,11 @@ export default function EmpresaViva() {
         avisar(`${nombreDe(p.creador)} armó un partido de tenis en el parque: ¡únete! (Atender · Q)`);
       }
     }
-    // Si estoy en una sala que acaba de empezar y no tengo la cancha abierta, se abre sola.
-    const mia = tenis.partidos.find((p) => p.estado === "jugando" && equipoDe(p, data.yo));
-    if (mia && tenisId === null && ajedrezId === null && !pila.length && !chatCon && !modal && !dialogo) abrirTenis(mia);
+    // Si estoy en una sala que acaba de empezar y no tengo la cancha abierta, se abre sola (una vez).
+    const mia = tenis.partidos.find((p) => p.estado === "jugando" && equipoDe(p, data.yo) && !tenisAutoAbierto.current.has(p.id));
+    if (mia && libre) { tenisAutoAbierto.current.add(mia.id); abrirTenis(mia); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenis, data?.yo]);
+  }, [tenis, data?.yo, dialogo, modal, chatCon, tenisId, ajedrezId, pila.length, atencion, buscando]);
 
   // ── «Atender»: lo que necesita tu atención (MenuAtencion.tsx)
   const { data: resumen } = useResumenMensajes(Boolean(user?.id));
@@ -614,9 +676,10 @@ export default function EmpresaViva() {
     for (const p of tenis?.partidos ?? []) {
       const eq = equipoDe(p, d.yo);
       if (p.estado === "sala" && !eq) {
-        out.push({ clave: `t${p.id}`, grupo: "Para ti", titulo: `${nombreDe(p.creador)} armó un partido de tenis`,
+        out.push({ clave: `t${p.id}`, grupo: "Para ti",
+                   titulo: (p.invitados ?? []).includes(d.yo) ? `${nombreDe(p.creador)} te invitó a jugar tenis` : `${nombreDe(p.creador)} armó un partido de tenis`,
                    detalle: `Equipo A: ${p.equipos.A.length} · Equipo B: ${p.equipos.B.length} — únete en la cancha del parque`,
-                   color: "#00E436", icono: "tenis", atender: y(() => abrirTenis(p)), ir: y(() => { juegoRef.current?.irATenis("A", 2); }) });
+                   color: "#00E436", icono: "tenis", atender: y(() => setDialogo(dialogoInvitacionTenis(p))), ir: y(() => { juegoRef.current?.irATenis("A", 2); }) });
       } else if (eq && p.estado !== "terminada" && tenisId !== p.id) {
         out.push({ clave: `t${p.id}`, grupo: "Para ti", titulo: p.estado === "sala" ? "Tu partido de tenis espera" : "Tu partido de tenis está en juego",
                    detalle: `Equipo ${eq}`, alta: p.estado === "jugando", color: "#00E436", icono: "tenis",
@@ -715,6 +778,10 @@ export default function EmpresaViva() {
         if (partida && !(partida.estado === "invitada" && partida.reta !== d?.yo)) opciones.push({ texto: "Ver nuestra partida", hacer: () => abrirAjedrez(partida) });
         else if (partida) opciones.push({ texto: "Responder su reto", hacer: () => setDialogo(dialogoReto(partida)) });
         else opciones.push({ texto: "Jugar ajedrez", hacer: () => void retarAjedrez(p) });
+        const suTenis = tenis?.partidos.find((x) => x.estado !== "terminada" && equipoDe(x, p.id));
+        if (suTenis && equipoDe(suTenis, d?.yo ?? 0)) opciones.push({ texto: "Ver nuestro partido de tenis", hacer: () => abrirTenis(suTenis) });
+        else if (suTenis?.estado === "sala") opciones.push({ texto: "Unirme a su partido de tenis", hacer: () => setDialogo(dialogoInvitacionTenis(suTenis)) });
+        else if (!suTenis) opciones.push({ texto: "Jugar tenis", hacer: () => void jugarTenisCon(p) });
         opciones.push({
           texto: "¿Qué haces?", hacer: () => {
             const copas = trofeosDe([p.id]).length;
@@ -886,7 +953,9 @@ export default function EmpresaViva() {
         }
         return {
           hablante: mia ? "Tu repisa de trofeos" : nombre ? `Repisa de ${nombre}` : "Repisa de trofeos", retrato: dueno ? retratos[dueno.id] ?? null : null, paginas,
-          opciones: [{ texto: "Jugar ajedrez", hacer: () => setDialogo(dialogoRetar()) }, { texto: "Cerrar", hacer: () => cerrar() }],
+          opciones: [{ texto: "Jugar ajedrez", hacer: () => setDialogo(dialogoRetar()) },
+                     { texto: "Jugar tenis", hacer: () => setDialogo(construirRef.current({ tipo: "tenis" })) },
+                     { texto: "Cerrar", hacer: () => cerrar() }],
         };
       }
       case "ajedrez": {
@@ -902,6 +971,7 @@ export default function EmpresaViva() {
               ? { texto: `Reto de ${nombreDe(p.reta)}`, hacer: () => setDialogo(dialogoReto(p)) }
               : { texto: `${p.estado === "invitada" ? "Esperando a" : meToca(p, yoId) ? "Te toca con" : "Seguir con"} ${nombreDe(rivalDe(p, yoId))}`, hacer: () => abrirAjedrez(p) }),
             { texto: "Retar a alguien", hacer: () => setDialogo(dialogoRetar()) },
+            { texto: "Jugar tenis (la cancha de al lado)", hacer: () => setDialogo(construirRef.current({ tipo: "tenis" })) },
             ...enCurso.map((p): OpcionDialogo => ({ texto: `Mirar: ${nombreDe(p.blancas)} vs ${nombreDe(p.negras)}`, hacer: () => abrirAjedrez(p, false) })),
             { texto: "Cerrar", hacer: () => cerrar() },
           ],

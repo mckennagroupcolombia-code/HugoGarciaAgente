@@ -350,3 +350,20 @@ def test_tenis_en_equipo_conteo_y_trofeos(monkeypatch, tmp_path):
     assert sorted(t["usuario"] for t in tenis) == [6, 8]
     assert tenis[0]["detalle"]["rivales"] == [9] and tenis[0]["detalle"]["marcador"] == "2-0"
     T._partidas.clear()
+
+
+def test_tenis_invitar_al_hablarle(monkeypatch, tmp_path):
+    """«Jugar tenis» al hablarle a alguien: el partido nace con esa persona invitada."""
+    import pytest
+
+    from app.services import empresa_viva_tenis as T
+
+    _, eq = _ajedrez(monkeypatch, tmp_path)
+    T._partidas.clear()
+    p = T.crear(eq[8], invitar=[6, "x", 8])
+    assert p["invitados"] == [6]                        # ni basura ni uno mismo
+    p = T.invitar(eq[8], p["id"], [9])
+    assert p["invitados"] == [6, 9]
+    with pytest.raises(PermissionError):
+        T.invitar(eq[6], p["id"], [12])                 # solo invita quien está en el partido
+    T._partidas.clear()

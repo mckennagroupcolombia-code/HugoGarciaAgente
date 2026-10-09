@@ -385,7 +385,8 @@ def register_mapa_sistema_routes(app):
         from app.services import empresa_viva_tenis as T
 
         if request.method == "POST":
-            return _ajedrez(T.crear)
+            datos = request.get_json(silent=True) or {}
+            return _ajedrez(lambda u: T.crear(u, datos.get("invitar")))
         return _ajedrez(T.listar)
 
     @_dual(app, "/api/empresa-viva/tenis/<int:pid>", methods=["GET"])
@@ -396,12 +397,13 @@ def register_mapa_sistema_routes(app):
 
     @_dual(app, "/api/empresa-viva/tenis/<int:pid>/<accion>", methods=["POST"])
     def empresa_viva_tenis_accion(pid: int, accion: str):
-        """unirse {equipo} | salir | empezar | estado {raqueta, pelota?, punto?, punto_seq?}."""
+        """unirse {equipo} | invitar {a: [ids]} | salir | empezar | estado {raqueta, pelota?, punto?, punto_seq?}."""
         from app.services import empresa_viva_tenis as T
 
         datos = request.get_json(silent=True) or {}
         acciones = {
             "unirse": lambda u: T.unirse(u, pid, str(datos.get("equipo") or "")),
+            "invitar": lambda u: T.invitar(u, pid, datos.get("a") if isinstance(datos.get("a"), list) else [datos.get("a")]),
             "salir": lambda u: T.salir(u, pid),
             "empezar": lambda u: T.empezar(u, pid),
             "estado": lambda u: T.estado(u, pid, datos),

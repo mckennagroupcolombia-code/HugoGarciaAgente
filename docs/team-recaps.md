@@ -1,3 +1,59 @@
+### 2026-10-08 23:20 - Empresa viva: invitar a jugar tenis al hablarle a alguien
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (el usuario solo veía «Jugar ajedrez»). Sin LLM.
+- **Qué se implementó:**
+  - Al hablarle a alguien sale **«Jugar tenis»**: arma el partido con esa persona invitada (o la invita al que ya tienes sin empezar). A ella le sale el diálogo «Unirme al equipo X / Ver la cancha primero / Ahora no» y queda en su «Atender». Si la persona ya está en un partido sin empezar: «Unirme a su partido de tenis». También desde la mesa de ajedrez y la repisa de trofeos.
+  - Servidor: `invitados` en la sala y `POST /api/empresa-viva/tenis/<id>/invitar`.
+- **Archivos Modificados:** `app/services/empresa_viva_tenis.py`, `app/routes_mapa_sistema.py`, `desktop/src/components/empresa/{EmpresaViva,Tenis}.tsx`, `desktop/dev/tenisEjemplo.ts`, `tests/test_empresa_viva.py`, `docs/agentic/modules/operacion-equipo.md`, `docs/team-recaps.md`.
+
+### 2026-10-08 23:05 - Empresa viva: trofeos, tenis en equipo, objetos por color de etapa y menú «Atender»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - **Trofeos** al lado de la cama de cada quien (`ev_trofeos` en tickets.db): oro = jaque mate, plata = el rival se rindió, verde = partido de tenis ganado. Se acumulan en una repisa de dos baldas (8 a la vista, luego «+N»); examinarla da la lista. El primero: Armando le ganó a Cynthia con jaque mate en 37 jugadas.
+  - **Tenis en equipo** en una cancha del parque: sala → equipos A/B (hasta 3 por lado) → tiempo real, gana quien se lleve 2 juegos (15-30-40, iguales, ventaja). Sin sockets: cada jugador manda su raqueta cada 100 ms y el anfitrión simula la pelota y anota (`empresa_viva_tenis.py`, en memoria).
+  - Los **objetos-módulo** flotan en una placa del color de su etapa del Mapa y al entrar a un cuarto salen los nombres de todos sus módulos, sin montarse.
+  - **«Atender» (tecla Q)**: lo que necesita tu atención (solicitudes que te hicieron, chats, juegos, lo detenido del Mapa en tus módulos, clientes y paquetes), con «Atender» (abre el módulo dentro del juego) o «Ir».
+- **Archivos Modificados:** `app/services/{empresa_viva_ajedrez,empresa_viva_tenis}.py`, `app/routes_mapa_sistema.py`, `scripts/empresa_viva/armar_mapa.py` + `desktop/public/empresa/pixel/*` (regenerados), `desktop/src/components/empresa/{EmpresaViva,Tenis,MenuAtencion,Ajedrez}.tsx`, `escena.ts`, `juego.ts`, `motor.ts`, `barrio.ts`, `tipos.ts`, `empresa-viva.css`, `desktop/dev/{ajedrezEjemplo,tenisEjemplo}.ts`, `tests/test_empresa_viva.py`, `docs/agentic/modules/operacion-equipo.md`, `CLAUDE.md`.
+
+### 2026-10-08 23:00 - Juegos: Super Bomberman 4 preparado (falta la ROM)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica (pendiente de la ROM).
+- **Qué se implementó:**
+  - El zip de Descargas era solo el parche al español de Max1323 (v1.1). Quedan en `desktop/public/juegos/bomberman4/` el parche, su léame con el crédito y `traduccion/aplicar_parche.py` (verifica el CRC32 `3BBAEB19` de «Super Bomberman 4 (Japan).sfc»). El juego no aparece en la lista hasta que llegue la ROM.
+- **Archivos Modificados:** `desktop/public/juegos/bomberman4/{LEEME.md,traduccion/*}`.
+
+### 2026-10-08 21:30 - Empresa viva: los módulos se usan dentro del juego + ajedrez entre dos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - «Usar X» abre el módulo de verdad en una ventana del juego (nada se sale): el enrutador de paneles salió de `App.tsx` a `PanelRouter.tsx`; los hubs con pestañas usan `usePanelActual`/`useIrAPanel` (`lib/panelLocal.tsx`) y lo que navegue por el store desde la ventana lo atrapa `interceptarPanel`.
+  - **Ajedrez** en una mesa de piedra del parque: retar al hablarle a alguien, aceptar, mirar partidas; reglas con chess.js 1.4.0 en el navegador y turnos en el servidor (`empresa_viva_ajedrez.py`, `ev_ajedrez`).
+- **Archivos Modificados:** `desktop/src/components/{PanelRouter,MapaVivo}.tsx`, `desktop/src/App.tsx`, `desktop/src/lib/panelLocal.tsx`, `desktop/src/stores/app.ts`, hubs (Contabilidad, Facturación, Negocio, Inventario, Logística, Operativos), `desktop/src/components/empresa/*`, `app/services/empresa_viva_ajedrez.py`, `app/routes_mapa_sistema.py`, `desktop/package.json`, `tests/test_empresa_viva.py`.
+
+### 2026-10-08 21:30 - Sonidos de los avisos: un lenguaje sonoro que se distingue
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (sonidos del panel). Sin LLM.
+- **Qué se implementó:**
+  - Los avisos se sintetizan con Web Audio en una misma tonalidad y cada tipo tiene su forma: dos notas = mensaje, tres que suben = solicitud, sirena suave = urgente, dos graves que bajan = detenido, acorde = tarea cerrada. Los de Duck Hunt/Circus Charlie quedan como «clásicos»; lo elegido a mano se respeta (campo `lenguaje` en `preferencias_ui.sonidos`).
+- **Archivos Modificados:** `desktop/src/lib/{lenguajeSonoro (nuevo),sonidosJuego,alertasSonido,celebracionAprobado,avisoTareaEnCurso,zumbido}.ts(x)`, `desktop/src/components/chat_equipo/AjustesSonidos.tsx`, `desktop/src/components/combos/sonidoMoneda.ts`, `desktop/src/hooks/useAvisosMensajes.ts`, `app/services/tickets_db.py`, `tests/test_canales_internos.py`.
+
+### 2026-10-08 20:20 - Empresa viva: «Hablar» es un chat de dos y cada módulo es un objeto del barrio
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora. Sin LLM.
+- **Qué se implementó:**
+  - Hablarle a alguien abre el **chat directo de los dos** (`canal_directo`, solo lo leen ellos); «Pedirle una tarea» queda aparte como solicitud.
+  - 67 objetos-módulo con ícono en el barrio, Sala de sistemas, directorios en las entradas, letrero al entrar a cada cuarto y «¿Dónde está…?».
+- **Archivos Modificados:** `app/services/{canales_internos,empresa_viva}.py`, `app/routes_canales.py`, `scripts/empresa_viva/armar_mapa.py`, `desktop/src/components/empresa/*`, `tests/test_{empresa_viva,canales_internos}.py`.
+
+### 2026-10-08 19:15 - Empresa viva como RPG de pixel art (estilo Chrono Trigger) + Chrono Trigger en Juegos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - El barrio 3D se cambió por un RPG en Phaser 4: cada quien maneja su personaje (LPC por capas) y camina hasta los demás; barrio generado por `scripts/empresa_viva/armar_mapa.py`; multijugador por `/api/empresa-viva/jugador`. Se descartó `androoAGI/starnet` (arnés de agentes, arte no MIT).
+  - **Chrono Trigger (SNES)** en Agenda → Juegos, con la traducción al español de Rod Mérida v1.07.
+- **Archivos Modificados:** `desktop/src/components/empresa/*`, `desktop/public/empresa/pixel/*`, `scripts/empresa_viva/*`, `desktop/public/juegos/chrono/*`, `desktop/src/components/JuegosPanel.tsx`, `app/routes.py`, `app/services/{empresa_viva,tickets_db}.py`, `app/data/empresa_viva_casas.json`.
+
 ### 2026-10-08 23:15 - MeLi + web: nuez pecán 250 g publicada
 - **Autor:** Armando García
 - **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.
