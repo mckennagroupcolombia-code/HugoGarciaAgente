@@ -5724,3 +5724,11 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `arbol_producto`: `_SECCION_A_CATEGORIA` muestra la sección web «Agrícola» como **Agro** en el Árbol.
 - Una segunda corrida accidental del script dejó `C-JABPOTLt_2.png` duplicada en la web: quitada de `imagenes_web` (archivo movido a /tmp).
 - Archivos: `PAGINA_WEB/site/website.py`, `app/services/arbol_producto.py`, `app/data/publicaciones_overrides.json`, `docs/team-recaps.md`. `mckenna-website` y `agente-pro` reiniciados.
+
+## 2026-10-09 — Web: descripción comercial-educativa desde el documento técnico
+- Pedido del usuario: «los productos no están teniendo una descripción comercial educativa en la página; referencia con el documento técnico y crea un párrafo de 70 palabras».
+- Causa: de 124 fichas de producto ninguna mostraba descripción (`p.desc` vacío: Siigo no trae `description`); 92 sí tienen documento técnico publicado.
+- `app/services/descripcion_web.py` (nuevo): con Gemini 2.5 Flash redacta un párrafo de ~70 palabras (60–80) desde la FT + COA publicados (descripción, propiedades, modo de uso, grado, origen). Reglas: solo datos del documento, sin promesas médicas ni dosis para ingerir (filtro `_RE_MEDICO` que pide reescribir), grado cosmético = uso externo, `regla_proceso_obtencion` (prensado en frío), sin Markdown. Se guarda en `PAGINA_WEB/site/data/descripciones_web.json` por documento con firma de los campos: si el documento cambia, se redacta otra vez. CLI: `python -m app.services.descripcion_web [--forzar] [--autorizar-gasto-usd N] [nombre…]`.
+- `website.py` `/producto/<slug>`: si el producto no trae descripción y tiene documento, muestra el párrafo guardado; si falta o está vencido, lo redacta en segundo plano (sale en la siguiente visita).
+- Primer lote: 26 redactadas; el resto lo frenó el tope `llm_budget` (25 llamadas por lote sin autorizar). Ricino («laxante»), limón («dosis») y naranja («digestión») rehechas con el filtro.
+- **Archivos Modificados:** `app/services/descripcion_web.py`, `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/data/descripciones_web.json`, `docs/team-recaps.md`
