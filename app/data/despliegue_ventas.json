@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-09T00:08:16",
+ "actualizado": "2026-10-09T00:51:10",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
@@ -1996,6 +1996,15 @@
    "meli_ids": [
     "MCO4518556898"
    ]
+  },
+  "C-NUENOG500G": {
+   "nombre": "NUEZ DEL NOGAL 500g",
+   "titulo_meli": "Nuez Del Nogal Natural 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4518585920"
+   ]
   }
  },
  "excluidas": [
@@ -2461,6 +2470,12 @@
    "sku": "C-NUENOG250G",
    "titulo": "Nuez Del Nogal Natural 250g",
    "desde": "2026-10-09T00:08:16",
+   "por": "armando"
+  },
+  "MCO4518585920": {
+   "sku": "C-NUENOG500G",
+   "titulo": "Nuez Del Nogal Natural 500g",
+   "desde": "2026-10-09T00:51:10",
    "por": "armando"
   }
  }

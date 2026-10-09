@@ -1,3 +1,12 @@
+### 2026-10-09 00:55 - MeLi + web: nuez del nogal 500 g publicada
+- **Autor:** Armando García
+- **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.
+- **Qué se implementó:**
+  - `C-NUENOG500g` → MeLi **MCO4518585920** «Nuez Del Nogal Natural 500g», $38.500, stock 20, envío a cargo del comprador, cat. MCO442340 «Frutos Secos» (taxonomía de la hermana 250 g MCO4518556898), GTIN 7702605002641, empaque 19×17×9 cm / 550 g. Web $34.650 (MeLi −10 %); con la de 250 g forma la ficha «Nuez del Nogal» de dos presentaciones.
+  - Alegra: precio de lista $0 → $38.500.
+  - Pendiente: la etiqueta 500 g tampoco declara alérgenos (frutos de cáscara).
+- **Archivos Modificados:** `app/data/despliegue_ventas.json`, `app/data/publicaciones_overrides.json`, `docs/team-recaps.md`.
+
 ### 2026-10-09 00:20 - MeLi + web: nuez del nogal 250 g publicada
 - **Autor:** Armando García
 - **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.
