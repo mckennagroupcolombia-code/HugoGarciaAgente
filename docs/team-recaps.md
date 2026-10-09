@@ -5679,3 +5679,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `ProductLabelForm.tsx`: la columna derecha lleva `gridTemplateColumns: "minmax(0, 1fr)"` y `min-w-0`. `TechnicalDocuments.tsx`: la banda de la web con `overflow-hidden`.
 - **Verificado:** editor completo en un arnés temporal (vite con proxy de solo lectura + playwright): el PNG exportado queda igual al lienzo. La web sigue recortada en ambos a 25 px: hay que bajarle la letra. `npm run build` limpio; arnés borrado.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/components/etiqueta-ficha/TechnicalDocuments.tsx`, `docs/team-recaps.md`
+
+## 2026-10-09 — Web: zoom en las fotos de producto
+- Pedido del usuario: «en la página web, cuando quiero hacer zoom a la foto de producto no permite».
+- Causa: la galería (`_prod_gallery.html`) no tenía visor ni zoom; la foto vive en un recuadro de 260–400 px.
+- `static/js/prod-zoom.js` (nuevo, incluido en `producto.html`): clic/toque en la foto o en la lupa abre la foto a pantalla completa sobre blanco; zoom con pellizco, doble toque/clic o rueda (hasta 5×), arrastrar para mover; con zoom 1 se desliza o usa ‹ › entre fotos; Esc, ✕ o toque fuera cierra. Sirve también para las galerías que rearma `setProdGallery`.
+- **Verificado:** Chrome headless en mckennagroup.co/producto/c-aceesealb5ml: lupa visible, abre, rueda → escala 2×, Esc cierra, sin errores JS. `mckenna-website` reiniciado.
+- **Archivos Modificados:** `PAGINA_WEB/site/static/js/prod-zoom.js`, `PAGINA_WEB/site/templates/producto.html`, `docs/team-recaps.md`
