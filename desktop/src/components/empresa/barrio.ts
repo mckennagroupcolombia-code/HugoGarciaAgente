@@ -102,7 +102,11 @@ export function infoModulo(panel: string): { nombre: string; hace: string; descr
 
 /** Módulos que salieron del menú y viven dentro de otro: en el barrio se va al objeto de ese otro
  *  (el Mapa todavía los nombra en sus pendientes). */
-const OBJETO_DE: Record<string, string> = { publicaciones: "vitrina-web", "canales-producto": "vitrina-web" };
+const OBJETO_DE: Record<string, string> = {
+  publicaciones: "vitrina-web", "canales-producto": "vitrina-web",
+  // Botón propio en el Mapa, pero en el barrio se cotiza en el escritorio de Facturación.
+  "cotizar-facturar": "facturacion",
+};
 export const objetoDe = (panel: string) => OBJETO_DE[panel] ?? panel;
 
 const hex = (css: string, def: string) => css.match(/#[0-9a-f]{6}/i)?.[0] ?? def;

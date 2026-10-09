@@ -40,6 +40,7 @@ export type Panel =
   | "vitrina-web"
   | "facturacion"
   | "astro-killer"
+  | "cotizar-facturar"
   | "facturas"
   | "costos-productos"
   | "catalogo-alegra"

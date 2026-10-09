@@ -268,6 +268,14 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
     </>
   ),
+  "cotizar-facturar": (
+    <>
+      <path d="M7 4h7l4 4v12H7V4z" />
+      <path d="M14 4v4h4" />
+      <path d="M14 11h-2.2a1.2 1.2 0 0 0 0 2.4h1.4a1.2 1.2 0 0 1 0 2.4H11" />
+      <path d="M12.5 10v1M12.5 15.8v1" />
+    </>
+  ),
   rentabilidad: (
     <>
       <path d="M3 17l3-6 4 4 4-7 4 3" />

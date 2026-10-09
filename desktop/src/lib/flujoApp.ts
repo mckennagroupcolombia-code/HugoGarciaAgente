@@ -175,6 +175,11 @@ export const ETAPAS_APP: EtapaApp[] = [
         ],
       },
       {
+        // Con botón propio (9-oct-2026): antes había que entrar a Facturación y buscar la pestaña.
+        titulo: "Cotizar la venta directa", datos: ["cliente (cédula o NIT para facturar)", "precio web por línea", "cotización PDF", "factura DIAN"],
+        pasos: [{ panel: "cotizar-facturar", hace: "Cotizar y facturar lo que se vende por WhatsApp o en mostrador" }],
+      },
+      {
         titulo: "Apoyar al asesor", datos: ["borradores en sombra", "alerta al asesor", "presupuesto IA del día"],
         pasos: [
           { panel: "chat", hace: "Preguntarle a Hugo por stock, precios o fichas" },

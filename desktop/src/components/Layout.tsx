@@ -100,7 +100,7 @@ export default function Layout({
   const studioEtiquetasFill =
     (panel === "etiquetas" && etiquetasStudioInmersivo) ||
     (esPanelContabilidad(panel) && libroMayorEnfoque) ||
-    (panel === "facturacion" && cotizarEnfoque);
+    ((panel === "facturacion" || panel === "cotizar-facturar") && cotizarEnfoque);
   const contentScrollClass = isCentroMando
     ? hubIntegrado
       ? "flex min-h-0 flex-col overflow-hidden px-2 pt-2 sm:px-3 sm:pt-2.5 lg:px-4 lg:pt-3"

@@ -6,6 +6,8 @@
 
 ```
 /app → Facturación → Cotizar/Facturar   (CotizarFacturarPanel.tsx, wizard de 5 pasos)
+/app → Mapa → Vender → «Cotizar/Facturar»   (9-oct: panel `cotizar-facturar` = FacturacionPanel en la
+                                              pestaña «directo», mismo patrón que sync/astro-killer)
   1 Origen    ⚡ pedido del agente IA (ventas_wa, solo modo activo) → salta a Revisar
               🪄 chat de WhatsApp (extracción con IA, llm_budget) · ✍️ desde cero · ventas recientes
   2 Cliente   buscador de contactos Alegra; cédula/NIT obligatoria solo para facturar

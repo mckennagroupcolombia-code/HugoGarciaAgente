@@ -1,3 +1,12 @@
+### 2026-10-09 17:23 - Cotizar/Facturar con botón propio en el Mapa de McKenna
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (interfaz). Sin LLM.
+- **Qué se implementó:**
+  - En el Mapa, la carta **Vender** trae un tramo nuevo, «Cotizar la venta directa», con el botón **Cotizar/Facturar**: un clic abre el wizard. Antes había que entrar a Facturación y buscar la pestaña.
+  - Es un panel propio (`cotizar-facturar`) que abre Facturación ya en la pestaña Cotizar/Facturar, igual que «Sync» y «Astro Killer». Solo lo ve quien tiene el permiso `cotizar-facturar`; conserva el modo enfoque y en el menú cuenta como Facturación. En Empresa viva lleva al escritorio de Facturación.
+  - Pendiente: «Rápido» (Ctrl+K) aún no lo ofrece; `AccesosRapidos.tsx` es de otro usuario del sistema y no se pudo editar.
+- **Archivos Modificados:** `desktop/src/lib/{flujoApp,panelInfo,contabilidadAccess,navStructure}.ts`, `desktop/src/stores/app.ts`, `desktop/src/components/{FacturacionPanel,PanelRouter,Layout}.tsx`, `desktop/src/components/empresa/barrio.ts`, `desktop/src/icons/mck/paths/panels.tsx`, `docs/agentic/modules/ventas-directas.md`, `docs/team-recaps.md`.
+
 ### 2026-10-09 17:10 - Jenniffer sin alta de productos ni «sin SKU»; la factura sale exacta al peso
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección + regla de permisos. Sin LLM.

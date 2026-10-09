@@ -407,6 +407,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "facturacion",
   },
+  "cotizar-facturar": {
+    emoji: "💵",
+    label: "Cotizar/Facturar",
+    description:
+      "Ventas directas (WhatsApp, mostrador, MeLi con RUT): cliente, productos con precio web e IVA por línea, cotización en PDF y factura DIAN. Vive dentro de Facturación; el Mapa lo abre directo.",
+    tips: [
+      "Arranca desde el pedido del agente, un chat de WhatsApp, desde cero o una venta reciente.",
+      "La cédula o el NIT solo se exigen para facturar; cotizar no los pide.",
+      "No cotices ni factures a mano en Alegra: su lista de precios ya trae el IVA y lo suma dos veces.",
+    ],
+    tier: "standard",
+    category: "facturacion",
+  },
   sync: {
     emoji: "🔄",
     label: "Sync Facturas",

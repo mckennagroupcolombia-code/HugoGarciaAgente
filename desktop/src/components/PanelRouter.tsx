@@ -139,6 +139,7 @@ function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
     case "sync":
     case "facturas":
     case "astro-killer":
+    case "cotizar-facturar":
       return <FacturacionPanel />;
     case "fichas":
       return <FichasTecnicasPanel />;

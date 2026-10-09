@@ -228,6 +228,7 @@ export function esSeccionHub(sectionId: NavCategory | null): boolean {
 export function navSectionForPanel(panel: Panel): NavCategory | null {
   if (panel === "etiquetas-config") return "diseno";
   if (panel === "publicaciones") return "publicaciones";
+  if (panel === "cotizar-facturar") return "facturacion";
   for (const section of NAV_SECTIONS) {
     if (section.items.some((i) => i.panel === panel)) return section.id;
   }

@@ -61,14 +61,13 @@ export default function FacturacionPanel() {
   );
 
   const [sub, setSub] = useState<FacturacionSubtabId>(() => {
-    const fromLegacy = subtabDesdePanelLegacy(panel);
-    if (fromLegacy === "sync" || fromLegacy === "compra" || fromLegacy === "ventas") return fromLegacy;
-    return leerSubtabFacturacion();
+    // Sync, Astro Killer y Cotizar/Facturar tienen su propio botón en el Mapa: abren su pestaña.
+    return subtabDesdePanelLegacy(panel) ?? leerSubtabFacturacion();
   });
 
   useEffect(() => {
     const fromLegacy = subtabDesdePanelLegacy(panel);
-    if (fromLegacy === "sync" || fromLegacy === "compra" || fromLegacy === "ventas") setSub(fromLegacy);
+    if (fromLegacy) setSub(fromLegacy);
   }, [panel]);
 
   // Llegada con contexto (paso de ticket o checklist de Contabilidad): abrir

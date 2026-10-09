@@ -98,6 +98,7 @@ export function subtabDesdePanelLegacy(panel: string): FacturacionSubtabId | nul
   if (panel === "sync") return "sync";
   if (panel === "facturas") return "compra";
   if (panel === "astro-killer") return "ventas";
+  if (panel === "cotizar-facturar") return "directo";
   return null;
 }
 
