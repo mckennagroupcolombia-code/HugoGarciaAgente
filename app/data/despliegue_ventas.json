@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-07T23:54:29",
+ "actualizado": "2026-10-08T21:30:34",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
@@ -1942,6 +1942,15 @@
    "meli_ids": [
     "MCO4514126730"
    ]
+  },
+  "C-SALMARAHU500G": {
+   "nombre": "SAL MARINA AHUMADA 500g",
+   "titulo_meli": "Sal Marina Ahumada Gruesa Grano 2-5 Mm 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2267210143"
+   ]
   }
  },
  "excluidas": [
@@ -2371,6 +2380,12 @@
    "sku": "C-ALBSEC250G",
    "titulo": "Albaricoque Deshidratado 250g",
    "desde": "2026-10-07T23:54:29",
+   "por": "armando"
+  },
+  "MCO2267210143": {
+   "sku": "C-SALMARAHU500G",
+   "titulo": "Sal Marina Ahumada Gruesa Grano 2-5 Mm 500g",
+   "desde": "2026-10-08T21:30:34",
    "por": "armando"
   }
  }
