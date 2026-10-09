@@ -803,6 +803,84 @@
      "bytes": 2514315
     }
    ]
+  },
+  "C-NUEPEC500G": {
+   "web": [
+    {
+     "archivo": "C-NUEPEC500G_20261008-230441_6338.png",
+     "subido_at": "2026-10-08T23:04:41",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2438717
+    }
+   ]
+  },
+  "C-NUENOG250G": {
+   "web": [
+    {
+     "archivo": "C-NUENOG250G_20261009-000547_ccfd.png",
+     "subido_at": "2026-10-09T00:05:47",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2295579
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-NUENOG250G_20261009-000608_2925.png",
+     "subido_at": "2026-10-09T00:06:08",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2431381
+    }
+   ]
+  },
+  "C-NUENOG500G": {
+   "web": [
+    {
+     "archivo": "C-NUENOG500G_20261009-004431_bdab.png",
+     "subido_at": "2026-10-09T00:44:31",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2691727
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-NUENOG500G_20261009-004909_cac6.png",
+     "subido_at": "2026-10-09T00:49:09",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2629416
+    }
+   ]
+  },
+  "C-SALROSAJOCHI250G": {
+   "web": [
+    {
+     "archivo": "C-SALROSAJOCHI250G_20261009-005950_801a.png",
+     "subido_at": "2026-10-09T00:59:50",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2356502
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-SALROSAJOCHI250G_20261009-010134_49e7.png",
+     "subido_at": "2026-10-09T01:01:34",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2583786
+    }
+   ]
   }
  }
 }

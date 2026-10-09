@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-09T00:51:10",
+ "actualizado": "2026-10-09T01:09:24",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
@@ -2005,6 +2005,15 @@
    "meli_ids": [
     "MCO4518585920"
    ]
+  },
+  "C-SALROSAJOCHI250G": {
+   "nombre": "SAL ROSADA CON AJO Y CHILI 250g",
+   "titulo_meli": "Sal Marina Con Chile Y Ajo Gruesa Grano 2-5 Mm 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4518561598"
+   ]
   }
  },
  "excluidas": [
@@ -2476,6 +2485,12 @@
    "sku": "C-NUENOG500G",
    "titulo": "Nuez Del Nogal Natural 500g",
    "desde": "2026-10-09T00:51:10",
+   "por": "armando"
+  },
+  "MCO4518561598": {
+   "sku": "C-SALROSAJOCHI250G",
+   "titulo": "Sal Marina Con Chile Y Ajo Gruesa Grano 2-5 Mm 250g",
+   "desde": "2026-10-09T01:09:24",
    "por": "armando"
   }
  }

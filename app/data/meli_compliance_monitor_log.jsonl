@@ -171,3 +171,9 @@
 {"tipo": "publicacion_nueva", "item_id": "MCO2267504305", "sku": "C-MARTOS500g", "origen": "", "ts": "2026-10-08T22:47:50"}
 {"tipo": "registro_seguimiento", "item_id": "MCO2267504805", "sku": "C-NUEPEC250g", "origen": "desde_cero", "ts": "2026-10-08T22:55:30"}
 {"tipo": "publicacion_nueva", "item_id": "MCO2267504805", "sku": "C-NUEPEC250g", "origen": "", "ts": "2026-10-08T22:55:30"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4518556898", "sku": "C-NUENOG250g", "origen": "desde_cero", "ts": "2026-10-09T00:08:09"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4518556898", "sku": "C-NUENOG250g", "origen": "", "ts": "2026-10-09T00:08:10"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4518585920", "sku": "C-NUENOG500g", "origen": "desde_cero", "ts": "2026-10-09T00:51:05"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4518585920", "sku": "C-NUENOG500g", "origen": "", "ts": "2026-10-09T00:51:05"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4518561598", "sku": "C-SALROSAJOCHI250g", "origen": "desde_cero", "ts": "2026-10-09T01:09:17"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4518561598", "sku": "C-SALROSAJOCHI250g", "origen": "", "ts": "2026-10-09T01:09:18"}

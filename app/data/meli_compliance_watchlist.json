@@ -7747,6 +7747,114 @@
         }
       ],
       "alertas_enviadas": []
+    },
+    {
+      "id": "228170c5-be0",
+      "item_id": "MCO4518556898",
+      "sku": "C-NUENOG250g",
+      "nombre": "Nuez del nogal natural",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4518556898-nuez-del-nogal-natural-250g-_JM",
+      "item_origen_id": "",
+      "origen": "desde_cero",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "precio": 19500.0,
+      "presentacion": "250g",
+      "perfil": "materia_prima_alimentaria",
+      "creado_en": "2026-10-09T00:08:09",
+      "ultima_revision": "2026-10-09T00:08:10",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 0,
+      "seguimiento_activo": true,
+      "notas": "Creada desde cero (panel Publicaciones)",
+      "historial": [
+        {
+          "fecha": "2026-10-09T00:08:10",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4518556898-nuez-del-nogal-natural-250g-_JM",
+          "señales": []
+        }
+      ],
+      "alertas_enviadas": []
+    },
+    {
+      "id": "33f397ac-e1a",
+      "item_id": "MCO4518585920",
+      "sku": "C-NUENOG500g",
+      "nombre": "Nuez del nogal natural",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4518585920-nuez-del-nogal-natural-500g-_JM",
+      "item_origen_id": "",
+      "origen": "desde_cero",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "precio": 38500.0,
+      "presentacion": "500g",
+      "perfil": "materia_prima_alimentaria",
+      "creado_en": "2026-10-09T00:51:05",
+      "ultima_revision": "2026-10-09T00:51:05",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 0,
+      "seguimiento_activo": true,
+      "notas": "Creada desde cero (panel Publicaciones)",
+      "historial": [
+        {
+          "fecha": "2026-10-09T00:51:05",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4518585920-nuez-del-nogal-natural-500g-_JM",
+          "señales": []
+        }
+      ],
+      "alertas_enviadas": []
+    },
+    {
+      "id": "639ccf7c-24f",
+      "item_id": "MCO4518561598",
+      "sku": "C-SALROSAJOCHI250g",
+      "nombre": "Sal marina con chile y ajo",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4518561598-sal-marina-con-chile-y-ajo-gruesa-grano-2-5-mm-250g-_JM",
+      "item_origen_id": "",
+      "origen": "desde_cero",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "precio": 6400.0,
+      "presentacion": "250g",
+      "perfil": "materia_prima_alimentaria",
+      "creado_en": "2026-10-09T01:09:17",
+      "ultima_revision": "2026-10-09T01:09:18",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "medio",
+      "score_riesgo": 3,
+      "seguimiento_activo": true,
+      "notas": "Creada desde cero (panel Publicaciones)",
+      "historial": [
+        {
+          "fecha": "2026-10-09T01:09:18",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "medio",
+          "score_riesgo": 3,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4518561598-sal-marina-con-chile-y-ajo-gruesa-grano-2-5-mm-250g-_JM",
+          "señales": []
+        }
+      ],
+      "alertas_enviadas": []
     }
   ],
   "ultima_revision_global": "2026-10-06T08:30:25"

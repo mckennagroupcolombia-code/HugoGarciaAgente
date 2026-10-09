@@ -305,7 +305,7 @@
   },
   "C-BENSOD500G": {
     "stock": 8,
-    "updated_at": "2026-10-08T15:15:25.926644"
+    "updated_at": "2026-10-09T00:25:41.702089"
   },
   "C-SORPOT100G": {
     "stock": 20,
@@ -2446,5 +2446,17 @@
   "C-NUEPEC250G": {
     "stock": 20,
     "updated_at": "2026-10-08T22:55:39.085719"
+  },
+  "C-NUENOG250G": {
+    "stock": 20,
+    "updated_at": "2026-10-09T00:08:17.483004"
+  },
+  "C-NUENOG500G": {
+    "stock": 20,
+    "updated_at": "2026-10-09T00:51:12.193645"
+  },
+  "C-SALROSAJOCHI250G": {
+    "stock": 20,
+    "updated_at": "2026-10-09T01:09:25.731884"
   }
 }

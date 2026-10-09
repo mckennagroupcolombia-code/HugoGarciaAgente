@@ -1,10 +1,10 @@
 {
  "_nota": "Candidatos extraídos de chats reales para curaduría manual. Revisar antes de promover cualquier entrada a casos_especiales.json — NO se inyecta automáticamente.",
- "total": 2251,
+ "total": 2248,
  "por_tema": {
   "precio": 242,
-  "otro": 1588,
-  "disponibilidad": 150,
+  "otro": 1586,
+  "disponibilidad": 149,
   "pago": 130,
   "envio": 118,
   "uso_tecnico": 18,
@@ -9040,24 +9040,6 @@
    "tema": "precio",
    "pregunta": "\"Buenos días. Mi nombre es Bibiana León. Estoy desarrollando una línea premium de cosméticos y estoy buscando un proveedor para materias primas. Necesito cotizar escualano vegetal, bisabolol, coenzima Q10, vitamina E, bakuchiol y otros activos. ¿Podrían comunicarme con un asesor de la unidad cosmética o facilitarme el WhatsApp del asesor comercial?\"",
    "respuesta_humana": "Buen día, mi nombre es Jenniffer, hago parte del equipo de ventas, para mi es un gusto poder colaborarte. \nEn que te puedo ayudar? 🙋🏼‍♀️"
-  },
-  {
-   "jid": "573182432463@c.us",
-   "tema": "otro",
-   "pregunta": "Wun moment",
-   "respuesta_humana": "Cuenta de Ahorros Bancolombia\nNro: 123-456789-00\nNIT: 900.123.456-7\nNombre: McKenna Group SAS"
-  },
-  {
-   "jid": "573182432463@c.us",
-   "tema": "otro",
-   "pregunta": "Tam raro",
-   "respuesta_humana": "Cuenta de Ahorros Bancolombia\nNro: 123-456789-00\nNIT: 900.123.456-7\nNombre: McKenna Group SAS"
-  },
-  {
-   "jid": "573182432463@c.us",
-   "tema": "disponibilidad",
-   "pregunta": "hay me sirve ya probe con mi mama",
-   "respuesta_humana": "Cuenta de Ahorros Bancolombia\nNro: 123-456789-00\nNIT: 900.123.456-7\nNombre: McKenna Group SAS"
   },
   {
    "jid": "573182974834@c.us",
