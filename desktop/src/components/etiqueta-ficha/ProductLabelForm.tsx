@@ -1711,8 +1711,10 @@ function ProductLabelFormInner({
               es una sola celda de 3 filas con Pureza/CAS + cuchara al fondo,
               así el texto no estira la cuadrícula entera. */}
           <div
-            className="grid border-l-[3px] border-[color:var(--acento)] pl-[13px] pr-4"
-            style={{ gridRow: "span 3", gridTemplateRows: "subgrid" }}
+            className="grid min-w-0 border-l-[3px] border-[color:var(--acento)] pl-[13px] pr-4"
+            // minmax(0, 1fr): una palabra larga (la web a letra grande) no ensancha la
+            // columna en el PNG; en el lienzo el input ya la recortaba.
+            style={{ gridRow: "span 3", gridTemplateRows: "subgrid", gridTemplateColumns: "minmax(0, 1fr)" }}
           >
             <div
               className={`flex flex-col items-center gap-[14px] py-4 ${

@@ -53,7 +53,7 @@ export default function TechnicalDocuments({
           className="font-medium text-[#111111]"
         />
       </div>
-      <div className="mt-[6px] flex h-[36px] w-full items-center justify-center rounded-[4px] bg-[color:var(--acento)] px-3">
+      <div className="mt-[6px] flex h-[36px] w-full items-center justify-center overflow-hidden rounded-[4px] bg-[color:var(--acento)] px-3">
         <EditableField
           value={website}
           onChange={onWebsiteChange}

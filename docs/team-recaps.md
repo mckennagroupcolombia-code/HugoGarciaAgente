@@ -5672,3 +5672,10 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `TechnicalDocuments.tsx`: título y texto del recuadro pasan de `text-left` a `text-center`.
 - **Verificado:** `npm run build` limpio.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/TechnicalDocuments.tsx`, `docs/team-recaps.md`
+
+## 2026-10-09 — El PNG de la etiqueta Agro no salía como el lienzo
+- Pedido del usuario: «el png no sale como el lienzo» (jabón potásico, 76×102 mm).
+- Causa: la web a 25 px no cabe en la columna derecha. En el lienzo el `<input>` la recorta, pero al exportar (modo vista) es un `<span>` de una sola palabra y su ancho mínimo ensanchaba la columna implícita de la subcuadrícula derecha: GHS, información técnica, web y modo de uso se corrían a la derecha y se cortaban, y el modo de uso cambiaba de renglones.
+- `ProductLabelForm.tsx`: la columna derecha lleva `gridTemplateColumns: "minmax(0, 1fr)"` y `min-w-0`. `TechnicalDocuments.tsx`: la banda de la web con `overflow-hidden`.
+- **Verificado:** editor completo en un arnés temporal (vite con proxy de solo lectura + playwright): el PNG exportado queda igual al lienzo. La web sigue recortada en ambos a 25 px: hay que bajarle la letra. `npm run build` limpio; arnés borrado.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/components/etiqueta-ficha/TechnicalDocuments.tsx`, `docs/team-recaps.md`
