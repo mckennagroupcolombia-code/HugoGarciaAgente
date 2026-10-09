@@ -36,6 +36,11 @@ function cargarFuente(): Promise<void> {
   return fuente;
 }
 
+const CLAVE_CALIDAD = "mck-ev-calidad";
+export function calidadGuardada(): "alta" | "simple" {
+  try { return localStorage.getItem(CLAVE_CALIDAD) === "simple" ? "simple" : "alta"; } catch { return "alta"; }
+}
+
 export class JuegoEmpresa {
   private game: Phaser.Game | null = null;
   private escena: EscenaBarrio | null = null;
@@ -47,6 +52,8 @@ export class JuegoEmpresa {
   /** React (modo estricto) monta y desmonta antes de que termine de cargar la fuente: un juego
    *  destruido no debe arrancar después, o quedan dos lienzos uno encima del otro. */
   private destruido = false;
+  private observador: ResizeObserver | null = null;
+  private dpr = 1;
 
   constructor(private cont: HTMLElement, private op: OpcionesJuego) {
     void this.arrancar();
@@ -65,19 +72,48 @@ export class JuegoEmpresa {
       posicionInicial: () => this.posGuardada(),
       onLugar: (l) => this.op.onLugar(l),
     };
+    // HD-2D: el lienzo va a la resolución real de la pantalla (hasta 2×) y la imagen se filtra suave
+    // (el arte viene al doble con 2xBR); en «simple» va a 1× y sin efectos, para equipos lentos.
+    const alta = calidadGuardada() === "alta";
+    this.dpr = alta ? Math.min(2, window.devicePixelRatio || 1) : 1;
+    const cw = this.cont.clientWidth || 800, ch = this.cont.clientHeight || 600;
     this.game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: this.cont,
-      pixelArt: true,
-      roundPixels: true,
+      pixelArt: false,
+      antialias: true,
+      roundPixels: false,
       backgroundColor: "#2f6b2f",
-      scale: { mode: Phaser.Scale.RESIZE, width: this.cont.clientWidth || 800, height: this.cont.clientHeight || 600 },
+      scale: { mode: Phaser.Scale.NONE, width: Math.round(cw * this.dpr), height: Math.round(ch * this.dpr), zoom: 1 / this.dpr },
       input: { keyboard: false, gamepad: false },
       audio: { noAudio: true },
       banner: false,
       fps: { target: 60, smoothStep: true },
     });
+    this.game.registry.set("dpr", this.dpr);
+    this.game.registry.set("calidad", alta ? "alta" : "simple");
     this.game.scene.add("barrio", EscenaBarrio, true, { ajustes });
+    // Sin el modo RESIZE de Phaser (no sabe de la densidad de la pantalla): el tamaño lo sigue este observador.
+    this.observador = new ResizeObserver(() => this.reajustar());
+    this.observador.observe(this.cont);
+  }
+
+  private reajustar() {
+    const w = this.cont.clientWidth, h = this.cont.clientHeight;
+    if (!this.game || !w || !h) return;
+    this.game.scale.resize(Math.round(w * this.dpr), Math.round(h * this.dpr));
+  }
+
+  /** Calidad «alta» (HD-2D completo) o «simple» (1×, sin efectos). Se guarda en este navegador. */
+  ponerCalidad(alta: boolean) {
+    try { localStorage.setItem(CLAVE_CALIDAD, alta ? "alta" : "simple"); } catch { /* sin almacenamiento: solo esta visita */ }
+    if (!this.game) return;
+    this.dpr = alta ? Math.min(2, window.devicePixelRatio || 1) : 1;
+    this.game.registry.set("dpr", this.dpr);
+    this.game.registry.set("calidad", alta ? "alta" : "simple");
+    this.game.scale.setZoom(1 / this.dpr);
+    this.reajustar();
+    this.escena?.aplicarCalidad(alta);
   }
 
   private alListo() {
@@ -287,6 +323,7 @@ export class JuegoEmpresa {
 
   destruir() {
     this.destruido = true;
+    this.observador?.disconnect();
     window.clearInterval(this.reloj);
     this.escena?.destruir();
     this.game?.destroy(true);

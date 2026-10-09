@@ -45,7 +45,7 @@ import { ETAPAS_APP } from "../../lib/flujoApp";
 import { TAREA, colorModulo, infoModulo, objetoDe, tituloEtapa } from "./barrio";
 import { BuscadorModulos } from "./buscador";
 import { VentanaDialogo, type Dialogo, type OpcionDialogo } from "./dialogo";
-import { JuegoEmpresa } from "./juego";
+import { JuegoEmpresa, calidadGuardada } from "./juego";
 import { BASE_PIXEL, claveAvatar, componerAvatar, normalizarAvatar, retrato } from "./personajes";
 import type { AvatarPixel, EstadoEmpresa, EventoApi, Examinable, InteraccionApi, PersonaApi, RespuestaJugador } from "./tipos";
 
@@ -153,6 +153,8 @@ export default function EmpresaViva() {
   const [aviso, setAviso] = useState("");
   const [sonido, setSonido] = useState(sonidosActivos);
   const [sinTechos, setSinTechos] = useState(false);
+  /** HD-2D completo (alta) o 1× sin efectos (simple). */
+  const [hdAlta, setHdAlta] = useState(() => calidadGuardada() === "alta");
   const [ayuda, setAyuda] = useState(() => { try { return !localStorage.getItem(CLAVE_AYUDA); } catch { return true; } });
   const [enJuego, setEnJuego] = useState<number[]>([]);
   const [equipoAbierto, setEquipoAbierto] = useState(true);
@@ -1223,6 +1225,9 @@ export default function EmpresaViva() {
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <button type="button" className="ev-boton mck-btn-no-fx" onClick={() => setSinTechos((v) => !v)} aria-pressed={sinTechos}
                   title={sinTechos ? "Volver a poner los techos" : "Ver todas las casas por dentro (sin techos)"}>Sin techos</button>
+          <button type="button" className="ev-boton mck-btn-no-fx" aria-pressed={hdAlta}
+                  onClick={() => { const v = !hdAlta; setHdAlta(v); juegoRef.current?.ponerCalidad(v); }}
+                  title={hdAlta ? "Gráficos en alta (HD): toca para el modo simple, si el equipo va lento" : "Gráficos simples: toca para alta (HD)"}>HD</button>
           <button type="button" className="ev-boton mck-btn-no-fx" onClick={() => juegoRef.current?.zoom(-1)} title="Alejar">−</button>
           <button type="button" className="ev-boton mck-btn-no-fx" onClick={() => juegoRef.current?.zoom(1)} title="Acercar">+</button>
           <button type="button" className="ev-boton mck-btn-no-fx" onClick={cambiarSonido} aria-pressed={sonido} title={sonido ? "Silenciar" : "Activar sonidos"}>♪</button>

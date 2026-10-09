@@ -19,7 +19,7 @@ import { BASE_PIXEL } from "./personajes";
 type Frames = Record<string, { frame: { x: number; y: number; w: number; h: number } }>;
 let atlas: Promise<{ frames: Frames; meta: { size: { w: number; h: number } } }> | null = null;
 function cargarAtlas() {
-  atlas ??= fetch(`${BASE_PIXEL}objetos.json?v=1`, { credentials: "same-origin" }).then((r) => r.json());
+  atlas ??= fetch(`${BASE_PIXEL}objetos.json?v=2`, { credentials: "same-origin" }).then((r) => r.json());
   return atlas;
 }
 
@@ -39,7 +39,7 @@ export function IconoModulo({ icono, tam = 40 }: { icono: string | null; tam?: n
   const k = tam / f.w;
   return (
     <span aria-hidden className="ev-retrato inline-block shrink-0"
-          style={{ width: tam, height: tam, backgroundImage: `url(${BASE_PIXEL}objetos.png?v=1)`, backgroundRepeat: "no-repeat",
+          style={{ width: tam, height: tam, backgroundImage: `url(${BASE_PIXEL}objetos.png?v=2)`, backgroundRepeat: "no-repeat",
                    backgroundSize: `${f.W * k}px ${f.H * k}px`, backgroundPosition: `-${f.x * k}px -${f.y * k}px` }} />
   );
 }
@@ -60,7 +60,7 @@ export function CuadroAtlas({ frame, tam = 40 }: { frame: string; tam?: number }
   return (
     <span aria-hidden className="inline-flex shrink-0 items-end justify-center" style={{ width: tam, height: tam }}>
       <span className="ev-retrato inline-block"
-            style={{ width: f.w * k, height: f.h * k, backgroundImage: `url(${BASE_PIXEL}objetos.png?v=1)`, backgroundRepeat: "no-repeat",
+            style={{ width: f.w * k, height: f.h * k, backgroundImage: `url(${BASE_PIXEL}objetos.png?v=2)`, backgroundRepeat: "no-repeat",
                      backgroundSize: `${f.W * k}px ${f.H * k}px`, backgroundPosition: `-${f.x * k}px -${f.y * k}px` }} />
     </span>
   );

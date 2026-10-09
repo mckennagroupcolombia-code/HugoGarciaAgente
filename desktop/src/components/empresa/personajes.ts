@@ -8,6 +8,7 @@
  * devuelve un <canvas>; juego.ts lo registra como textura. Así el editor de avatar lo usa igual.
  */
 import type { AvatarPixel, Dir } from "./tipos";
+import { xbr2xCanvas } from "./xbr";
 
 export const BASE_PIXEL = `${import.meta.env.BASE_URL}empresa/pixel/`;
 
@@ -198,11 +199,16 @@ export const FILA: Record<Dir, number> = { arriba: 0, izquierda: 1, abajo: 2, de
 
 /** Retrato (cabeza y hombros mirando al frente) para la barra del equipo y los diálogos. */
 export function retrato(tira: HTMLCanvasElement, tam = 64): string {
+  // Cuadro «quieto» mirando abajo (col 9, fila 2): la cara está en el tercio de arriba. Se lleva al
+  // doble con 2xBR (HD-2D, como el juego) y de ahí al tamaño pedido.
+  const cara = document.createElement("canvas");
+  cara.width = 32; cara.height = 32;
+  cara.getContext("2d", { willReadFrequently: true })!.drawImage(tira, 9 * 64 + 16, 2 * 64 + 8, 32, 32, 0, 0, 32, 32);
+  const hd = xbr2xCanvas(cara);
   const c = document.createElement("canvas");
   c.width = tam; c.height = tam;
   const ctx = c.getContext("2d")!;
-  ctx.imageSmoothingEnabled = false;
-  // Cuadro «quieto» mirando abajo (col 9, fila 2): la cara está en el tercio de arriba.
-  ctx.drawImage(tira, 9 * 64 + 16, 2 * 64 + 8, 32, 32, 0, 0, tam, tam);
+  ctx.imageSmoothingEnabled = tam !== 64;
+  ctx.drawImage(hd, 0, 0, 64, 64, 0, 0, tam, tam);
   return c.toDataURL("image/png");
 }

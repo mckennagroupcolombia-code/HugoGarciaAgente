@@ -278,6 +278,8 @@ al lado de la cama (`ev_trofeos`). «Atender» (Q) junta lo que necesita tu aten
 **Vecindario** (9-oct): al sur del parque, 16 terrenos; cada quien compra el suyo, construye y decora con **monedas del juego iguales
 para todos** (1.000/mes, `app/data/empresa_viva_vecindario.json`; nunca ligarlas a sueldo ni rendimiento) — `empresa_viva_vecindario.py`,
 `casas.ts`, `Casa.tsx`; la geometría del terreno está duplicada a propósito en Python y en `vecindario.ts`.
+**HD-2D** (9-oct): el arte va al doble con 2xBR (`scripts/empresa_viva/xbr.py`, `empresa/xbr.ts`), el lienzo a la densidad real
+de la pantalla y efectos de profundidad/brillo/viñeta; ⚠️ no usar el TiltShift de Phaser 4.2.1 (tiñe todo).
 
 **Zumbidos en solicitudes** (`operacion-equipo.md`, AJ, 7-oct): «📳 Zumbido» sacude la app de los demás miembros
 (uno cada 20 s, solo con el panel abierto; `ticket_zumbidos`, llega por `/api/mensajes/resumen`).

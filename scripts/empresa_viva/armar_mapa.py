@@ -35,9 +35,17 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from xbr import xbr2x, xbr2x_sprite  # noqa: E402  (el escalador 2xBR del estilo HD-2D)
+
 REPO = Path(__file__).resolve().parents[2]
 SALIDA = REPO / "desktop" / "public" / "empresa" / "pixel"
 T = 32            # baldosa
+# Estilo HD-2D (9-oct-2026): todo se dibuja a la escala de siempre y se exporta al doble con 2xBR
+# (xbr.py). Las coordenadas de mapa.json siguen en px del mundo (escala 1); las imágenes vienen al
+# doble y el juego las muestra a la mitad (más píxeles en el mismo espacio).
+HD = 2
+TROZO_SUELO = 2048  # el suelo va en trozos (muchos celulares no aceptan texturas de más de 4096)
 C = 16            # celda de choques
 ANCHO_T, ALTO_T = 80, 70    # 46 de la empresa y el parque + 24 del vecindario (8-oct-2026)
 W, H = ANCHO_T * T, ALTO_T * T
@@ -1242,9 +1250,10 @@ class Atlas:
         self.cuadros[nombre] = im_ancla
         return nombre
 
-    def empacar(self) -> tuple[Image.Image, dict]:
-        orden = sorted(self.cuadros.items(), key=lambda kv: -kv[1][0].height)
-        ancho = 1024
+    def empacar(self, escala: int = 1) -> tuple[Image.Image, dict]:
+        cuadros = self.cuadros if escala == 1 else {n: xbr2x_sprite(im, ancla) for n, (im, ancla) in self.cuadros.items()}
+        orden = sorted(cuadros.items(), key=lambda kv: -kv[1][0].height)
+        ancho = 1024 * escala
         x = y = fila = 0
         pos = {}
         for nombre, (im, ancla) in orden:
@@ -1256,7 +1265,7 @@ class Atlas:
         alto = y + fila
         hoja = lienzo(ancho, alto)
         frames = {}
-        for nombre, (im, ancla) in self.cuadros.items():
+        for nombre, (im, ancla) in cuadros.items():
             px, py = pos[nombre]
             hoja.alpha_composite(im, (px, py))
             frames[nombre] = {"frame": {"x": px, "y": py, "w": im.width, "h": im.height},
@@ -1264,7 +1273,7 @@ class Atlas:
                               "spriteSourceSize": {"x": 0, "y": 0, "w": im.width, "h": im.height},
                               "sourceSize": {"w": im.width, "h": im.height},
                               "anchor": {"x": ancla[0] / im.width, "y": ancla[1] / im.height}}
-        return hoja, {"frames": frames, "meta": {"image": "muebles.png", "size": {"w": ancho, "h": alto}, "scale": "1"}}
+        return hoja, {"frames": frames, "meta": {"image": "muebles.png", "size": {"w": ancho, "h": alto}, "scale": str(escala)}}
 
 
 # ─── El armado ───────────────────────────────────────────────────────────────
@@ -1957,7 +1966,7 @@ class Barrio:
                     rect(im, x, yf + 2, x + 16, yf + 20, rgb("ffffff") if k % 2 else color)
                 ImageDraw.Draw(im).line([(fx0, yf + 20), (fx1, yf + 20)], fill=OUT)
             (SALIDA / "techos").mkdir(parents=True, exist_ok=True)
-            im.save(SALIDA / "techos" / f"{casa.id}.png", optimize=True)
+            xbr2x(im).save(SALIDA / "techos" / f"{casa.id}.png", optimize=True)
             self.techos[casa.id] = {
                 "archivo": f"techos/{casa.id}.png", "x": x0 - alero, "y": y0 - alero, "w": im.width, "h": im.height,
                 "letrero": {"x": x0 - alero + puerta_cx, "y": y0 - alero + yf + 13, "texto": casa.letrero},
@@ -1968,8 +1977,20 @@ class Barrio:
     # ── Exportar
     def exportar(self):
         SALIDA.mkdir(parents=True, exist_ok=True)
-        self.suelo.save(SALIDA / "suelo.png", optimize=True)
-        hoja, frames = self.atlas.empacar()
+        # El suelo al doble y en trozos (suelo_<fila>_<col>.png); el de escala 1 ya no se publica.
+        (SALIDA / "suelo.png").unlink(missing_ok=True)
+        for viejo in SALIDA.glob("suelo_*.png"):
+            viejo.unlink()
+        suelo_hd = xbr2x(self.suelo)
+        trozos = []
+        for fy in range(0, suelo_hd.height, TROZO_SUELO):
+            for fx in range(0, suelo_hd.width, TROZO_SUELO):
+                nombre = f"suelo_{fy // TROZO_SUELO}_{fx // TROZO_SUELO}.png"
+                trozo = suelo_hd.crop((fx, fy, min(suelo_hd.width, fx + TROZO_SUELO), min(suelo_hd.height, fy + TROZO_SUELO)))
+                trozo.convert("RGB").save(SALIDA / nombre, optimize=True)
+                trozos.append({"archivo": nombre, "x": fx // HD, "y": fy // HD, "w": trozo.width // HD, "h": trozo.height // HD})
+        self.trozos_suelo = trozos
+        hoja, frames = self.atlas.empacar(HD)
         hoja.save(SALIDA / "muebles.png", optimize=True)
         (SALIDA / "muebles.json").write_text(json.dumps(frames, ensure_ascii=False), encoding="utf-8")
         # Sprites del juego que no son muebles fijos (van en otra hoja para cargarlos aparte)
@@ -1995,8 +2016,12 @@ class Barrio:
         for nombre, im in iconos().items():
             extras.agregar(f"ico_{nombre}", (im, (10, 20)))
         hugo, ancla = m_hugo()
-        hugo.save(SALIDA / "hugo.png", optimize=True)
-        hoja2, frames2 = extras.empacar()
+        cuadros_hugo = [xbr2x_sprite(hugo.crop((k * 48, 0, k * 48 + 48, 64)), (24, 60))[0] for k in range(hugo.width // 48)]
+        tira = lienzo(48 * HD * len(cuadros_hugo), 64 * HD)
+        for k, c in enumerate(cuadros_hugo):
+            tira.alpha_composite(c, (k * 48 * HD, 0))
+        tira.save(SALIDA / "hugo.png", optimize=True)
+        hoja2, frames2 = extras.empacar(HD)
         frames2["meta"]["image"] = "objetos.png"
         hoja2.save(SALIDA / "objetos.png", optimize=True)
         (SALIDA / "objetos.json").write_text(json.dumps(frames2, ensure_ascii=False), encoding="utf-8")
@@ -2017,12 +2042,12 @@ class Barrio:
         rejilla = ["".join(str(v) for v in fila) for fila in self.solido]
         mapa = {
             "_doc": "Generado por scripts/empresa_viva/armar_mapa.py: no editar a mano (se pisa).",
-            "ancho": W, "alto": H, "baldosa": T, "celda": C,
+            "ancho": W, "alto": H, "baldosa": T, "celda": C, "hd": HD, "suelo": self.trozos_suelo,
             "calle": {"vuelta_y": CARRIL_VUELTA_Y, "ida_y": CARRIL_IDA_Y},
             "lugares": lugares, "casas": casas, "puntos": self.puntos, "pilas": self.pilas,
             "muebles": self.instancias, "estantes": self.estantes, "estaciones": self.estaciones, "solido": rejilla,
             "lotes": self.lotes,
-            "hugo": {"archivo": "hugo.png", "cuadro": [48, 64], "ancla": [24, 60]},
+            "hugo": {"archivo": "hugo.png", "cuadro": [48 * HD, 64 * HD], "ancla": [24, 60]},
         }
         (SALIDA / "mapa.json").write_text(json.dumps(mapa, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
@@ -2057,7 +2082,9 @@ class Barrio:
         if techos:
             for casa in CASAS:
                 t = self.techos[casa.id]
-                im.alpha_composite(Image.open(SALIDA / t["archivo"]).convert("RGBA"), (t["x"], t["y"]))
+                tech = Image.open(SALIDA / t["archivo"]).convert("RGBA")
+                tech = tech.resize((tech.width // HD, tech.height // HD), Image.NEAREST)   # se exportan al doble
+                im.alpha_composite(tech, (t["x"], t["y"]))
         im.convert("RGB").resize((int(W * escala), int(H * escala)), Image.LANCZOS).save(ruta)
         return im
 

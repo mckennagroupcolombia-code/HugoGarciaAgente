@@ -1,3 +1,13 @@
+### 2026-10-09 14:45 - Empresa viva en estilo HD-2D: más píxeles, profundidad y animaciones
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (gráficos y animaciones del juego). Sin LLM.
+- **Qué se implementó:**
+  - Todo el arte del juego va al **doble de resolución con 2xBR** (el suavizador de los emuladores: bordes y diagonales suaves sin emborronar): el barrio al generarlo (`scripts/empresa_viva/xbr.py`; el suelo en 9 trozos para los celulares) y los personajes en el navegador (`empresa/xbr.ts`), porque se recolorean por piezas. Los retratos también.
+  - El lienzo se dibuja a la **densidad real de la pantalla** (hasta 2×), con filtrado suave y movimiento sin saltos de píxel.
+  - **Sensación 3D (HD-2D)**: profundidad de campo arriba y abajo, brillo en las luces, viñeta y color más vivo. El TiltShift de Phaser 4.2.1 tiñe todo de amarillo verdoso, así que la profundidad se armó con un desenfoque y una máscara degradada.
+  - **Animaciones**: sombras suaves bajo los personajes, respiración al estar quietos, polvo al caminar y correr, árboles que se mecen, sombras de nubes de día, cámara que se adelanta hacia donde caminas y ventanas que entran suaves. Botón **HD** en la barra para pasar a modo simple en equipos lentos.
+- **Archivos Modificados:** `scripts/empresa_viva/{xbr.py (nuevo),armar_mapa.py}`, `desktop/public/empresa/pixel/*` (regenerados; `suelo.png` → `suelo_<f>_<c>.png`), `desktop/src/components/empresa/{xbr.ts,hd.ts}` (nuevos), `escena.ts`, `juego.ts`, `motor.ts`, `casas.ts`, `personajes.ts`, `tipos.ts`, `EmpresaViva.tsx`, `VentanaModulo.tsx`, `empresa-viva.css`, `desktop/public/empresa/LEEME.md`, `tests/test_acceso_panel.py`, `docs/agentic/modules/operacion-equipo.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-09 14:40 - Revisión de empaques: tabla de Jenniffer cargada y 43 publicaciones de MeLi corregidas
 - **Autor:** Armando García
 - **Tipo de Cambio:** Operación (MeLi) + corrección. Sin LLM.

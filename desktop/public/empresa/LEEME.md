@@ -5,7 +5,7 @@ El juego (`desktop/src/components/empresa/`, Phaser 4) carga todo de `pixel/`. F
 
 | Archivo | Qué es | Lo arma |
 |---|---|---|
-| `pixel/suelo.png` | el piso de todo el barrio (pasto, calle, andenes, pisos y muros) | `scripts/empresa_viva/armar_mapa.py` |
+| `pixel/suelo_<fila>_<col>.png` | el piso de todo el barrio (pasto, calle, andenes, pisos y muros), al doble (2xBR) y en trozos de 2048 px | `scripts/empresa_viva/armar_mapa.py` |
 | `pixel/muebles.png` + `.json` | atlas de muebles (se ordenan por profundidad con los personajes) | idem |
 | `pixel/objetos.png` + `.json` | lo que se mueve o cambia: cajas, avioncitos, frascos, papeles, moto, camión | idem |
 | `pixel/techos/<casa>.png` | techo + fachada de cada casa (se desvanece cuando el jugador entra) | idem |

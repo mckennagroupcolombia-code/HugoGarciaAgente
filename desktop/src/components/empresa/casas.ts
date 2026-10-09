@@ -12,6 +12,7 @@
  */
 import Phaser from "phaser";
 import type { EscenaBarrio } from "./escena";
+import { HD } from "./hd";
 import type { PuestoMapa } from "./tipos";
 import { casaRect, modeloDe, nivelDe, type EstadoVecindario, type LoteEstado, type LoteMapa } from "./vecindario";
 
@@ -199,7 +200,7 @@ export class CasasVecindario {
       const it = v.catalogo.items.find((x) => x.id === o.item);
       if (!it) continue;
       const px = lm.x + (o.cx + it.w / 2) * T, py = lm.y + (o.cy + it.h) * T - 2;
-      const img = esc.add.image(px, py, "objetos", `casa_${it.id}`);
+      const img = esc.add.image(px, py, "objetos", `casa_${it.id}`).setScale(1 / HD);
       esc.origenDeCuadro(img);
       img.setDepth(it.capa === "suelo" ? Z_PISO + 1 : py);
       objs.push(img);

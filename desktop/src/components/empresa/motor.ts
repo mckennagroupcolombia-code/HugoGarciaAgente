@@ -15,6 +15,7 @@ import { PANEL_INFO } from "../../lib/panelInfo";
 import type { Panel } from "../../stores/app";
 import { CAFE, TAREA, infoModulo, lugarDePanel, type CasaId } from "./barrio";
 import type { EscenaBarrio, Figura, Paso } from "./escena";
+import { HD } from "./hd";
 import { avatarDeSemilla, normalizarAvatar, type Catalogo } from "./personajes";
 import type {
   AvatarPixel, Dir, EstadoEmpresa, EventoApi, InteraccionApi, JugadorApi, PersonaApi, Pose,
@@ -365,7 +366,8 @@ export class Motor {
       if (this.esc.figuras.has(id)) continue;
       const pos = this.grilla("cajas_proveedor", i);
       const c = this.esc.crearFigura(id, "objeto", pos.x, pos.y);
-      c.spr.setTexture("objetos", "caja_proveedor").setOrigin(0.5, 1).setVisible(true).setScale(1.6);
+      c.spr.setTexture("objetos", "caja_proveedor").setOrigin(0.5, 1).setVisible(true);
+      c.escala = 1.6;
       c.base = { x: pos.x, y: pos.y };
       c.ex = ex;
       // Las cajas aparecen cuando el proveedor ya las bajó.
@@ -451,7 +453,7 @@ export class Motor {
 
   private crearEstantes() {
     for (const [k, s] of this.mapa.estantes.entries()) {
-      const img = this.esc.add.image(s.x, s.y, "objetos", `frasco${(hash(`f${k}`) % 6)}`).setOrigin(0.5, 1).setDepth(s.z + 1);
+      const img = this.esc.add.image(s.x, s.y, "objetos", `frasco${(hash(`f${k}`) % 6)}`).setOrigin(0.5, 1).setScale(1 / HD).setDepth(s.z + 1);
       const marca = this.esc.add.rectangle(s.x, s.y - 1, 9, 2, 0xff3b3b).setDepth(s.z + 1).setVisible(false);
       this.slots.push({ img, marca });
     }

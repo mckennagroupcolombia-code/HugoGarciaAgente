@@ -119,6 +119,9 @@ export interface PuntoMapa { x: number; y: number; dir: Dir; columnas?: number; 
 export interface MuebleMapa { f: string; x: number; y: number; zbase?: number; z?: number }
 export interface Mapa {
   ancho: number; alto: number; baldosa: number; celda: number;
+  /** HD-2D: cuántas veces más píxeles trae el arte (2) y los trozos del suelo (en px del mundo). */
+  hd?: number;
+  suelo?: { archivo: string; x: number; y: number; w: number; h: number }[];
   calle: { vuelta_y: number; ida_y: number };
   lugares: Record<string, LugarMapa>;
   casas: Record<string, CasaMapa>;

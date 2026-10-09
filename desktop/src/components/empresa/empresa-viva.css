@@ -142,3 +142,8 @@
    (~8rem). Como el tablero del ajedrez, la mide el contenedor y no la pantalla. */
 .ev-tenis-area { container-type: size; }
 .ev-tenis-cancha { width: min(100%, 56rem, max(18rem, calc((100cqh - 8rem) * 2))); }
+
+/* HD-2D: las ventanas del juego entran suaves (un poco desde abajo), en vez de aparecer de golpe. */
+@keyframes ev-entra { from { opacity: 0; transform: translateY(6px) scale(0.985); } to { opacity: 1; transform: none; } }
+.ev-ventana { animation: ev-entra 170ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .ev-ventana { animation: none; } }

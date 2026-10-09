@@ -12,6 +12,8 @@ import { Rejilla } from "./camino";
 import { BASE_PIXEL, claveAvatar, componerAvatar, FILA } from "./personajes";
 import type { AvatarPixel, Dir, EstacionMapa, Examinable, Mapa, Pose, PuntoMapa } from "./tipos";
 import { CasasVecindario } from "./casas";
+import { xbr2xCanvas } from "./xbr";
+import { HD } from "./hd";
 import type { LoteMapa } from "./vecindario";
 
 /** Decorar mi casa (Casa.tsx): en qué terreno, qué zonas se pintan y qué se está poniendo. */
@@ -28,6 +30,7 @@ export interface Decorar {
 
 export const FUENTE = "PixelifyMck";
 const CUADROS = 25;
+const CUADRO = 64 * HD;                // el cuadro de LPC (64 × 64) al doble
 const PIE_Y = 60 / 64;                 // dónde están los pies dentro del cuadro de 64×64 de LPC
 const VEL_CAMINA = 92, VEL_CORRE = 168;
 const Z_TECHO = 0, Z_AVION = 40000, Z_NOCHE = 50000;
@@ -40,6 +43,8 @@ export interface Figura {
   id: string;
   tipo: TipoFigura;
   spr: Phaser.GameObjects.Sprite;
+  /** Escala propia (la caja del proveedor es más grande); el sprite además va a 1/HD. */
+  escala?: number;
   tex: string;
   x: number;
   y: number;
@@ -49,6 +54,10 @@ export interface Figura {
   base: Paso | null;
   vel: number;
   sale?: boolean;
+  /** La sombra suave bajo los pies (HD-2D). */
+  sombra?: Phaser.GameObjects.Image;
+  /** Cuándo soltó polvo por última vez (al correr). */
+  polvoEn?: number;
   nombre?: Phaser.GameObjects.Text;
   icono?: Phaser.GameObjects.Text;
   globo?: { c: Phaser.GameObjects.Container; hasta: number };
@@ -127,6 +136,11 @@ export class EscenaBarrio extends Phaser.Scene {
   private texturas = new Map<string, Promise<string>>();
   private noche!: Phaser.GameObjects.Rectangle;
   private luces: Phaser.GameObjects.Image[] = [];
+  // HD-2D: nubes que pasan, polvo al correr y la luz del día (para las nubes y el brillo).
+  private nubes: Phaser.GameObjects.Image[] = [];
+  private polvo: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+  private dia = 1;
+  private altaCalidad = true;
   private marca!: Phaser.GameObjects.Text;
   private aviso!: Phaser.GameObjects.Text;
   sinTechos = false;
@@ -144,21 +158,24 @@ export class EscenaBarrio extends Phaser.Scene {
 
   preload() {
     const B = BASE_PIXEL;
-    this.load.json("mapa", `${B}mapa.json?v=1`);
-    this.load.image("suelo", `${B}suelo.png?v=1`);
-    this.load.atlas("muebles", `${B}muebles.png?v=1`, `${B}muebles.json?v=1`);
-    this.load.atlas("objetos", `${B}objetos.png?v=1`, `${B}objetos.json?v=1`);
-    this.load.spritesheet("hugo", `${B}hugo.png?v=1`, { frameWidth: 48, frameHeight: 64 });
-    for (const casa of ["bunker", "sede", "tienda"]) this.load.image(`techo-${casa}`, `${B}techos/${casa}.png?v=1`);
+    this.load.json("mapa", `${B}mapa.json?v=2`);
+    // El suelo va en trozos (mapa.json → suelo): se piden en cuanto llega el mapa.
+    this.load.once("filecomplete-json-mapa", (_k: string, _t: string, datos: Mapa) => {
+      for (const t of datos.suelo ?? []) this.load.image(`suelo:${t.archivo}`, `${B}${t.archivo}?v=2`);
+    });
+    this.load.atlas("muebles", `${B}muebles.png?v=2`, `${B}muebles.json?v=2`);
+    this.load.atlas("objetos", `${B}objetos.png?v=2`, `${B}objetos.json?v=2`);
+    this.load.spritesheet("hugo", `${B}hugo.png?v=2`, { frameWidth: 48 * HD, frameHeight: 64 * HD });
+    for (const casa of ["bunker", "sede", "tienda"]) this.load.image(`techo-${casa}`, `${B}techos/${casa}.png?v=2`);
     this.load.on("loaderror", (f: { key: string }) => this.ajustes.onError(`No cargó «${f.key}» del barrio. Recarga la página; si sigue, avisa a sistemas.`));
   }
 
   create() {
     this.mapa = this.cache.json.get("mapa") as Mapa;
     this.rejilla = new Rejilla(this.mapa.solido, this.mapa.celda);
-    this.add.image(0, 0, "suelo").setOrigin(0, 0).setDepth(-100000);
+    for (const t of this.mapa.suelo ?? []) this.add.image(t.x, t.y, `suelo:${t.archivo}`).setOrigin(0, 0).setScale(1 / HD).setDepth(-100000);
     for (const m of this.mapa.muebles) {
-      const img = this.add.image(m.x, m.y, "muebles", m.f);
+      const img = this.add.image(m.x, m.y, "muebles", m.f).setScale(1 / HD);
       this.origenDeCuadro(img);
       img.setDepth((m.zbase ?? m.y) + (m.z ?? 0) * 0.01);
     }
@@ -167,7 +184,7 @@ export class EscenaBarrio extends Phaser.Scene {
     this.casasV = new CasasVecindario(this);
     for (const [id, casa] of Object.entries(this.mapa.casas)) {
       const t = casa.techo;
-      const img = this.add.image(t.x, t.y, `techo-${id}`).setOrigin(0, 0).setDepth(t.base_y + Z_TECHO);
+      const img = this.add.image(t.x, t.y, `techo-${id}`).setOrigin(0, 0).setScale(1 / HD).setDepth(t.base_y + Z_TECHO);
       const letrero = this.texto(t.letrero.x, t.letrero.y, t.letrero.texto, 9, "#ffffff", "#2b2d42")
         .setOrigin(0.5, 0.5).setDepth(t.base_y + 1);
       const quien = this.texto(t.x + t.w / 2, t.y + 30, "", 9, "#1d2b53", "#ffffff").setOrigin(0.5, 0).setDepth(t.base_y + 2);
@@ -186,6 +203,27 @@ export class EscenaBarrio extends Phaser.Scene {
       g.fillRect(0, 0, 128, 128);
       this.textures.addCanvas("halo", c);
     }
+    this.texturasSuaves();
+    // Árboles, arbustos y plantas de afuera se mecen con el viento (giran un poco desde el tronco).
+    this.children.list.forEach((o) => {
+      const img = o as Phaser.GameObjects.Image;
+      const f = img.frame?.name ?? "";
+      if (img.texture?.key !== "muebles" || !/^(arbol|arbusto|pino)/.test(f)) return;
+      const r = ((img.x * 13 + img.y * 7) % 1000) / 1000;
+      this.tweens.add({ targets: img, angle: { from: -1.1 - r * 0.6, to: 1.1 + r * 0.6 }, duration: 2300 + r * 1400,
+                        yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: r * 2000 });
+    });
+    // Sombras de nubes que cruzan el barrio despacio (se ven de día).
+    for (let k = 0; k < 7; k++) {
+      const n = this.add.image((k * 977) % this.mapa.ancho, ((k * 613) % this.mapa.alto), "nube")
+        .setScale(1.6 + (k % 3) * 0.6, 1.2 + (k % 2) * 0.5).setAlpha(0.13).setDepth(Z_NOCHE - 3)
+        .setBlendMode(Phaser.BlendModes.MULTIPLY).setData("vel", 7 + (k % 4) * 3);
+      this.nubes.push(n);
+    }
+    this.polvo = this.add.particles(0, 0, "polvo", {
+      lifespan: 520, speed: { min: 6, max: 20 }, angle: { min: 200, max: 340 }, gravityY: -12,
+      scale: { start: 0.55, end: 0.1 }, alpha: { start: 0.5, end: 0 }, emitting: false,
+    }).setDepth(-50);
     for (const m of this.mapa.muebles) if (m.f === "poste") {
       this.luces.push(this.add.image(m.x, m.y - 20, "halo").setScale(1.3, 0.9).setAlpha(0).setDepth(Z_NOCHE + 1).setBlendMode(Phaser.BlendModes.ADD));
     }
@@ -198,6 +236,7 @@ export class EscenaBarrio extends Phaser.Scene {
     cam.setBackgroundColor("#2f6b2f");
     this.ajustarZoom();
     this.scale.on("resize", () => this.ajustarZoom());
+    this.aplicarCalidad(this.registry.get("calidad") !== "simple");
     this.instalarTeclado();
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => this.tocar(p));
     this.input.on("pointermove", (p: Phaser.Input.Pointer) => this.moverDecorar(p));
@@ -221,7 +260,7 @@ export class EscenaBarrio extends Phaser.Scene {
       marco.fillStyle(fondo, 1).fillRoundedRect(-12, -22, 24, 24, 5);
       marco.fillStyle(0xfff1e8, 1).fillTriangle(-6, 4, 6, 4, 0, 10);
       marco.fillStyle(0x0b0f2a, 1).fillTriangle(-4, 4, 4, 4, 0, 8);
-      const img = this.add.image(0, 0, "objetos", `ico_${e.icono}`).setOrigin(0.5, 1);
+      const img = this.add.image(0, 0, "objetos", `ico_${e.icono}`).setOrigin(0.5, 1).setScale(1 / HD);
       const badge = this.texto(11, -22, "", 8, "#ffffff", "#c0392b").setOrigin(0.5, 0.5).setVisible(false);
       const ico = this.add.container(e.x, e.y - 2, [marco, img, badge]).setDepth(e.z + 2).setSize(30, 34);
       // La repisa de trofeos no lleva placa: lo que se ve son los trofeos mismos (queda
@@ -233,7 +272,7 @@ export class EscenaBarrio extends Phaser.Scene {
         : infoModulo(e.panel).nombre;
       const nombre = this.add.text(e.x, e.y - 30, titulo, {
         fontFamily: FUENTE, fontSize: "8px", color: c.tinta, backgroundColor: c.fondo, padding: { x: 3, y: 1 },
-        resolution: Math.max(2, Math.ceil(this.zoom * (window.devicePixelRatio || 1))),
+        resolution: Math.max(2, Math.ceil(this.zoom * this.dpr)),
       }).setOrigin(0.5, 1).setDepth(Z_AVION - 2).setVisible(false);
       this.estaciones.push({ e, ico, nombre, badge, casa: this.casaDe(e.x, e.z - 2) });
     }
@@ -314,7 +353,7 @@ export class EscenaBarrio extends Phaser.Scene {
       const mostrar = medallas.length > caben ? medallas.slice(-(caben - 1)) : medallas;
       const objs: Phaser.GameObjects.GameObject[] = mostrar.map((m, i) =>
         this.add.image(p.x + (i % cols) * (p.paso ?? 10), p.y + Math.floor(i / cols) * (p.alto_fila ?? 22), "objetos", `trofeo_${m}`)
-          .setOrigin(0.5, 1).setDepth((p.sobre ?? p.y) + 0.5));
+          .setOrigin(0.5, 1).setScale(1 / HD).setDepth((p.sobre ?? p.y) + 0.5));
       if (medallas.length > caben) {
         const i = caben - 1;
         objs.push(this.texto(p.x + (i % cols) * (p.paso ?? 10), p.y + Math.floor(i / cols) * (p.alto_fila ?? 22) - 4,
@@ -356,7 +395,7 @@ export class EscenaBarrio extends Phaser.Scene {
     }
     this.decorarG = this.add.graphics().setDepth(Z_AVION - 5);
     if (d.colocar) {
-      this.fantasma = this.add.image(0, 0, "objetos", d.colocar.frame).setAlpha(0.8).setDepth(Z_AVION - 4).setVisible(false);
+      this.fantasma = this.add.image(0, 0, "objetos", d.colocar.frame).setScale(1 / HD).setAlpha(0.8).setDepth(Z_AVION - 4).setVisible(false);
       this.origenDeCuadro(this.fantasma);
     }
     this.pintarDecorar();
@@ -497,7 +536,7 @@ export class EscenaBarrio extends Phaser.Scene {
   texto(x: number, y: number, t: string, tam = 9, color = "#ffffff", borde = "#1d2b53"): Phaser.GameObjects.Text {
     return this.add.text(x, y, t, {
       fontFamily: FUENTE, fontSize: `${tam}px`, color, stroke: borde, strokeThickness: 3, align: "center",
-      resolution: Math.max(2, Math.ceil(this.zoom * (window.devicePixelRatio || 1))),
+      resolution: Math.max(2, Math.ceil(this.zoom * this.dpr)),
     });
   }
 
@@ -507,17 +546,77 @@ export class EscenaBarrio extends Phaser.Scene {
     else img.setOrigin(0.5, 1);
   }
 
+  /** Píxeles del dispositivo por píxel CSS con que se dibuja el lienzo (HD-2D: hasta 2). */
+  get dpr(): number {
+    return (this.registry.get("dpr") as number) || 1;
+  }
+
   ajustarZoom(forzar?: number) {
-    const w = this.scale.width, h = this.scale.height;
+    const W = this.scale.width, Hh = this.scale.height;
+    const w = W / this.dpr, h = Hh / this.dpr;
     // De a medio paso (1, 1,5, 2…): ~17 × 9 baldosas a la vista, cerca del personaje como en
     // los RPG de Super Nintendo, sin que el pixel art se deforme mucho.
     const auto = Math.max(1, Math.min(4, Math.round(Math.min(w / 560, h / 300) * 2) / 2));
-    this.zoom = forzar ?? auto;
-    this.cameras.main.setZoom(this.zoom);
+    this.zoom = forzar ?? auto;             // en px CSS: lo que ve la persona
+    const z = this.zoom * this.dpr;          // el de la cámara: px del lienzo
+    this.cameras.main.setZoom(z);
     // Lo que no se mueve con la cámara igual se escala con el zoom (desde el centro): el velo de
     // la noche se agranda para cubrir toda la pantalla con cualquier zoom.
-    const z = this.zoom;
-    this.noche.setSize(w / z + 4, h / z + 4).setPosition(w / 2 - w / (2 * z) - 2, h / 2 - h / (2 * z) - 2);
+    this.noche.setSize(W / z + 4, Hh / z + 4).setPosition(W / 2 - W / (2 * z) - 2, Hh / 2 - Hh / (2 * z) - 2);
+  }
+
+  /** Calidad alta = HD-2D: profundidad de campo (arriba y abajo de la pantalla desenfocados, como una
+   *  maqueta), brillo en lo claro (bloom), color un poco más vivo y viñeta. En «simple» nada de eso.
+   *  Ojo: el TiltShift de Phaser 4.2.1 tiñe todo de amarillo verdoso con cualquier ajuste; por eso la
+   *  profundidad se arma con un desenfoque y una máscara degradada (textura «dof»). */
+  aplicarCalidad(alta: boolean) {
+    this.altaCalidad = alta;
+    const f = this.cameras.main.filters.external;
+    f.clear();
+    if (!alta) return;
+    f.addColorMatrix().colorMatrix.saturate(0.12);
+    const brillo = f.addParallelFilters();
+    brillo.top.addThreshold(0.8, 0.95);
+    brillo.top.addBlur(1, 2, 2, 1, 0xffffff, 4);
+    brillo.blend.blendMode = Phaser.BlendModes.ADD;
+    brillo.blend.amount = 0.25;
+    const foco = f.addParallelFilters();
+    foco.top.addBlur(1, 1.8, 1.8, 1, 0xffffff, 4);
+    foco.top.addMask("dof");
+    foco.blend.amount = 1;
+    f.addVignette(0.5, 0.5, 1.1, 0.22);
+  }
+
+  /** Texturas hechas aquí (degradados suaves): sombra de los pies, nube y polvo. */
+  private texturasSuaves() {
+    const radial = (clave: string, w: number, h: number, paradas: [number, string][]) => {
+      if (this.textures.exists(clave)) return;
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      const g = c.getContext("2d")!;
+      g.translate(w / 2, h / 2);
+      g.scale(1, h / w);
+      const r = g.createRadialGradient(0, 0, 0, 0, 0, w / 2);
+      for (const [o, col] of paradas) r.addColorStop(o, col);
+      g.fillStyle = r;
+      g.beginPath(); g.arc(0, 0, w / 2, 0, Math.PI * 2); g.fill();
+      this.textures.addCanvas(clave, c);
+    };
+    radial("sombra", 64, 22, [[0, "rgba(20,16,30,0.55)"], [0.55, "rgba(20,16,30,0.32)"], [1, "rgba(20,16,30,0)"]]);
+    radial("nube", 256, 128, [[0, "rgba(40,48,80,1)"], [0.5, "rgba(40,48,80,0.6)"], [1, "rgba(40,48,80,0)"]]);
+    radial("polvo", 16, 16, [[0, "rgba(235,225,205,0.95)"], [1, "rgba(235,225,205,0)"]]);
+    // La máscara de la profundidad de campo: opaca arriba y abajo (ahí se ve el desenfoque).
+    if (!this.textures.exists("dof")) {
+      const c = document.createElement("canvas");
+      c.width = 4; c.height = 256;
+      const g = c.getContext("2d")!;
+      const l = g.createLinearGradient(0, 0, 0, 256);
+      l.addColorStop(0, "rgba(255,255,255,1)"); l.addColorStop(0.24, "rgba(255,255,255,0)");
+      l.addColorStop(0.7, "rgba(255,255,255,0)"); l.addColorStop(1, "rgba(255,255,255,1)");
+      g.fillStyle = l;
+      g.fillRect(0, 0, 4, 256);
+      this.textures.addCanvas("dof", c);
+    }
   }
 
   cambiarZoom(paso: number) {
@@ -534,9 +633,10 @@ export class EscenaBarrio extends Phaser.Scene {
     p = componerAvatar(a).then((lienzo) => {
       if (!this.sys || !this.textures) return clave;
       if (this.textures.exists(clave)) return clave;
-      const tex = this.textures.addCanvas(clave, lienzo);
+      // Al doble con 2xBR, como el barrio: bordes y diagonales suaves (HD-2D).
+      const tex = this.textures.addCanvas(clave, xbr2xCanvas(lienzo));
       if (!tex) return clave;
-      for (let fila = 0; fila < 4; fila++) for (let col = 0; col < CUADROS; col++) tex.add(fila * CUADROS + col, 0, col * 64, fila * 64, 64, 64);
+      for (let fila = 0; fila < 4; fila++) for (let col = 0; col < CUADROS; col++) tex.add(fila * CUADROS + col, 0, col * CUADRO, fila * CUADRO, CUADRO, CUADRO);
       const anim = (nombre: string, fila: number, cols: number[], fps: number, repetir = -1) =>
         this.anims.create({ key: `${clave}:${nombre}`, frames: this.anims.generateFrameNumbers(clave, { frames: cols.map((c) => fila * CUADROS + c) }), frameRate: fps, repeat: repetir });
       for (const [dir, fila] of Object.entries(FILA)) {
@@ -553,8 +653,9 @@ export class EscenaBarrio extends Phaser.Scene {
   }
 
   crearFigura(id: string, tipo: TipoFigura, x: number, y: number, dir: Dir = "abajo"): Figura {
-    const spr = this.add.sprite(x, y, "objetos", "papeles1").setOrigin(0.5, PIE_Y).setVisible(false);
+    const spr = this.add.sprite(x, y, "objetos", "papeles1").setOrigin(0.5, PIE_Y).setScale(1 / HD).setVisible(false);
     const f: Figura = { id, tipo, spr, tex: "", x, y, dir, pose: "quieto", ruta: [], base: null, vel: VEL_CAMINA * 0.85 };
+    f.sombra = this.add.image(x, y, "sombra").setVisible(false);
     this.figuras.set(id, f);
     // La cámara va con el jugador (un poco por delante de los pies, a la altura de la cara).
     if (tipo === "jugador") this.cameras.main.startFollow(spr, true, 0.12, 0.12, 0, 24);
@@ -574,6 +675,7 @@ export class EscenaBarrio extends Phaser.Scene {
 
   quitarFigura(f: Figura) {
     f.spr.destroy();
+    f.sombra?.destroy();
     f.nombre?.destroy();
     f.icono?.destroy();
     f.globo?.c.destroy();
@@ -599,7 +701,7 @@ export class EscenaBarrio extends Phaser.Scene {
     f.globo?.c.destroy();
     const t = this.add.text(0, 0, texto, {
       fontFamily: FUENTE, fontSize: "8px", color: "#1d2b53", align: "center", wordWrap: { width: 120 },
-      resolution: Math.max(2, Math.ceil(this.zoom * (window.devicePixelRatio || 1))),
+      resolution: Math.max(2, Math.ceil(this.zoom * this.dpr)),
     }).setOrigin(0.5, 1);
     const w = Math.max(24, t.width + 10), h = t.height + 6;
     const g = this.add.graphics();
@@ -776,9 +878,31 @@ export class EscenaBarrio extends Phaser.Scene {
     }
     this.techosSegunJugador();
     if (this.jugador) this.casasV.techos(this.jugador.x, this.jugador.y);
+    this.moverNubes(dt);
+    this.adelantarCamara();
     this.nombresCerca();
     this.revisarCerca();
     this.enviarPosicion(ahora);
+  }
+
+  /** Las nubes cruzan de occidente a oriente y vuelven a entrar por el otro lado; de noche no se ven. */
+  private moverNubes(dt: number) {
+    for (const n of this.nubes) {
+      n.x += (n.getData("vel") as number) * dt;
+      if (n.x - n.displayWidth / 2 > this.mapa.ancho) n.x = -n.displayWidth / 2;
+      n.setAlpha(0.13 * this.dia * (this.altaCalidad ? 1 : 0));
+    }
+  }
+
+  /** La cámara se adelanta un poco hacia donde camina el jugador (ve lo que viene). */
+  private adelantarCamara() {
+    const j = this.jugador, cam = this.cameras.main;
+    if (!j || this.decorar) return;
+    const anda = j.pose === "camina" || j.pose === "corre";
+    const v = { arriba: [0, -1], abajo: [0, 1], izquierda: [-1, 0], derecha: [1, 0] }[j.dir] ?? [0, 0];
+    const lejos = anda ? (j.pose === "corre" ? 40 : 26) : 0;
+    const ox = -v[0] * lejos, oy = 24 - v[1] * lejos * 0.7;
+    cam.followOffset.set(cam.followOffset.x + (ox - cam.followOffset.x) * 0.035, cam.followOffset.y + (oy - cam.followOffset.y) * 0.035);
   }
 
   private colocar(f: Figura, ahora: number) {
@@ -789,10 +913,29 @@ export class EscenaBarrio extends Phaser.Scene {
       s.setFrame(k);
       dy = Math.sin(ahora / 420) * 1.5;
     } else if (f.aparecer && ahora < f.aparecer) {
-      s.setScale(Math.max(0.2, 1 - (f.aparecer - ahora) / 500));
-    } else if (s.scale !== 1) s.setScale(1);
+      s.setScale(Math.max(0.2, 1 - (f.aparecer - ahora) / 500) * (f.escala ?? 1) / HD);
+    } else if (s.scaleX !== (f.escala ?? 1) / HD) s.setScale((f.escala ?? 1) / HD);
     if (f.vehiculo) s.setFlipX(f.dir === "derecha" ? s.getData("miraIzquierda") : !s.getData("miraIzquierda"));
-    s.setPosition(Math.round(f.x), Math.round(f.y + dy));
+    // HD-2D: posición sin redondear (se mueve suave), respira quieto y lleva su sombra suave.
+    const persona = f.tipo === "persona" || f.tipo === "jugador" || f.tipo === "visitante" || f.tipo === "proveedor" || f.tipo === "mensajero";
+    const quietoAhora = f.pose === "quieto" || f.pose === "sentado";
+    if (persona && quietoAhora && !(f.aparecer && ahora < f.aparecer)) {
+      const k = Math.sin(ahora / 640 + (f.x % 7)) * 0.014, base = (f.escala ?? 1) / HD;
+      s.setScale(base * (1 - k * 0.4), base * (1 + k));
+    }
+    s.setPosition(f.x, f.y + dy);
+    if (f.sombra) {
+      const ancho = f.vehiculo ? s.displayWidth * 0.9 : f.tipo === "objeto" ? 22 : f.tipo === "hugo" ? 30 - dy : 30;
+      f.sombra.setVisible(s.visible && f.pose !== "sentado").setPosition(f.x, f.y - 1)
+        .setDisplaySize(ancho, ancho * 0.36).setDepth(f.y - 0.6);
+    }
+    if (persona && (f.pose === "corre" || f.pose === "camina") && this.polvo && this.altaCalidad) {
+      const cada = f.pose === "corre" ? 90 : 340;
+      if (!f.polvoEn || ahora - f.polvoEn > cada) {
+        f.polvoEn = ahora;
+        this.polvo.emitParticleAt(f.x + (Math.random() - 0.5) * 6, f.y - 1, f.pose === "corre" ? 2 : 1);
+      }
+    }
     const quieto = !f.ruta.length && f.base && Math.abs(f.x - f.base.x) < 1 && Math.abs(f.y - f.base.y) < 1;
     s.setDepth(quieto && f.base?.sobre ? f.base.sobre : f.y);
     this.animar(f);
@@ -1031,13 +1174,14 @@ export class EscenaBarrio extends Phaser.Scene {
   /** De noche se oscurece el barrio y se prenden los postes (hora de Bogotá). */
   aplicarHora(h: number) {
     const noche = h < 5.5 || h > 19 ? 1 : h < 6.5 ? 1 - (h - 5.5) : h > 18 ? h - 18 : 0;
+    this.dia = 1 - noche;
     this.noche.setFillStyle(0x1b2550, 0.55 * noche);
     for (const l of this.luces) l.setAlpha(0.75 * noche);
   }
 
   /** Un avioncito de papel de un avatar a otro (una pregunta, una respuesta, una idea). */
   avion(de: Figura, para: Figura, tipo: string, retraso: number, alLlegar: () => void) {
-    const s = this.add.image(de.x, de.y - 44, "objetos", `avion_${tipo}`).setDepth(Z_AVION).setVisible(false);
+    const s = this.add.image(de.x, de.y - 44, "objetos", `avion_${tipo}`).setScale(1 / HD).setDepth(Z_AVION).setVisible(false);
     const ax = de.x, ay = de.y - 44;
     const dist = Math.hypot(para.x - de.x, para.y - de.y);
     const dur = 1500 + Math.min(1800, dist * 2.2);

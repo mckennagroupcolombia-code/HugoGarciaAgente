@@ -309,6 +309,20 @@ Agenda → **Empresa viva** (panel `empresa-viva`) y el selector **Mapa · Juego
   16 px + «cuerda tirante») · `personajes.ts` (compone avatares LPC por capas y paletas en un canvas) · `barrio.ts`
   (panel → lugar, `TAREA` → punto/ronda) · `dialogo.tsx` (ventana azul, texto que se escribe solo, menú con manito) ·
   `acciones.tsx` (Mi personaje, preguntar, decir, compartir) · `EmpresaViva.tsx` (HUD, diálogos de cada cosa, red).
+- **Estilo HD-2D** (9-oct, pedido: «más 3D, mejores gráficos, menos pixelado, animaciones de mejor calidad»; se eligió
+  HD-2D sobre personajes 3D pre-renderizados o rehacerlo en Three.js, para no perder avatares ni funciones):
+  - **Más píxeles**: todo el arte se dibuja como siempre y se lleva al doble con **2xBR** (el escalador de los emuladores:
+    suaviza bordes y diagonales sin emborronar). El barrio en `scripts/empresa_viva/xbr.py` al generarlo (suelo en trozos
+    `suelo_<f>_<c>.png` de 2048 px por los celulares, atlas, techos, Hugo); los personajes en el navegador
+    (`empresa/xbr.ts`, ~130 ms por apariencia, una vez) porque se recolorean por piezas. El juego muestra todo a 1/`HD`
+    (`empresa/hd.ts` = `HD` de armar_mapa.py: si cambia uno, el otro) y las coordenadas de `mapa.json` no cambian.
+  - **Pantalla real**: el lienzo va a la densidad del dispositivo (hasta 2×; `Scale.NONE` + zoom 1/dpr + `ResizeObserver`
+    en `juego.ts`), filtrado suave y sin redondear posiciones (se mueve sin saltos de píxel).
+  - **Efectos** (`escena.aplicarCalidad`): profundidad de campo (arriba y abajo desenfocados con un desenfoque + máscara
+    degradada «dof»; ⚠️ el `TiltShift` de Phaser 4.2.1 tiñe todo de amarillo verdoso, no usarlo), brillo en lo claro
+    (bloom), color un poco más vivo, viñeta; sombras suaves bajo cada personaje, respiración al estar quietos, polvo al
+    caminar y correr, árboles que se mecen, sombras de nubes de día, cámara que se adelanta hacia donde caminas, ventanas
+    que entran suaves. Botón **HD** de la barra = calidad alta o simple (1×, sin efectos), guardada en el navegador.
 - **El barrio sale de un solo plano**: `scripts/empresa_viva/armar_mapa.py` dibuja `suelo.png`, `muebles.png`,
   `objetos.png`, `techos/*.png`, `hugo.png` **y** escribe `mapa.json` (lugares, puestos, puntos con nombre, estantes,
   rejilla de choques). Cambiar el barrio = editar el plano y volver a correr el script (`--vista x.jpg` = imagen de

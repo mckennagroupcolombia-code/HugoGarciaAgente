@@ -152,6 +152,6 @@ def test_los_archivos_del_juego_se_sirven_como_archivos_y_no_como_la_app(cliente
     if r.status_code == 200:
         assert "text/html" not in r.headers.get("Content-Type", "")
         assert r.get_json()["baldosa"] == 32
-    r = cliente.get("/app/empresa/pixel/suelo.png")
+    r = cliente.get("/app/empresa/pixel/suelo_0_0.png")   # HD-2D: el suelo va al doble y en trozos
     if r.status_code == 200:
         assert r.data[:4] == b"\x89PNG"
