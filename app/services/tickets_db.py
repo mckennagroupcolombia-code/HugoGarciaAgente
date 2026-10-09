@@ -6141,6 +6141,26 @@ def puede_ver_papel_tinta(usuario: dict | None) -> bool:
         return False
 
 
+# Sin alta de productos ni combos en Alegra, ni ventas «sin SKU» (genérico VENTA-VARIO).
+# 10 = Jenniffer Garcia (9-oct-2026): los productos ya existen; una cantidad sin
+# publicación propia se factura con el producto base en su unidad mínima (g, mL o Un)
+# por la cantidad: 20 L de aceite de ricino = ACERICg × 20.000. Igual en contabilidadAccess.ts.
+_SIN_ALTA_PRODUCTOS_USER_IDS = frozenset({10})
+
+
+def puede_crear_productos_alegra(usuario: dict | None) -> bool:
+    """Crear productos/combos en Alegra y facturar líneas sin SKU.
+
+    Sin usuario (llamada con el token del sistema) no se restringe: la regla es
+    por persona, no por canal."""
+    if not usuario:
+        return True
+    try:
+        return int(usuario.get("id") or 0) not in _SIN_ALTA_PRODUCTOS_USER_IDS
+    except (TypeError, ValueError):
+        return True
+
+
 def es_admin_efectivo(usuario: dict | None) -> bool:
     """Admin real (nivel >= 3) o Cynthia con privilegios de administrador en el panel."""
     if not usuario:

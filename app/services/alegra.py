@@ -395,18 +395,30 @@ def _liberar_reference_alegra_para_recrear(
     }
 
 
-def _precio_base_con_impuesto(precio_final: float, tax_rate_total: float) -> float:
+def _precio_base_con_impuesto(precio_final: float, tax_rate_total: float, cantidad: float = 1) -> float:
     """El precio de venta (MeLi/checkout web) ya incluye IVA — Alegra necesita el
     precio ANTES de impuestos en `price` cuando se manda `tax` explícito, si no
     la factura sale sumando el IVA por encima del precio que pagó el cliente
     (bug confirmado en vivo el 2026-09-02: FE1 salió en $4.522 en vez de $3.800).
-    Misma fórmula que `precio_base_con_impuesto` en app/services/siigo.py."""
+    Misma fórmula que `precio_base_con_impuesto` en app/services/siigo.py.
+
+    Con cantidades grandes en la unidad mínima (20.000 mL de aceite de ricino a
+    $29) el redondeo a centavos se multiplica: 24,37 × 20.000 × 1,19 = $580.006 y
+    el cliente pagó $580.000. Si el redondeo a 2 decimales mueve el total de la
+    línea medio peso o más, el precio va con 6 decimales; Alegra los guarda y
+    calcula el total exacto (probado en vivo el 9-oct-2026 con una cotización:
+    24,369748 × 20.000 → $580.000). Lo que pagó el cliente se factura tal cual."""
     from decimal import ROUND_HALF_UP, Decimal
 
     if not tax_rate_total:
         return precio_final
-    base = Decimal(str(precio_final)) / (Decimal("1") + Decimal(str(tax_rate_total)) / Decimal("100"))
-    return float(base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+    factor = Decimal("1") + Decimal(str(tax_rate_total)) / Decimal("100")
+    base = Decimal(str(precio_final)) / factor
+    base_2 = base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    cant = Decimal(str(cantidad or 1))
+    if abs(base_2 * factor * cant - Decimal(str(precio_final)) * cant) < Decimal("0.5"):
+        return float(base_2)
+    return float(base.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP))
 
 
 def normalizar_email_factura(email: str) -> tuple[str, str | None]:
@@ -776,7 +788,7 @@ def crear_factura_venta_alegra(
         producto_tax_ids = producto_alegra.get("tax_ids") or []
         producto_tax_rate = producto_alegra.get("tax_rate_total") or 0
         precio_base = (
-            _precio_base_con_impuesto(precio_unitario, producto_tax_rate)
+            _precio_base_con_impuesto(precio_unitario, producto_tax_rate, cantidad)
             if producto_tax_ids else precio_unitario
         )
 

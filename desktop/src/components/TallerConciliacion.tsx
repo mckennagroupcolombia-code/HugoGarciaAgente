@@ -19,6 +19,8 @@ import { BTN, BTN_SEC } from "./combos/comun";
 import { ponerSonido, sonarMoneda, sonidoActivo } from "./combos/sonidoMoneda";
 import { perroSeRie } from "../lib/celebracionAprobado";
 import VentanaTaller from "./combos/VentanaTaller";
+import { useTicketsAuth } from "../stores/ticketsAuth";
+import { puedeCrearProductosAlegra } from "../lib/contabilidadAccess";
 
 // Una compra no se causa desde acá con un formulario propio: entra por el MISMO
 // wizard de solicitud de pago (proveedor del libro o de Alegra, productos con SKU
@@ -1321,6 +1323,7 @@ export default function TallerConciliacion() {
   // La compra abierta encima del taller, y el alta de producto encima de ella.
   const [compra, setCompra] = useState<CompraAbierta | null>(null);
   const [crearProducto, setCrearProducto] = useState(false);
+  const puedeCrearProducto = puedeCrearProductosAlegra(useTicketsAuth((s) => s.user));
   const categoriasQ = useQuery<{ categorias: Categoria[] }>({ queryKey: ["pagos-categorias"], queryFn: () => api.get("/api/pagos/categorias"), enabled: Boolean(compra) });
   // La categoría no se fija por id (cambian): productos = la que lleva SKU sin
   // exigir factura de entrada; servicios = la primera sin productos.
@@ -1754,7 +1757,7 @@ export default function TallerConciliacion() {
           onCerrar={() => { setCompra(null); setCrearProducto(false); }}
           ayuda={<>
             Proveedor, fecha, monto y medio ya vienen de la línea del banco. Agrega los productos por su referencia del catálogo de Alegra
-            {compra.tipo === "productos" && <> — o <button type="button" className="font-bold text-accent underline-offset-2 hover:underline" onClick={() => setCrearProducto(true)}>crea el producto</button> si no existe</>}
+            {compra.tipo === "productos" && puedeCrearProducto && <> — o <button type="button" className="font-bold text-accent underline-offset-2 hover:underline" onClick={() => setCrearProducto(true)}>crea el producto</button> si no existe</>}
             , coteja la factura y registra. No pasa por aprobación ni por dos tokens: el pago ya salió del banco y el extracto es la aprobación. Lo único que se exige es que del banco salgan exactamente {formatCop(l.monto)}: si la factura es por otro valor, la diferencia queda como anticipo a favor o saldo por pagar con el proveedor.
           </>}>
           {categoriaCompra ? (

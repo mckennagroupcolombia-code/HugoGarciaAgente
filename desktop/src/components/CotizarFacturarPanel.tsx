@@ -9,7 +9,7 @@ import logotipo from "../assets/marca/logotipo-turquesa.png";
 import TallerPorFacturar, { type CasoPorFacturar } from "./TallerPorFacturar";
 import FloatingToolWindow, { defaultFloatRect } from "./FloatingToolWindow";
 import { useTicketsAuth } from "../stores/ticketsAuth";
-import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
+import { puedeCrearProductosAlegra, puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
 
 const CrearProductosSiigoPanel = lazy(() => import("./CrearProductosSiigoPanel"));
 
@@ -202,6 +202,9 @@ const NOMBRE_CONSUMIDOR_FINAL = "Consumidor Final";
 // Productos sin SKU (migración SIIGO→Alegra): se facturan contra un genérico de
 // venta con el IVA correcto. El sufijo ::<n> mantiene únicas varias líneas sin SKU.
 const GENERICO_VENTA_GRAVADO = "VENTA-VARIO-GRAVADO";
+// Para quien no factura «sin SKU»: el producto ya existe en su unidad mínima.
+const AYUDA_PRODUCTO_BASE =
+  "Busca el producto base en su unidad mínima (g, mL o Un) y pon la cantidad: 20 L de aceite de ricino = ACERICg × 20.000.";
 const GENERICO_VENTA_EXCLUIDO = "VENTA-VARIO-EXCLUIDO";
 let _generico_seq = 0;
 function codigoGenerico(gravado: boolean): string {
@@ -307,6 +310,8 @@ export default function CotizarFacturarPanel() {
   // sin salir de la venta. Mismo permiso y misma ventana que en Contabilidad (ContabilidadHerramientas).
   const usuario = useTicketsAuth((s) => s.user);
   const puedeCrearEnAlegra = Boolean(puedeVerModuloContabilidad(usuario, "productos-siigo"));
+  // Jenniffer (9-oct-2026) factura solo con productos que existen: nada de «sin SKU».
+  const permitirSinSku = puedeCrearProductosAlegra(usuario);
   const [verCrearAlegra, setVerCrearAlegra] = useState(false);
   const [ventaId, setVentaId] = useState<number | null>(null);
   const [venta, setVenta] = useState<Venta | null>(null);
@@ -884,6 +889,7 @@ export default function CotizarFacturarPanel() {
                 onEnvio={setEnvio}
                 pendientes={pendientes}
                 onPendientes={setPendientes}
+                permitirSinSku={permitirSinSku}
                 onAtras={() => setPaso(1)}
                 onSiguiente={() => void irAPaso(3)}
                 habilitado={productosOk}
@@ -2303,9 +2309,11 @@ function PasoProductos({
   ocupado,
   pendientes,
   onPendientes,
+  permitirSinSku,
 }: {
   pendientes: ProductoExtraido[];
   onPendientes: (p: ProductoExtraido[]) => void;
+  permitirSinSku: boolean;
   lineas: Linea[];
   calc: Calculo | null;
   envio: number;
@@ -2379,6 +2387,9 @@ function PasoProductos({
               {/* No está en Alegra o le falta el SKU (clientes viejos, migración SIIGO→Alegra):
                   facturar contra un genérico con el IVA correcto, conservando el nombre. */}
               <div className="border-t border-border/60 bg-surface/60 px-3 py-2 text-xs">
+                {!permitirSinSku ? (
+                  <p className="text-muted">{resultados.length === 0 ? "No está en Alegra." : "¿No es la presentación?"} {AYUDA_PRODUCTO_BASE}</p>
+                ) : (<>
                 <p className="mb-1 text-muted">
                   {resultados.length === 0 ? "No está en Alegra." : "¿No es ninguno?"} Facturar «{busqueda}» sin SKU:
                 </p>
@@ -2392,6 +2403,7 @@ function PasoProductos({
                     + excluido de IVA
                   </button>
                 </div>
+                </>)}
               </div>
             </div>
           )}
@@ -2409,7 +2421,9 @@ function PasoProductos({
                   descartar
                 </button>
               </p>
-              {p.candidatos.length === 0 ? (
+              {p.candidatos.length === 0 && !permitirSinSku ? (
+                <p className="mt-1 text-muted">Sin presentación en Alegra. {AYUDA_PRODUCTO_BASE}</p>
+              ) : p.candidatos.length === 0 ? (
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <span className="text-muted">Sin SKU en Alegra — facturar sin SKU:</span>
                   <button type="button"

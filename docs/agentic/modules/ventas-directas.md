@@ -77,3 +77,18 @@ aunque Jerry ya había cotizado (COT-20260930-003). Ahora `cotizar()` manda el P
 cliente (`_enviar_cotizacion_correo`, SMTP de `web_pedidos`) y marca `enviada` las solicitudes abiertas
 de ese mismo correo (`proveedores_db.responder_solicitudes_por_correo`). Si el correo falla, queda como
 aviso en la venta; no frena la cotización.
+
+**Sin alta de productos ni «sin SKU» para Jenniffer + factura exacta al peso (9-oct-2026, garrafa de 20 L de aceite
+de ricino):** los productos ya existen en Alegra. Una cantidad sin publicación propia se factura con el **producto base
+en su unidad mínima** (g, mL o Un) por la cantidad: 20 L de aceite de ricino = `ACERICg` × 20.000 a $29/mL. Por eso
+`tickets_db.puede_crear_productos_alegra()` (`_SIN_ALTA_PRODUCTOS_USER_IDS`, hoy `{10}` = Jenniffer; espejo en
+`contabilidadAccess.ts::puedeCrearProductosAlegra`) cierra con 403 `/api/siigo/productos`, `/api/siigo/combos` y
+`/api/facturas/<x>/crear-productos` (`routes._sin_alta_productos`), y en Cotizar/Facturar las líneas «sin SKU»
+(`VENTA-VARIO-*`) al guardar, cotizar y facturar (`routes_ventas_directas._sin_sku_denegado`). En el panel desaparecen
+«Crear en Alegra», los botones «sin SKU» (queda la ayuda del producto base) y «crea el producto» del taller de
+conciliación. Sigue facturando con productos existentes. El token del sistema sin persona detrás no se restringe.
+**Redondeo:** con cantidades así el precio base a centavos se multiplicaba (24,37 × 20.000 × 1,19 = $580.006 para
+$580.000 pagados, y la factura quedaba con $6 por cobrar). `alegra._precio_base_con_impuesto(precio, iva, cantidad)`
+manda 6 decimales cuando el redondeo a 2 mueve el total de la línea medio peso o más; Alegra los guarda y da el total
+exacto (probado en vivo con una cotización, borrada). Las ventas de 1-3 unidades siguen con centavos. La cotización
+(`crear_cotizacion_alegra`) usa la misma función. Tests: `tests/test_sin_alta_productos.py`.

@@ -242,7 +242,9 @@ un 0 % de no responsables). `scripts/iva_venta_por_compra.py` revisa todo el cat
 
 **R · Ventas directas / Cotizar-Facturar** (`ventas-directas.md`). ⚠️ La lista de precios de Alegra guarda el precio
 **con IVA**: no cotizar ni facturar a mano en Alegra (duplica el IVA). Facturar marca `facturando` antes de llamar a
-Alegra. Venta MeLi con RUT liga la factura al pack. Comisión WhatsApp 3 %.
+Alegra. Venta MeLi con RUT liga la factura al pack. Comisión WhatsApp 3 %. Jenniffer no crea productos ni factura
+«sin SKU» (9-oct, `puede_crear_productos_alegra`): una cantidad sin publicación va con el producto base en g/mL/Un
+(20 L de ricino = `ACERICg` × 20.000); el precio base viaja con 6 decimales si el redondeo movería el total.
 
 **Producto: combos, EAN, etiquetas, canales, árbol** (`producto-cadena.md`, flujos U/W/X/Z/AD). Producto de inventario
 (materia prima) ≠ combo de venta (`C-…`, kit); el documento técnico describe la materia prima y el combo lo hereda por

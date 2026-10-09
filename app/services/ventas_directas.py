@@ -618,6 +618,7 @@ def crear_cotizacion_alegra(venta: dict) -> dict:
     from app.services.alegra import (
         _ALEGRA_BASE,
         _alegra_headers,
+        _precio_base_con_impuesto,
         _resolver_o_crear_contacto_alegra,
     )
 
@@ -650,7 +651,9 @@ def crear_cotizacion_alegra(venta: dict) -> dict:
         precio = float(ln["precio_unitario"])
         item = {
             "id": prod["id"],
-            "price": _redondear(precio / (1 + tasa / 100)) if tasa else precio,
+            # Mismo precio base que la factura (con más decimales si la cantidad
+            # es grande): la cotización y la factura deben dar el mismo total.
+            "price": _precio_base_con_impuesto(precio, tasa, ln["cantidad"]) if tasa else precio,
             "quantity": ln["cantidad"],
         }
         if tax_ids:

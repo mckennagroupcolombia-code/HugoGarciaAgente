@@ -3782,6 +3782,20 @@ def register_routes(app):
             pass
         return None
 
+    def _sin_alta_productos():
+        """403 si la persona de la sesión no puede crear productos/combos en Alegra
+        (tickets_db.puede_crear_productos_alegra); None si puede."""
+        from app.services.tickets_db import puede_crear_productos_alegra
+
+        if puede_crear_productos_alegra(_panel_tickets_usuario()):
+            return None
+        return jsonify({
+            "ok": False,
+            "error": "No puedes crear productos en Alegra: ya existen. Para una cantidad sin publicación "
+                     "propia usa el producto base en su unidad mínima (g, mL o Un) y pon la cantidad — "
+                     "20 L de aceite de ricino = ACERICg × 20.000.",
+        }), 403
+
     # ── Contabilidad: el backend dice lo mismo que el panel ──────────────────
     #
     # `_api_token_valido()` acepta la sesión de CUALQUIER usuario del panel, no
@@ -8131,6 +8145,9 @@ def register_routes(app):
         """Crea un producto inventariable en SIIGO (panel Contabilidad)."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
+        denegado = _sin_alta_productos()
+        if denegado:
+            return denegado
         try:
             from app.tools.importar_productos_siigo import crear_producto_en_siigo
             from app.panel_activity import log_line
@@ -8198,6 +8215,9 @@ def register_routes(app):
         """Crea un producto tipo Combo en SIIGO (panel Contabilidad)."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
+        denegado = _sin_alta_productos()
+        if denegado:
+            return denegado
         try:
             from app.services.alegra import crear_combo_en_alegra as crear_combo_en_siigo
             from app.panel_activity import log_line
@@ -14598,6 +14618,9 @@ def register_routes(app):
         """Crea en SIIGO uno o más productos nuevos de una factura pendiente."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
+        denegado = _sin_alta_productos()
+        if denegado:
+            return denegado
         try:
             from app.tools.importar_productos_siigo import crear_productos_factura_en_siigo
             from app.panel_activity import log_line

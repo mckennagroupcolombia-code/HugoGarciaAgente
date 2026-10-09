@@ -44,6 +44,9 @@ def _auth(f):
         except Exception:
             usuario = None
 
+        from app.services.tickets_db import puede_crear_productos_alegra
+
+        g.ventas_directas_puede_sin_sku = puede_crear_productos_alegra(usuario)
         if chat_api_token_matches_request():
             g.ventas_directas_usuario = (usuario or {}).get("username") or "sistema"
             g.ventas_directas_admin = True
@@ -62,6 +65,26 @@ def _auth(f):
         return f(*args, **kwargs)
 
     return wrapper
+
+
+def _sin_sku_denegado(lineas) -> tuple | None:
+    """403 si la venta trae líneas «sin SKU» (genérico VENTA-VARIO) y la persona no
+    puede crear productos (tickets_db.puede_crear_productos_alegra): los productos ya
+    existen y una cantidad sin publicación va con el producto base por la cantidad."""
+    from app.services.ventas_directas import es_generico_venta
+
+    if getattr(g, "ventas_directas_puede_sin_sku", True):
+        return None
+    sueltas = [str(ln.get("nombre") or "producto") for ln in (lineas or [])
+               if isinstance(ln, dict) and es_generico_venta(ln.get("codigo") or "")]
+    if not sueltas:
+        return None
+    return jsonify({
+        "ok": False,
+        "error": f"No se puede facturar «sin SKU» ({', '.join(sueltas)}): el producto ya existe en "
+                 "Alegra. Busca el producto base en su unidad mínima (g, mL o Un) y pon la cantidad "
+                 "— 20 L de aceite de ricino = ACERICg × 20.000.",
+    }), 403
 
 
 def _dual(app, rule: str, **opts):
@@ -158,16 +181,24 @@ def register_ventas_directas_routes(app):
     @_dual(app, "/api/ventas-directas", methods=["POST"])
     @_auth
     def vd_crear():
+        data = request.get_json(silent=True) or {}
+        denegado = _sin_sku_denegado(data.get("lineas"))
+        if denegado:
+            return denegado
         try:
-            return jsonify({"ok": True, "venta": V.guardar(request.get_json(silent=True) or {}, usuario=g.ventas_directas_usuario)})
+            return jsonify({"ok": True, "venta": V.guardar(data, usuario=g.ventas_directas_usuario)})
         except ValueError as e:
             return jsonify({"ok": False, "error": str(e)}), 400
 
     @_dual(app, "/api/ventas-directas/<int:venta_id>", methods=["PUT"])
     @_auth
     def vd_actualizar(venta_id: int):
+        data = request.get_json(silent=True) or {}
+        denegado = _sin_sku_denegado(data.get("lineas"))
+        if denegado:
+            return denegado
         try:
-            venta = V.guardar(request.get_json(silent=True) or {}, usuario=g.ventas_directas_usuario, venta_id=venta_id)
+            venta = V.guardar(data, usuario=g.ventas_directas_usuario, venta_id=venta_id)
             return jsonify({"ok": True, "venta": venta})
         except ValueError as e:
             return jsonify({"ok": False, "error": str(e)}), 400
@@ -176,6 +207,9 @@ def register_ventas_directas_routes(app):
     @_auth
     def vd_cotizar(venta_id: int):
         data = request.get_json(silent=True) or {}
+        denegado = _sin_sku_denegado((V.obtener(venta_id) or {}).get("lineas"))
+        if denegado:
+            return denegado
         r = V.cotizar(
             venta_id,
             enviar_whatsapp=bool(data.get("enviar_whatsapp", True)),
@@ -187,6 +221,9 @@ def register_ventas_directas_routes(app):
     @_auth
     def vd_facturar(venta_id: int):
         data = request.get_json(silent=True) or {}
+        denegado = _sin_sku_denegado((V.obtener(venta_id) or {}).get("lineas"))
+        if denegado:
+            return denegado
         r = V.facturar(
             venta_id,
             usuario=g.ventas_directas_usuario,

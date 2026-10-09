@@ -136,6 +136,19 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
 }
 
 /**
+ * Sin alta de productos/combos en Alegra ni ventas «sin SKU» (10 = Jenniffer Garcia,
+ * 9-oct-2026): los productos ya existen; una cantidad sin publicación propia se factura
+ * con el producto base en su unidad mínima (g, mL o Un) por la cantidad — 20 L de aceite
+ * de ricino = ACERICg × 20.000. Igual en tickets_db.py (el backend lo hace cumplir).
+ */
+const SIN_ALTA_PRODUCTOS_USER_IDS = new Set<number>([10]);
+
+export function puedeCrearProductosAlegra(user: TicketsUser | null | undefined): boolean {
+  const uid = Number(user?.id);
+  return !(Number.isFinite(uid) && SIN_ALTA_PRODUCTOS_USER_IDS.has(uid));
+}
+
+/**
  * Costos / rentabilidad acompañan facturas o sync.
  * RRHH / Operativos: permiso propio o avanzado.
  * Facturación = sync u facturas (o permiso propio).
@@ -164,6 +177,7 @@ export function puedeVerModuloContabilidad(
     return null;
   }
   if (!user) return false;
+  if (seccion === "productos-siigo" && !puedeCrearProductosAlegra(user)) return false;
   if (esAdminPanel(user)) return true;
   const p = user.permisos_secciones;
   if (!p) return false;

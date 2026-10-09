@@ -1,3 +1,13 @@
+### 2026-10-09 17:10 - Jenniffer sin alta de productos ni «sin SKU»; la factura sale exacta al peso
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + regla de permisos. Sin LLM.
+- **Qué se implementó:**
+  - Los productos ya existen en Alegra: Jenniffer ya **no puede crear productos ni combos** (rutas `/api/siigo/productos`, `/api/siigo/combos`, `/api/facturas/<x>/crear-productos` → 403) **ni facturar líneas «sin SKU»** (genérico VENTA-VARIO, al guardar, cotizar o facturar). Sigue facturando en Cotizar/Facturar con productos existentes. Una cantidad sin publicación propia va con el **producto base en su unidad mínima** (g, mL o Un) por la cantidad: 20 L de aceite de ricino = `ACERICg` × 20.000.
+  - En el panel desaparecen para ella «Crear en Alegra», los botones «sin SKU» (queda la ayuda del producto base) y «crea el producto» del taller de conciliación.
+  - **Factura exacta:** el precio sin IVA viajaba a Alegra redondeado a centavos y con 20.000 mL se multiplicaba ($620.006 para $620.000 pagados; quedaban $6 por cobrar). Ahora va con 6 decimales cuando el redondeo movería el total; Alegra los acepta y da el total exacto (probado con una cotización, borrada). Las ventas de 1-3 unidades no cambian. La cotización usa el mismo cálculo.
+  - Borrador **COT-20261009-005** de Ricardo Casadiego Contreras (garrafa 20 L, $620.000 con envío), sin emitir hasta confirmar el pago en el banco.
+- **Archivos Modificados:** `app/services/tickets_db.py`, `app/services/alegra.py`, `app/services/ventas_directas.py`, `app/routes.py`, `app/routes_ventas_directas.py`, `desktop/src/lib/contabilidadAccess.ts`, `desktop/src/components/{CotizarFacturarPanel,TallerConciliacion}.tsx`, `tests/test_sin_alta_productos.py` (nuevo), `docs/agentic/modules/ventas-directas.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-09 14:45 - Empresa viva en estilo HD-2D: más píxeles, profundidad y animaciones
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora (gráficos y animaciones del juego). Sin LLM.
