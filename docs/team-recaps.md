@@ -1,3 +1,13 @@
+### 2026-10-09 13:55 - Árbol del producto: pieza «Envío» (peso y medidas que pide MeLi)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - La revisión de pesos, medidas y empaques del TKT-2026-1639 ahora también es una **pieza de cada presentación** en Diseño de producto → Árbol del producto: hoja «Envío» (camión) y fila «Envío» en la columna derecha. Abre encima del árbol un wizard de 3 pasos para ese combo: **Pesar** (paquete listo para despachar, empaque y caja de la receta), **Medir** (su tipo de empaque, que vale para los que lo comparten, o medidas propias) y **MeLi** (lo verificado contra lo publicado; aplicar sigue siendo de quien aprueba, releyendo cada publicación).
+  - Misma base que la solicitud: lo que se pesa en el árbol cuenta en el avance del TKT y al revés. Un combo creado después de la revisión se agrega con «Agregar y empezar».
+  - **Verificado contra MeLi** (138 categorías, 497 publicaciones): pide exactamente `SELLER_PACKAGE_WEIGHT` (g) y `SELLER_PACKAGE_LENGTH/WIDTH/HEIGHT` (cm), el paquete de envío del vendedor. Se manda en enteros con `value_struct`; se marca la logística de cada publicación (Full mide en su bodega).
+  - Al sumar la pieza ningún combo queda completo (0 de 331 pesados) hasta que se pesen. Snapshot de MeLi de la revisión releído hoy.
+- **Archivos Modificados:** `app/services/revision_empaque.py`, `app/routes_revision_empaque.py`, `app/services/arbol_producto.py`, `desktop/src/components/revisionEmpaque/{EnvioEmergente.tsx (nuevo),RevisionEmpaque.tsx}`, `desktop/src/components/plantillas-visuales/arbol/{ArbolProductoPanel.tsx,Cladograma.tsx,tipos.ts}`, `desktop/dev/envio.{html,tsx}` (nuevos), `tests/test_revision_empaque.py`, `tests/test_arbol_producto.py`, `docs/agentic/modules/{operacion-equipo,producto-cadena}.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-09 13:35 - WhatsApp: datos de pago a una cliente y cuenta bancaria falsa eliminada
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (operación + limpieza de datos). Sin LLM.
@@ -5732,3 +5742,8 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - `website.py` `/producto/<slug>`: si el producto no trae descripción y tiene documento, muestra el párrafo guardado; si falta o está vencido, lo redacta en segundo plano (sale en la siguiente visita).
 - Primer lote: 26 redactadas; el resto lo frenó el tope `llm_budget` (25 llamadas por lote sin autorizar). Ricino («laxante»), limón («dosis») y naranja («digestión») rehechas con el filtro.
 - **Archivos Modificados:** `app/services/descripcion_web.py`, `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/data/descripciones_web.json`, `docs/team-recaps.md`
+
+## 2026-10-09 — Descripciones web: aperturas descriptivas
+- Pedido del usuario: «las aperturas pueden ser diferentes, un poco más descriptivas».
+- `app/services/descripcion_web.py`: la primera frase describe el producto con un rasgo concreto del documento (estado y color, origen, obtención o función); prohibido abrir con «Descubre», «Explora», «Conoce», «Sumérgete», «Nuestro/a», «Te presentamos» o una pregunta (`_RE_APERTURA` pide reescribir). Rehechas 6 de muestra (árbol de té, canela, coco virgen, ricino, argán, lavanda); las otras 20 siguen con la apertura anterior hasta lanzar el lote.
+- **Archivos Modificados:** `app/services/descripcion_web.py`, `PAGINA_WEB/site/data/descripciones_web.json`, `docs/team-recaps.md`

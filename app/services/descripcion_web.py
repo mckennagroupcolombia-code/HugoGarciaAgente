@@ -37,6 +37,13 @@ _RE_MEDICO = re.compile(
     re.IGNORECASE,
 )
 
+#: Aperturas de folleto que el usuario no quiere (9-oct): el párrafo abre describiendo.
+_RE_APERTURA = re.compile(
+    r"^(descubre|explora|conoce|sumérgete|sumergete|disfruta|presentamos|te presentamos|"
+    r"nuestro|nuestra|bienvenid|¿buscas|si buscas|imagina)\b",
+    re.IGNORECASE,
+)
+
 _lock = threading.Lock()
 _en_curso: set[str] = set()
 _cache: dict = {"mtime": None, "datos": {}}
@@ -129,6 +136,12 @@ DATOS DEL DOCUMENTO TÉCNICO (única fuente; no inventes datos que no estén aqu
 
 REGLAS:
 - Un solo párrafo en español de Colombia, de {PALABRAS} palabras (entre {_MIN + 5} y {_MAX - 5}).
+- APERTURA descriptiva: la primera frase dice qué es el producto con un rasgo concreto
+  del documento (estado y color, origen botánico o geográfico, cómo se obtiene o su
+  función principal). Ejemplos de arranque: «Líquido ámbar obtenido por…», «Grasa
+  vegetal sólida que…», «Extraído de la corteza de…», «Polvo blanco cristalino que…».
+  Prohibido abrir con «Descubre», «Explora», «Conoce», «Sumérgete», «Nuestro/Nuestra»,
+  «Te presentamos» o una pregunta. Y no empieces repitiendo el nombre del producto.
 - Comercial y educativo: qué es y cómo se obtiene, qué lo hace valioso (propiedades),
   en qué productos o preparaciones se usa y un consejo práctico de uso.
 - Tono cercano y profesional, tuteando al lector. Sin títulos, viñetas, comillas, emojis,
@@ -153,6 +166,11 @@ def redactar(doc: dict) -> str:
         t = re.sub(r"\s+", " ", _sintetizar_texto(_prompt(f, aviso))).strip().strip('"«»')
         t = re.sub(r"[*_`#]+", "", t)  # la web lo muestra como texto plano, sin Markdown
         n = _contar(t)
+        if _RE_APERTURA.search(t):
+            aviso = ("OJO: tu respuesta anterior abría con una fórmula de folleto. Abre "
+                     "describiendo el producto con un rasgo concreto.")
+            mejor = mejor or t
+            continue
         medico = _RE_MEDICO.search(t)
         if medico:
             aviso = (f"OJO: tu respuesta anterior decía «{medico.group(0)}»: prohibido "
