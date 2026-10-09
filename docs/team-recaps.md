@@ -5747,3 +5747,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Pedido del usuario: «las aperturas pueden ser diferentes, un poco más descriptivas».
 - `app/services/descripcion_web.py`: la primera frase describe el producto con un rasgo concreto del documento (estado y color, origen, obtención o función); prohibido abrir con «Descubre», «Explora», «Conoce», «Sumérgete», «Nuestro/a», «Te presentamos» o una pregunta (`_RE_APERTURA` pide reescribir). Rehechas 6 de muestra (árbol de té, canela, coco virgen, ricino, argán, lavanda); las otras 20 siguen con la apertura anterior hasta lanzar el lote.
 - **Archivos Modificados:** `app/services/descripcion_web.py`, `PAGINA_WEB/site/data/descripciones_web.json`, `docs/team-recaps.md`
+
+## 2026-10-09 — Descripciones web sin costo de IA
+- Pedido del usuario: «publica lo que no cueste» (no autorizó el lote de IA de ~US$0,50).
+- `app/services/descripcion_web.py` `componer_sin_ia`: párrafo de hasta 80 palabras con frases del propio documento técnico, en orden: qué es (1.ª frase de la descripción) → 2 propiedades destacadas → 1.ª indicación de uso → resto si cabe; sin frases con `_RE_MEDICO`; «Solo para uso externo.» si el grado es cosmético. `descripcion_para` usa el texto de la IA solo si está al día con el documento; si no, este.
+- `website.py`: la ficha ya no redacta con IA al visitarla (no gasta). Resultado: 92 de 124 productos con descripción (los 92 que tienen documento técnico; 26 con texto de IA). Los 32 sin documento siguen sin descripción.
+- **Archivos Modificados:** `app/services/descripcion_web.py`, `PAGINA_WEB/site/website.py`, `docs/team-recaps.md`

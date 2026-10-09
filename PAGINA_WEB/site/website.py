@@ -62,10 +62,7 @@ from app.services.documentos_web import (
     generar_pdf_seccion_web,
 )
 from app.services.ficha_tecnica import ruta_archivo_biblioteca_segura
-from app.services.descripcion_web import (
-    descripcion_para as descripcion_web_para,
-    asegurar_en_segundo_plano as descripcion_web_en_segundo_plano,
-)
+from app.services.descripcion_web import descripcion_para as descripcion_web_para
 from app.services.pdf_watermark import aplicar_marca_agua_pdf
 
 from flask import (
@@ -5086,12 +5083,11 @@ def producto(slug):
         if doc_completo:
             break
     if doc_completo and not (p.get("desc") or "").strip():
-        # Párrafo comercial-educativo redactado desde el documento técnico
-        # (app/services/descripcion_web.py).
+        # Párrafo comercial-educativo desde el documento técnico
+        # (app/services/descripcion_web.py): el de la IA si ya existe; si no, el
+        # armado sin IA con las frases del documento. La visita no gasta IA (9-oct).
         p = dict(p)
         p["desc"] = descripcion_web_para(doc_completo)
-        # Falta o el documento cambió desde que se redactó → se redacta de nuevo.
-        descripcion_web_en_segundo_plano(doc_completo)
     contenido = contenido_para_producto(nombres)
     return render_template("producto.html",
         p=p,

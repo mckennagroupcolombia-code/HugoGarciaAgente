@@ -106,10 +106,58 @@ def _firma(fuente: dict) -> str:
 
 
 def descripcion_para(doc: dict | None) -> str:
-    """Párrafo guardado para ese documento ('' si aún no hay)."""
+    """Párrafo redactado por la IA si está al día con el documento; si no, el
+    armado gratis con las frases del propio documento (`componer_sin_ia`)."""
     if not doc:
         return ""
-    return (_leer().get(_clave(doc)) or {}).get("texto") or ""
+    previo = _leer().get(_clave(doc)) or {}
+    if previo.get("texto") and previo.get("firma") == _firma(_fuente(doc)):
+        return previo["texto"]
+    return componer_sin_ia(doc)
+
+
+def _frases(texto: str) -> list[str]:
+    t = re.sub(r"\s+", " ", texto or "").strip()
+    return [f.strip() for f in re.split(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ¿])", t) if f.strip()]
+
+
+def _con_punto(f: str) -> str:
+    f = f.strip().rstrip(" ,;:")
+    return f if f.endswith((".", "!", "?")) else f + "."
+
+
+def componer_sin_ia(doc: dict) -> str:
+    """Párrafo de ~70 palabras sin IA (costo cero, 9-oct): frases del documento
+    técnico —qué es, propiedades destacadas, primera indicación de uso— sin las
+    que traen promesas médicas o dosis para ingerir."""
+    from app.services.documento_cientifico import es_solo_cosmetico
+
+    ft = doc.get("ft") or {}
+    desc = _frases(ft.get("descripcion") or "")
+    props = []
+    for titulo, texto in (ft.get("propiedades_extra") or [])[:3]:
+        if titulo and texto:
+            t = texto.strip()
+            props.append(f"{titulo.strip()}: {t[:1].lower() + t[1:]}")
+    uso = _frases(ft.get("modo_uso") or "")[:2]
+    # Qué es → por qué vale (propiedades) → cómo se usa; el resto de la
+    # descripción (casi siempre el proceso de fabricación) solo si sobra espacio.
+    candidatas = desc[:1] + props[:2] + uso[:1] + props[2:] + desc[1:] + uso[1:]
+    out: list[str] = []
+    for f in candidatas:
+        f = _con_punto(f)
+        if _RE_MEDICO.search(f) or f in out:
+            continue
+        if _contar(" ".join(out + [f])) > _MAX:
+            if _contar(" ".join(out)) >= _MIN:
+                break
+            continue
+        out.append(f)
+    texto = " ".join(out)
+    cosm = es_solo_cosmetico((doc.get("coa") or {}).get("grado") or "")
+    if cosm and "uso externo" not in texto.lower() and _contar(texto) + 4 <= _MAX:
+        texto += " Solo para uso externo."
+    return texto
 
 
 def _contar(t: str) -> int:
