@@ -5698,3 +5698,9 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 - Causa 1: el documento `ft_coa_sds_jabon_potasico_con_fito_hormonas.yaml` declaraba `JABPOTLt` (sin `C-`), así que el combo no lo encontraba y heredaba el del ácido salicílico (salía como «ÁCIDO SALICÍLICO»). Se fijó `referencia: C-JABPOTLt` con `mapa_producto.fijar_sku_documento`.
 - Causa 2: el jabón no está en la web y la regla de la tienda lo deja en «Otros». `arbol_producto.arbol`: un combo sin publicar que cae en «Otros» toma la carpeta de ETIQUETAS STUDIO de su etiqueta (`categoria_png`, aquí «Agro»); `_CARPETA_A_CATEGORIA` traduce «Semillas & Frutos Secos» → «Frutos secos y semillas».
 - Archivos: `app/services/arbol_producto.py`, `fichas_word/datos/ft_coa_sds_jabon_potasico_con_fito_hormonas.yaml`, `docs/team-recaps.md`.
+
+## 2026-10-09 — Web: la foto ampliada abre en ventana emergente
+- Pedido del usuario: «no me gusta cómo abre toda la ventana para mostrar la foto, puede ser un emergente».
+- `static/js/prod-zoom.js`: el visor ya no ocupa toda la pantalla; es una ventana centrada (máx. 760×620 px, 78 % del alto) con esquinas redondeadas sobre la página oscurecida, con animación de entrada. El zoom (rueda, pellizco, doble toque/clic, arrastrar) queda dentro de la ventana; pista «Rueda, pellizco o doble clic para acercar» que se oculta al acercar. Cierra con ✕, Esc o clic en el fondo oscuro. `producto.html` → `?v=20261009c`.
+- **Verificado:** Chrome headless en escritorio (abre, rueda → 2×, clic en fondo cierra) y Pixel 7 emulado (ventana a lo ancho con margen), sin errores JS.
+- **Archivos Modificados:** `PAGINA_WEB/site/static/js/prod-zoom.js`, `PAGINA_WEB/site/templates/producto.html`, `docs/team-recaps.md`

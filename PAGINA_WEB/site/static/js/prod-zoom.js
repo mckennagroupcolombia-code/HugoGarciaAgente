@@ -1,6 +1,6 @@
 /* Zoom de las fotos de producto (oct-2026).
-   Lupa interactiva sobre la foto (ver abajo) y, con clic / toque, visor a
-   pantalla completa.
+   Lupa interactiva sobre la foto (ver abajo) y, con clic / toque, ventana
+   emergente centrada sobre la página oscurecida.
    Zoom: pellizco, doble toque, doble clic o rueda; arrastrar para mover.
    Con zoom en 1: deslizar o ‹ › cambia de foto. Esc o ✕ cierra. */
 (function () {
@@ -9,14 +9,20 @@
     + '.pz-hint{position:absolute;right:10px;top:10px;z-index:3;width:34px;height:34px;border-radius:50%;'
     + 'background:rgba(255,255,255,.95);border:1.5px solid var(--green-pale,#cde8ec);display:flex;align-items:center;'
     + 'justify-content:center;font-size:18px;color:var(--green-dark,#143D36);cursor:zoom-in;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.08)}'
-    + '.pz{position:fixed;inset:0;z-index:10000;background:#fff;display:none;touch-action:none;overscroll-behavior:contain}'
-    + '.pz.open{display:block}'
-    + '.pz-img{position:absolute;left:50%;top:50%;max-width:94vw;max-height:88vh;transform-origin:0 0;user-select:none;'
-    + '-webkit-user-drag:none;will-change:transform}'
+    + '.pz{position:fixed;inset:0;z-index:10000;background:rgba(10,30,28,.55);display:none;align-items:center;'
+    + 'justify-content:center;padding:16px;overscroll-behavior:contain;opacity:0;transition:opacity .2s}'
+    + '.pz.open{display:flex}.pz.show{opacity:1}'
+    + '.pz-card{position:relative;width:min(760px,100%);height:min(620px,78vh);background:#fff;border-radius:14px;'
+    + 'overflow:hidden;touch-action:none;box-shadow:0 24px 60px rgba(0,0,0,.35);transform:scale(.92);transition:transform .2s}'
+    + '.pz.show .pz-card{transform:scale(1)}'
+    + '.pz-img{position:absolute;left:0;top:0;max-width:calc(100% - 32px);max-height:calc(100% - 32px);transform-origin:0 0;'
+    + 'user-select:none;-webkit-user-drag:none;will-change:transform;cursor:grab}'
+    + '.pz-tip{position:absolute;top:16px;left:16px;font-size:12px;color:#4a6b70;background:rgba(255,255,255,.9);'
+    + 'padding:4px 10px;border-radius:12px;pointer-events:none;transition:opacity .2s}'
     + '.pz-btn{position:absolute;z-index:2;width:44px;height:44px;border-radius:50%;border:1.5px solid #cde8ec;background:rgba(255,255,255,.95);'
     + 'font-size:26px;line-height:1;color:#143D36;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;'
     + 'box-shadow:0 2px 8px rgba(0,0,0,.12)}'
-    + '.pz-close{top:12px;right:12px;font-size:22px}'
+    + '.pz-close{top:10px;right:10px;font-size:20px;width:38px;height:38px}'
     + '.pz-prev{left:12px;top:calc(50% - 22px)}.pz-next{right:12px;top:calc(50% - 22px)}'
     + '.pz-count{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:13px;color:#4a6b70;'
     + 'background:rgba(255,255,255,.9);padding:4px 10px;border-radius:12px}'
@@ -25,7 +31,7 @@
   st.textContent = css;
   document.head.appendChild(st);
 
-  var box, img, btnPrev, btnNext, count;
+  var box, card, tip, img, btnPrev, btnNext, count;
   var urls = [], idx = 0;
   var scale = 1, tx = 0, ty = 0, baseW = 0, baseH = 0;
   var MAX = 5;
@@ -35,13 +41,19 @@
     box.className = 'pz';
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-label', 'Foto ampliada');
-    box.innerHTML = '<img class="pz-img" alt="">'
+    box.innerHTML = '<div class="pz-card"><img class="pz-img" alt="">'
+      + '<div class="pz-tip">Rueda, pellizco o doble clic para acercar</div>'
       + '<button type="button" class="pz-btn pz-close" aria-label="Cerrar">&#10005;</button>'
       + '<button type="button" class="pz-btn pz-prev" aria-label="Anterior">&#8249;</button>'
       + '<button type="button" class="pz-btn pz-next" aria-label="Siguiente">&#8250;</button>'
-      + '<div class="pz-count"></div>';
+      + '<div class="pz-count"></div></div>';
     document.body.appendChild(box);
+    card = box.querySelector('.pz-card');
     img = box.querySelector('.pz-img');
+    tip = box.querySelector('.pz-tip');
+    if (!window.matchMedia('(pointer:fine)').matches) tip.textContent = 'Pellizca o toca dos veces para acercar';
+    // Clic en el fondo oscuro (fuera de la ventana) → cerrar.
+    box.addEventListener('click', function (e) { if (e.target === box) close(); });
     btnPrev = box.querySelector('.pz-prev');
     btnNext = box.querySelector('.pz-next');
     count = box.querySelector('.pz-count');
@@ -62,26 +74,29 @@
     img.style.left = '0'; img.style.top = '0';
     var r = img.getBoundingClientRect();
     baseW = r.width; baseH = r.height;
-    scale = 1;
-    tx = (window.innerWidth - baseW) / 2;
-    ty = (window.innerHeight - baseH) / 2;
+    scale = 1; tip.style.opacity = '';
+    tx = (card.clientWidth - baseW) / 2;
+    ty = (card.clientHeight - baseH) / 2;
     apply();
   }
 
   // No deja que la foto se salga del todo de la pantalla.
   function clamp() {
-    var w = baseW * scale, h = baseH * scale, W = window.innerWidth, H = window.innerHeight;
+    var w = baseW * scale, h = baseH * scale, W = card.clientWidth, H = card.clientHeight;
     tx = w <= W ? (W - w) / 2 : Math.min(0, Math.max(W - w, tx));
     ty = h <= H ? (H - h) / 2 : Math.min(0, Math.max(H - h, ty));
   }
 
   function zoomAt(newScale, cx, cy) {
     newScale = Math.max(1, Math.min(MAX, newScale));
+    var cr = card.getBoundingClientRect();   // cx, cy llegan en coordenadas de pantalla
+    cx -= cr.left; cy -= cr.top;
     tx = cx - (cx - tx) * newScale / scale;
     ty = cy - (cy - ty) * newScale / scale;
     scale = newScale;
     clamp();
     apply();
+    tip.style.opacity = scale > 1 ? '0' : '';
   }
 
   function show(i) {
@@ -98,12 +113,13 @@
   function open(list, i) {
     if (!box) build();
     urls = list; box.classList.add('open');
+    requestAnimationFrame(function () { box.classList.add('show'); });
     document.body.classList.add('pz-lock');
     show(i);
   }
 
   function close() {
-    box.classList.remove('open');
+    box.classList.remove('open', 'show');
     document.body.classList.remove('pz-lock');
   }
 
@@ -111,14 +127,14 @@
     var pts = {}, startDist = 0, startScale = 1, mid = null;
     var dragFrom = null, swipeX = null, moved = false, lastTap = 0;
 
-    box.addEventListener('wheel', function (e) {
+    card.addEventListener('wheel', function (e) {
       e.preventDefault();
       zoomAt(scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY);
     }, { passive: false });
 
-    box.addEventListener('pointerdown', function (e) {
+    card.addEventListener('pointerdown', function (e) {
       if (e.target.closest('.pz-btn')) return;
-      box.setPointerCapture(e.pointerId);
+      card.setPointerCapture(e.pointerId);
       pts[e.pointerId] = { x: e.clientX, y: e.clientY };
       var ids = Object.keys(pts);
       moved = false;
@@ -133,7 +149,7 @@
       }
     });
 
-    box.addEventListener('pointermove', function (e) {
+    card.addEventListener('pointermove', function (e) {
       if (!pts[e.pointerId]) return;
       pts[e.pointerId] = { x: e.clientX, y: e.clientY };
       var ids = Object.keys(pts);
@@ -171,17 +187,12 @@
           lastTap = 0;
         } else {
           lastTap = now;
-          // Toque en el fondo blanco (fuera de la foto) con zoom 1 → cerrar.
-          var t = e.target;
-          setTimeout(function () {
-            if (lastTap === now && scale === 1 && t === box) close();
-          }, 300);
         }
       }
       dragFrom = null; swipeX = null; startDist = 0;
     }
-    box.addEventListener('pointerup', up);
-    box.addEventListener('pointercancel', up);
+    card.addEventListener('pointerup', up);
+    card.addEventListener('pointercancel', up);
 
     document.addEventListener('keydown', function (e) {
       if (!box.classList.contains('open')) return;
