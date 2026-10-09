@@ -1,3 +1,11 @@
+### 2026-10-08 23:05 - MeLi + web: marañón tostado 500 g publicado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.
+- **Qué se implementó:**
+  - `C-MARTOS500g` → MeLi **MCO2267504305** «Marañón Entero Tostado 500g», $39.800, stock 20, envío a cargo del comprador, cat. MCO442340 «Frutos Secos» (taxonomía de la hermana 250 g MCO4517849830), GTIN 7702765002642, empaque 19×17×9 cm / 550 g. Web $35.820 (MeLi −10 %); con la de 250 g forma la ficha «Marañón tostado» de dos presentaciones.
+  - Alegra: precio de lista $0 → $39.800.
+- **Archivos Modificados:** `app/data/despliegue_ventas.json`, `app/data/publicaciones_overrides.json`, `docs/team-recaps.md`.
+
 ### 2026-10-08 22:55 - MeLi + web: marañón tostado 250 g publicado
 - **Autor:** Armando García
 - **Tipo de Cambio:** Operación de catálogo (MeLi, web, Alegra). Sin LLM.

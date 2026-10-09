@@ -811,5 +811,11 @@
       "C-MARTOS250g.png"
     ],
     "updated_at": "2026-10-08T22:40:24.620606"
+  },
+  "C-MARTOS500g": {
+    "imagenes_web": [
+      "C-MARTOS500g.png"
+    ],
+    "updated_at": "2026-10-08T22:47:57.604529"
   }
 }

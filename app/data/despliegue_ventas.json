@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-08T22:40:23",
+ "actualizado": "2026-10-08T22:47:56",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
@@ -1969,6 +1969,15 @@
    "meli_ids": [
     "MCO4517849830"
    ]
+  },
+  "C-MARTOS500G": {
+   "nombre": "MARAÑON TOSTADO 500g",
+   "titulo_meli": "Marañón Entero Tostado 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2267504305"
+   ]
   }
  },
  "excluidas": [
@@ -2416,6 +2425,12 @@
    "sku": "C-MARTOS250G",
    "titulo": "Marañón Entero Tostado 250g",
    "desde": "2026-10-08T22:40:23",
+   "por": "armando"
+  },
+  "MCO2267504305": {
+   "sku": "C-MARTOS500G",
+   "titulo": "Marañón Entero Tostado 500g",
+   "desde": "2026-10-08T22:47:56",
    "por": "armando"
   }
  }
