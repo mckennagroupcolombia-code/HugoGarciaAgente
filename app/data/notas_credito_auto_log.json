@@ -857,6 +857,15 @@
       "subida_meli": true,
       "proveedor": "Alegra",
       "actualizado_en": "2026-10-03T07:22:35"
+    },
+    "2000018709728974": {
+      "estado": "cubierto_por_meli",
+      "factura": "FE1043",
+      "proveedor": "Alegra",
+      "descontado": 0.0,
+      "cubierto_meli": 36810.0,
+      "motivo": "MeLi cubrió la devolución ($36,810); la plata no se nos descontó",
+      "actualizado_en": "2026-10-09T07:21:02"
     }
   }
 }

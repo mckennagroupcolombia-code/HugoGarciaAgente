@@ -2919,6 +2919,45 @@
       "pregunta": "Las medidas cuáles son",
       "timestamp": "2026-10-08T20:00:19.006578",
       "respondida": true
+    },
+    {
+      "question_id": "13671256939",
+      "titulo_producto": "Lanolina Pura  Anti Grietas 40 Gramos ",
+      "pregunta": "Hola, esta es materia prima? o se puede aplicar directamente?",
+      "timestamp": "2026-10-09T09:40:35.019477",
+      "respondida": true,
+      "borrador_ia": "Hola veci, buen día. Con gusto le colaboro.\n\nNuestra Lanolina Pura es una sustancia natural que se puede aplicar directamente sobre la piel, ya que viene lista para usarse sin necesidad de procesarla. Gracias a sus propiedades emolientes y humectantes, funciona muy bien tal cual para suavizar e hidratar.\n\nTambién, si lo desea, puede usarla como materia prima para formular sus propias cremas, bálsamos o lociones, mezclándola con aceites esenciales o portadores. ¡Feliz día!",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-10-09"
+    },
+    {
+      "question_id": "13671257565",
+      "titulo_producto": "Lanolina Pura  Anti Grietas 40 Gramos ",
+      "pregunta": "Otra prgunta, que fecha de vencimiento tiene normalmente?",
+      "timestamp": "2026-10-09T09:40:35.019477",
+      "respondida": true,
+      "borrador_ia": "Hola veci, buen día. Con gusto le colaboro.\n\nNuestra Lanolina Pura, al ser un producto natural bien conservado, maneja una vida útil larga, generalmente de uno a dos años a partir de su fabricación, siempre que se almacene en un lugar fresco y seco, lejos de la luz directa.\n\nLa fecha específica de vencimiento de su unidad viene indicada en el empaque del producto que reciba. Quedo atento a cualquier otra inquietud. ¡Feliz día!",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-10-09"
+    },
+    {
+      "question_id": "13672358444",
+      "titulo_producto": "Cápsulas De Gelatina Vacías Transparentes X 1000 Und Talla 0 Transparente",
+      "pregunta": "Tiene cápsulas transparente tamaño #00?",
+      "timestamp": "2026-10-09T13:38:48.189137",
+      "respondida": true
+    },
+    {
+      "question_id": "13672357972",
+      "titulo_producto": "Cápsulas De Gelatina Vacías Transparentes X 1000 Und Talla 0 Transparente",
+      "pregunta": "No las encuentro. Me comparte el enlace",
+      "timestamp": "2026-10-09T14:20:03.758493",
+      "respondida": true
+    },
+    {
+      "question_id": "13672362606",
+      "titulo_producto": "Cápsulas De Gelatina Vacías Transparentes X 1000 Und Talla 0 Transparente",
+      "pregunta": "Me puede compartir el enlace de las cápsulas transparente #00",
+      "timestamp": "2026-10-09T13:44:24.205725",
+      "respondida": true
     }
   ]
 }

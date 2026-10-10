@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-10-09T01:09:24",
+ "actualizado": "2026-10-09T12:36:06",
  "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias) y cuya etiqueta está aprobada.",
  "skus": {
@@ -1826,54 +1826,9 @@
     "MCO866417408"
    ]
   },
-  "C-ACECOCVIR250G": {
-   "nombre": "ACEITE COCO VIRGEN 250g",
-   "titulo_meli": "Aceite De Coco Virgen Orgánico 250g  Materia Prima",
-   "tipo": "kit",
-   "alias_destino": "",
-   "meli_ids": [
-    "MCO4514104026"
-   ]
-  },
-  "C-ACECOCVIR500G": {
-   "nombre": "ACEITE COCO VIRGEN 500g",
-   "titulo_meli": "Aceite De Coco Virgen Orgánico 500g  Materia Prima",
-   "tipo": "kit",
-   "alias_destino": "",
-   "meli_ids": [
-    "MCO4514104046"
-   ]
-  },
-  "C-ACECOCVIRKG": {
-   "nombre": "ACEITE COCO VIRGEN KG",
-   "titulo_meli": "Aceite De Coco Virgen Orgánico 1kg  Materia Prima",
-   "tipo": "kit",
-   "alias_destino": "",
-   "meli_ids": [
-    "MCO4514104058"
-   ]
-  },
-  "C-AVEHOJKG": {
-   "nombre": "AVENA HOJUELAS KG",
-   "titulo_meli": "Avena En Hojuelas Entera 1kg  Materia Prima",
-   "tipo": "kit",
-   "alias_destino": "",
-   "meli_ids": [
-    "MCO4514113610"
-   ]
-  },
-  "C-ALBSEC250G": {
-   "nombre": "ALBARICOQUE SECO 250g",
-   "titulo_meli": "Albaricoque Deshidratado 250g  Materia Prima",
-   "tipo": "kit",
-   "alias_destino": "",
-   "meli_ids": [
-    "MCO4514117118"
-   ]
-  },
   "C-SEMGIR250G": {
    "nombre": "SEMILLA DE GIRASOL 250g",
-   "titulo_meli": "Semilla De Girasol Pelada 250g Materia Prima",
+   "titulo_meli": "Semilla De Girasol Pelada 250g",
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
@@ -1882,7 +1837,7 @@
   },
   "C-SEMGIR500G": {
    "nombre": "SEMILLA GIRASOL 500g",
-   "titulo_meli": "Semilla De Girasol Pelada 500g Materia Prima",
+   "titulo_meli": "Semilla De Girasol Pelada 500g",
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
@@ -1891,7 +1846,7 @@
   },
   "C-SEMGIRKG": {
    "nombre": "SEMILLA GIRASOL KG",
-   "titulo_meli": "Semilla De Girasol Pelada 1kg Materia Prima",
+   "titulo_meli": "Semilla De Girasol Pelada 1kg",
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
@@ -1900,7 +1855,7 @@
   },
   "C-UVAPASFLA250G": {
    "nombre": "UVAS PASAS FLAME 250g",
-   "titulo_meli": "Uvas Pasas Flame 250g Materia Prima",
+   "titulo_meli": "Uvas Pasas Flame 250g",
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
@@ -1909,7 +1864,7 @@
   },
   "C-UVAPASFLA500G": {
    "nombre": "UVAS PASAS FLAME 500g",
-   "titulo_meli": "Uvas Pasas Flame 500g Materia Prima",
+   "titulo_meli": "Uvas Pasas Flame 500g",
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
@@ -1918,7 +1873,7 @@
   },
   "C-BAYGOJ250G": {
    "nombre": "BAYAS DE GOJI BERRY 250g",
-   "titulo_meli": "Bayas De Goji Deshidratadas 250g Materia Prima",
+   "titulo_meli": "Bayas De Goji Deshidratadas 250g",
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
@@ -1927,7 +1882,7 @@
   },
   "C-BAYGOJ500G": {
    "nombre": "BAYAS DE GOJI BERRY 500g",
-   "titulo_meli": "Bayas De Goji Deshidratadas 500g Materia Prima",
+   "titulo_meli": "Bayas De Goji Deshidratadas 500g",
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
@@ -1936,11 +1891,56 @@
   },
   "C-AVEMOLKG": {
    "nombre": "AVENA MOLIDA KG",
-   "titulo_meli": "Harina De Avena 1kg Materia Prima",
+   "titulo_meli": "Harina De Avena 1kg",
    "tipo": "kit",
    "alias_destino": "",
    "meli_ids": [
     "MCO4514126730"
+   ]
+  },
+  "C-AVEHOJKG": {
+   "nombre": "AVENA HOJUELAS KG",
+   "titulo_meli": "Avena En Hojuelas Entera 1kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514113610"
+   ]
+  },
+  "C-ACECOCVIR250G": {
+   "nombre": "ACEITE COCO VIRGEN 250g",
+   "titulo_meli": "Aceite De Coco Virgen Orgánico 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514104026"
+   ]
+  },
+  "C-ACECOCVIR500G": {
+   "nombre": "ACEITE COCO VIRGEN 500g",
+   "titulo_meli": "Aceite De Coco Virgen Orgánico 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514104046"
+   ]
+  },
+  "C-ACECOCVIRKG": {
+   "nombre": "ACEITE COCO VIRGEN KG",
+   "titulo_meli": "Aceite De Coco Virgen Orgánico 1kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514104058"
+   ]
+  },
+  "C-ALBSEC250G": {
+   "nombre": "ALBARICOQUE SECO 250g",
+   "titulo_meli": "Albaricoque Deshidratado 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4514117118"
    ]
   },
   "C-SALMARAHU500G": {
@@ -2013,6 +2013,15 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO4518561598"
+   ]
+  },
+  "C-JABPOTLT": {
+   "nombre": "JABON POTASICO LITRO",
+   "titulo_meli": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO3793586824"
    ]
   }
  },
@@ -2153,7 +2162,8 @@
    "meli_id": "MCO980071251",
    "sku": "C-ACISAL50G",
    "titulo": "Ácido Salicílico 50gr Todo Tipo De Piel",
-   "motivo": "código inactivo en Alegra"
+   "motivo": "etiqueta sin aprobar",
+   "por_etiqueta": true
   },
   {
    "meli_id": "MCO605845399",
@@ -2249,7 +2259,8 @@
    "meli_id": "MCO1929017874",
    "sku": "C-ACISAL50G",
    "titulo": "Ácido Salicílico 50gr",
-   "motivo": "código inactivo en Alegra"
+   "motivo": "etiqueta sin aprobar",
+   "por_etiqueta": true
   },
   {
    "meli_id": "MCO1335735933",
@@ -2491,6 +2502,12 @@
    "sku": "C-SALROSAJOCHI250G",
    "titulo": "Sal Marina Con Chile Y Ajo Gruesa Grano 2-5 Mm 250g",
    "desde": "2026-10-09T01:09:24",
+   "por": "armando"
+  },
+  "MCO3793586824": {
+   "sku": "C-JABPOTLT",
+   "titulo": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+   "desde": "2026-10-09T12:36:06",
    "por": "armando"
   }
  }

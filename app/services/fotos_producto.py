@@ -140,12 +140,19 @@ def _miniatura(ruta: Path) -> str:
     return b64
 
 
+def _ordenadas(fotos: list[dict]) -> list[dict]:
+    """Orden que el equipo fijó arrastrando (`pos`); las que llegan después, sin `pos`, van
+    primero y de la más reciente a la más antigua (así se veían antes de poder reordenar)."""
+    filas = sorted(fotos, key=lambda f: f.get("subido_at") or "", reverse=True)
+    return sorted(filas, key=lambda f: f.get("pos", -1))
+
+
 def listar(ref: str) -> dict:
     ref = _ref(ref)
     canales = _leer().get(ref) or {}
     out = {}
     for c in CANALES:
-        filas = sorted(_vivas(canales.get(c) or [], c), key=lambda f: f.get("subido_at") or "", reverse=True)
+        filas = _ordenadas(_vivas(canales.get(c) or [], c))
         base = _raiz_png() / CARPETA / CANALES[c]
         out[c] = [{**f, "miniatura": _miniatura(base / f["archivo"])} for f in filas]
     return {"ref": ref, "canales": out, "carpetas": {c: f"{CARPETA}/{n}" for c, n in CANALES.items()}}
@@ -188,6 +195,24 @@ def guardar(ref: str, canal: str, raw: bytes, *, por: str = "") -> dict:
         reg.setdefault(ref, {}).setdefault(canal, []).append(fila)
         _guardar(reg)
     return fila
+
+
+def reordenar(ref: str, canal: str, orden: list[str]) -> None:
+    """Fija el orden de las fotos de un canal (la primera es la principal). `orden` trae los
+    nombres de archivo; las que no vengan quedan al final en su orden actual."""
+    ref, canal = _ref(ref), _canal(canal)
+    with _lock:
+        reg = _leer()
+        fotos = (reg.get(ref) or {}).get(canal) or []
+        nombres = {f.get("archivo") for f in fotos}
+        if any(a not in nombres for a in orden):
+            raise ValueError("Esa foto no es de este producto")
+        actual = [f.get("archivo") for f in _ordenadas(fotos)]
+        pos = {a: i for i, a in enumerate(dict.fromkeys([*orden, *actual]))}
+        for f in fotos:
+            f["pos"] = pos[f.get("archivo")]
+        reg[ref][canal] = sorted(fotos, key=lambda f: f["pos"])
+        _guardar(reg)
 
 
 def ruta_archivo(ref: str, canal: str, archivo: str) -> Path | None:

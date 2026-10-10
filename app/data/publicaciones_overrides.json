@@ -847,5 +847,13 @@
       "C-JABPOTLt.png"
     ],
     "updated_at": "2026-10-09T12:36:07.912334"
+  },
+  "C-LAN40g": {
+    "imagenes_web": [
+      "C-LAN40g.png",
+      "C-LAN40g_2.png",
+      "C-LAN40g_3.png"
+    ],
+    "updated_at": "2026-10-09T14:38:45.117053"
   }
 }

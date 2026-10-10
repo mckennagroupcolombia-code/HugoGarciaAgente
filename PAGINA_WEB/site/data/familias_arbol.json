@@ -239,6 +239,10 @@
   "familia": "ACISALg",
   "nombre": "ÁCIDO SALICÍLICO"
  },
+ "C-ACISAL50G": {
+  "familia": "ACISALg",
+  "nombre": "ÁCIDO SALICÍLICO"
+ },
  "C-ACISORKG": {
   "familia": "ACISORg",
   "nombre": "ALULOSA"
@@ -794,6 +798,10 @@
  "C-INUKG": {
   "familia": "INU90Pg",
   "nombre": "INULINA"
+ },
+ "C-JABPOTLT": {
+  "familia": "c-jabpotlt",
+  "nombre": "JABON  POTASICO  CON FITO HORMONAS"
  },
  "C-KITREPCOS1": {
   "familia": "c-kitrepcos1",

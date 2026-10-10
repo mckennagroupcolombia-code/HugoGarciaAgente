@@ -215,16 +215,24 @@ def register_mapa_sistema_routes(app):
 
         return jsonify({"resumen": F.resumen()})
 
-    @_dual(app, "/api/mapa-sistema/fotos-producto/<ref>", methods=["GET", "POST", "DELETE"])
+    @_dual(app, "/api/mapa-sistema/fotos-producto/<ref>", methods=["GET", "POST", "PUT", "DELETE"])
     @_auth_studio
     def mapa_sistema_fotos_producto(ref: str):
         """Fotos y mockups de un producto: listar, guardar lo pegado (multipart: canal,
-        archivo) o retirar una (?canal=&archivo=, va a una papelera)."""
+        archivo), reordenar (PUT {canal, orden: [archivo…]}, la primera es la principal) o
+        retirar una (?canal=&archivo=, va a una papelera)."""
         from app.services import fotos_producto as F
 
         try:
             if request.method == "GET":
                 return jsonify(F.listar(ref))
+            if request.method == "PUT":
+                body = request.get_json(silent=True) or {}
+                orden = body.get("orden")
+                if not isinstance(orden, list) or not all(isinstance(a, str) for a in orden):
+                    return jsonify({"error": "Falta el orden"}), 400
+                F.reordenar(ref, body.get("canal") or "", orden)
+                return jsonify({"ok": True})
             if request.method == "POST":
                 archivo = request.files.get("archivo")
                 if not archivo:

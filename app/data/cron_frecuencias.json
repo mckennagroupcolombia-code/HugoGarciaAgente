@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-10-08T07:22:00"
+    "ultima_ejecucion": "2026-10-09T07:21:02"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -21,7 +21,7 @@
   },
   "resumen_actividad_sede_sur": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-08T18:00:01"
+    "ultima_ejecucion": "2026-10-09T18:00:01"
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
@@ -45,11 +45,11 @@
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-10-08T07:04:55"
+    "ultima_ejecucion": "2026-10-09T07:06:21"
   },
   "cobertura_meli": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-08T06:51:03"
+    "ultima_ejecucion": "2026-10-09T06:50:42"
   },
   "competencia_precios": {
     "intervalo_horas": 168,
@@ -61,31 +61,31 @@
   },
   "recordatorio_pago_nomina": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-08T09:05:01"
+    "ultima_ejecucion": "2026-10-09T09:05:01"
   },
   "reintentar_avisos_pedidos_web": {
     "intervalo_horas": 1,
-    "ultima_ejecucion": "2026-10-09T01:30:01"
+    "ultima_ejecucion": "2026-10-09T22:30:01"
   },
   "contabilidad_autopost": {
     "intervalo_horas": 6,
-    "ultima_ejecucion": "2026-10-09T00:10:29"
+    "ultima_ejecucion": "2026-10-09T18:10:32"
   },
   "revision_facturacion": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-07T07:53:16"
+    "ultima_ejecucion": "2026-10-09T07:40:28"
   },
   "anulaciones_ra": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-10-02T07:37:38"
+    "ultima_ejecucion": "2026-10-09T07:36:14"
   },
   "recuperacion_compra": {
     "intervalo_horas": 1.0,
-    "ultima_ejecucion": "2026-10-09T01:10:01"
+    "ultima_ejecucion": "2026-10-09T22:10:01"
   },
   "precios_trm": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-10-08T08:40:01"
+    "ultima_ejecucion": "2026-10-09T08:40:02"
   },
   "entregas_flex": {
     "intervalo_horas": 24.0,
@@ -97,6 +97,6 @@
   },
   "facturar_entregadas_48h": {
     "intervalo_horas": 3.5,
-    "ultima_ejecucion": "2026-10-08T17:26:57"
+    "ultima_ejecucion": "2026-10-09T17:21:38"
   }
 }

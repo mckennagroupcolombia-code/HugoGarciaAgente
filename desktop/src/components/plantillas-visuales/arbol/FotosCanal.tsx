@@ -5,7 +5,8 @@
  *
  * Misma API y misma biblioteca que Espacio de producto → «Fotos y mockups»
  * (`/api/mapa-sistema/fotos-producto`, app/services/fotos_producto.py): FOTOS PRODUCTO/<canal>,
- * registro por SKU. Guardar una foto no la publica en MeLi ni en la web.
+ * registro por SKU. Guardar una foto no la publica en MeLi ni en la web. Las miniaturas se
+ * arrastran para cambiar el orden; la primera es la principal.
  */
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -15,7 +16,10 @@ import { Sprite } from "../../colaboradores/pixel";
 import type { Pieza } from "./tipos";
 
 export type Canal = "web" | "meli";
-type Foto = { archivo: string; subido_at: string; por?: string; ancho?: number; alto?: number; miniatura?: string };
+type Foto = { archivo: string; pos?: number; subido_at: string; por?: string; ancho?: number; alto?: number; miniatura?: string };
+
+/** Arrastre interno de una miniatura (para reordenar); no es un archivo que haya que subir. */
+const MIME_ORDEN = "application/x-mck-foto-orden";
 
 export function imagenesDe(dt: DataTransfer | null): File[] {
   if (!dt) return [];
@@ -102,9 +106,27 @@ export function useFotosProducto(ref: string, alCambiar?: () => void) {
     }
   };
 
+  const reordenar = async (canal: Canal, orden: string[]) => {
+    const clave = ["fotos-producto", ref];
+    const antes = qc.getQueryData<{ canales: Record<Canal, Foto[]> }>(clave);
+    if (antes?.canales?.[canal]) {
+      const porNombre = new Map(antes.canales[canal].map((f) => [f.archivo, f]));
+      const nuevas = orden.map((a) => porNombre.get(a)).filter((f): f is Foto => Boolean(f));
+      qc.setQueryData(clave, { ...antes, canales: { ...antes.canales, [canal]: nuevas } });
+    }
+    try {
+      await api.put(ruta, { canal, orden });
+    } catch (e) {
+      if (antes) qc.setQueryData(clave, antes);
+      setAviso({ ok: false, texto: (e as Error).message || "No se pudo cambiar el orden" });
+      return;
+    }
+    refrescar();
+  };
+
   const urlArchivo = (canal: Canal, f: Foto) => `${ruta}/archivo?canal=${canal}&archivo=${encodeURIComponent(f.archivo)}`;
 
-  return { q, subir, subiendo, aviso, setAviso, pegarDelPortapapeles, quitar, urlArchivo };
+  return { q, subir, subiendo, aviso, setAviso, pegarDelPortapapeles, quitar, reordenar, urlArchivo };
 }
 
 type Hook = ReturnType<typeof useFotosProducto>;
@@ -120,6 +142,21 @@ export function FotosCanal({ canal, fotos, pieza, activo, onActivar }: {
   const info = pieza.canales?.[canal];
   const vieja = Boolean(info?.desactualizada);
   const [ampliada, setAmpliada] = useState<{ url: string; nombre: string } | null>(null);
+  const [arrastrada, setArrastrada] = useState<string | null>(null);
+  const [sobre, setSobre] = useState<string | null>(null);
+  const soltarEn = (destino: string) => {
+    const origen = arrastrada;
+    setArrastrada(null);
+    setSobre(null);
+    if (!origen || origen === destino) return;
+    const orden = lista.map((f) => f.archivo).filter((a) => a !== origen);
+    const i = lista.findIndex((f) => f.archivo === destino);
+    const j = lista.findIndex((f) => f.archivo === origen);
+    // Hacia adelante se pone antes del destino; hacia atrás, después (como mover una carta).
+    const k = orden.indexOf(destino) + (j < i ? 1 : 0);
+    orden.splice(k, 0, origen);
+    void fotos.reordenar(canal, orden);
+  };
   const ampliar = async (f: Foto) => {
     const url = await fetchAuthBlobUrl(fotos.urlArchivo(canal, f));
     if (url) setAmpliada({ url, nombre: f.archivo });
@@ -140,6 +177,7 @@ export function FotosCanal({ canal, fotos, pieza, activo, onActivar }: {
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
+        if (e.dataTransfer.types.includes(MIME_ORDEN)) return;
         onActivar();
         void fotos.subir(imagenesDe(e.dataTransfer), canal);
       }}
@@ -150,7 +188,7 @@ export function FotosCanal({ canal, fotos, pieza, activo, onActivar }: {
         <Sprite s="foto" px={2} />
         <span className="text-[11.5px] font-extrabold">Fotos</span>
         <span className="text-[10.5px] tabular-nums">{lista.length}</span>
-        <span className="ap-t ml-auto">{activo ? "Ctrl+V aquí" : "tocar y Ctrl+V"}</span>
+        <span className="ap-t ml-auto">{activo ? "Ctrl+V aquí" : "tocar y Ctrl+V"}{lista.length > 1 ? " · arrastra para ordenar" : ""}</span>
       </div>
       {lista.length === 0 ? (
         <div className="flex flex-col items-center gap-1 py-2 text-center">
@@ -162,12 +200,37 @@ export function FotosCanal({ canal, fotos, pieza, activo, onActivar }: {
         </div>
       ) : (
         <ul className="grid grid-cols-3 gap-1">
-          {lista.slice(0, 6).map((f, i) => (
-            <li key={f.archivo} className="group relative">
-              <button type="button" title={`${i === 0 ? "La más reciente · " : ""}${f.ancho && f.alto ? `${f.ancho}×${f.alto} · ` : ""}${new Date(f.subido_at).toLocaleDateString("es-CO")} — ver en grande`}
+          {lista.map((f, i) => (
+            <li key={f.archivo}
+              draggable={lista.length > 1}
+              onDragStart={(e) => {
+                e.stopPropagation();
+                e.dataTransfer.setData(MIME_ORDEN, f.archivo);
+                e.dataTransfer.effectAllowed = "move";
+                setArrastrada(f.archivo);
+              }}
+              onDragEnd={() => { setArrastrada(null); setSobre(null); }}
+              onDragOver={(e) => {
+                if (!arrastrada) return;
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = "move";
+                if (sobre !== f.archivo) setSobre(f.archivo);
+              }}
+              onDrop={(e) => {
+                if (!arrastrada) return;
+                e.preventDefault();
+                e.stopPropagation();
+                soltarEn(f.archivo);
+              }}
+              className={`group relative ${lista.length > 1 ? "cursor-grab active:cursor-grabbing" : ""} ${arrastrada === f.archivo ? "opacity-40" : ""} ${sobre === f.archivo && arrastrada !== f.archivo ? "outline outline-2 outline-offset-1 outline-accent" : ""}`}>
+              <button type="button" title={`${i === 0 ? "Principal · " : ""}${f.ancho && f.alto ? `${f.ancho}×${f.alto} · ` : ""}${new Date(f.subido_at).toLocaleDateString("es-CO")} — ver en grande${lista.length > 1 ? " · arrastra para cambiar el orden" : ""}`}
                 onClick={(e) => { e.stopPropagation(); void ampliar(f); }} className="block w-full">
+                {i === 0 && lista.length > 1 && (
+                  <span className="pointer-events-none absolute left-0 top-0 z-[1] bg-ink px-1 text-[9px] font-extrabold leading-tight text-white">1.ª</span>
+                )}
                 {f.miniatura
-                  ? <img src={`data:image/jpeg;base64,${f.miniatura}`} alt="" className="aspect-square w-full border-2 border-ink bg-white object-contain" />
+                  ? <img src={`data:image/jpeg;base64,${f.miniatura}`} alt="" draggable={false} className="aspect-square w-full border-2 border-ink bg-white object-contain" />
                   : <span className="block aspect-square w-full bg-surface-hover" />}
               </button>
             </li>

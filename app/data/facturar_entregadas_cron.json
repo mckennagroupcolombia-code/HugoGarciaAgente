@@ -3,6 +3,8 @@
     "2000015240779371": "Error de red con Alegra: HTTPSConnectionPool(host='api.alegra.com', port=443): Read timed out. (read timeout=20)",
     "2000015287338909": "No se pudo leer la orden 2000018727733896 del carrito — no se factura nada.",
     "2000015354110257": "El envío está en estado 'desconocido', aún no 'delivered'.",
-    "2000015353486135": "No se pudo leer la orden 2000018796784842 en MeLi para verificar el pago. No se emitió nada."
+    "2000015353486135": "No se pudo leer la orden 2000018796784842 en MeLi para verificar el pago. No se emitió nada.",
+    "2000015384248467": "No se pudo obtener la orden de MeLi.",
+    "2000018816503260": "El envío está en estado 'desconocido', aún no 'delivered'."
   }
 }

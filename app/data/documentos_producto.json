@@ -1590,11 +1590,25 @@
           "codigo_verificacion": "NZCZTU",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "PC-202601193941",
+          "estado": "nuevo",
+          "fabricante": "QUIMICA INTERKROL LTDA.",
+          "pais_origen": "Alemania",
+          "fecha_fabricacion": "2025-12-10",
+          "fecha_vencimiento": "2027-12-10",
+          "fecha_recepcion": "2026-10-09",
+          "codigo_verificacion": "8378YP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-09T19:17:56+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-10-09T19:17:56+00:00"
     },
     "C-BTMS500G": {
       "ref": "C-BTMS500G",
@@ -1611,11 +1625,25 @@
           "codigo_verificacion": "NZCZTU",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "PC-202601193941",
+          "estado": "nuevo",
+          "fabricante": "QUIMICA INTERKROL LTDA.",
+          "pais_origen": "Alemania",
+          "fecha_fabricacion": "2025-12-10",
+          "fecha_vencimiento": "2027-12-10",
+          "fecha_recepcion": "2026-10-09",
+          "codigo_verificacion": "8378YP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-09T19:17:56+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-10-09T19:17:56+00:00"
     },
     "C-BTMS50125G": {
       "ref": "C-BTMS50125G",
@@ -1632,11 +1660,25 @@
           "codigo_verificacion": "NZCZTU",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "PC-202601193941",
+          "estado": "nuevo",
+          "fabricante": "QUIMICA INTERKROL LTDA.",
+          "pais_origen": "Alemania",
+          "fecha_fabricacion": "2025-12-10",
+          "fecha_vencimiento": "2027-12-10",
+          "fecha_recepcion": "2026-10-09",
+          "codigo_verificacion": "8378YP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-09T19:17:56+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-10-09T19:17:56+00:00"
     },
     "C-CAF100G": {
       "ref": "C-CAF100G",
@@ -6021,11 +6063,25 @@
           "codigo_verificacion": "DBVF7V",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-09-22T16:20:00+00:00"
+        },
+        {
+          "lote_numero": "LSF20260602",
+          "estado": "nuevo",
+          "fabricante": "QUIMICA INTERKROL LTDA.",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-02-04",
+          "fecha_vencimiento": "2028-02-03",
+          "fecha_recepcion": "2026-10-09",
+          "codigo_verificacion": "JWYFNX",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-09T19:16:39+00:00"
         }
       ],
-      "updated_at": "2026-09-22T16:20:00+00:00"
+      "updated_at": "2026-10-09T19:16:39+00:00"
     },
     "ALMNATG": {
       "ref": "ALMNATG",
@@ -7237,6 +7293,27 @@
         }
       ],
       "updated_at": "2026-10-08T04:31:26+00:00"
+    },
+    "DIPG": {
+      "ref": "DIPG",
+      "nombre": "DIPROPILENGLICOL DPG",
+      "lotes": [
+        {
+          "lote_numero": "KI9154DI30",
+          "estado": "nuevo",
+          "fabricante": "SK-C",
+          "pais_origen": "República de Corea",
+          "fecha_fabricacion": "2025-09-15",
+          "fecha_vencimiento": "2027-09-14",
+          "fecha_recepcion": "2026-10-09",
+          "codigo_verificacion": "HUD34U",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-10-09T19:17:40+00:00"
+        }
+      ],
+      "updated_at": "2026-10-09T19:17:40+00:00"
     }
   }
 }

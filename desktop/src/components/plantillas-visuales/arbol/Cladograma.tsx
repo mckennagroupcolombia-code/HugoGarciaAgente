@@ -1,8 +1,9 @@
 /**
  * El cladograma: la materia prima es la raíz (con su documento técnico, que heredan todas
  * sus presentaciones), de ella sale una rama por presentación (combo C-…) y cada rama se
- * abre en sus hojas (las piezas). Tocar la presentación la elige; tocar una hoja la resuelve en su
- * emergente, encima del árbol.
+ * abre en sus hojas (las piezas); solo la elegida las muestra, para que el árbol quepa sin
+ * scroll. Tocar la presentación la elige; tocar una hoja la resuelve en su emergente, encima
+ * del árbol.
  *
  * Estilo pixel del Mapa (arbol.css, variables --ed-* que cada tema recolorea): nodos como
  * botones de juego, sprites por pieza y la rama elegida con hormigas en marcha.
@@ -101,7 +102,7 @@ export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, 
         {familia.presentaciones.map((p, i) => {
           const aqui = p.ref === sel;
           return (
-            <div key={p.ref} className="flex items-stretch py-2">
+            <div key={p.ref} className={`flex items-stretch ${aqui ? "py-2" : "py-1"}`}>
               <Tronco primero={i === 0} ultimo={i === n - 1} viva={aqui} />
               <div className="flex shrink-0 items-center">
                 <button
@@ -128,7 +129,10 @@ export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, 
                   </span>
                 </button>
               </div>
-              <div className={`${aqui ? "ap-rama-viva" : "ap-rama"} h-[3px] w-4 shrink-0 self-center`} aria-hidden="true" />
+              {/* Solo la presentación elegida abre sus hojas; las demás quedan en una fila compacta. */}
+              {aqui ? (
+              <>
+              <div className="ap-rama-viva h-[3px] w-4 shrink-0 self-center" aria-hidden="true" />
               <div className="ap-piezas grid min-w-0 flex-1 grid-cols-4 gap-1.5 self-center p-1.5">
                 {PIEZAS.map(({ clave, nombre }) => {
                   const pz = p.piezas[clave];
@@ -149,6 +153,13 @@ export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, 
                   );
                 })}
               </div>
+              </>
+              ) : (
+                <button type="button" onClick={() => onElegir(p.ref)} title="Elegir para ver sus piezas"
+                  className="ml-2 self-center text-[11px] font-bold tabular-nums text-ink-secondary hover:underline">
+                  {p.listas}/{TOTAL_PIEZAS} piezas ▸
+                </button>
+              )}
             </div>
           );
         })}

@@ -2404,6 +2404,19 @@
         "aprobado_at": "2026-10-07T14:33:14",
         "por": "@cynthia"
       }
+    },
+    "f45db7b67bb0": {
+      "barcode": "7703050012643",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Agro/JABON_POTASICO_LITRO.png",
+        "aprobado_at": "2026-10-09T12:06:50",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Agro/JABON_POTASICO_LITRO_digital.png",
+        "aprobado_at": "2026-10-09T12:06:50",
+        "por": "@cynthia"
+      }
     }
   }
 }

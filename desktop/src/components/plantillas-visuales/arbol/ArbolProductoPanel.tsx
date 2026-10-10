@@ -24,6 +24,7 @@ import EnvioEmergente from "../../revisionEmpaque/EnvioEmergente";
 import { Sprite } from "../../colaboradores/pixel";
 import "../../colaboradores/pixel.css";
 import type { Respuesta } from "../../combos/comun";
+import { AjustarAlLienzo } from "./AjusteLienzo";
 import { CladogramaCategoria, CladogramaFamilia } from "./Cladograma";
 import { CambiarSku } from "./CambiarSku";
 import { CopiarSku } from "./CopiarSku";
@@ -42,6 +43,18 @@ const SIN_COMBO = "__sin_combo__";
 
 type Seleccion = { cat: string; fam: string | null; ref: string | null };
 type SinCombo = { ref: string; nombre: string; combo: string };
+
+const CLAVE_PESTANA = "mck-arbol-producto-pestana";
+type Pestana = "etiquetas" | "vender" | "costo";
+
+function leerPestana(): Pestana {
+  try {
+    const s = sessionStorage.getItem(CLAVE_PESTANA);
+    return s === "vender" || s === "costo" ? s : "etiquetas";
+  } catch {
+    return "etiquetas";
+  }
+}
 
 function leerSel(): Seleccion | null {
   try {
@@ -207,9 +220,20 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
     return () => clearTimeout(t);
   }, [aviso]);
 
+  // Pestaña de la columna derecha: se mantiene al cambiar de presentación.
+  const [pestana, setPestana] = useState<Pestana>(leerPestana);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(CLAVE_PESTANA, pestana);
+    } catch {
+      /* sin almacenamiento */
+    }
+  }, [pestana]);
+
   const tocarPieza = (p: Presentacion, clave: ClavePieza) => {
     setSel((s) => ({ ...s, ref: p.ref }));
     if (clave === "fotos") {
+      setPestana("etiquetas");
       const c = p.piezas.fotos.canales;
       setDestinoFoto(!c?.web?.n || c.web.desactualizada ? "web" : "meli");
       setAviso("Copia la foto del producto (Ctrl+C) y pégala con Ctrl+V: va a la columna marcada, bajo su etiqueta.");
@@ -251,10 +275,11 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
           </span>
         )}
       </div>
-      <div className="ap-lienzo min-h-0 flex-1 overflow-auto">
+      <div className="ap-lienzo flex min-h-0 flex-1 flex-col overflow-auto">
         {enSinCombo ? (
           <ListaSinCombo filas={huerfanosVisibles} onCrear={setCrearCombo} />
         ) : familia ? (
+          <AjustarAlLienzo>
           <CladogramaFamilia
             familia={familia}
             categoria={categoria?.nombre ?? ""}
@@ -272,7 +297,9 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
             }}
             onEditarDocumento={() => familia.presentaciones[0] && abrirPieza(pres?.ref ?? familia.presentaciones[0].ref, "documento")}
           />
+          </AjustarAlLienzo>
         ) : categoria ? (
+          <AjustarAlLienzo>
           <CladogramaCategoria
             categoria={categoria}
             familias={categoria.familias}
@@ -281,6 +308,7 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
               setSel((s) => ({ ...s, fam: clave, ref: ref ?? f?.presentaciones[0]?.ref ?? null }));
             }}
           />
+          </AjustarAlLienzo>
         ) : (
           <p className="p-4 text-sm text-muted">Nada coincide con la búsqueda.</p>
         )}
@@ -295,8 +323,8 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
   );
 
   const derecha = editor ? null : (
-    <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-y-auto">
-      {aviso && <p role="status" className="ap-mensaje">{aviso}</p>}
+    <div className="flex min-h-0 min-w-0 flex-col gap-2">
+      {aviso && <p role="status" className="ap-mensaje shrink-0">{aviso}</p>}
       {pres && familia ? (
         <DetallePresentacion
           key={pres.ref}
@@ -305,6 +333,8 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
           categoria={categoria?.nombre ?? ""}
           destino={destinoFoto}
           setDestino={setDestinoFoto}
+          pestana={pestana}
+          setPestana={setPestana}
           onAviso={setAviso}
           onPieza={(pieza) => abrirPieza(pres.ref, pieza)}
           onEditarEtiqueta={onEditarEtiqueta}
@@ -484,12 +514,14 @@ function Fila({ estado, titulo, valor, onClick, accion }: { estado: Estado; titu
   return onClick ? <button type="button" onClick={onClick} className={clase}>{cuerpo}</button> : <div className={clase}>{cuerpo}</div>;
 }
 
-function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAviso, onPieza, onEditarEtiqueta, onFotosCambiaron, onSkuCambiado }: {
+function DetallePresentacion({ p, familia, categoria, destino, setDestino, pestana, setPestana, onAviso, onPieza, onEditarEtiqueta, onFotosCambiaron, onSkuCambiado }: {
   p: Presentacion;
   familia: Familia;
   categoria: string;
   destino: Canal;
   setDestino: (c: Canal) => void;
+  pestana: Pestana;
+  setPestana: (t: Pestana) => void;
   onAviso: (t: string) => void;
   /** Abrir el emergente de una pieza de este combo (encima del árbol). */
   onPieza: (pieza: string) => void;
@@ -514,6 +546,7 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
       const files = imagenesDe(ev.clipboardData);
       if (!files.length) return;
       ev.preventDefault();
+      setPestana("etiquetas");
       void fotos.subir(files, destino);
     };
     window.addEventListener("paste", alPegar);
@@ -523,16 +556,35 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
     if (fotos.aviso) onAviso(fotos.aviso.texto);
   }, [fotos.aviso]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const tabs: { id: Pestana; texto: string; estado?: Estado; cuenta?: string }[] = [
+    { id: "etiquetas", texto: "Etiqueta · fotos", estado: e.estado === "ok" ? p.piezas.fotos.estado : e.estado },
+    { id: "vender", texto: "Vender", estado: p.listas === TOTAL_PIEZAS ? "ok" : Object.values(p.piezas).some((x) => x.estado === "falta") ? "falta" : "aviso", cuenta: `${p.listas}/${TOTAL_PIEZAS}` },
+    ...(p.costo ? [{ id: "costo" as Pestana, texto: "Costo" }] : []),
+  ];
+  const vista = pestana === "costo" && !p.costo ? "etiquetas" : pestana;
+
   return (
-    <>
-      <div className="ap-carta flex flex-col">
-        <div className="ap-cab ap-cab-navy">
-          <span className="min-w-0 flex-1 truncate" title={p.nombre}>{p.nombre}</span>
-          <code className="shrink-0 normal-case">{p.ref}</code>
-          <CopiarSku sku={p.ref} />
-          <CambiarSku sku={p.ref} onCambiado={onSkuCambiado} />
-        </div>
-        <div className="flex flex-col gap-2 p-2.5">
+    <div className="ap-carta flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="ap-cab ap-cab-navy shrink-0">
+        <span className="min-w-0 flex-1 truncate" title={p.nombre}>{p.nombre}</span>
+        <code className="shrink-0 normal-case">{p.ref}</code>
+        <CopiarSku sku={p.ref} />
+        <CambiarSku sku={p.ref} onCambiado={onSkuCambiado} />
+      </div>
+      {/* Una sola sección a la vista: sin pila de tarjetas que obligue a bajar. */}
+      <div role="tablist" aria-label="Detalle de la presentación" className="ap-pestanas shrink-0">
+        {tabs.map((t) => (
+          <button key={t.id} type="button" role="tab" aria-selected={vista === t.id} onClick={() => setPestana(t.id)}
+            className={`ap-pestana ${vista === t.id ? "ap-pestana-on" : ""}`}>
+            {t.estado && <span className={`h-2.5 w-2.5 ${PUNTO[t.estado]}`} />}
+            {t.texto}
+            {t.cuenta && <span className="tabular-nums opacity-70">{t.cuenta}</span>}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5">
+        {vista === "etiquetas" && (
+          <>
         <p className="ap-t">
           Etiqueta y foto por canal{e.tamano ? ` · ${e.tamano}` : ""}
         </p>
@@ -575,16 +627,10 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
             <button type="button" className="ap-btn" disabled>Todo conectado</button>
           )}
         </div>
-        </div>
-      </div>
-
-      <div className="ap-carta flex flex-col">
-        <div className="ap-cab ap-cab-amarilla">
-          <Sprite s="moneda" px={2} />
-          <span className="min-w-0 flex-1">¿Se puede vender y facturar?</span>
-          <span className="tabular-nums">{p.listas}/{TOTAL_PIEZAS}</span>
-        </div>
-        <div className="flex flex-col gap-1.5 p-2.5">
+          </>
+        )}
+        {vista === "vender" && (
+          <>
         {p.desplegado && (
           <p className={`ap-nota ${p.desplegado.activo ? "ap-ok" : "ap-aviso"}`}>
             {p.desplegado.activo
@@ -606,10 +652,10 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
             : <>{p.piezas.meli.detalle}{precioMeli ? ` · ${pesos(precioMeli)}` : ""}</>}
           onClick={() => onPieza("publicacion")} accion="publicar" />
         <Fila estado={p.piezas.web.estado} titulo="Web" valor={p.piezas.web.detalle} onClick={() => onPieza("publicacion")} accion="publicar" />
-        </div>
+          </>
+        )}
+        {vista === "costo" && <CostoPrecio p={p} onReceta={() => onPieza(p.piezas.receta.pieza_taller || "receta")} />}
       </div>
-
-      <CostoPrecio p={p} onReceta={() => onPieza(p.piezas.receta.pieza_taller || "receta")} />
-    </>
+    </div>
   );
 }

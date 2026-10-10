@@ -1,6 +1,83 @@
 {
   "archivos": [
     {
+      "nombre": "NUEZ_PECAN_250_g_20261009_121901.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_PECAN_250_g_20261009_121901.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_PECAN_250_g_20261009_121901.pdf",
+      "subido_at": "2026-10-09T12:19:01",
+      "bytes": 187608
+    },
+    {
+      "nombre": "NUEZ_PECAN_250_g.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_PECAN_250_g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_PECAN_250_g.pdf",
+      "subido_at": "2026-10-09T12:18:46",
+      "bytes": 187608
+    },
+    {
+      "nombre": "NUEZ_DEL_NOGAL_500g_20261009_121643.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_DEL_NOGAL_500g_20261009_121643.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_NOGAL_500g_20261009_121643.pdf",
+      "subido_at": "2026-10-09T12:16:43",
+      "bytes": 165522
+    },
+    {
+      "nombre": "NUEZ_DEL_NOGAL_500g.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_DEL_NOGAL_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_NOGAL_500g.pdf",
+      "subido_at": "2026-10-09T12:16:28",
+      "bytes": 165522
+    },
+    {
+      "nombre": "MARANON_TOSTADO_250g_20261009_121435.pdf",
+      "ruta": "Etiquetas McKenna/MARANON_TOSTADO_250g_20261009_121435.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MARANON_TOSTADO_250g_20261009_121435.pdf",
+      "subido_at": "2026-10-09T12:14:35",
+      "bytes": 197726
+    },
+    {
+      "nombre": "MARANON_TOSTADO_250g.pdf",
+      "ruta": "Etiquetas McKenna/MARANON_TOSTADO_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MARANON_TOSTADO_250g.pdf",
+      "subido_at": "2026-10-09T12:14:17",
+      "bytes": 197726
+    },
+    {
+      "nombre": "MARANON_TOSTADO_500g_20261009_121233.pdf",
+      "ruta": "Etiquetas McKenna/MARANON_TOSTADO_500g_20261009_121233.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MARANON_TOSTADO_500g_20261009_121233.pdf",
+      "subido_at": "2026-10-09T12:12:33",
+      "bytes": 200191
+    },
+    {
+      "nombre": "MARANON_TOSTADO_500g_20261009_121142.pdf",
+      "ruta": "Etiquetas McKenna/MARANON_TOSTADO_500g_20261009_121142.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MARANON_TOSTADO_500g_20261009_121142.pdf",
+      "subido_at": "2026-10-09T12:11:43",
+      "bytes": 200191
+    },
+    {
+      "nombre": "MARANON_TOSTADO_500g.pdf",
+      "ruta": "Etiquetas McKenna/MARANON_TOSTADO_500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MARANON_TOSTADO_500g.pdf",
+      "subido_at": "2026-10-09T12:10:46",
+      "bytes": 200191
+    },
+    {
+      "nombre": "SAL_MARINA_AHUMADA_250g_20261009_120729.pdf",
+      "ruta": "Etiquetas McKenna/SAL_MARINA_AHUMADA_250g_20261009_120729.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_MARINA_AHUMADA_250g_20261009_120729.pdf",
+      "subido_at": "2026-10-09T12:07:29",
+      "bytes": 198388
+    },
+    {
+      "nombre": "SAL_MARINA_AHUMADA_250g.pdf",
+      "ruta": "Etiquetas McKenna/SAL_MARINA_AHUMADA_250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SAL_MARINA_AHUMADA_250g.pdf",
+      "subido_at": "2026-10-09T12:06:35",
+      "bytes": 198388
+    },
+    {
       "nombre": "SEMILLA_DE_CALABAZA_500g_2.pdf",
       "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_2.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_2.pdf",
@@ -1322,83 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_VACIAS_GELATINA_00_TRANSPARENTES_1000_Un_20260930_100046.pdf",
       "subido_at": "2026-09-30T10:00:46",
       "bytes": 187579
-    },
-    {
-      "nombre": "CAPSULAS_VACIAS_GELATINA_00_TRANSPARENTES_1000_Un_20260930_100031.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_VACIAS_GELATINA_00_TRANSPARENTES_1000_Un_20260930_100031.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_VACIAS_GELATINA_00_TRANSPARENTES_1000_Un_20260930_100031.pdf",
-      "subido_at": "2026-09-30T10:00:31",
-      "bytes": 187579
-    },
-    {
-      "nombre": "CAPSULAS_VACIAS_GELATINA_00_TRANSPARENTES_1000_Un_20260930_095949.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_VACIAS_GELATINA_00_TRANSPARENTES_1000_Un_20260930_095949.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_VACIAS_GELATINA_00_TRANSPARENTES_1000_Un_20260930_095949.pdf",
-      "subido_at": "2026-09-30T09:59:49",
-      "bytes": 187579
-    },
-    {
-      "nombre": "CAPSULAS_VACIAS_GELATINA_00_TRANSPARENTES_1000_Un.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_VACIAS_GELATINA_00_TRANSPARENTES_1000_Un.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_VACIAS_GELATINA_00_TRANSPARENTES_1000_Un.pdf",
-      "subido_at": "2026-09-30T09:59:29",
-      "bytes": 187579
-    },
-    {
-      "nombre": "CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095800.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095800.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095800.pdf",
-      "subido_at": "2026-09-30T09:58:00",
-      "bytes": 178114
-    },
-    {
-      "nombre": "CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095706.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095706.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095706.pdf",
-      "subido_at": "2026-09-30T09:57:06",
-      "bytes": 178114
-    },
-    {
-      "nombre": "CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095632.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095632.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095632.pdf",
-      "subido_at": "2026-09-30T09:56:32",
-      "bytes": 178114
-    },
-    {
-      "nombre": "CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095616.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095616.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN_20260930_095616.pdf",
-      "subido_at": "2026-09-30T09:56:16",
-      "bytes": 178114
-    },
-    {
-      "nombre": "CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN.pdf",
-      "ruta": "Etiquetas McKenna/CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_GELATINA_VACIAS_0_TRANSPARENTES_1000_UN.pdf",
-      "subido_at": "2026-09-30T09:55:52",
-      "bytes": 178114
-    },
-    {
-      "nombre": "PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20260929_141012.pdf",
-      "ruta": "Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20260929_141012.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_20260929_141012.pdf",
-      "subido_at": "2026-09-29T14:10:12",
-      "bytes": 325080
-    },
-    {
-      "nombre": "PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG.pdf",
-      "ruta": "Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG.pdf",
-      "subido_at": "2026-09-29T14:09:54",
-      "bytes": 325080
-    },
-    {
-      "nombre": "ACEITE_GIRASOL_500mL_20260929_112611.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_GIRASOL_500mL_20260929_112611.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_GIRASOL_500mL_20260929_112611.pdf",
-      "subido_at": "2026-09-29T11:26:11",
-      "bytes": 355181
     }
   ]
 }

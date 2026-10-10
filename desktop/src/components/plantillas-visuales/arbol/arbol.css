@@ -301,3 +301,34 @@
   .arbol-pixel .ap-foto-pendiente,
   .arbol-pixel .ap-fotos-activo { animation: none; }
 }
+
+/* Pestañas de la columna derecha (Etiqueta · fotos / Vender / Costo): una sección a la vista. */
+.arbol-pixel .ap-pestanas {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px 0;
+  border-bottom: 3px solid var(--ed-negro, #000);
+  background: color-mix(in srgb, var(--ed-gris, #C2C3C7) 35%, var(--ed-crema, #FFF1E8));
+}
+.arbol-pixel .ap-pestana {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: -3px;
+  padding: 5px 8px;
+  color: var(--ed-negro, #000);
+  background: var(--ed-crema, #FFF1E8);
+  border: 3px solid var(--ed-negro, #000);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.arbol-pixel .ap-pestana:hover { opacity: 1; }
+.arbol-pixel .ap-pestana-on {
+  opacity: 1;
+  background: var(--ed-amarillo, #FFEC27);
+  border-bottom-color: var(--ed-amarillo, #FFEC27);
+}
