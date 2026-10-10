@@ -1,3 +1,14 @@
+### 2026-10-09 20:15 - Cuotas de préstamo pagadas por Solicitudes de pago: documento soporte de los intereses, emitido y enviado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Sin LLM.
+- **Qué se implementó:**
+  - La cuota 1 de Antonio Ruiz (solicitud #4) se giró **sin documento soporte**: Solicitudes de pago decía «lo emite Préstamos» y Préstamos nunca se enteraba del pago. Ahora, al aprobar una cuota, el documento queda en borrador **solo por los intereses** (al peso, retención 7 % y ReteICA aparte) y se emite con «Emitir a la DIAN» en Libro Mayor → Documentos soporte; a Alegra se espeja **solo el abono a capital** (el asiento entero contaba los intereses dos veces).
+  - Al confirmar el giro la cuota queda **pagada** en Préstamos (antes seguía «en trámite» y el panel ofrecía pagarla otra vez; ahora «Pagar» se niega con una cuota que está en Solicitudes). El documento se salda en Alegra con el neto de los intereses.
+  - Al emitir, el documento (PDF con CUDS + XML firmado) **le llega al prestamista** por correo, una sola vez.
+  - La vía directa de Préstamos ya no crea documentos: con la bandera encendida los dejaba en Alegra sin transmitir, con centavos y con el ReteICA adentro.
+  - Retención «ReteICA intereses 11,04 x mil» creada en Alegra (id 18) y mapeada. Antonio y Lira Carmenza con dirección completa en Alegra. Cuota 1 de Antonio cerrada: **DSMG13** aceptado por la DIAN, saldo 0, comprobante #183 rehecho solo con el capital, correo enviado.
+- **Archivos Modificados:** `app/services/{doc_soporte_pagos,prestamos,pagos_wizard,alegra_espejo,alegra}.py`, `tests/{test_prestamos,test_doc_soporte_pagos}.py`, `docs/agentic/modules/prestamos.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-09 17:23 - Cotizar/Facturar con botón propio en el Mapa de McKenna
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora (interfaz). Sin LLM.

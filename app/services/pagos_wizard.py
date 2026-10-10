@@ -2747,7 +2747,10 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
     # pasó con la quincena de Fidel (DSMG1 + comprobante 134, 18-sep-2026) —
     # gasto, retenciones y banco duplicados en lo que el contador ve en Alegra.
     espejo = {"status": "omitido"}
-    if doc_soporte.get("status") in ("success", "ya_emitido", "borrador"):
+    con_doc = doc_soporte.get("status") in ("success", "ya_emitido", "borrador")
+    # Una cuota de préstamo es la excepción: el documento lleva solo los
+    # intereses, y el abono a capital sí tiene que ir como comprobante.
+    if con_doc and s["categoria"] != "cuota_prestamo":
         espejo = {"status": "cubierto_por_doc_soporte",
                   "message": f"Lo lleva a Alegra el documento soporte {doc_soporte.get('numero')}"}
     elif espejar:
@@ -2758,7 +2761,8 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
             # vista. ALEGRA_ESPEJO_ACTIVO protege los posteos masivos; sin forzar,
             # cada pago aprobado quedaba en sombra y el panel —que promete el
             # comprobante en Alegra— lo marcaba «sin espejar».
-            espejo = espejar_movimiento(mov["id"], forzar=True)
+            espejo = (_espejar_capital_cuota(mov["id"]) if con_doc
+                      else espejar_movimiento(mov["id"], forzar=True))
             if espejo.get("status") == "success":
                 with _conn() as con:
                     con.execute("UPDATE cc_solicitudes_pago SET alegra_journal_id=? WHERE id=?",
@@ -3041,10 +3045,49 @@ def _resolver_ticket(ticket_id, usuario_id) -> None:
         print(f"⚠️ No se pudo cerrar el ticket {ticket_id}: {e}", flush=True)
 
 
+def _espejar_capital_cuota(movimiento_id: int) -> dict:
+    """Espeja a Alegra solo el abono a capital de una cuota de préstamo.
+
+    Los intereses, su retención y el neto girado por ellos los lleva el
+    documento soporte (y su pago). Espejar el asiento entero los contaba dos
+    veces en Alegra; no espejar nada dejaba el abono a capital por fuera.
+    """
+    import app.services.contabilidad_core as cc
+    from app.services.alegra_espejo import espejar_movimiento
+
+    m = cc.obtener_movimiento(int(movimiento_id)) or {}
+    capital = [l for l in m.get("lineas") or []
+               if float(l.get("debito") or 0) > 0 and str(l.get("cuenta_codigo") or "").startswith("2")]
+    banco = [l for l in m.get("lineas") or []
+             if float(l.get("credito") or 0) > 0 and str(l.get("cuenta_codigo") or "").startswith("11")]
+    if not capital or len(banco) != 1:
+        return {"status": "error",
+                "message": "No se distingue el abono a capital en el asiento: espéjalo a mano."}
+    total = round(sum(float(l["debito"]) for l in capital), 2)
+    return espejar_movimiento(
+        int(movimiento_id), forzar=True,
+        lineas=capital + [{**banco[0], "credito": total,
+                           "descripcion": f"{banco[0].get('descripcion') or ''} (abono a capital)"}],
+        nota="solo el abono a capital: los intereses van en el documento soporte",
+    )
+
+
 def _avisar_al_origen(s: dict) -> None:
     """Le devuelve el resultado al módulo que originó la solicitud. Best-effort:
     el pago ya quedó registrado y no puede deshacerse porque el origen falle."""
     ref = str(s.get("origen_ref") or "")
+    if ref.startswith("prestamo:"):
+        # La cuota queda pagada en el cronograma, con el asiento de la solicitud.
+        # Sin esto seguía «en trámite» después de girada (cuota 1 de Antonio
+        # Ruiz, 9-oct-2026) y el panel ofrecía pagarla otra vez.
+        try:
+            from app.services import prestamos as _pr
+
+            _pr.marcar_cuota_pagada_por_solicitud(
+                ref, fecha=str(s.get("fecha") or "")[:10], movimiento_id=s.get("movimiento_id"))
+        except Exception as e:
+            print(f"⚠️ Solicitud {s.get('id')}: la cuota no quedó pagada en Préstamos: {e}", flush=True)
+        return
     if not ref.startswith("mensajeria:"):
         return
     try:

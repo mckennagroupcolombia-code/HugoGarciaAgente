@@ -1100,3 +1100,148 @@ def test_la_declaracion_es_recordatorio_con_cuenta_regresiva_y_solicitud_el_dia_
     dias["n"] = -1
     assert pr.recordatorio_retenciones_mes(2026, 9)["accion"] == "nada"
     assert len(_tickets()) == 1
+
+
+# ─── 9-oct-2026: cuota girada por Solicitudes de pago ───────────────────────
+# La cuota 1 de Antonio Ruiz se aprobó y se giró por Solicitudes de pago, pero
+# Préstamos nunca se enteró: siguió «en trámite», sin documento soporte de los
+# intereses y sin que él lo recibiera.
+
+def _cuota_en_solicitud(mods, monkeypatch):
+    cc, pr, tercero, medio = mods
+    from app.services import doc_soporte_pagos as ds
+    from app.services import pagos_wizard as pw
+
+    monkeypatch.setattr(pw, "_DB_PATH", cc._DB_PATH)
+    monkeypatch.setattr(pw, "_initialized", False, raising=False)
+    ds._ensure()
+    p = _crear(pr, tercero, medio)
+    c = p["cuotas"][0]
+    sol = pw.crear_borrador_idempotente({
+        "categoria": "cuota_prestamo", "concepto": "Cuota 1/24", "monto": c["cuota_girada"],
+        "fecha": c["fecha_vencimiento"], "tercero_id": tercero["id"], "medio_pago_id": medio["id"],
+        "origen_ref": f"prestamo:{p['id']}:cuota:1", "origen_sistema": "prestamos",
+    })
+    with pw._conn() as con:
+        con.execute("UPDATE cc_solicitudes_pago SET estado='pendiente' WHERE id=?", (sol["id"],))
+    with pr._conn() as con:
+        con.execute("UPDATE cc_prestamo_cuotas SET estado='solicitada' WHERE prestamo_id=? AND numero=1",
+                    (p["id"],))
+    return pw, ds, p, c, sol["id"]
+
+
+def test_aprobar_una_cuota_deja_el_documento_soporte_solo_por_los_intereses(mods, monkeypatch):
+    _cc, pr, _tercero, _medio = mods
+    pw, ds, p, c, sid = _cuota_en_solicitud(mods, monkeypatch)
+
+    r = pw.aprobar(sid, espejar=False)
+    assert r["doc_soporte"]["status"] == "borrador"
+    doc = ds.obtener_por_solicitud(sid)
+    d = doc["detalle"]
+    # Al peso, y por los intereses: nunca por la cuota entera (el capital no se factura)
+    assert doc["valor"] == d["base"] == round(c["interes_bruto"]) == 187_693
+    assert d["retencion"] == round(c["retencion"]) and d["retencion_concepto"] == "rendimientos_financieros"
+    assert d["retencion_ica"] == round(c["reteica"]) and d["ica_por_mil"] == pytest.approx(11.04)
+    assert d["girado"] == d["base"] - d["retencion"] - d["retencion_ica"]
+    assert d["cuenta_puc"] == "530520" and d["solo_intereses"] is True
+    assert pr.obtener_prestamo(p["id"])["cuotas"][0]["doc_soporte_estado"] == "pendiente"
+
+
+def test_confirmar_el_giro_deja_la_cuota_pagada_y_el_documento_con_el_neto_de_intereses(mods, monkeypatch):
+    cc, pr, _tercero, _medio = mods
+    pw, ds, p, c, sid = _cuota_en_solicitud(mods, monkeypatch)
+    aprobada = pw.aprobar(sid, espejar=False)
+    with pw._conn() as con:
+        con.execute("UPDATE cc_solicitudes_pago SET comprobante_archivo='x.png' WHERE id=?", (sid,))
+    with cc._conn() as con:
+        movimientos_antes = con.execute("SELECT COUNT(*) FROM cc_movimientos").fetchone()[0]
+
+    pw.confirmar_pago(sid, por=99)
+
+    cuota = pr.obtener_prestamo(p["id"])["cuotas"][0]
+    assert cuota["estado"] == "pagada"
+    assert cuota["movimiento_id"] == aprobada["movimiento_id"]
+    assert cuota["fecha_pago"] == c["fecha_vencimiento"]
+    # No se crea otro asiento: el de la solicitud ya es el pago
+    with cc._conn() as con:
+        assert con.execute("SELECT COUNT(*) FROM cc_movimientos").fetchone()[0] == movimientos_antes
+    # El documento se salda con el neto de los intereses, no con la cuota entera
+    d = ds.obtener_por_solicitud(sid)["detalle"]
+    assert [round(x["valor"]) for x in d["pagos"]] == [d["girado"]]
+    assert d["girado"] == pytest.approx(c["cuota_girada"] - c["abono_capital"], abs=1)
+
+
+def test_no_se_paga_desde_prestamos_una_cuota_que_esta_en_solicitudes(mods, monkeypatch):
+    _cc, pr, _tercero, _medio = mods
+    _pw, _ds, p, _c, _sid = _cuota_en_solicitud(mods, monkeypatch)
+    with pytest.raises(ValueError, match="Solicitudes de pago"):
+        pr.registrar_pago_cuota(p["id"], 1)
+
+
+def test_el_espejo_de_una_cuota_con_documento_lleva_solo_el_abono_a_capital(mods, monkeypatch):
+    # Espejar el asiento entero contaba en Alegra los intereses dos veces: en el
+    # comprobante y en el documento soporte.
+    pw, _ds, _p, c, sid = _cuota_en_solicitud(mods, monkeypatch)
+    import app.services.alegra_espejo as esp
+
+    vistos = []
+    monkeypatch.setattr(esp, "espejar_movimiento",
+                        lambda mid, **kw: vistos.append(kw) or {"status": "success", "id": "183"})
+    r = pw.aprobar(sid, espejar=True)
+
+    assert r["alegra"]["status"] == "success"
+    assert len(vistos) == 1
+    lineas = {l["cuenta_codigo"]: l for l in vistos[0]["lineas"]}
+    assert set(lineas) == {"2195", "1110"}
+    assert lineas["2195"]["debito"] == pytest.approx(c["abono_capital"])
+    assert lineas["1110"]["credito"] == pytest.approx(c["abono_capital"])
+    assert "capital" in vistos[0]["nota"]
+
+
+def test_la_via_directa_no_crea_un_documento_sin_transmitir(mods, monkeypatch):
+    # Con la bandera encendida, la vía directa creaba el documento en Alegra sin
+    # pedir el sello de la DIAN, con centavos y con el ReteICA adentro.
+    _cc, pr, tercero, medio = mods
+    monkeypatch.setenv("PRESTAMOS_DOC_SOPORTE_ACTIVO", "1")
+    import app.services.alegra as alegra
+
+    llamadas = []
+    monkeypatch.setattr(alegra, "crear_documento_soporte_alegra", lambda **kw: llamadas.append(kw) or {})
+    p = _crear(pr, tercero, medio)
+    pr.registrar_pago_cuota(p["id"], 1)
+
+    assert llamadas == []
+    assert pr.obtener_prestamo(p["id"])["cuotas"][0]["doc_soporte_estado"] == "pendiente"
+
+
+def test_el_documento_emitido_le_llega_al_prestamista_una_sola_vez(mods, monkeypatch, tmp_path):
+    cc, pr, _tercero, _medio = mods
+    pw, ds, _p, c, sid = _cuota_en_solicitud(mods, monkeypatch)
+    pw.aprobar(sid, espejar=False)
+
+    from app.tools import web_pedidos
+
+    enviados = []
+    monkeypatch.setattr(web_pedidos, "_smtp_ready", lambda: True)
+    monkeypatch.setattr(web_pedidos, "_send_smtp_with_attachments",
+                        lambda to, asunto, texto, html, adj: enviados.append((to, asunto, texto, adj)) or True)
+    pdf, xml = tmp_path / "ds.pdf", tmp_path / "ds.xml"
+    pdf.write_bytes(b"%PDF-1.4"), xml.write_bytes(b"<xml/>")
+    monkeypatch.setattr(ds, "archivo_pdf", lambda _sid: pdf)
+    monkeypatch.setattr(ds, "archivo_xml", lambda _sid: xml)
+
+    # En borrador no se manda nada: todavía no está en la DIAN
+    assert pr.enviar_documento_soporte_cuota(sid)["ok"] is False
+    with cc._conn() as con:
+        con.execute("UPDATE cc_doc_soporte SET estado='success', alegra_id='77', numero='DSMG99'"
+                    " WHERE solicitud_id=?", (sid,))
+
+    r = pr.enviar_documento_soporte_cuota(sid)
+    assert r["ok"] and r["destinatario"] == "juan@ejemplo.com"
+    to, asunto, texto, adj = enviados[0]
+    assert "DSMG99" in asunto and "cuota 1/24" in asunto
+    assert [a[0] for a in adj] == ["Documento_soporte_DSMG99.pdf", "Documento_soporte_DSMG99.xml"]
+    assert "$187.693" in texto and "Abono a capital" in texto
+
+    assert pr.enviar_documento_soporte_cuota(sid).get("ya_enviado") is True
+    assert len(enviados) == 1

@@ -144,12 +144,6 @@ def emitir_por_solicitud(solicitud_id: int, *, forzar: bool = False) -> dict:
     if not sol:
         return {"status": "error", "message": f"Solicitud {solicitud_id} no encontrada"}
 
-    # Las cuotas de préstamo son otro concepto: capital más intereses, y el
-    # documento soporte de los intereses lo emite `prestamos.py` por su cuenta.
-    # Emitirlo aquí por la cuota entera soportaría capital como si fuera gasto.
-    if sol.get("categoria") == "cuota_prestamo":
-        return {"status": "no_aplica",
-                "message": "Cuota de préstamo: el documento soporte de los intereses lo emite Préstamos."}
     # Un saldo por pagar solo gira una deuda ya causada (2335/2355): el gasto y su
     # soporte nacieron al causarla. Emitirlo aquí soportaría dos veces el mismo gasto
     # —o, en un reintegro de gastos, soportaría como «servicio» de la persona lo que
@@ -182,11 +176,19 @@ def emitir_por_solicitud(solicitud_id: int, *, forzar: bool = False) -> dict:
         return {"status": "bloqueado_por_corte", "message": cc.motivo_corte(sol.get("fecha"))}
 
     tercero = cc.obtener_tercero(int(sol["tercero_id"])) if sol.get("tercero_id") else None
-    hay, motivo = requiere(tercero)
-    if not hay and not forzar:
-        return {"status": "no_aplica", "message": motivo}
-
-    detalle = _detalle_desde_solicitud(sol, tercero)
+    if sol.get("categoria") == "cuota_prestamo":
+        # La cuota es capital + intereses: el documento va SOLO por los intereses
+        # (Concepto DIAN 000112 int 7 de 2024). Hasta el 9-oct-2026 esta rama decía
+        # «lo emite Préstamos» y Préstamos nunca se enteraba del pago: la cuota 1
+        # de Antonio Ruiz se giró sin documento soporte.
+        detalle, motivo = _detalle_cuota_prestamo(sol)
+        if not detalle:
+            return {"status": "no_aplica", "message": motivo}
+    else:
+        hay, motivo = requiere(tercero)
+        if not hay and not forzar:
+            return {"status": "no_aplica", "message": motivo}
+        detalle = _detalle_desde_solicitud(sol, tercero)
     base = detalle["base"]
     with cc._conn() as con:
         con.execute(
@@ -196,6 +198,10 @@ def emitir_por_solicitud(solicitud_id: int, *, forzar: bool = False) -> dict:
             (int(solicitud_id), sol.get("movimiento_id"), (tercero or {}).get("id"), detalle["fecha"],
              base, "borrador", "Pendiente de emitir a la DIAN", json.dumps(detalle, ensure_ascii=False)),
         )
+    if detalle.get("solo_intereses"):
+        from app.services import prestamos as _pr
+
+        _pr.anotar_doc_soporte_cuota(sol.get("origen_ref"), "pendiente")
     return {"status": "borrador", "numero": "",
             "message": "Documento soporte en borrador: revísalo y emítelo a la DIAN desde el Libro Mayor."}
 
@@ -229,6 +235,64 @@ def _detalle_desde_solicitud(sol: dict, tercero: dict | None) -> dict:
     }
 
 
+def _detalle_cuota_prestamo(sol: dict) -> tuple[dict | None, str]:
+    """La foto del documento soporte de una cuota de préstamo: SOLO los intereses.
+
+    El capital es la devolución de un mutuo —ni bien ni servicio— y se soporta
+    con el contrato y la transferencia; el interés es el gasto financiero que
+    McKenna deduce. Quién lo lleva lo decide `prestamos.requiere_documento_soporte`
+    (persona natural no obligada a facturar), no la marca `emite_doc_soporte` de
+    la ficha, que es de los servicios.
+
+    Las cifras salen del cronograma, al peso: Alegra redondearía los centavos y
+    el documento dejaría de cuadrar con lo girado.
+    """
+    from app.services import prestamos as P
+
+    ids = P.cuota_de_ref(sol.get("origen_ref"))
+    if not ids:
+        return None, "La solicitud no dice de qué cuota es (falta origen_ref): revisa en Préstamos."
+    prestamo = P.obtener_prestamo(ids[0])
+    cuota = next((c for c in (prestamo or {}).get("cuotas") or [] if c["numero"] == ids[1]), None)
+    if not prestamo or not cuota:
+        return None, f"No se encontró la cuota {ids[1]} del préstamo #{ids[0]}."
+    tercero = prestamo.get("tercero") or {}
+    hay, motivo = P.requiere_documento_soporte(tercero)
+    if not hay:
+        return None, motivo
+    if prestamo.get("gross_up"):
+        # Con gross-up McKenna asume las retenciones y el documento tendría otra
+        # base: no hay ningún préstamo así, y no se adivina.
+        return None, "Préstamo con gross-up: el documento soporte se arma a mano con el contador."
+    base = round(float(cuota["interes_bruto"] or 0))
+    ret = round(float(cuota["retencion"] or 0))
+    ica = round(float(cuota.get("reteica") or 0))
+    if base <= 0:
+        return None, "La cuota no tiene intereses."
+    n, plazo = cuota["numero"], prestamo["plazo_meses"]
+    return {
+        "tercero_id": tercero.get("id"),
+        "identificacion": str(tercero.get("identificacion") or ""),
+        "nombre": str(tercero.get("nombre") or ""),
+        "email": str(tercero.get("email") or ""),
+        "fecha": str(sol.get("fecha"))[:10],
+        "descripcion": (f"Intereses de mutuo — cuota {n}/{plazo}, {prestamo['tasa_ea'] * 100:.2f}% E.A. "
+                        "(el capital no se factura: contrato de mutuo)")[:255],
+        "cuenta_puc": "530520",
+        "base": base,
+        "retencion": ret, "retencion_concepto": "rendimientos_financieros",
+        "retencion_ica": ica, "ica_por_mil": round(float(prestamo.get("reteica_pct") or 0) * 1000, 4),
+        "girado": base - ret - ica,
+        "solicitudes": [int(sol["id"])],
+        "pagos": [],
+        # Marca de que el documento cubre solo una parte del giro: el pago que se
+        # registra en Alegra es el neto de los intereses, no la cuota entera.
+        "solo_intereses": True,
+        "prestamo_id": ids[0], "cuota": n,
+        "capital": round(float(cuota["abono_capital"] or 0), 2),
+    }, motivo
+
+
 def vista_previa(sol: dict) -> dict | None:
     """El documento soporte que dejaría esta solicitud al aprobarla. No guarda nada.
 
@@ -237,16 +301,21 @@ def vista_previa(sol: dict) -> dict | None:
     """
     import app.services.contabilidad_core as cc
 
-    if not sol or sol.get("categoria") in ("cuota_prestamo", "saldo_por_pagar", "reintegro_socio") or sol.get("es_plantilla"):
+    if not sol or sol.get("categoria") in ("saldo_por_pagar", "reintegro_socio") or sol.get("es_plantilla"):
         return None
-    tercero = cc.obtener_tercero(int(sol["tercero_id"])) if sol.get("tercero_id") else None
-    hay, _ = requiere(tercero)
-    if not hay:
-        return None
+    if sol.get("categoria") == "cuota_prestamo":
+        det, _ = _detalle_cuota_prestamo(sol)
+        if not det:
+            return None
+    else:
+        tercero = cc.obtener_tercero(int(sol["tercero_id"])) if sol.get("tercero_id") else None
+        hay, _ = requiere(tercero)
+        if not hay:
+            return None
+        det = _detalle_desde_solicitud(sol, tercero)
     avisos = []
     if cc.antes_del_corte(sol.get("fecha")):
         avisos.append(cc.motivo_corte(sol.get("fecha")))
-    det = _detalle_desde_solicitud(sol, tercero)
     if not all(_es_peso(det[k]) for k in ("base", "retencion", "retencion_ica")):
         avisos.append("⚠️ No está al peso: así no se podría emitir.")
     if not _cuenta_alegra(det["cuenta_puc"]):
@@ -560,6 +629,22 @@ def _finalizar(doc: dict, res: dict, *, por: int | None = None) -> dict:
     with cc._conn() as con:
         con.execute("UPDATE cc_doc_soporte SET mensaje=?, detalle_json=? WHERE solicitud_id=?",
                     (" ".join(avisos), json.dumps(d, ensure_ascii=False), sid))
+
+    # Cuota de préstamo: el cronograma muestra el documento, y el prestamista lo
+    # recibe. Ya está transmitido, así que lo que le llega no cambia después.
+    if d.get("solo_intereses"):
+        from app.services import prestamos as _pr
+
+        _pr.anotar_doc_soporte_cuota(sol.get("origen_ref"), "emitido",
+                                     alegra_id=str(res.get("id") or ""), numero_doc=str(res.get("numero") or ""))
+        try:
+            env = _pr.enviar_documento_soporte_cuota(sid)
+        except Exception as e:      # el documento ya quedó: el correo se reintenta aparte
+            env = {"ok": False, "message": str(e)}
+        avisos.append(f"Enviado al prestamista ({env.get('destinatario')})." if env.get("ok")
+                      else f"⚠️ No se le envió al prestamista: {env.get('message')}")
+        with cc._conn() as con:
+            con.execute("UPDATE cc_doc_soporte SET mensaje=? WHERE solicitud_id=?", (" ".join(avisos), sid))
     return {"status": "success", "numero": res.get("numero"), "estado_dian": res.get("estado_dian"),
             "transmitido": bool(res.get("transmitido")), "avisos": avisos,
             "message": f"Documento soporte {res.get('numero')} emitido"
@@ -614,6 +699,14 @@ def pendientes(desde: str | None = None) -> list[dict]:
     return [dict(f) for f in filas]
 
 
+def _girado_del_documento(det: dict, sol: dict) -> float:
+    """Lo que salda el documento: lo girado, salvo en una cuota de préstamo, donde
+    el documento cubre solo los intereses y el abono a capital no le toca."""
+    if det.get("solo_intereses"):
+        return round(float(det.get("girado") or 0), 2)
+    return round(float(sol.get("girado") or 0), 2)
+
+
 def registrar_pago_en_alegra(solicitud_id: int, *, referencia: str = "") -> dict:
     """Salda en Alegra el documento soporte cuando el giro ya se confirmó.
 
@@ -646,7 +739,7 @@ def registrar_pago_en_alegra(solicitud_id: int, *, referencia: str = "") -> dict
 
         sol = pw.obtener(int(solicitud_id)) or {}
         det = _a_dict(borrador)["detalle"]
-        girado_b = round(float(sol.get("girado") or 0), 2)
+        girado_b = _girado_del_documento(det, sol)
         if girado_b > 0 and not det.get("pagos"):
             det["pagos"] = [{"fecha": str(sol.get("pagado_at") or sol.get("fecha") or "")[:10],
                              "valor": girado_b, "solicitud_id": int(solicitud_id)}]
@@ -663,13 +756,13 @@ def registrar_pago_en_alegra(solicitud_id: int, *, referencia: str = "") -> dict
         return {"status": "no_aplica", "message": "Esa solicitud no tiene documento soporte emitido."}
 
     sol = pw.obtener(int(solicitud_id))
-    girado = round(float((sol or {}).get("girado") or 0), 2)
+    det = _a_dict(doc)["detalle"] or {}
+    girado = _girado_del_documento(det, sol or {})
     if girado <= 0:
         return {"status": "no_aplica", "message": "No hay valor girado que registrar."}
 
     from app.services.alegra import registrar_pago_documento_soporte
 
-    det = _a_dict(doc)["detalle"] or {}
     r = registrar_pago_documento_soporte(
         bill_id=str(doc["alegra_id"]),
         fecha=str((sol or {}).get("pagado_at") or (sol or {}).get("fecha") or "")[:10],

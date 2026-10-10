@@ -233,6 +233,48 @@ payload que se habría enviado, revisable antes de activar. Un fallo de Alegra *
 tumba el pago ni el asiento: el asiento es la verdad contable y ya quedó; el documento
 se reintenta desde el panel.
 
+### Cuota girada por Solicitudes de pago: cómo sale el documento (9-oct-2026)
+
+**Incidente.** La cuota 1 de Antonio Ruiz (solicitud #4, asiento #9465) se aprobó y se giró
+por Solicitudes de pago y quedó **sin documento soporte y sin enviárselo**: `doc_soporte_pagos`
+decía «lo emite Préstamos» y Préstamos nunca se enteraba del pago (`_avisar_al_origen` solo
+atendía mensajería), así que la cuota siguió «en trámite» y el asiento entero se espejó a Alegra
+(comprobante #183) como si no hubiera documento. Además la vía directa de Préstamos
+(`emitir_documento_soporte_cuota`), con la bandera encendida, habría creado el documento en
+Alegra **sin pedir el sello de la DIAN**, con centavos y con el ReteICA adentro (la DIAN lo
+rechaza con el 3051).
+
+**Cómo queda:**
+
+- **Al aprobar** la solicitud, `doc_soporte_pagos.emitir_por_solicitud` deja el documento en
+  **borrador solo por los intereses** (`_detalle_cuota_prestamo`: base = interés bruto, retención
+  7 % rendimientos, ReteICA aparte, cuenta 530520, todo al peso, `solo_intereses=True`). Quién lo
+  lleva lo decide `requiere_documento_soporte` (natural no obligada a facturar), no la marca
+  `emite_doc_soporte` de servicios. Se emite con el mismo botón «Emitir a la DIAN» de Libro
+  Mayor → Documentos soporte, que valida contacto, retenciones y cuadre.
+- **Espejo a Alegra solo del capital** (`pagos_wizard._espejar_capital_cuota`: Débito 2195 /
+  Crédito 1110 por el abono): los intereses, su retención y su neto los llevan el documento y su
+  pago. Espejar el asiento entero los contaba dos veces.
+- **Al confirmar el giro**, `_avisar_al_origen` marca la cuota **pagada** con el asiento de la
+  solicitud (`marcar_cuota_pagada_por_solicitud`, sin crear otro asiento) y el documento se salda
+  en Alegra con el **neto de los intereses**, no con la cuota entera.
+- **Al emitirlo a la DIAN**, `_finalizar` lo refleja en el cronograma y se lo manda al
+  prestamista (`enviar_documento_soporte_cuota`: PDF con CUDS + XML firmado, una sola vez;
+  `forzar=True` para reenviar). Es correspondencia a un tercero, pero sale tras la acción
+  explícita de emitir y el documento ya no cambia.
+- `registrar_pago_cuota` (botón «Pagar» del panel) **se niega** con una cuota «solicitada»:
+  pagarla también ahí la contabilizaba dos veces. Si una cuota se paga por esa vía, sin solicitud,
+  el documento queda `pendiente` y se emite a mano: la vía directa ya no crea documentos.
+- Prerrequisitos para emitir: el contacto del prestamista en Alegra como NIT con DV **y con
+  país/departamento/ciudad** (sin dirección la DIAN no lo recibe; al ponérsela, Alegra exige
+  también la calle: `PUT /contacts` sin `address.address` → error 2043), y la retención de ICA al
+  11,04 ‰ en Alegra — creada el 9-oct-2026 (id 18) y mapeada en `ALEGRA_RETENCIONES_ICA`; sin
+  ella `emitir_a_dian` no emite, porque el pago dejaría un saldo fantasma.
+- Arreglo de la cuota 1 de Antonio (9-oct): cuota marcada pagada, documento en borrador
+  ($300.308 de intereses), comprobante Alegra #183 rehecho solo con el capital ($400.000).
+  Con la dirección completa (Antonio y Lira: Cl. 148 #101A-10 Int 9 Apto 503, Suba) se emitió el
+  **DSMG13** (aceptado por la DIAN, saldo 0 en Alegra, pago 1232) y se le envió a Antonio.
+
 ## Declaración mensual de retención en la fuente
 
 La retención practicada en cada cuota se acredita a **2365** y queda como deuda con

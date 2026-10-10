@@ -829,6 +829,14 @@ def registrar_pago_cuota(
         raise ValueError(f"El préstamo no tiene cuota {numero}")
     if cuota["estado"] == "pagada":
         raise ValueError(f"La cuota {numero} ya está pagada")
+    # Desde el 9-oct-2026 el cron monta cada cuota en Solicitudes de pago. Pagarla
+    # también aquí creaba un segundo asiento por la misma cuota (y el panel
+    # mostraba «Pagar» en una cuota «en trámite»).
+    if cuota["estado"] == "solicitada":
+        raise ValueError(
+            f"La cuota {numero} ya está en Contabilidad → Solicitudes de pago: págala por ahí. "
+            "Pagarla también aquí la contabilizaría dos veces."
+        )
     # Pagar la 7 dejando pendiente la 3 descuadraría el saldo del cronograma
     # frente al saldo real del pasivo. Se paga en orden.
     anterior = next(
@@ -976,6 +984,60 @@ def registrar_pago_cuota(
         print(f"⚠️ Préstamo {prestamo_id} cuota {numero}: documento soporte no emitido: {e}", flush=True)
 
     return obtener_prestamo(prestamo_id)
+
+
+def cuota_de_ref(origen_ref: str | None) -> tuple[int, int] | None:
+    """(prestamo_id, numero) de un `origen_ref` «prestamo:<id>:cuota:<n>», o None."""
+    partes = str(origen_ref or "").split(":")
+    if (len(partes) == 4 and partes[0] == "prestamo" and partes[2] == "cuota"
+            and partes[1].isdigit() and partes[3].isdigit()):
+        return int(partes[1]), int(partes[3])
+    return None
+
+
+def marcar_cuota_pagada_por_solicitud(
+    origen_ref: str | None, *, fecha: str, movimiento_id: int | None
+) -> dict | None:
+    """La cuota se giró por Solicitudes de pago: queda pagada en el cronograma.
+
+    No crea asiento: el de la solicitud YA es el pago de la cuota, y otro la
+    contaría dos veces. Hasta el 9-oct-2026 nadie hacía esto: la cuota 1 de
+    Antonio Ruiz quedó girada y contabilizada pero «en trámite» en Préstamos,
+    sin documento soporte de los intereses.
+    """
+    ids = cuota_de_ref(origen_ref)
+    if not ids:
+        return None
+    prestamo_id, numero = ids
+    _ensure()
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_prestamo_cuotas SET estado='pagada', fecha_pago=?, movimiento_id=?"
+            " WHERE prestamo_id=? AND numero=? AND estado<>'pagada'",
+            (str(fecha)[:10], movimiento_id, prestamo_id, numero),
+        )
+        pendientes = con.execute(
+            "SELECT COUNT(*) AS n FROM cc_prestamo_cuotas WHERE prestamo_id=? AND estado<>'pagada'",
+            (prestamo_id,),
+        ).fetchone()["n"]
+        if not pendientes:
+            con.execute("UPDATE cc_prestamos SET estado='pagado' WHERE id=?", (prestamo_id,))
+    return {"prestamo_id": prestamo_id, "numero": numero}
+
+
+def anotar_doc_soporte_cuota(origen_ref: str | None, estado: str, *, alegra_id: str = "",
+                             numero_doc: str = "") -> None:
+    """Refleja en el cronograma el documento soporte que lleva Solicitudes de pago."""
+    ids = cuota_de_ref(origen_ref)
+    if not ids:
+        return
+    _ensure()
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_prestamo_cuotas SET doc_soporte_estado=?, doc_soporte_id=?, doc_soporte_numero=?"
+            " WHERE prestamo_id=? AND numero=?",
+            (estado, str(alegra_id or ""), str(numero_doc or ""), ids[0], ids[1]),
+        )
 
 
 def cuotas_del_mes(anio: int, mes: int, incluir_pagadas: bool = False) -> list[dict]:
@@ -1659,8 +1721,43 @@ def emitir_documento_soporte_cuota(prestamo_id: int, numero: int, forzar: bool =
     if interes_bruto <= 0:
         return {"status": "no_aplica", "motivo": "La cuota no tiene intereses."}
 
+    # La cuota pagada por Solicitudes de pago lleva su documento allá: borrador al
+    # aprobar y «Emitir a la DIAN» en Libro Mayor → Documentos soporte. Es la vía
+    # que valida el contacto, cuadra al peso, saca el ReteICA del documento y
+    # TRANSMITE (la llamada de abajo nunca pedía el sello: el documento quedaba en
+    # Alegra sin CUDS, y con el ReteICA adentro la DIAN lo rechaza con el 3051).
+    import app.services.contabilidad_core as cc
+
+    try:
+        with cc._conn() as con:
+            sol = con.execute(
+                "SELECT id FROM cc_solicitudes_pago WHERE origen_ref=? AND movimiento_id IS NOT NULL"
+                " ORDER BY id DESC LIMIT 1",
+                (f"prestamo:{prestamo_id}:cuota:{int(numero)}",),
+            ).fetchone()
+    except sqlite3.OperationalError:     # Solicitudes de pago aún no creó su tabla
+        sol = None
+    if sol:
+        from app.services import doc_soporte_pagos as _ds
+
+        return {**_ds.emitir_por_solicitud(int(sol["id"])), "solicitud_id": int(sol["id"])}
+    if _doc_soporte_activo():
+        with _conn() as con:
+            con.execute(
+                "UPDATE cc_prestamo_cuotas SET doc_soporte_estado='pendiente' WHERE prestamo_id=? AND numero=?",
+                (prestamo_id, int(numero)),
+            )
+        return {
+            "status": "pendiente",
+            "motivo": motivo,
+            "message": (
+                "Esta cuota no pasó por Solicitudes de pago, que es la vía que arma, valida y "
+                "transmite el documento soporte. Emítelo a mano en Alegra con el contador."
+            ),
+        }
+
     retencion_cuota = round(float(cuota["retencion"] or 0), 2)
-    dry = not _doc_soporte_activo()
+    dry = True
     r = crear_documento_soporte_alegra(
         identificacion=tercero.get("identificacion") or "",
         nombre=tercero.get("nombre") or "",
@@ -2507,3 +2604,113 @@ def enviar_reporte_mensual(prestamo_id: int, anio: int, mes: int, destinatario: 
         "ok": True, "enviado": True, "destinatario": correo, "periodo": f"{anio:04d}-{mes:02d}",
         "cuotas": [c["numero"] for c in del_mes], "girado": round(girado, 2),
     }
+
+
+def enviar_documento_soporte_cuota(
+    solicitud_id: int, *, destinatario: str | None = None, dry_run: bool = False, forzar: bool = False
+) -> dict:
+    """Le manda al prestamista el documento soporte de los intereses de su cuota.
+
+    Va el PDF (representación gráfica con el CUDS) y el XML firmado. Sale solo
+    cuando el documento YA está transmitido a la DIAN —lo dispara «Emitir a la
+    DIAN», que es la acción explícita—, así que lo que recibe no cambia después.
+    No se repite: `forzar=True` para reenviarlo a propósito.
+
+    Nació del 9-oct-2026: la cuota 1 de Antonio Ruiz se giró y él nunca recibió
+    el documento de sus intereses.
+    """
+    from app.services import doc_soporte_pagos as _ds
+    from app.services import pagos_wizard as _pw
+    from app.tools import correo_marca as _marca
+    from app.tools.web_pedidos import _send_smtp_with_attachments, _smtp_ready
+
+    doc = _ds.obtener_por_solicitud(int(solicitud_id))
+    if not doc or doc.get("estado") != "success" or not doc.get("alegra_id"):
+        return {"ok": False, "message": "El documento soporte todavía no está emitido a la DIAN."}
+    det = doc.get("detalle") or {}
+    if not det.get("solo_intereses"):
+        return {"ok": False, "message": "Ese documento soporte no es de una cuota de préstamo."}
+    if det.get("enviado_a") and not forzar and not dry_run:
+        return {"ok": True, "ya_enviado": True, "destinatario": det["enviado_a"],
+                "message": f"Ya se le envió a {det['enviado_a']} el {det.get('enviado_at', '')}."}
+    sol = _pw.obtener(int(solicitud_id)) or {}
+    prestamo = obtener_prestamo(int(det.get("prestamo_id") or 0)) or {}
+    cuota = next((c for c in prestamo.get("cuotas") or [] if c["numero"] == det.get("cuota")), None)
+    if not prestamo or not cuota:
+        return {"ok": False, "message": "No se encontró la cuota del documento."}
+    tercero = prestamo.get("tercero") or {}
+    correo = (destinatario or tercero.get("email") or "").strip()
+    if not correo:
+        return {"ok": False, "message": f"«{tercero.get('nombre', '')}» no tiene correo registrado."}
+
+    numero = doc.get("numero") or "documento soporte"
+    pdf, xml = _ds.archivo_pdf(int(solicitud_id)), _ds.archivo_xml(int(solicitud_id))
+    if not pdf:
+        return {"ok": False, "message": f"No se pudo armar el PDF de {numero} (Alegra no respondió)."}
+    adjuntos = [(f"Documento_soporte_{numero}.pdf", "application/pdf", pdf.read_bytes())]
+    if xml:
+        adjuntos.append((f"Documento_soporte_{numero}.xml", "application/xml", xml.read_bytes()))
+
+    n, plazo = cuota["numero"], prestamo["plazo_meses"]
+    base, ret, ica = float(det["base"]), float(det["retencion"]), float(det["retencion_ica"])
+    capital = float(det.get("capital") or cuota["abono_capital"])
+    detalle = [
+        ("Intereses de la cuota (valor del documento)", _fmt_cop(base)),
+        (f"(−) Retención en la fuente {prestamo['retencion_pct'] * 100:.0f}%", f"− {_fmt_cop(ret)}"),
+        *([(f"(−) ReteICA Bogotá {float(det.get('ica_por_mil') or 0):g} por mil", f"− {_fmt_cop(ica)}")]
+          if ica else []),
+        ("Intereses netos consignados", _fmt_cop(base - ret - ica)),
+        ("Abono a capital (no va en el documento)", _fmt_cop(capital)),
+        ("Total consignado", _fmt_cop(base - ret - ica + capital)),
+    ]
+    nombre = tercero.get("nombre") or ""
+    fecha = str(cuota.get("fecha_pago") or sol.get("fecha") or "")[:10]
+    asunto = f"Documento soporte {numero} — intereses de su préstamo, cuota {n}/{plazo}"
+    intro = (
+        f"Adjuntamos el documento soporte electrónico {numero}, transmitido a la DIAN, por los "
+        f"intereses de la cuota {n}/{plazo} de su préstamo, pagada el {fecha}."
+    )
+    nota = (
+        "Lo expide McKenna Group S.A.S. porque usted, como persona natural no obligada a facturar, "
+        "no expide factura por los intereses (Concepto DIAN 000112 de 2024). El abono a capital no "
+        "se factura: es la devolución del préstamo y lo respalda el contrato de mutuo."
+        + (" El reteICA no aparece en el documento porque el formato de la DIAN solo admite "
+           "retención en la fuente; se practicó al pagar y va en el certificado anual." if ica else "")
+        + " Adjuntamos también el XML firmado, que es el documento electrónico como tal."
+    )
+    texto = (
+        f"Cordial saludo, {nombre}.\n\n{intro}\n\n"
+        + "\n".join(f"- {k}: {v}" for k, v in detalle)
+        + f"\n\n{nota}\n\nCualquier inquietud, quedamos atentos.\n\n"
+        + _marca.firma_texto()
+    )
+    filas = "".join(
+        f'<tr><td style="padding:7px 12px 7px 0;color:{_marca.TENUE};font-size:14px;">{k}</td>'
+        f'<td style="padding:7px 0;text-align:right;color:{_marca.VERDE_PROFUNDO};font-weight:600;">{v}</td></tr>'
+        for k, v in detalle
+    )
+    inner = (
+        f"<p style=\"margin:0 0 14px 0;\">Cordial saludo, <strong>{_html.escape(nombre)}</strong>.</p>"
+        f"<p style=\"margin:0 0 4px 0;\">{_html.escape(intro)}</p>"
+        f'<table role="presentation" style="border-collapse:collapse;margin:14px 0 18px 0;width:100%;'
+        f'border-top:1px solid rgba(12,96,105,0.18);border-bottom:1px solid rgba(12,96,105,0.18);">{filas}</table>'
+        f'<p style="margin:0 0 14px 0;font-size:13px;color:{_marca.TENUE};line-height:1.7;">{_html.escape(nota)}</p>'
+        f'<p style="margin:0;">Cualquier inquietud, quedamos atentos.</p>'
+        f"{_marca.firma_html()}"
+    )
+    html = _marca.marco(preheader=asunto, inner_html=inner)
+    if dry_run:
+        return {"ok": True, "dry_run": True, "destinatario": correo, "asunto": asunto, "texto": texto,
+                "adjuntos": [a[0] for a in adjuntos]}
+    if not _smtp_ready():
+        return {"ok": False, "message": "SMTP no configurado (SMTP_HOST / SMTP_USER / SMTP_PASSWORD / EMAIL_FROM)."}
+    if not _send_smtp_with_attachments(correo, asunto, texto, html, adjuntos):
+        return {"ok": False, "message": "Falló el envío SMTP (revisa credenciales y red)."}
+
+    import app.services.contabilidad_core as cc
+
+    det = {**det, "enviado_a": correo, "enviado_at": datetime.now().isoformat(timespec="minutes")}
+    with cc._conn() as con:
+        con.execute("UPDATE cc_doc_soporte SET detalle_json=? WHERE solicitud_id=?",
+                    (json.dumps(det, ensure_ascii=False), int(solicitud_id)))
+    return {"ok": True, "destinatario": correo, "documento": numero, "adjuntos": [a[0] for a in adjuntos]}

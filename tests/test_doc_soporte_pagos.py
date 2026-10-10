@@ -204,17 +204,27 @@ def test_una_tarifa_de_ica_sin_cuenta_propia_avisa_en_vez_de_callar():
 
     r = crear_documento_soporte_alegra(
         identificacion="9385573", nombre="X", fecha="2026-09-18", valor=1_000_000,
-        descripcion="x", cuenta_contable="5875", retencion_ica=11_040, ica_por_mil=11.04,
+        descripcion="x", cuenta_contable="5875", retencion_ica=6_900, ica_por_mil=6.9,
         dry_run=True,
     )
     assert r["payload"]["retentions"][0]["id"] == 11
     assert "0%" in (r.get("aviso") or "")
 
 
+def test_el_reteica_de_los_intereses_tiene_retencion_propia_en_alegra():
+    """9-oct-2026: sin la retención al 11,04 ‰ (id 18) `emitir_a_dian` se negaba a
+    emitir el documento soporte de la cuota 1 de Antonio Ruiz."""
+    from app.services.alegra import retencion_ica_alegra_id
+    from app.services.prestamos import RETEICA_INTERESES_PCT
+
+    assert retencion_ica_alegra_id(RETEICA_INTERESES_PCT * 1000) == 18
+
+
 # ─── 21-sep-2026: préstamos aparte y transmisión a la DIAN aparte ───────────
 
 def test_una_cuota_de_prestamo_no_lleva_documento_por_la_cuota_entera(libro, monkeypatch):
-    """La cuota es capital + intereses; el documento de los intereses es de Préstamos."""
+    """La cuota es capital + intereses y el documento va solo por los intereses
+    (tests/test_prestamos.py). Sin saber de qué cuota es, no se arma nada."""
     from app.services import pagos_wizard as pw
 
     monkeypatch.setattr(pw, "obtener", lambda sid: {

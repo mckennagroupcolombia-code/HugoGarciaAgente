@@ -413,11 +413,16 @@ def anular_espejo(movimiento_id: int, *, forzar: bool = False) -> dict:
     }
 
 
-def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: bool = False) -> dict:
+def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: bool = False,
+                       lineas: list[dict] | None = None, nota: str = "") -> dict:
     """Postea un asiento del Libro Mayor como comprobante contable en Alegra.
 
     Idempotente: si el asiento ya tiene comprobante no crea otro (usar
     `reespejar=True` solo para rehacer uno anulado en Alegra).
+
+    `lineas` espeja solo esa parte del asiento (cuadrada): la cuota de un
+    préstamo lleva los intereses en su documento soporte y aquí solo va el abono
+    a capital. `nota` lo deja dicho en las observaciones del comprobante.
     """
     import requests
 
@@ -444,7 +449,7 @@ def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: b
     if cc.antes_del_corte(mov.get("fecha")):
         return {"status": "bloqueado_por_corte", "message": cc.motivo_corte(mov.get("fecha"))}
 
-    entries, faltantes = _entradas_desde_movimiento(mov)
+    entries, faltantes = _entradas_desde_movimiento({**mov, "lineas": lineas} if lineas is not None else mov)
     if faltantes:
         return {
             "status": "error",
@@ -478,6 +483,7 @@ def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: b
         "observations": (
             f"{mov.get('concepto')} · ref {mov.get('referencia') or mov['id']} "
             f"· espejo del Libro Mayor (asiento {mov['id']})"
+            + (f" · {nota}" if nota else "")
         )[:500],
         "entries": entries,
     }

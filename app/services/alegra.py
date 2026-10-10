@@ -3547,13 +3547,17 @@ RETENCIONES_ALEGRA: dict[tuple[str, float], int] = {
 # DIAN— no dice a qué tarifa se le retuvo.
 #
 # Las tarifas son de Bogotá y las fijó el contador:
-#   4,14 ‰ transporte · 8,66 ‰ asesoría técnica · 9,66 ‰ servicios en general.
+#   4,14 ‰ transporte · 8,66 ‰ asesoría técnica · 9,66 ‰ servicios en general
+#   · 11,04 ‰ intereses de préstamos de terceros (actividad financiera).
 # Ojo con la unidad: el ICA se habla «por mil» y Alegra recibe PORCENTAJE, así
-# que 4,14 ‰ = 0,414 %. Creadas por API el 18-sep-2026 (ids 15, 16, 17).
+# que 4,14 ‰ = 0,414 %. Creadas por API el 18-sep-2026 (ids 15, 16, 17); la de
+# intereses el 9-oct-2026 (id 18): sin ella el documento soporte de una cuota
+# no se podía emitir.
 ALEGRA_RETENCIONES_ICA: dict[float, int] = {
     4.14: 15,
     8.66: 16,
     9.66: 17,
+    11.04: 18,
 }
 # Genérica al 0%, para una tarifa que no tenga cuenta propia. Informa el monto
 # correcto pero imprime «(0%)»: es el último recurso, no el camino normal.

@@ -212,7 +212,9 @@ Borradores del 350 (retefuente + reteIVA) y del RTICA para revisar con el contad
 etiqueta. Entregas Flex: ⚠️ no usar `meli.listar_ordenes_meli_por_estado` (corta la paginación en silencio).
 
 **M · Préstamos de terceros** (`prestamos.md`). 25 % E.A., 24 cuotas, retención 7 % contra 236535 + reteICA 11,04‰ contra 2368; documento soporte
-solo por intereses. Dígito del calendario DIAN = **6**.
+solo por intereses. Dígito del calendario DIAN = **6**. Cuota pagada por Solicitudes de pago (9-oct): borrador del documento
+solo por intereses al aprobar, espejo a Alegra solo del capital, la cuota queda pagada al confirmar el giro y el documento
+emitido se le envía al prestamista.
 
 **N/Q · Socios y terceros** (`relaciones-socios-terceros.md`). Socios compran con tarjeta personal → **2380**; el asiento
 no toca Bancos (Débito 1435 / Crédito 2365 / Crédito 2380); el reintegro (Débito 2380 / Crédito 1110) es lo que se
