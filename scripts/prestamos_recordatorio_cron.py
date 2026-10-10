@@ -4,45 +4,37 @@ Cron: recordatorios mensuales del módulo de préstamos. Hace DOS trabajos, cada
 uno en su día del mes; corre a diario y el script decide si hay algo que hacer.
 
 1) Pagos de préstamos (día PRESTAMOS_DIA_RECORDATORIO, default 5)
-   ── UN ticket con todas las cuotas que vencen ese mes, de todos los préstamos
-   vigentes, asignado a quien monta los pagos en Sucursal Negocios.
-2) Declaración de retención en la fuente (día PRESTAMOS_DIA_AVISO_RETENCIONES,
-   default 3, sobre el mes ANTERIOR)
-   ── UN ticket con lo practicado y el detalle por tercero para el formulario
-   350, para pasárselo al contador. NO codifica el calendario tributario: los
-   vencimientos van por último dígito del NIT y cambian cada año por decreto,
-   así que avisa temprano y el contador pone la fecha.
+   ── las cuotas que vencen ese mes, de todos los préstamos vigentes, quedan
+   como borrador en Contabilidad → Solicitudes de pago; cada una sale en «Por
+   hacer» el día que vence (antes solo en «Borradores»), y de ahí se envía a
+   aprobación y se gira. NO abre ticket (desde el 2026-10-09): el
+   ticket remitía a una pestaña que ocultaba esos borradores y la cuota venció
+   sin montarse. Un aviso al grupo de sistemas por WhatsApp, nada más.
+2) Declaración de retención en la fuente del mes ANTERIOR (a diario desde el
+   día PRESTAMOS_DIA_AVISO_RETENCIONES, default 3)
+   ── un RECORDATORIO en la Agenda de quien coordina con el contador, con la
+   cuenta regresiva en el título (se reescribe cada día). El día que vence
+   (PRESTAMOS_RETENCIONES_DIAS_URGENTE días antes, default 0) pasa a solicitud
+   urgente con el detalle para el formulario 350. Antes era un ticket desde el
+   día 3 con «quedan 16 días» congelado (TKT-2026-1645).
 
 Van juntos en un solo script para no sumar dos entradas de crontab por lo mismo.
 
-Un día fijo del mes (PRESTAMOS_DIA_RECORDATORIO, default 5) crea UN ticket en
-el Centro de Mando, asignado a quien monta los pagos en Sucursal Negocios
-(PRESTAMOS_USUARIO_PAGOS, default `jerry` = Jenniffer García), listando todas
-las cuotas que vencen ese mes de todos los préstamos vigentes: prestamista,
-cédula, cuenta bancaria, valor a girar y retención practicada.
-
-Deliberadamente UN solo ticket al mes y no uno por préstamo ni uno por cuota:
-despachos monta todas las transferencias en la misma sesión del banco, y N
-tickets para N transferencias del mismo día es ruido, no control. Tampoco se
-crea ticket si no hay cuotas pendientes — un ticket vacío cada mes entrena a
-la gente a ignorar la bandeja.
-
-Idempotente por período: si el ticket del mes ya existe (marca
-`SYS_PRESTAMOS_PAGOS_MES: YYYY-MM` en la descripción) no crea otro, así que
-puede correr todos los días sin riesgo.
+Idempotente: cada cuota se monta una sola vez (`origen_ref` de la solicitud),
+así que puede correr todos los días sin riesgo.
 
 Uso típico (crontab, desde la raíz del repo):
   30 7 * * * cd /ruta/mi-agente && ./venv/bin/python scripts/prestamos_recordatorio_cron.py >>log_cron.txt 2>&1
 
 Variables:
   PRESTAMOS_RECORDATORIO_ACTIVO=0  — desactiva sin tocar el crontab (default: activo)
-  PRESTAMOS_DIA_RECORDATORIO       — día del mes en que avisa (default 5)
-  PRESTAMOS_USUARIO_PAGOS          — username del panel que monta los pagos (default jerry)
-  PRESTAMOS_DIA_AVISO_RETENCIONES  — día del mes en que avisa lo de retenciones (default 3)
+  PRESTAMOS_DIA_RECORDATORIO       — día del mes en que monta las cuotas (default 5)
+  PRESTAMOS_DIA_AVISO_RETENCIONES  — desde qué día del mes avisa lo de retenciones (default 3)
+  PRESTAMOS_RETENCIONES_DIAS_URGENTE — días antes del vencimiento en que pasa a solicitud (default 0 = ese día)
   PRESTAMOS_USUARIO_CONTABILIDAD   — username que coordina con el contador (si no, Sistemas → Aliados)
   PRESTAMOS_RECORDATORIO_SKIP_WA=1 — no envía WhatsApp (pruebas)
   --forzar                         — ignora el día del mes (corrida manual)
-  --dry-run                        — muestra qué haría, sin crear ticket ni WhatsApp
+  --dry-run                        — muestra qué haría, sin montar nada ni WhatsApp
 """
 
 from __future__ import annotations
@@ -96,39 +88,42 @@ def _mes_anterior(hoy: date) -> tuple[int, int]:
 
 
 def _tarea_retenciones(hoy: date, forzar: bool, dry_run: bool) -> int:
-    """Ticket con la retención practicada el mes pasado, para declararla."""
-    if hoy.day != _dia_retenciones() and not forzar:
+    """Recordatorio de la declaración de retención del mes pasado, con cuenta
+    regresiva; el día que vence pasa a solicitud urgente. Corre a diario desde
+    el día PRESTAMOS_DIA_AVISO_RETENCIONES (los días anteriores no hay nada
+    que avisar: el período anterior todavía se está cerrando)."""
+    if hoy.day < _dia_retenciones() and not forzar:
         return 0
 
-    from app.services.prestamos import crear_ticket_retenciones_mes
+    from app.services.prestamos import recordatorio_retenciones_mes
 
     anio, mes = _mes_anterior(hoy)
     try:
-        r = crear_ticket_retenciones_mes(anio, mes, dry_run=dry_run)
+        r = recordatorio_retenciones_mes(anio, mes, dry_run=dry_run)
     except Exception as e:
         print(f"❌ Aviso de retenciones falló: {e}", flush=True)
-        _avisar_whatsapp(f"❌ El aviso mensual de retenciones de préstamos falló: {e}")
+        _avisar_whatsapp(f"❌ El aviso de la declaración de retención falló: {e}")
         return 1
 
     if not r.get("ok"):
         print(f"❌ {r.get('error')}", flush=True)
-        _avisar_whatsapp(f"❌ No se pudo crear el ticket de retenciones: {r.get('error')}")
+        _avisar_whatsapp(f"❌ No se pudo avisar la declaración de retención: {r.get('error')}")
         return 1
 
-    if not r.get("creado"):
-        if r.get("dry_run"):
-            res = r.get("resumen", {})
-            print(f"[dry-run retenciones {r.get('periodo')}] total ${res.get('total_retencion', 0):,.0f}")
-            print(r.get("descripcion", ""))
-        else:
-            print(f"Retenciones sin novedad ({r.get('motivo')}) — período {r.get('periodo')}", flush=True)
+    accion, periodo = r.get("accion"), r.get("periodo")
+    if r.get("dry_run"):
+        print(f"[dry-run retenciones {periodo}] {accion}: {r.get('titulo') or r.get('descripcion', '')}")
         return 0
-
-    msg = (
-        f"🧾 Ticket #{r.get('ticket_id')} — Declarar retención en la fuente {r.get('periodo')}\n"
-        f"{r.get('terceros')} prestamista(s), total a declarar "
-        f"${round(r.get('total_retencion') or 0):,}".replace(",", ".")
-    )
+    if accion == "creado":
+        msg = (
+            f"🗓️ Declaración de retención {periodo}: vence el {r.get('vence')}. Quedó como "
+            "recordatorio en la Agenda con la cuenta regresiva; el día que vence pasa a solicitud urgente."
+        )
+    elif accion == "ticket" and r.get("ticket_id"):
+        msg = f"🧾 Hoy vence la declaración de retención {periodo}: solicitud urgente #{r.get('ticket_id')}."
+    else:
+        print(f"Retenciones {periodo}: {accion} ({r.get('motivo') or r.get('titulo') or ''})", flush=True)
+        return 0
     print(msg, flush=True)
     _avisar_whatsapp(msg)
     return 0
@@ -172,27 +167,35 @@ def main() -> int:
 
     if not r.get("ok"):
         print(f"❌ {r.get('error')}", flush=True)
-        _avisar_whatsapp(f"❌ No se pudo crear el ticket de pagos de préstamos: {r.get('error')}")
+        _avisar_whatsapp(f"❌ No se pudieron montar las cuotas de préstamos: {r.get('error')}")
         return 1
 
-    if not r.get("creado"):
-        if r.get("dry_run"):
-            print(f"[dry-run] {r.get('cuotas')} cuota(s), total a girar ${r.get('total_girar', 0):,.0f}")
-            print(r.get("descripcion", ""))
-        else:
-            # "sin cuotas pendientes" y "ya existe" son el camino normal, no anomalías
-            print(f"Sin novedad ({r.get('motivo')}) — período {r.get('periodo')}", flush=True)
+    if r.get("dry_run"):
+        print(f"[dry-run] {r.get('cuotas')} cuota(s), total a girar ${r.get('total_girar', 0):,.0f}")
+        print("\n".join(r.get("detalle") or []))
         return rc
+
+    fallidas = r.get("fallidas") or 0
+    if fallidas:
+        _avisar_whatsapp(
+            f"⚠️ {fallidas} cuota(s) de préstamos {r.get('periodo')} no se pudieron montar en "
+            "Solicitudes de pago (ver log_cron.txt). Siguen pendientes en Contabilidad → Préstamos."
+        )
+
+    if not r.get("creado"):
+        # "sin cuotas pendientes" y "ya estaban montadas" son el camino normal, no anomalías
+        print(f"Sin novedad ({r.get('motivo')}) — período {r.get('periodo')}", flush=True)
+        return 1 if fallidas else rc
 
     total = r.get("total_girar") or 0
     msg = (
-        f"🎫 Ticket #{r.get('ticket_id')} — Pagos de préstamos {r.get('periodo')}\n"
-        f"{r.get('cuotas')} cuota(s) por montar en Sucursal Negocios, "
-        f"total a girar ${round(total):,}".replace(",", ".")
+        f"💸 Pagos de préstamos {r.get('periodo')}: {r.get('cuotas')} cuota(s) montadas en "
+        "Contabilidad → Solicitudes de pago; cada una sale en «Por hacer» el día que vence. "
+        f"Total del mes ${round(total):,}".replace(",", ".")
     )
     print(msg, flush=True)
     _avisar_whatsapp(msg)
-    return rc
+    return 1 if fallidas else rc
 
 
 if __name__ == "__main__":

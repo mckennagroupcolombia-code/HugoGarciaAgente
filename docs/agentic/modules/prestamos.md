@@ -247,10 +247,19 @@ contador en el portal — pero evita que nadie se entere tarde:
   ticket lo dice en rojo — revisar **antes** de declarar.
 - **Avisa si hay documentos soporte sin emitir:** declarar la retención mientras el
   soporte sigue en modo sombra deja el gasto por intereses expuesto en una revisión.
-- `crear_ticket_retenciones_mes()` abre el ticket (categoría `contabilidad`,
-  idempotente por período con la marca `SYS_PRESTAMOS_RETENCIONES_MES: YYYY-MM`),
-  asignado a `PRESTAMOS_USUARIO_CONTABILIDAD` o, si no está, a quien tenga la tarea
-  `prestamos_declarar_retenciones` en Sistemas → Aliados.
+- **Recordatorio con cuenta regresiva, solicitud solo el día que vence (2026-10-09).**
+  `recordatorio_retenciones_mes()` corre a diario desde el día 3: deja un recordatorio
+  (Agenda → «Me espera», fecha = vencimiento) a `PRESTAMOS_USUARIO_CONTABILIDAD` o a quien
+  tenga la tarea `prestamos_declarar_retenciones` en Sistemas → Aliados, y le reescribe el
+  título cada día («quedan N días (vence 19-oct)»). El día que vence
+  (`PRESTAMOS_RETENCIONES_DIAS_URGENTE` días antes, default 0) llama a
+  `crear_ticket_retenciones_mes(urgente=True)`: solicitud **urgente** (o sube a urgente la
+  que esté abierta) y cierra el recordatorio. Recordatorio cerrado o borrado = no se
+  recrea. Nació de TKT-2026-1645: abierto el 3-oct con «quedan 16 días» congelado, era una
+  solicitud que no pedía nada todavía; se pasó a recordatorio (#25) el 9-oct.
+  La marca `SYS_PRESTAMOS_RETENCIONES_MES: YYYY-MM` va en la descripción del
+  recordatorio y del ticket. Sin fecha confirmada (año sin calendario) no hay cuenta
+  regresiva: se abre la solicitud como antes.
 
 ### Calendario de vencimientos
 
@@ -283,8 +292,8 @@ siguiente (`fecha_limite_certificado_retenciones()`; DUR 1625 Art. 1.6.1.13.2.40
 mod. D.R. 2229 de 2023). Para el año gravable 2026: **31-mar-2027**. La función solo
 descuenta fines de semana, no festivos.
 
-El cron es el **mismo script diario** que el recordatorio de pagos
-(`scripts/prestamos_recordatorio_cron.py`), con dos días distintos: pagos el 5,
+El cron es el **mismo script diario** que monta las cuotas en Solicitudes de pago
+(`scripts/prestamos_recordatorio_cron.py`), con dos días distintos: cuotas el 5,
 retenciones el 3 sobre el mes anterior. Las dos tareas son independientes — que una
 falle no impide la otra.
 
@@ -343,7 +352,7 @@ no se recoge.
 | `app/tools/correo_marca.py` | Marco visual y firma de los correos a terceros (compartido con pedidos web) |
 | `tests/test_prestamos_pdf.py` | 3 tests: contrato firmado, retención sin jerga, orden del contenido |
 | `tests/test_correo_marca.py` | 4 tests: marca, escape del preheader, firma con persona, plantilla única |
-| `scripts/prestamos_recordatorio_cron.py` | Dos tickets mensuales: pagos a despachos (día 5) y declaración de retención (día 3) |
+| `scripts/prestamos_recordatorio_cron.py` | Día 5: las cuotas del mes quedan como borrador en Solicitudes de pago (sin ticket). Día 3: ticket de declaración de retención |
 | `desktop/src/components/PrestamosCronogramaPanel.tsx` | Panel con simulador en vivo, cronograma y documentos |
 | `app/services/calendario_tributario.py` | Vencimientos DIAN de retención (año gravable 2026) |
 | `tests/test_calendario_tributario.py` | 18 tests: DV del NIT, fines de semana, orden por dígito, no extrapolar |
@@ -378,9 +387,18 @@ Endpoints: `/api/prestamos` (GET/POST), `/api/prestamos/<id>`,
 - **El envío de correo al tercero NO es automático.** Se genera el PDF siempre,
   pero mandarlo pide confirmación explícita en el panel: es correspondencia
   financiera y un documento equivocado ya enviado no se recoge.
-- **Un solo ticket mensual, no uno por préstamo.** Despachos monta todas las
-  transferencias en la misma sesión del banco; N tickets el mismo día es ruido.
-  Deduplicado por período con la marca `SYS_PRESTAMOS_PAGOS_MES: YYYY-MM`.
+- **Las cuotas del mes van a Solicitudes de pago, sin ticket (2026-10-09).** El día 5
+  cada cuota del mes queda como borrador (`origen_ref = prestamo:<id>:cuota:<n>`,
+  idempotente) y aparece en **«Por hacer»** recién **el día que vence** (antes solo en
+  «Borradores»: una cuota de dentro de diez días no es pendiente de hoy, decisión del
+  usuario 9-oct); de ahí se envía a aprobación y se gira como cualquier pago. Hasta esa fecha el cron
+  además abría un ticket a despachos que decía «están en Borradores», mientras el
+  panel ocultaba justo esos borradores: la cuota 1 de Antonio Ruiz (9-oct) venció sin
+  que Jenniffer pudiera verla (TKT-2026-1652, preguntó el 6-oct y nadie respondió).
+  Criterio del usuario: lo que se le pide a alguien vive en el panel donde se hace;
+  un ticket que remite a otra pantalla es un paso más que se pierde. Aviso: solo
+  WhatsApp al grupo de sistemas. La cuota no se corrige con el formulario de pago
+  (sale del cronograma): se corrige en Préstamos.
 - **Las cuotas se pagan en orden.** Pagar la 7 dejando pendiente la 3
   descuadraría el saldo del cronograma contra el saldo real del pasivo.
 - **No se genera pagaré.** Un pagaré es título valor con requisitos propios
@@ -448,9 +466,11 @@ Endpoints: `/api/prestamos` (GET/POST), `/api/prestamos/<id>`,
   └─ Pagar cuota → asiento capital(2195/2355) + interés(530520) + retención(236535) + banco
 
 scripts/prestamos_recordatorio_cron.py   (corre a diario, dos trabajos)
-  ├─ día 5  → UN ticket a despachos (PRESTAMOS_USUARIO_PAGOS, default `jerry`) con
-  │           todas las cuotas del mes: prestamista, cédula, cuenta, valor a girar
-  └─ día 3  → UN ticket de contabilidad con la retención practicada el mes ANTERIOR,
+  ├─ día 5  → cada cuota del mes queda como borrador en Contabilidad → Solicitudes
+  │           de pago, sin ticket; sale en «Por hacer» el día que vence. Aviso por WhatsApp
+  │           al grupo de sistemas
+  └─ día 3+ → recordatorio con cuenta regresiva; el día que vence, solicitud urgente con la
+              retención practicada el mes ANTERIOR,
               detalle por tercero para el formulario 350 + control contra la cuenta
               2365 + fecha exacta de vencimiento (app/services/calendario_tributario.py,
               año gravable 2026 cargado). Sube a prioridad crítica si vence en ≤5 días
@@ -518,8 +538,8 @@ decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 
 **Detalle completo: `docs/agentic/modules/prestamos.md`.** Panel Contabilidad → Préstamos
 (`PrestamosCronogramaPanel.tsx`, `app/services/prestamos.py`); cron
-`scripts/prestamos_recordatorio_cron.py` (día 5 ticket de pagos a despachos, día 3 ticket de
-retenciones del mes anterior). Condiciones vigentes: 25% E.A., 24 cuotas, capital 30/70, retención
+`scripts/prestamos_recordatorio_cron.py` (día 5 las cuotas del mes quedan en Solicitudes de pago,
+sin ticket, y cada una sale en «Por hacer» el día que vence; día 3 ticket de retenciones del mes anterior). Condiciones vigentes: 25% E.A., 24 cuotas, capital 30/70, retención
 7% a cargo del prestamista contra **236535**. Documento soporte solo por los **intereses** y solo a
 persona natural no obligada a facturar (`PRESTAMOS_DOC_SOPORTE_ACTIVO=0`, sombra). Identidad
 fiscal solo en `app/services/empresa.py`; dígito del calendario DIAN = **6** (no el DV 3).

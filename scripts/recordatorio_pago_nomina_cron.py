@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 """
-Cron: recordatorio + ticket de aprobación para el pago de nómina (quincenal),
-asignado a Jenniffer (jerry). Antes esto se creaba a mano cada quincena desde
-el panel ("APROBAR PAGO DE NOMINA" / "APROBAR PAGO NOMINA", solo 2 veces en
-todo el historial: 15-jul-2026 y 31-jul-2026) — no había nada que lo generara
-solo, así que dependía por completo de que alguien se acordara.
+Cron: monta los pagos de la quincena (prestación de servicios) como borradores
+en Contabilidad → Solicitudes de pago, donde aparecen en «Por hacer» para que
+Jenniffer (jerry) verifique el periodo y las novedades, ajuste el monto y los
+envíe a aprobación.
 
-A diferencia del cron de pago al contador (scripts/recordatorio_pago_contador_cron.py),
-acá NO hay una fuente externa (correo/factura) de la que sacar el monto exacto:
-la tabla `empleados` de app/services/contabilidad_db.py está vacía en la
-práctica (nadie la usa para calcular nómina real), así que este cron solo
-puede recordar la fecha — quien lo reciba debe calcular/verificar el monto
-antes de aprobar el giro.
+**No abre ticket (desde el 9-oct-2026).** Antes creaba uno «urgente» que decía
+«están en Borradores»; el panel ocultaba borradores del sistema y la cuota de un
+préstamo venció sin que nadie la viera (TKT-2026-1652). Lo que se le pide a
+alguien vive en el panel donde se hace; el aviso es un WhatsApp al grupo de
+contabilidad.
 
-Dispara únicamente los dos días de pago de nómina (mismo patrón de "cierre de
-quincena" que ya usa scripts/informe_reposicion_mensual_cron.py para fin de
-mes):
+Quién cobra y cuánto vive en las plantillas de pago recurrente («¿Este pago se
+repite? → Quincenal» en el panel), no en este script. Si no hay ninguna, el
+WhatsApp lo dice y no se monta nada.
+
+Dispara únicamente los dos días de pago (mismo patrón de "cierre de quincena"
+que ya usa scripts/informe_reposicion_mensual_cron.py para fin de mes):
   - Día 15 de cada mes (primera quincena)
   - Último día calendario del mes (segunda quincena)
 
@@ -72,11 +73,13 @@ def _leer_estado() -> dict:
         with open(ESTADO_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
             if isinstance(data, dict):
+                # «tickets_creados» queda como historia de cuando se avisaba con ticket
                 data.setdefault("tickets_creados", {})
+                data.setdefault("avisadas", {})
                 return data
     except Exception:
         pass
-    return {"tickets_creados": {}}
+    return {"tickets_creados": {}, "avisadas": {}}
 
 
 def _guardar_estado(data: dict) -> None:
@@ -87,74 +90,49 @@ def _guardar_estado(data: dict) -> None:
     os.replace(tmp, ESTADO_PATH)
 
 
-def _crear_ticket_nomina(quincena: str) -> int | None:
-    from app.services import tickets_db as tdb
+def _montar_quincena(quincena: str, hoy: datetime) -> list[dict]:
+    """Borradores de la quincena en Solicitudes de pago (idempotente por plantilla y periodo).
+
+    McKenna NO tiene trabajadores formales: lo que se paga cada quincena es
+    prestación de servicios (5135, retención de servicios 4%/6%), no nómina
+    (5105, que afirmaría una relación laboral que no existe).
+    """
     import sqlite3
+
+    from app.services import pagos_wizard as _pw
+    from app.services import tickets_db as tdb
 
     tdb.init_db()
     with sqlite3.connect(tdb.DB_PATH) as db:
         db.row_factory = sqlite3.Row
         admin_row = db.execute("SELECT id FROM usuarios WHERE username='admin'").fetchone()
-        jerry_row = db.execute("SELECT id FROM usuarios WHERE username='jerry'").fetchone()
-    creado_por = admin_row["id"] if admin_row else None
-    asignado_a = jerry_row["id"] if jerry_row else None
-    if not creado_por:
-        print("🔴 No existe usuario 'admin' — no se pudo crear el ticket.")
-        return None
-
-    # McKenna NO tiene trabajadores formales: lo que se paga cada quincena es
-    # prestación de servicios (5135, retención de servicios 4%/6%), no nómina
-    # (5105, que afirmaría una relación laboral que no existe). Quién cobra y
-    # cuánto vive en las plantillas de pago recurrente, no dentro de este
-    # script: agregar o quitar a alguien no debería ser un cambio de código.
-    from app.services import pagos_wizard as _pw
-
-    borradores = _pw.instanciar_plantillas_de(
-        "nomina", quincena, fecha=datetime.now().strftime("%Y-%m-%d"), created_by=creado_por
+    return _pw.instanciar_plantillas_de(
+        "nomina", quincena, fecha=hoy.strftime("%Y-%m-%d"),
+        created_by=admin_row["id"] if admin_row else None, frecuencia="quincenal",
     )
-    nuevos = [b for b in borradores if not b.get("ya_existia")]
 
-    if borradores:
-        filas = "\n".join(
-            f"- {b['concepto']}" + (f" — {b['tercero']['nombre']}" if b.get("tercero") else "")
-            for b in borradores
-        )
-        descripcion = (
-            f"Pagos por prestación de servicios de la quincena {quincena}: "
-            f"**{len(borradores)}**.\n\n{filas}\n\n"
-            "Ya están como **borrador** en **Contabilidad → Solicitudes de pago**, "
-            "filtro «Borradores».\n\n"
-            "Para cada uno: verifica el periodo trabajado y las novedades, ajusta el "
-            "monto si cambió y envíalo a aprobación. Ahí se ve el asiento exacto "
-            "(5135 con la retención de servicios) antes de confirmar.\n\n"
-            "**Los montos no van en este ticket a propósito**: viven en la solicitud, "
-            "donde se pueden corregir. Un número copiado acá envejecería sin avisar."
-        )
-    else:
-        descripcion = (
-            f"Toca pagar la quincena {quincena} por prestación de servicios, pero "
-            "**no hay plantillas de pago recurrente configuradas**, así que no se "
-            "montó ningún borrador.\n\n"
-            "Créalas una sola vez en **Contabilidad → Solicitudes de pago**: una por "
-            "persona, categoría «Prestación de servicios», marcada como recurrente "
-            "quincenal. De ahí en adelante el sistema las monta solo cada quincena.\n\n"
-            "⚠️ **No usar la categoría «Nómina»**: McKenna no tiene trabajadores "
-            "formales y esa cuenta (5105) afirmaría una relación laboral que no existe."
-        )
 
-    data = {
-        "tipo": "solicitud",
-        "titulo": f"Prestación de servicios — quincena {quincena}",
-        "categoria": "logistica",
-        "descripcion": descripcion,
-        "prioridad": "urgente",
-        "asignado_a": asignado_a,
-    }
-    ticket, error = tdb.crear_ticket(data, creado_por, None)
-    if error:
-        print(f"🔴 No se pudo crear el ticket de nómina: {error}")
-        return None
-    return ticket["id"]
+def _mensaje(quincena: str, borradores: list[dict]) -> str:
+    if not borradores:
+        return (
+            f"⚠️ *Prestación de servicios — quincena {quincena}*\n\n"
+            "Toca pagar la quincena, pero no hay pagos recurrentes configurados, así que no "
+            "se montó nada.\n"
+            "Créalos una sola vez en Contabilidad → Solicitudes de pago: uno por persona, "
+            "categoría «Prestación de servicios», y en «¿Este pago se repite?» elige "
+            "*Quincenal*. De ahí en adelante se montan solos cada quincena.\n"
+            "No usar «Nómina»: McKenna no tiene trabajadores formales (5105)."
+        )
+    filas = "\n".join(
+        f"• {b['concepto']}" + (f" — {b['tercero']['nombre']}" if b.get("tercero") else "")
+        for b in borradores
+    )
+    return (
+        f"💸 *Prestación de servicios — quincena {quincena}*\n\n"
+        f"{len(borradores)} pago(s) en Contabilidad → Solicitudes de pago → «Por hacer»:\n"
+        f"{filas}\n\n"
+        "Verifica el periodo y las novedades, ajusta el monto si cambió y envíalo a aprobación."
+    )
 
 
 def main() -> int:
@@ -175,27 +153,20 @@ def main() -> int:
         registrar_ejecucion(JOB_ID)
         return 0
 
-    estado = _leer_estado()
-    if estado["tickets_creados"].get(quincena):
-        print(f"✅ Ya existe ticket para {quincena} (ticket #{estado['tickets_creados'][quincena]}).")
-        registrar_ejecucion(JOB_ID)
-        return 0
+    borradores = _montar_quincena(quincena, hoy)
+    print(f"✅ Quincena {quincena}: {len(borradores)} pago(s) en Solicitudes de pago.")
 
-    tid = _crear_ticket_nomina(quincena)
-    if tid:
-        estado["tickets_creados"][quincena] = tid
-        _guardar_estado(estado)
-        print(f"✅ Ticket #{tid} creado: APROBAR PAGO NOMINA ({quincena}).")
+    # Los borradores no se duplican (origen_ref); el WhatsApp sí se repetiría si
+    # el cron corre dos veces el mismo día, por eso se anota a qué quincena ya se avisó.
+    estado = _leer_estado()
+    if not estado["avisadas"].get(quincena):
         if not _quiet():
             from app.utils import enviar_whatsapp_reporte
 
             grupo = os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us")
-            mensaje = (
-                f"🎫 *Pago de nómina — {quincena}*\n\n"
-                f"Se creó el ticket de aprobación de pago de nómina para esta quincena.\n"
-                f"Revisar en Centro de Mando → Solicitudes."
-            )
-            enviar_whatsapp_reporte(mensaje, grupo)
+            enviar_whatsapp_reporte(_mensaje(quincena, borradores), grupo)
+        estado["avisadas"][quincena] = [b["id"] for b in borradores]
+        _guardar_estado(estado)
 
     registrar_ejecucion(JOB_ID)
     return 0

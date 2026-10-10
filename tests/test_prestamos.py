@@ -7,6 +7,8 @@ prestamista.
 """
 from __future__ import annotations
 
+import sqlite3
+
 import pytest
 
 from app.services.prestamos import (
@@ -518,17 +520,40 @@ def test_mes_sin_retenciones_no_crea_ticket(mods):
     assert r["motivo"] == "sin retenciones practicadas"
 
 
-def test_las_dos_marcas_de_ticket_no_se_pisan(mods):
-    # Pagos y retenciones son tickets distintos del mismo mes: si compartieran
-    # marca, crear uno bloquearía el otro.
+def test_las_cuotas_del_mes_quedan_en_solicitudes_de_pago_sin_ticket(mods, monkeypatch, tmp_path):
+    # 2026-10-09: el cron abría un ticket que decía «están en Solicitudes de
+    # pago → Borradores», el panel ocultaba esos borradores y la cuota 1 de
+    # Antonio Ruiz venció sin que nadie pudiera montarla (TKT-2026-1652). El
+    # aviso es la solicitud misma, en el panel donde se trabaja.
     cc, pr, tercero, medio = mods
-    assert pr.MARCA_TICKET != pr.MARCA_TICKET_RETENCIONES
-    _pagar_primera_cuota(pr, cc, tercero, medio)
-    pagos = pr.crear_recordatorio_pagos_mes(2026, 11, dry_run=True)
-    retens = pr.crear_ticket_retenciones_mes(2026, 10, dry_run=True)
-    assert pr.MARCA_TICKET in pagos["descripcion"]
-    assert pr.MARCA_TICKET_RETENCIONES in retens["descripcion"]
-    assert pr.MARCA_TICKET_RETENCIONES not in pagos["descripcion"]
+    from app.services import pagos_wizard as pw
+    from app.services import tickets_db
+
+    monkeypatch.setattr(pw, "_DB_PATH", cc._DB_PATH)
+    monkeypatch.setattr(pw, "_initialized", False, raising=False)
+    monkeypatch.setattr(tickets_db, "DB_PATH", str(tmp_path / "tickets_test.db"))
+    tickets_db.init_db()
+    p = _crear(pr, tercero, medio)
+    c = p["cuotas"][0]
+    anio, mes = (int(x) for x in c["fecha_vencimiento"][:7].split("-"))
+
+    r = pr.crear_recordatorio_pagos_mes(anio, mes, forzar_futuro=True)
+
+    assert r["ok"] and r["creado"] and r["cuotas"] == 1 and r["fallidas"] == 0
+    assert "ticket_id" not in r
+    with sqlite3.connect(tickets_db.DB_PATH) as db:
+        assert db.execute("SELECT COUNT(*) FROM tickets").fetchone()[0] == 0
+    sol = pw.obtener(r["borradores"][0])
+    assert sol["estado"] == "borrador" and sol["categoria"] == "cuota_prestamo"
+    assert sol["origen_ref"] == f"prestamo:{p['id']}:cuota:1"
+    assert sol["origen_sistema"] == "prestamos"
+    assert pr.obtener_prestamo(p["id"])["cuotas"][0]["estado"] == "solicitada"
+
+    # Correrlo otra vez no duplica la solicitud
+    otra = pr.crear_recordatorio_pagos_mes(anio, mes, forzar_futuro=True)
+    assert otra["ok"] and not otra["creado"]
+    assert otra["borradores"] == r["borradores"]
+    assert len([s_ for s_ in pw.listar("borrador") if s_["categoria"] == "cuota_prestamo"]) == 1
 
 
 def test_ticket_retenciones_marca_urgencia_si_esta_por_vencer(mods, monkeypatch):
@@ -1018,3 +1043,60 @@ def test_aprobar_la_solicitud_de_una_cuota_separa_interes_retencion_y_reteica(mo
     assert por_cuenta["2368"]["credito"] == pytest.approx(2_072, abs=1)
     assert por_cuenta["1110"]["credito"] == pytest.approx(422_482, abs=1)
     assert cc.balance_comprobacion()["cuadra"]
+
+
+def test_la_declaracion_es_recordatorio_con_cuenta_regresiva_y_solicitud_el_dia_que_vence(
+    mods, monkeypatch, tmp_path,
+):
+    # 2026-10-09: TKT-2026-1645 se abrió el 3-oct con «quedan 16 días» congelado
+    # en el texto. Ahora es un recordatorio que se reescribe cada día y solo el
+    # día que vence pasa a solicitud urgente.
+    _cc, pr, _tercero, _medio = mods
+    from app.services import retenciones as ret
+    from app.services import tickets_db
+
+    monkeypatch.setattr(tickets_db, "DB_PATH", str(tmp_path / "tickets_test.db"))
+    tickets_db.init_db()
+    monkeypatch.setenv("PRESTAMOS_USUARIO_CONTABILIDAD", "admin")
+    monkeypatch.delenv("PRESTAMOS_RETENCIONES_DIAS_URGENTE", raising=False)
+    dias = {"n": 10}
+
+    def _resumen(anio, mes):
+        n = dias["n"]
+        return {
+            "total_retencion": 50_000.0, "terceros": [], "por_concepto": {"servicios": 50_000.0},
+            "sin_tercero": 0,
+            "vencimiento": {"conocido": True, "fecha": "2026-10-19", "dias_restantes": n,
+                            "estado": "hoy" if n == 0 else "en_plazo", "nit": "901.316.016-3",
+                            "ultimo_digito": 6, "fuente": ""},
+        }
+
+    monkeypatch.setattr(ret, "resumen_periodo", _resumen)
+
+    def _tickets():
+        with sqlite3.connect(tickets_db.DB_PATH) as db:
+            return db.execute("SELECT id, prioridad, titulo FROM tickets").fetchall()
+
+    r = pr.recordatorio_retenciones_mes(2026, 9)
+    assert r["accion"] == "creado"
+    rec = pr._recordatorio_retenciones("2026-09")
+    assert rec["activo"] == 1 and rec["proxima_fecha"] == "2026-10-19"
+    assert "quedan 10 días (vence 19-oct)" in rec["titulo"]
+    assert _tickets() == []
+
+    dias["n"] = 9
+    assert pr.recordatorio_retenciones_mes(2026, 9)["accion"] == "actualizado"
+    assert "quedan 9 días" in pr._recordatorio_retenciones("2026-09")["titulo"]
+    assert pr.recordatorio_retenciones_mes(2026, 9)["accion"] == "sin_cambio"
+
+    dias["n"] = 0
+    r = pr.recordatorio_retenciones_mes(2026, 9)
+    assert r["accion"] == "ticket" and r["creado"]
+    (tid, prioridad, titulo), = _tickets()
+    assert prioridad == "urgente" and titulo.startswith("URGENTE")
+    assert pr._recordatorio_retenciones("2026-09")["activo"] == 0
+
+    # Al día siguiente no vuelve a crear nada
+    dias["n"] = -1
+    assert pr.recordatorio_retenciones_mes(2026, 9)["accion"] == "nada"
+    assert len(_tickets()) == 1

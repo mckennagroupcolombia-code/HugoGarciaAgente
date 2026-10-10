@@ -2201,21 +2201,25 @@ def crear_borrador_idempotente(payload: dict, created_by: int | None = None) -> 
     return crear_solicitud({**payload, "estado": "borrador"}, created_by=created_by)
 
 
-def listar_plantillas(origen_sistema: str | None = None) -> list[dict]:
+def listar_plantillas(origen_sistema: str | None = None, frecuencia: str | None = None) -> list[dict]:
     """Pagos recurrentes guardados, para ofrecerlos al montar un pago del mes."""
     _ensure()
     sql = "SELECT id FROM cc_solicitudes_pago WHERE es_plantilla=1"
     args: tuple = ()
     if origen_sistema:
         sql += " AND origen_sistema=?"
-        args = (origen_sistema,)
+        args += (origen_sistema,)
+    if frecuencia:
+        sql += " AND frecuencia=?"
+        args += (frecuencia,)
     with _conn() as con:
         ids = [int(r["id"]) for r in con.execute(sql + " ORDER BY concepto", args)]
     return [obtener(i) for i in ids if obtener(i)]
 
 
 def instanciar_plantillas_de(
-    origen_sistema: str, periodo: str, fecha: str | None = None, created_by: int | None = None
+    origen_sistema: str, periodo: str, fecha: str | None = None, created_by: int | None = None,
+    *, frecuencia: str | None = None,
 ) -> list[dict]:
     """Monta los borradores del período para todas las plantillas de un origen.
 
@@ -2226,9 +2230,17 @@ def instanciar_plantillas_de(
 
     Best-effort por plantilla: que una falle no puede dejar sin montar a las
     demás ni impedir el aviso.
+
+    Con `frecuencia` también toma las plantillas de esa frecuencia que no
+    tienen origen: el panel guarda «¿Este pago se repite? → Quincenal» sin
+    `origen_sistema`, y el cron de la quincena, que solo buscaba «nomina», no
+    las habría encontrado nunca (9-oct-2026).
     """
+    planes = {p["id"]: p for p in listar_plantillas(origen_sistema)}
+    if frecuencia:
+        planes.update({p["id"]: p for p in listar_plantillas(frecuencia=frecuencia)})
     out: list[dict] = []
-    for plan in listar_plantillas(origen_sistema):
+    for plan in planes.values():
         try:
             out.append(
                 instanciar_plantilla(

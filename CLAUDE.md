@@ -168,7 +168,7 @@ generó un gasto de decenas de dólares sin aviso previo.
 | Auditoría estática | `app/tools/script_audit.py`, `app/data/scripts_manifest.json` | `py_compile` sin ejecutar `main`; herramienta `auditar_scripts` en Claude. |
 | Cron auditoría | `scripts/auditar_scripts_cron.py`, `scripts/instalar_cron_mcKenna.sh` | Diario (ej. 7:15); log en `log_cron.txt`; WhatsApp si hay fallos. |
 | Backup 2:00 + Git | `app/tools/backup_drive.py` | Tar en `backups_drive/` (no git), Drive opcional; luego `git add/commit/push` si hay cambios. |
-| Cron pagos préstamos | `scripts/prestamos_recordatorio_cron.py` | Día 5 (configurable); un ticket mensual a despachos con las cuotas del mes. Idempotente por período. |
+| Cron pagos préstamos | `scripts/prestamos_recordatorio_cron.py` | Día 5 (configurable): las cuotas del mes quedan como borrador en Solicitudes de pago; cada una sale en «Por hacer» **el día que vence**. **Sin ticket** (9-oct: el ticket mandaba a una pestaña que las ocultaba). Idempotente por cuota. |
 | Conexiones (panel) | `app/services/conexiones.py`, `/api/conexiones` | Sistemas → Conexiones: prueba EN VIVO las 12 integraciones (WhatsApp ×2, MeLi, Gmail, Google SA, Alegra, Siigo, MP, SMTP, Claude, Gemini, túnel) sin gastar tokens, y guía la reconexión (QR, OAuth incrustado o pasos). Integración nueva → agregarla a `CONEXIONES`. |
 | Grupo WhatsApp | `jid_grupo_alertas_sistemas_wa()` | Mismo JID para mensaje de backup y alertas de auditoría cron. |
 

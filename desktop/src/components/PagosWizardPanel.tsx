@@ -128,6 +128,26 @@ const EN_GIRO = new Set(["aprobada", "en_banco"]);
 // Lo que todavía le falta algo a alguien: la vista por defecto del panel.
 const PENDIENTE_DE_ALGO = new Set(["pendiente", "aprobada", "en_banco"]);
 
+/** Borrador que montó un cron (cuota de préstamo, quincena): alguien tiene que revisarlo y enviarlo. */
+function esBorradorDelSistema(s: { estado: string; es_plantilla?: number; origen_sistema?: string }): boolean {
+  return s.estado === "borrador" && !s.es_plantilla && Boolean(s.origen_sistema);
+}
+
+/** Fecha local (Bogotá): `hoy()` es UTC y desde las 7 p. m. ya daría mañana. */
+function hoyLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** «vence hoy» / «venció hace 3 días» / «vence en 9 días», contra la fecha de la solicitud. */
+function cuandoVence(fecha: string): string {
+  const dias = Math.round((Date.parse(`${fecha}T00:00:00`) - Date.parse(`${hoyLocal()}T00:00:00`)) / 86_400_000);
+  if (Number.isNaN(dias)) return "";
+  if (dias === 0) return "vence hoy";
+  if (dias < 0) return `venció hace ${-dias} día${dias === -1 ? "" : "s"}`;
+  return `vence en ${dias} día${dias === 1 ? "" : "s"}`;
+}
+
 function cop(n: number | null | undefined): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency", currency: "COP", maximumFractionDigits: 0,
@@ -214,12 +234,16 @@ export default function PagosWizardPanel() {
     return () => window.clearTimeout(t);
   }, [msg]);
 
-  // Las cuotas de préstamo las monta el cron el día que toca y se piden desde
-  // Préstamos; en esta bandeja solo eran ruido. Si alguna ya salió a aprobación
-  // sí se muestra: ahí ya es un pago esperando firma.
+  // Lo que el sistema dejó montado (cuotas de préstamo, quincenas) es trabajo de
+  // alguien: va en «Por hacer» con lo que espera firma o giro, pero solo desde el
+  // día que vence — una cuota de dentro de diez días no es pendiente de hoy, y
+  // mientras tanto se ve en «Borradores». Hasta el 9-oct-2026 las cuotas de
+  // préstamo se ocultaban en toda esta bandeja mientras el cron mandaba a
+  // buscarlas en «Borradores», y la cuota 1 de Antonio Ruiz venció sin que nadie
+  // pudiera verla (TKT-2026-1652).
   const solicitudes = filtro === "anticipos" ? anticipos : filtro === "por_arreglar" ? porArreglar : (listaQ.data?.solicitudes ?? [])
-    .filter((s) => !(s.estado === "borrador" && (s.origen_sistema === "prestamos" || s.categoria === "cuota_prestamo")))
-    .filter((s) => filtro !== "por_hacer" || PENDIENTE_DE_ALGO.has(s.estado));
+    .filter((s) => filtro !== "por_hacer" || PENDIENTE_DE_ALGO.has(s.estado)
+      || (esBorradorDelSistema(s) && s.fecha <= hoyLocal()));
   // Llegó resaltada una solicitud: cuando aparece en la lista, se lleva a la vista.
   useEffect(() => {
     if (resaltar == null || !solicitudes.some((s) => s.id === resaltar)) return;
@@ -393,7 +417,7 @@ export default function PagosWizardPanel() {
           {!listaQ.isLoading && !solicitudes.length && (
             <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
               {filtro === "por_hacer"
-                ? "Nada pendiente: no hay pagos esperando firma, preparación en el banco ni comprobante."
+                ? "Nada pendiente: no hay pagos por revisar, esperando firma, preparación en el banco ni comprobante."
                 : `No hay solicitudes ${filtro ? `en estado «${filtro}»` : "todavía"}.`}
             </p>
           )}
@@ -2850,6 +2874,13 @@ function FichaSolicitud({
           <span className="min-w-0 basis-full italic [overflow-wrap:anywhere]">{s.notas}</span>
         )}
 
+        {esBorradorDelSistema(s) && (
+          <span className={`rounded px-1.5 py-0.5 font-bold ${s.fecha <= hoyLocal() ? "bg-red-500/10 text-red-600" : "bg-amber-500/10 text-amber-600"}`}
+                title="Lo montó el sistema: revisa que haya que pagarlo y envíalo a aprobación">
+            por revisar · {cuandoVence(s.fecha)}
+          </span>
+        )}
+
         {s.estado === "borrador" && !s.es_plantilla && (
           <span className="ml-auto flex gap-1.5">
             <button type="button" onClick={() => setVerAsiento((v) => !v)}
@@ -2860,7 +2891,8 @@ function FichaSolicitud({
                     className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-red-500 hover:text-red-500 disabled:opacity-40">
               {ocupado === "borrar" ? "…" : "Borrar"}
             </button>
-            {onEditar && (
+            {/* Una cuota sale del cronograma del préstamo: el formulario de pago no la abre. */}
+            {onEditar && s.categoria !== "cuota_prestamo" && (
               <button type="button" onClick={() => onEditar()}
                       className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent">
                 Corregir borrador

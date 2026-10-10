@@ -468,6 +468,23 @@ def test_plantillas_se_filtran_e_instancian_por_origen(mods):
     assert w.instanciar_plantillas_de("nomina", "2026-10-Q1")[0]["id"] == creados[0]["id"]
 
 
+def test_la_quincena_toma_las_plantillas_quincenales_guardadas_desde_el_panel(mods):
+    # El panel guarda «¿Este pago se repite? → Quincenal» sin origen_sistema; el
+    # cron solo buscaba «nomina» y no las habría encontrado nunca (9-oct-2026).
+    _cc, w, t, m, _ = mods
+    del_panel = w.crear_solicitud(_pago(t, m, es_plantilla=True, frecuencia="quincenal",
+                                        concepto="Servicios — Persona B"))
+    del_cron = w.crear_solicitud(_pago(t, m, es_plantilla=True, frecuencia="quincenal",
+                                       origen_sistema="nomina", concepto="Servicios — Persona A"))
+    w.crear_solicitud(_pago(t, m, es_plantilla=True, frecuencia="mensual", concepto="Arriendo"))
+
+    creados = w.instanciar_plantillas_de("nomina", "2026-10-Q2", frecuencia="quincenal")
+
+    assert sorted(c["plantilla_id"] for c in creados) == sorted([del_panel["id"], del_cron["id"]])
+    # Salen como borrador del sistema: el panel los muestra en «Por hacer»
+    assert all(c["estado"] == "borrador" and c["origen_sistema"] for c in creados)
+
+
 def test_la_categoria_nomina_advierte_que_no_hay_contrato_laboral(mods):
     # McKenna no tiene trabajadores formales: lo que se paga cada quincena es
     # prestación de servicios. 5105 afirmaría una relación laboral que no existe.

@@ -1004,20 +1004,18 @@ def cuotas_del_mes(anio: int, mes: int, incluir_pagadas: bool = False) -> list[d
         return [dict(r) for r in con.execute(sql, (desde, hasta))]
 
 
-# ─── Recordatorio mensual a despachos ───────────────────────────────────────
-# Un solo ticket al mes, el día configurado, con TODAS las cuotas que vencen
-# ese mes de todos los préstamos vigentes. Un ticket por préstamo obligaría a
-# despachos a abrir N tickets para montar N transferencias en la misma sesión
-# de Sucursal Negocios.
+# ─── Cuotas del mes → Solicitudes de pago ───────────────────────────────────
+# El día configurado, las cuotas que vencen ese mes de todos los préstamos
+# vigentes quedan como borrador en Contabilidad → Solicitudes de pago, donde se
+# ven en «Por hacer» junto a lo demás que hay que girar.
+#
+# Hasta el 2026-10-09 además se abría un ticket a despachos que decía «están en
+# Borradores»; el panel ocultaba justo esos borradores y la cuota 1 de Antonio
+# Ruiz llegó a su vencimiento sin que nadie pudiera montarla (TKT-2026-1652).
+# El aviso es la solicitud misma, en el panel donde se trabaja: un ticket que
+# remite a otra pantalla es un paso más que se pierde.
 
-# Username del panel que monta los pagos en el banco (Jenniffer García).
-USUARIO_PAGOS_DEFAULT = "jerry"
 DIA_RECORDATORIO_DEFAULT = 5
-
-# Marca en la descripción para deduplicar el ticket del mes sin depender del
-# título (que un operador puede editar). Mismo patrón que
-# tickets_db.SYS_SYNC_FALTANTES_PACKS_JSON_PREFIX.
-MARCA_TICKET = "SYS_PRESTAMOS_PAGOS_MES:"
 
 
 def _fmt_cop(n: float) -> str:
@@ -1043,8 +1041,7 @@ def _usuario_id_por_username(db_path: str, username: str) -> int | None:
 
 def _ticket_del_mes_existe(db_path: str, marca_completa: str) -> int | None:
     """`marca_completa` es la marca YA armada con su período, p.ej.
-    "SYS_PRESTAMOS_PAGOS_MES: 2026-10" — hay dos marcas distintas (pagos y
-    retenciones) y cada caller arma la suya."""
+    "SYS_PRESTAMOS_RETENCIONES_MES: 2026-09"."""
     try:
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
@@ -1115,30 +1112,28 @@ def _borradores_de_cuotas(cuotas: list[dict], creador_id: int | None) -> list[di
 
 
 def crear_recordatorio_pagos_mes(
-    anio: int, mes: int, *, usuario_username: str | None = None, dry_run: bool = False,
-    forzar_futuro: bool = False,
+    anio: int, mes: int, *, dry_run: bool = False, forzar_futuro: bool = False,
 ) -> dict:
-    """Crea el ticket mensual con las cuotas de préstamos a pagar en el mes.
+    """Monta como borrador en Solicitudes de pago las cuotas que vencen en el mes.
 
-    Idempotente: si ya existe el ticket de ese período no crea otro. Si no hay
-    cuotas pendientes no crea nada (un ticket vacío cada mes entrena a la gente
-    a ignorarlos).
+    Idempotente por cuota (`origen_ref`): correrlo otra vez no duplica, y un
+    borrador que alguien borró no vuelve. No abre ticket: la solicitud aparece
+    en «Por hacer» de Solicitudes de pago, que es donde se envía a aprobación y
+    se gira (ver el comentario de la sección).
 
-    **No crea el ticket de un mes que todavía no empieza** salvo `forzar_futuro`.
-    El cron lo llama con el mes en curso, pero una llamada a mano con el mes
-    siguiente le metía a despachos, tres semanas antes, un ticket que no puede
-    trabajar — y al quedarse ahí compite por atención con lo que sí es de hoy.
-    Pasó el 2026-09-13 con el ticket de octubre.
+    **No monta un mes que todavía no empieza** salvo `forzar_futuro`. El cron lo
+    llama con el mes en curso, pero una llamada a mano con el mes siguiente le
+    dejaba a despachos, tres semanas antes, pagos que no puede hacer todavía.
+    Pasó el 2026-09-13 con las cuotas de octubre.
     """
     _ensure()
-    from app.services import tickets_db as _tdb
 
     periodo = f"{int(anio):04d}-{int(mes):02d}"
     if not forzar_futuro and periodo > date.today().strftime("%Y-%m") and not dry_run:
         return {
             "ok": True, "creado": False, "periodo": periodo,
             "motivo": (
-                f"El período {periodo} todavía no empieza: el ticket se crea cuando "
+                f"El período {periodo} todavía no empieza: las cuotas se montan cuando "
                 "llegue el mes. Usa dry_run para verlo, o forzar_futuro=True si de "
                 "verdad quieres adelantarlo."
             ),
@@ -1147,84 +1142,42 @@ def crear_recordatorio_pagos_mes(
     if not cuotas:
         return {"ok": True, "creado": False, "motivo": "sin cuotas pendientes", "periodo": periodo}
 
-    _tdb.init_db()
-    existente = _ticket_del_mes_existe(_tdb.DB_PATH, f"{MARCA_TICKET} {periodo}")
-    if existente:
-        return {
-            "ok": True, "creado": False, "motivo": "ya existe",
-            "ticket_id": existente, "periodo": periodo, "cuotas": len(cuotas),
-        }
-
-    username = (usuario_username or os.getenv("PRESTAMOS_USUARIO_PAGOS") or USUARIO_PAGOS_DEFAULT).strip()
-    asignado_a = _usuario_id_por_username(_tdb.DB_PATH, username)
-    creador_id = _usuario_id_por_username(_tdb.DB_PATH, "admin") or asignado_a
-    if not creador_id:
-        return {"ok": False, "creado": False, "error": "No hay usuario admin/activo para crear el ticket"}
-
     total_girar = sum(float(c["cuota_girada"]) for c in cuotas)
-    total_retencion = sum(float(c["retencion"]) for c in cuotas)
-
-    filas = [
-        f"- **{c['tercero_nombre']}** — cuota {c['numero']}/{c['plazo_meses']}, "
-        f"vence {c['fecha_vencimiento']}"
+    detalle = [
+        f"{c['tercero_nombre']} — cuota {c['numero']}/{c['plazo_meses']}, vence {c['fecha_vencimiento']}"
         for c in cuotas
     ]
-
-    # El ticket NO lleva las cifras. Un valor copiado en un texto se congela el
-    # día que se escribió: TKT-2026-1252 pedía girar $390.590 de un capital que
-    # después se corrigió y de una cuota que el mes de gracia corrió a octubre,
-    # y nadie se enteró. Los montos viven en la solicitud de pago, que los lee
-    # del cronograma cada vez que se abre.
-    descripcion = (
-        f"Cuotas de préstamos que vencen en **{periodo}**: **{len(cuotas)}**.\n\n"
-        + "\n".join(filas)
-        + "\n\nYa quedaron como **borrador** en el panel: **Contabilidad → "
-        "Solicitudes de pago**, filtro «Borradores».\n\n"
-        "Para cada una: verifica que hay que pagarla, confirma la cuenta del "
-        "prestamista y envíala a aprobación. Ahí se ve el asiento exacto "
-        "(capital, interés y retención por separado) antes de confirmar, y el "
-        "asiento nace al aprobar.\n\n"
-        "**Los montos no están en este ticket a propósito**: se leen del "
-        "cronograma en vivo, así que si una cuota cambia, cambia el borrador. "
-        "Un número copiado acá envejecería sin avisar.\n\n"
-        f"{MARCA_TICKET} {periodo}"
-    )
-
     if dry_run:
         return {
             "ok": True, "creado": False, "dry_run": True, "periodo": periodo,
-            "cuotas": len(cuotas), "total_girar": round(total_girar, 2),
-            "asignado_a": asignado_a, "descripcion": descripcion,
+            "cuotas": len(cuotas), "total_girar": round(total_girar, 2), "detalle": detalle,
         }
 
+    from app.services import tickets_db as _tdb
+
+    _tdb.init_db()
+    creador_id = _usuario_id_por_username(_tdb.DB_PATH, "admin")
     borradores = _borradores_de_cuotas(cuotas, creador_id)
+    nuevos = [b for b in borradores if not b.get("ya_existia")]
 
-    ticket, err = _tdb.crear_ticket(
-        {
-            "tipo": "solicitud",
-            "titulo": f"Pagos de préstamos — {periodo}",
-            "categoria": "contabilidad",
-            "descripcion": descripcion,
-            "prioridad": "alta",
-            "asignado_a": asignado_a,
-        },
-        creador_id,
-        None,
-    )
-    if err:
-        return {"ok": False, "creado": False, "error": err, "periodo": periodo}
-
-    ticket_id = ticket.get("id")
+    # «En trámite» en el cronograma solo si la cuota quedó de verdad montada:
+    # una que falló al crear su borrador sigue «pendiente» y el próximo intento
+    # la vuelve a tomar.
+    montadas = {str(b.get("origen_ref") or "") for b in borradores}
     with _conn() as con:
         con.executemany(
-            "UPDATE cc_prestamo_cuotas SET ticket_id=?, estado='solicitada'"
-            " WHERE id=? AND estado='pendiente'",
-            [(ticket_id, c["id"]) for c in cuotas],
+            "UPDATE cc_prestamo_cuotas SET estado='solicitada' WHERE id=? AND estado='pendiente'",
+            [
+                (c["id"],) for c in cuotas
+                if f"prestamo:{c['prestamo_id']}:cuota:{c['numero']}" in montadas
+            ],
         )
     return {
-        "ok": True, "creado": True, "ticket_id": ticket_id, "periodo": periodo,
-        "cuotas": len(cuotas), "total_girar": round(total_girar, 2), "asignado_a": asignado_a,
-        "borradores": [s_["id"] for s_ in borradores],
+        "ok": True, "creado": bool(nuevos), "periodo": periodo,
+        "cuotas": len(cuotas), "total_girar": round(total_girar, 2), "detalle": detalle,
+        "borradores": [b["id"] for b in borradores], "nuevos": len(nuevos),
+        "fallidas": len(cuotas) - len(borradores),
+        **({} if nuevos else {"motivo": "ya estaban en Solicitudes de pago"}),
     }
 
 
@@ -1761,6 +1714,9 @@ def emitir_documento_soporte_cuota(prestamo_id: int, numero: int, forzar: bool =
 
 MARCA_TICKET_RETENCIONES = "SYS_PRESTAMOS_RETENCIONES_MES:"
 DIA_AVISO_RETENCIONES_DEFAULT = 3
+# Días antes del vencimiento en que el recordatorio pasa a solicitud urgente.
+# 0 = el mismo día que vence (decisión del usuario, 2026-10-09).
+DIAS_URGENTE_RETENCIONES_DEFAULT = 0
 
 
 def resumen_retenciones_mes(anio: int, mes: int) -> dict:
@@ -1911,11 +1867,18 @@ def _texto_vencimiento(resumen: dict) -> str:
     )
 
 
-def crear_ticket_retenciones_mes(anio: int, mes: int, *, dry_run: bool = False) -> dict:
+def crear_ticket_retenciones_mes(
+    anio: int, mes: int, *, dry_run: bool = False, urgente: bool = False,
+) -> dict:
     """Ticket con la retención practicada en el mes, para que se declare.
 
     Idempotente por período. Si no se practicó ninguna retención no crea nada:
     un ticket vacío cada mes entrena a la gente a ignorar la bandeja.
+
+    `urgente=True` es el paso del recordatorio a solicitud el día que vence
+    (`recordatorio_retenciones_mes`): solo cuenta un ticket ABIERTO del período
+    —si lo hay, lo sube a urgente—, porque el que se pasó a recordatorio quedó
+    resuelto (TKT-2026-1645). Crear el ticket cierra el recordatorio del período.
     """
     _ensure()
     from app.services import tickets_db as _tdb
@@ -1935,21 +1898,24 @@ def crear_ticket_retenciones_mes(anio: int, mes: int, *, dry_run: bool = False) 
     r["vencimiento"] = unificado["vencimiento"]
 
     _tdb.init_db()
-    existente = _ticket_del_mes_existe(_tdb.DB_PATH, f"{MARCA_TICKET_RETENCIONES} {periodo}")
-    if existente:
-        return {"ok": True, "creado": False, "motivo": "ya existe", "ticket_id": existente, "periodo": periodo}
+    marca = f"{MARCA_TICKET_RETENCIONES} {periodo}"
+    if urgente:
+        abierto = _ticket_abierto_del_mes(_tdb.DB_PATH, marca)
+        if abierto:
+            if not dry_run:
+                with _tdb._conn() as db:
+                    db.execute("UPDATE tickets SET prioridad='urgente', actualizado_en=datetime('now') WHERE id=?",
+                               (abierto,))
+                    db.commit()
+                _cerrar_recordatorio_retenciones(periodo, abierto)
+            return {"ok": True, "creado": False, "motivo": "ya estaba abierto: subido a urgente",
+                    "ticket_id": abierto, "periodo": periodo}
+    else:
+        existente = _ticket_del_mes_existe(_tdb.DB_PATH, marca)
+        if existente:
+            return {"ok": True, "creado": False, "motivo": "ya existe", "ticket_id": existente, "periodo": periodo}
 
-    username = (os.getenv("PRESTAMOS_USUARIO_CONTABILIDAD") or "").strip()
-    asignado_a = _usuario_id_por_username(_tdb.DB_PATH, username) if username else None
-    if not asignado_a:
-        try:
-            asignado_a = (
-                _tdb.get_aliados_asignaciones()
-                .get(_tdb.TAREA_PRESTAMOS_DECLARAR_RETENCIONES, {})
-                .get("usuario_id")
-            )
-        except Exception:
-            asignado_a = None
+    asignado_a = _usuario_contabilidad(_tdb)
     creador_id = _usuario_id_por_username(_tdb.DB_PATH, "admin") or asignado_a
     if not creador_id:
         return {"ok": False, "creado": False, "error": "No hay usuario admin/activo para crear el ticket"}
@@ -2063,7 +2029,8 @@ def crear_ticket_retenciones_mes(anio: int, mes: int, *, dry_run: bool = False) 
             # Sin "préstamos" en el título: el ticket cubre TODOS los conceptos
             # del período (compras a socios, servicios, intereses).
             "titulo": (
-                f"Declarar retención en la fuente — {periodo}"
+                ("URGENTE — " if urgente else "")
+                + f"Declarar retención en la fuente — {periodo}"
                 + (f" (vence {r['vencimiento']['fecha']})" if r["vencimiento"].get("conocido") else "")
             ),
             "categoria": "contabilidad",
@@ -2071,7 +2038,7 @@ def crear_ticket_retenciones_mes(anio: int, mes: int, *, dry_run: bool = False) 
             # El esquema de tickets admite baja|media|alta|urgente — no "critica".
             "prioridad": (
                 "urgente"
-                if r["vencimiento"].get("estado") in ("vencido", "hoy", "proximo")
+                if urgente or r["vencimiento"].get("estado") in ("vencido", "hoy", "proximo")
                 else "alta"
             ),
             "asignado_a": asignado_a,
@@ -2081,6 +2048,7 @@ def crear_ticket_retenciones_mes(anio: int, mes: int, *, dry_run: bool = False) 
     )
     if err:
         return {"ok": False, "creado": False, "error": err, "periodo": periodo}
+    _cerrar_recordatorio_retenciones(periodo, ticket.get("id"))
     return {
         "ok": True, "creado": True, "ticket_id": ticket.get("id"), "periodo": periodo,
         # Del resumen UNIFICADO: el de préstamos daría 0 en un mes de solo compras
@@ -2088,6 +2056,176 @@ def crear_ticket_retenciones_mes(anio: int, mes: int, *, dry_run: bool = False) 
         "terceros": len(unificado["terceros"]),
         "por_concepto": unificado["por_concepto"],
     }
+
+
+def _usuario_contabilidad(_tdb) -> int | None:
+    """Quien coordina con el contador: PRESTAMOS_USUARIO_CONTABILIDAD o, si no,
+    quien tenga la tarea en Sistemas → Aliados."""
+    username = (os.getenv("PRESTAMOS_USUARIO_CONTABILIDAD") or "").strip()
+    uid = _usuario_id_por_username(_tdb.DB_PATH, username) if username else None
+    if uid:
+        return uid
+    try:
+        return (
+            _tdb.get_aliados_asignaciones()
+            .get(_tdb.TAREA_PRESTAMOS_DECLARAR_RETENCIONES, {})
+            .get("usuario_id")
+        )
+    except Exception:
+        return None
+
+
+def _ticket_abierto_del_mes(db_path: str, marca_completa: str) -> int | None:
+    try:
+        db = sqlite3.connect(db_path)
+        row = db.execute(
+            "SELECT id FROM tickets WHERE descripcion LIKE ? AND estado NOT IN ('resuelto','rechazado')"
+            " ORDER BY id DESC LIMIT 1",
+            (f"%{marca_completa}%",),
+        ).fetchone()
+        return int(row[0]) if row else None
+    except Exception:
+        return None
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+
+
+# ─── Recordatorio de la declaración: cuenta regresiva → solicitud el día que vence ─
+# Desde el 2026-10-09 la declaración no nace como solicitud el día 3: queda como
+# recordatorio en la Agenda de quien coordina con el contador, con la cuenta
+# regresiva en el título (el cron lo reescribe cada día), y solo pasa a
+# solicitud urgente el día que vence (PRESTAMOS_RETENCIONES_DIAS_URGENTE días
+# antes, default 0). Un ticket abierto 16 días antes, con «quedan 16 días»
+# congelado en el texto (TKT-2026-1645), era una solicitud más en la bandeja que
+# no pedía nada todavía. Si alguien borra el recordatorio, el cron lo respeta.
+
+_MESES_CORTOS = ("", "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+
+
+def _dias_urgente_retenciones() -> int:
+    try:
+        return max(0, int(os.getenv("PRESTAMOS_RETENCIONES_DIAS_URGENTE", "")
+                          or DIAS_URGENTE_RETENCIONES_DEFAULT))
+    except ValueError:
+        return DIAS_URGENTE_RETENCIONES_DEFAULT
+
+
+def _cuenta_regresiva(dias: int, fecha: str) -> str:
+    corta = f"{int(fecha[8:10])}-{_MESES_CORTOS[int(fecha[5:7])]}"
+    if dias > 1:
+        return f"quedan {dias} días (vence {corta})"
+    if dias == 1:
+        return f"vence mañana ({corta})"
+    if dias == 0:
+        return f"vence hoy ({corta})"
+    return f"venció hace {-dias} día(s) ({corta})"
+
+
+def _recordatorio_retenciones(periodo: str) -> dict | None:
+    """El recordatorio del período, activo o no (el cerrado también cuenta: es
+    lo que impide volver a crearlo si alguien lo borró)."""
+    from app.services import tickets_db as _tdb
+
+    with _tdb._conn() as db:
+        row = db.execute(
+            "SELECT * FROM recordatorios WHERE descripcion LIKE ? ORDER BY id DESC LIMIT 1",
+            (f"%{MARCA_TICKET_RETENCIONES} {periodo}%",),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def _cerrar_recordatorio_retenciones(periodo: str, ticket_id: int | None) -> None:
+    """Best-effort: que falle no puede tumbar la creación del ticket."""
+    try:
+        from app.services import tickets_db as _tdb
+
+        rec = _recordatorio_retenciones(periodo)
+        if not rec or not rec.get("activo"):
+            return
+        with _tdb._conn() as db:
+            db.execute(
+                "UPDATE recordatorios SET activo=0, actualizado_en=datetime('now'),"
+                " descripcion=COALESCE(descripcion,'') || ? WHERE id=?",
+                (f"\n\nPasó a la solicitud #{ticket_id}.", rec["id"]),
+            )
+            db.commit()
+    except Exception as e:
+        print(f"⚠️ [PRESTAMOS] no se pudo cerrar el recordatorio de retenciones {periodo}: {e}", flush=True)
+
+
+def recordatorio_retenciones_mes(anio: int, mes: int, *, dry_run: bool = False) -> dict:
+    """Paso diario del aviso de la declaración de retención del período.
+
+    - Sin recordatorio: lo crea (fecha = vencimiento, título con la cuenta regresiva).
+    - Con recordatorio activo: le reescribe la cuenta regresiva; el día que vence
+      (o `PRESTAMOS_RETENCIONES_DIAS_URGENTE` días antes) lo pasa a solicitud urgente.
+    - Recordatorio cerrado (ya pasó a solicitud, o alguien lo borró): nada.
+
+    `accion` dice qué pasó: creado | actualizado | sin_cambio | ticket | nada.
+    """
+    _ensure()
+    from app.services import tickets_db as _tdb
+    from app.services.retenciones import resumen_periodo
+
+    periodo = f"{int(anio):04d}-{int(mes):02d}"
+    unificado = resumen_periodo(anio, mes)
+    if unificado["total_retencion"] <= 0:
+        return {"ok": True, "accion": "nada", "motivo": "sin retenciones practicadas", "periodo": periodo}
+    v = unificado.get("vencimiento") or {}
+    if not v.get("conocido"):
+        # Sin fecha confirmada no hay cuenta regresiva posible: se avisa como
+        # antes, con la solicitud, que lo dice explícitamente.
+        r = crear_ticket_retenciones_mes(anio, mes, dry_run=dry_run)
+        return {**r, "accion": "ticket" if r.get("creado") else "nada"}
+
+    _tdb.init_db()
+    dias, fecha = int(v["dias_restantes"]), str(v["fecha"])
+    rec = _recordatorio_retenciones(periodo)
+    if rec and not rec.get("activo"):
+        return {"ok": True, "accion": "nada", "motivo": "recordatorio cerrado",
+                "periodo": periodo, "recordatorio_id": rec["id"]}
+
+    if dias <= _dias_urgente_retenciones():
+        if dry_run:
+            return {"ok": True, "accion": "ticket", "dry_run": True, "periodo": periodo, "dias": dias}
+        r = crear_ticket_retenciones_mes(anio, mes, urgente=True)
+        return {**r, "accion": "ticket" if r.get("ok") else "nada", "dias": dias, "vence": fecha}
+
+    umbral = _dias_urgente_retenciones()
+    titulo = f"Declarar retención en la fuente {periodo} — {_cuenta_regresiva(dias, fecha)}"
+    descripcion = (
+        f"Retención en la fuente practicada en {periodo}, para el formulario 350. "
+        f"Vence el {fecha} (NIT {v.get('nit', '')}, último dígito {v.get('ultimo_digito', '')}).\n\n"
+        "Pedirle al contador el 350 del período y contrastarlo con Contabilidad → Préstamos → "
+        "Retenciones (la cifra que se declara es la de él).\n\n"
+        + ("El día que vence" if umbral == 0 else f"Cuando falten {umbral} día(s)")
+        + ", si este recordatorio sigue aquí, pasa a solicitud urgente.\n\n"
+        f"{MARCA_TICKET_RETENCIONES} {periodo}"
+    )
+    base = {"ok": True, "periodo": periodo, "dias": dias, "vence": fecha, "titulo": titulo}
+    if dry_run:
+        return {**base, "accion": "creado" if not rec else "actualizado", "dry_run": True}
+
+    if rec:
+        if rec["titulo"] == titulo and rec["proxima_fecha"] == fecha:
+            return {**base, "accion": "sin_cambio", "recordatorio_id": rec["id"]}
+        _, err = _tdb.actualizar_recordatorio(
+            rec["id"], rec["usuario_id"], titulo=titulo, descripcion=descripcion, fecha_inicio=fecha,
+        )
+        if err:
+            return {**base, "ok": False, "accion": "nada", "error": err}
+        return {**base, "accion": "actualizado", "recordatorio_id": rec["id"]}
+
+    asignado = _usuario_contabilidad(_tdb)
+    if not asignado:
+        return {**base, "ok": False, "accion": "nada",
+                "error": "No hay a quién dejarle el recordatorio: PRESTAMOS_USUARIO_CONTABILIDAD "
+                         "o la tarea en Sistemas → Aliados"}
+    nuevo = _tdb.crear_recordatorio(asignado, titulo, descripcion, "una_vez", fecha)
+    return {**base, "accion": "creado", "recordatorio_id": nuevo["id"], "usuario_id": asignado}
 
 
 # ─── Alta de prestamistas ───────────────────────────────────────────────────

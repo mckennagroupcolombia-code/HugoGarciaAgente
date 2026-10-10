@@ -33,8 +33,23 @@ es lo que evita firmar a ciegas. El recorrido largo (productos con SKU + factura
 existiendo y se abre con el enlace «Compra con productos y factura cotejada» o desde el Centro de
 Mando; las categorías `productos` y `servicios` llevan retención (compras / servicios) pero **no**
 exigen SKU ni cotejo, así que una compra de mercancía con factura debe ir por el recorrido largo.
-La bandeja ya no lista los borradores de cuotas de préstamo que monta el cron (son de Préstamos y
-solo eran ruido); si una sale a aprobación, ahí sí aparece.
+**Borradores del sistema en «Por hacer», sin ticket (9-oct-2026).** Lo que monta un cron (cuotas de
+préstamo el día 5, quincenas de prestación de servicios el 15 y el último día) aparece en «Por hacer»
+**desde el día que vence** (`fecha <= hoy`; antes solo en «Borradores» — una cuota de dentro de diez
+días no es pendiente de hoy, decisión del usuario), con la etiqueta «por revisar · vence …» y el botón
+«Verificado — enviar a aprobación» (`esBorradorDelSistema`: borrador con `origen_sistema` y sin
+`es_plantilla`). Del 15-sep al 9-oct la
+bandeja **ocultaba** los borradores de préstamos mientras el ticket del cron mandaba a buscarlos en
+«Borradores»: la cuota 1 de Antonio Ruiz venció sin que Jenniffer pudiera verla (TKT-2026-1652).
+Criterio del usuario: lo que se le pide a alguien vive en el panel donde se hace, no en un ticket que
+remite a él. Los dos crons ya no abren ticket; avisan por WhatsApp (préstamos → grupo de sistemas,
+quincena → `GRUPO_CONTABILIDAD_WA`). La quincena toma las plantillas con `origen_sistema="nomina"`
+**y** las de frecuencia «quincenal» guardadas desde el panel, que nacen sin origen y el cron no habría
+encontrado nunca. Una cuota de préstamo no se edita con «Corregir borrador» (sale del cronograma).
+**Cuota de préstamo con documento soporte (9-oct-2026).** Al aprobarla, el documento soporte queda en
+borrador **solo por los intereses** y a Alegra se espeja **solo el abono a capital**; al confirmar el giro,
+`_avisar_al_origen` deja la cuota pagada en Préstamos y el documento se salda con el neto de los intereses;
+al emitirlo a la DIAN se le envía al prestamista. Detalle e incidente (cuota 1 de Antonio Ruiz): `prestamos.md`.
 
 **La cuenta del PUC decide el impuesto, no el botón (17-sep-2026).** Había un botón por concepto
 (Productos, Servicios, **Transporte**, **Servicios públicos**) *y* un selector de cuenta: la misma

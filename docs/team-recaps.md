@@ -27,6 +27,27 @@
   - **Animaciones**: sombras suaves bajo los personajes, respiración al estar quietos, polvo al caminar y correr, árboles que se mecen, sombras de nubes de día, cámara que se adelanta hacia donde caminas y ventanas que entran suaves. Botón **HD** en la barra para pasar a modo simple en equipos lentos.
 - **Archivos Modificados:** `scripts/empresa_viva/{xbr.py (nuevo),armar_mapa.py}`, `desktop/public/empresa/pixel/*` (regenerados; `suelo.png` → `suelo_<f>_<c>.png`), `desktop/src/components/empresa/{xbr.ts,hd.ts}` (nuevos), `escena.ts`, `juego.ts`, `motor.ts`, `casas.ts`, `personajes.ts`, `tipos.ts`, `EmpresaViva.tsx`, `VentanaModulo.tsx`, `empresa-viva.css`, `desktop/public/empresa/LEEME.md`, `tests/test_acceso_panel.py`, `docs/agentic/modules/operacion-equipo.md`, `CLAUDE.md`, `docs/team-recaps.md`.
 
+### 2026-10-09 14:32 - Declaración de retención: recordatorio con cuenta regresiva, solicitud urgente el día que vence
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora. Sin LLM.
+- **Qué se implementó:**
+  - Antes, el día 3 se abría una solicitud para declarar la retención del mes anterior, con «quedan N días» congelado en el texto (TKT-2026-1645 decía 16 días; hoy quedan 10).
+  - Ahora es un **recordatorio** en la Agenda de quien coordina con el contador, con fecha del vencimiento; el cron lo reescribe cada día («Declarar retención en la fuente 2026-09 — quedan 10 días (vence 19-oct)»). **El día que vence** pasa a **solicitud urgente** con el detalle para el 350 y el recordatorio se cierra. Si se borra antes (ya declarado), no vuelve.
+  - TKT-2026-1645 resuelto con la explicación; su aviso quedó como recordatorio #25 (vence 19-oct).
+  - `PRESTAMOS_RETENCIONES_DIAS_URGENTE` permite adelantar el paso a solicitud (default 0).
+- **Archivos Modificados:** `app/services/prestamos.py`, `scripts/prestamos_recordatorio_cron.py`, `tests/test_prestamos.py`, `.env.example`, `docs/agentic/modules/prestamos.md`, `docs/team-recaps.md`.
+
+### 2026-10-09 14:08 - Préstamos y quincenas: los pagos que monta el sistema se ven en Solicitudes de pago, sin ticket
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Sin LLM.
+- **Qué se implementó:**
+  - Causa: la cuota 1 de Antonio Ruiz (vence hoy, $675.971 a girar) estaba montada desde el 13-sep como borrador #4, pero el panel de Solicitudes de pago **ocultaba en todas las pestañas** los borradores de préstamos. El ticket del cron (TKT-2026-1652) mandaba a Jenniffer a «Borradores», que le salía vacío; preguntó el 6-oct y nadie respondió.
+  - Ahora los borradores que monta el sistema (cuotas de préstamo, quincenas) aparecen en **«Por hacer»** **desde el día que vencen** (antes solo en «Borradores»), con la etiqueta «por revisar · vence hoy / en N días» y el botón «Verificado — enviar a aprobación». En las cuotas no sale «Corregir borrador» (salen del cronograma).
+  - El cron del día 5 ya **no abre ticket**: deja las cuotas en Solicitudes de pago y avisa por WhatsApp al grupo de sistemas. Sale `PRESTAMOS_USUARIO_PAGOS`.
+  - Visibles ya: #4 Antonio Ruiz (9-oct), #5 Gloria Stella (18-oct), #6 Victor Hugo (19-oct). TKT-2026-1652 cerrado con la respuesta a Jenniffer (le llegó por WhatsApp).
+  - Quincena de prestación de servicios: el cron del 15 y fin de mes tampoco abre ticket; monta los borradores y avisa por WhatsApp al grupo de contabilidad (o dice que no hay pagos recurrentes configurados). Además ahora toma las plantillas «Quincenal» guardadas desde el panel: nacían sin `origen_sistema` y el cron, que solo buscaba «nomina», nunca las habría encontrado. Hoy no hay ninguna plantilla creada.
+- **Archivos Modificados:** `app/services/prestamos.py`, `app/services/pagos_wizard.py`, `scripts/prestamos_recordatorio_cron.py`, `scripts/recordatorio_pago_nomina_cron.py`, `app/routes.py` (docstring), `desktop/src/components/PagosWizardPanel.tsx`, `tests/test_prestamos.py`, `tests/test_pagos_wizard.py`, `.env.example`, `docs/agentic/modules/{prestamos,pagos-solicitudes}.md`, `CLAUDE.md`, `docs/team-recaps.md`.
+
 ### 2026-10-09 14:40 - Revisión de empaques: tabla de Jenniffer cargada y 43 publicaciones de MeLi corregidas
 - **Autor:** Armando García
 - **Tipo de Cambio:** Operación (MeLi) + corrección. Sin LLM.

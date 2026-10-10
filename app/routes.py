@@ -14101,8 +14101,9 @@ def register_routes(app):
     @app.route("/api/prestamos/recordatorio", methods=["POST"])
     @app.route("/app/api/prestamos/recordatorio", methods=["POST"])
     def api_prestamos_recordatorio():
-        """Crea (o previsualiza) el ticket mensual de pagos a despachos. El cron
-        lo hace solo el día configurado; esto sirve para adelantarlo."""
+        """Monta (o previsualiza) las cuotas del mes como borradores en
+        Solicitudes de pago. El cron lo hace solo el día configurado; esto sirve
+        para adelantarlo. No abre ticket (2026-10-09)."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         try:
