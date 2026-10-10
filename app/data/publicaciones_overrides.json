@@ -855,5 +855,21 @@
       "C-LAN40g_3.png"
     ],
     "updated_at": "2026-10-09T14:38:45.117053"
+  },
+  "C-ACERIC500ML": {
+    "imagenes_web": [
+      "C-ACERIC500ML.png",
+      "C-ACERIC500ML_2.png",
+      "C-ACERIC500ML_3.png"
+    ],
+    "updated_at": "2026-10-10T00:01:59.767319"
+  },
+  "C-GLICVEG500ML": {
+    "imagenes_web": [
+      "C-GLICVEG500ML.png",
+      "C-GLICVEG500ML_2.png",
+      "C-GLICVEG500ML_3.png"
+    ],
+    "updated_at": "2026-10-10T01:00:28.286400"
   }
 }

@@ -998,13 +998,22 @@
      "pos": 0
     },
     {
-     "archivo": "C-ACERIC500ML_20261009-153859_0603.png",
-     "subido_at": "2026-10-09T15:38:59",
+     "archivo": "C-ACERIC500ML_20261010-000009_8a46.png",
+     "subido_at": "2026-10-10T00:00:09",
      "por": "@cynthia",
      "ancho": 1254,
      "alto": 1254,
-     "bytes": 1935827,
+     "bytes": 1908540,
      "pos": 1
+    },
+    {
+     "archivo": "C-ACERIC500ML_20261009-234647_f959.png",
+     "subido_at": "2026-10-09T23:46:47",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1858081,
+     "pos": 2
     }
    ],
    "meli": [
@@ -1018,13 +1027,154 @@
      "pos": 0
     },
     {
-     "archivo": "C-ACERIC500ML_20261009-153900_06c8.png",
-     "subido_at": "2026-10-09T15:39:00",
+     "archivo": "C-ACERIC500ML_20261010-000011_dee5.png",
+     "subido_at": "2026-10-10T00:00:11",
      "por": "@cynthia",
      "ancho": 1254,
      "alto": 1254,
-     "bytes": 1935827,
+     "bytes": 1908540,
      "pos": 1
+    },
+    {
+     "archivo": "C-ACERIC500ML_20261009-234651_4df4.png",
+     "subido_at": "2026-10-09T23:46:51",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1858081,
+     "pos": 2
+    }
+   ]
+  },
+  "C-GLICVEG500ML": {
+   "web": [
+    {
+     "archivo": "C-GLICVEG500ML_20261010-001623_b3d4.png",
+     "subido_at": "2026-10-10T00:16:23",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2024650,
+     "pos": 1
+    },
+    {
+     "archivo": "C-GLICVEG500ML_20261010-002837_2cd9.png",
+     "subido_at": "2026-10-10T00:28:37",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1799916
+    },
+    {
+     "archivo": "C-GLICVEG500ML_20261010-004706_22f4.png",
+     "subido_at": "2026-10-10T00:47:06",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1874963
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-GLICVEG500ML_20261010-001624_917a.png",
+     "subido_at": "2026-10-10T00:16:24",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2024650,
+     "pos": 1
+    },
+    {
+     "archivo": "C-GLICVEG500ML_20261010-002840_ed14.png",
+     "subido_at": "2026-10-10T00:28:40",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1799916
+    },
+    {
+     "archivo": "C-GLICVEG500ML_20261010-004441_3fce.png",
+     "subido_at": "2026-10-10T00:44:41",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1854964
+    }
+   ]
+  },
+  "C-GLIVEGLT": {
+   "web": [
+    {
+     "archivo": "C-GLIVEGLT_20261010-001901_8bd7.png",
+     "subido_at": "2026-10-10T00:19:01",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2024650
+    },
+    {
+     "archivo": "C-GLIVEGLT_20261010-002843_2b69.png",
+     "subido_at": "2026-10-10T00:28:43",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1799916
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-GLIVEGLT_20261010-001903_1dda.png",
+     "subido_at": "2026-10-10T00:19:03",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2024650
+    },
+    {
+     "archivo": "C-GLIVEGLT_20261010-002845_1666.png",
+     "subido_at": "2026-10-10T00:28:45",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1799916
+    }
+   ]
+  },
+  "C-GLIVEG250ML": {
+   "web": [
+    {
+     "archivo": "C-GLIVEG250ML_20261010-001907_5ff5.png",
+     "subido_at": "2026-10-10T00:19:07",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2024650
+    },
+    {
+     "archivo": "C-GLIVEG250ML_20261010-002833_451f.png",
+     "subido_at": "2026-10-10T00:28:33",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1799916
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-GLIVEG250ML_20261010-001909_d753.png",
+     "subido_at": "2026-10-10T00:19:09",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2024650
+    },
+    {
+     "archivo": "C-GLIVEG250ML_20261010-002830_06e4.png",
+     "subido_at": "2026-10-10T00:28:30",
+     "por": "@cynthia",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1799916
     }
    ]
   }

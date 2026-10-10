@@ -8,12 +8,13 @@
  * registro por SKU. Guardar una foto no la publica en MeLi ni en la web. Las miniaturas se
  * arrastran para cambiar el orden; la primera es la principal.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fetchAuthBlobUrl } from "../../../api/client";
 import { Sprite } from "../../colaboradores/pixel";
 import type { Pieza } from "./tipos";
+import "../../tickets/visorFotos.css";
 
 export type Canal = "web" | "meli";
 type Foto = { archivo: string; pos?: number; subido_at: string; por?: string; ancho?: number; alto?: number; miniatura?: string };
@@ -96,13 +97,17 @@ export function useFotosProducto(ref: string, alCambiar?: () => void) {
     }
   };
 
-  const quitar = async (canal: Canal, f: Foto) => {
-    if (!window.confirm("¿Quitar esta foto del producto? Queda guardada en una papelera.")) return;
+  /** Sin `window.confirm` (el navegador o la app instalada pueden bloquearlo y entonces no
+   *  pasaba nada): quien llama pregunta antes dentro de la app. */
+  const quitar = async (canal: Canal, f: Foto): Promise<boolean> => {
     try {
       await api.delete(`${ruta}?canal=${canal}&archivo=${encodeURIComponent(f.archivo)}`);
       refrescar();
+      setAviso({ ok: true, texto: "Foto quitada del producto (queda en la papelera)." });
+      return true;
     } catch (e) {
       setAviso({ ok: false, texto: (e as Error).message || "No se pudo quitar" });
+      return false;
     }
   };
 
@@ -141,7 +146,7 @@ export function FotosCanal({ canal, fotos, pieza, activo, onActivar }: {
   const lista = fotos.q.data?.canales?.[canal] ?? [];
   const info = pieza.canales?.[canal];
   const vieja = Boolean(info?.desactualizada);
-  const [ampliada, setAmpliada] = useState<{ url: string; nombre: string } | null>(null);
+  const [ampliada, setAmpliada] = useState<{ archivo: string; quitar?: boolean } | null>(null);
   const [arrastrada, setArrastrada] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
   const soltarEn = (destino: string) => {
@@ -157,14 +162,7 @@ export function FotosCanal({ canal, fotos, pieza, activo, onActivar }: {
     orden.splice(k, 0, origen);
     void fotos.reordenar(canal, orden);
   };
-  const ampliar = async (f: Foto) => {
-    const url = await fetchAuthBlobUrl(fotos.urlArchivo(canal, f));
-    if (url) setAmpliada({ url, nombre: f.archivo });
-  };
-  const cerrar = () => {
-    if (ampliada) URL.revokeObjectURL(ampliada.url);
-    setAmpliada(null);
-  };
+  const ampliar = (f: Foto, quitar = false) => setAmpliada({ archivo: f.archivo, quitar });
   const estado = !lista.length ? "falta" : vieja ? "aviso" : "ok";
   return (
     <section
@@ -233,6 +231,14 @@ export function FotosCanal({ canal, fotos, pieza, activo, onActivar }: {
                   ? <img src={`data:image/jpeg;base64,${f.miniatura}`} alt="" draggable={false} className="aspect-square w-full border-2 border-ink bg-white object-contain" />
                   : <span className="block aspect-square w-full bg-surface-hover" />}
               </button>
+              {/* Envoltorio: index.css fuerza `position: relative` en todo button. */}
+              <span className="absolute right-0 top-0 z-[1]">
+                <button type="button" aria-label="Quitar esta foto" title="Quitar esta foto del producto"
+                  onClick={(e) => { e.stopPropagation(); ampliar(f, true); }}
+                  className="mck-btn-no-fx flex h-5 w-5 items-center justify-center bg-ink text-[12px] font-extrabold leading-none text-white opacity-70 hover:bg-accent-rose hover:opacity-100">
+                  ✕
+                </button>
+              </span>
             </li>
           ))}
         </ul>
@@ -241,22 +247,126 @@ export function FotosCanal({ canal, fotos, pieza, activo, onActivar }: {
       {canal === "meli" && lista[0]?.ancho && lista[0]?.alto && Math.min(lista[0].ancho, lista[0].alto) < 500 && (
         <span className="text-[10.5px] font-bold text-ink">MeLi pide mínimo 500 px.</span>
       )}
-      {ampliada && createPortal(
-        <div role="dialog" aria-modal="true" aria-label="Foto del producto" className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-3 bg-black/70 p-6" onClick={cerrar}>
-          <img src={ampliada.url} alt="" className="max-h-[80vh] max-w-full bg-white object-contain" />
-          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-            <a href={ampliada.url} download={ampliada.nombre} className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-white">Descargar</a>
-            <button type="button" className="rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-bold text-ink"
-              onClick={() => {
-                const f = lista.find((x) => x.archivo === ampliada.nombre);
-                cerrar();
-                if (f) void fotos.quitar(canal, f);
-              }}>Quitar del producto</button>
-            <button type="button" className="rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-bold text-ink" onClick={cerrar}>Cerrar</button>
-          </div>
-        </div>,
-        document.body,
+      {ampliada && (
+        <VisorFotosCanal canal={canal} lista={lista} inicio={ampliada.archivo} preguntar={Boolean(ampliada.quitar)}
+          fotos={fotos} onCerrar={() => setAmpliada(null)} />
       )}
     </section>
+  );
+}
+
+/**
+ * Visor de las fotos de un canal: se pasa a la anterior o la siguiente con las flechas ‹ ›,
+ * el teclado (← →) o deslizando el dedo, en el orden de la columna (la 1.ª es la principal).
+ * Cada foto se baja con sesión la primera vez que se ve; mientras, se muestra su miniatura.
+ */
+function VisorFotosCanal({ canal, lista, inicio, preguntar, fotos, onCerrar }: {
+  canal: Canal;
+  lista: Foto[];
+  inicio: string;
+  /** Se abrió desde la ✕ de la miniatura: ya pregunta si quitarla. */
+  preguntar: boolean;
+  fotos: Hook;
+  onCerrar: () => void;
+}) {
+  const [confirmando, setConfirmando] = useState(preguntar);
+  const [quitando, setQuitando] = useState(false);
+  const [i, setI] = useState(() => Math.max(0, lista.findIndex((f) => f.archivo === inicio)));
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const creadas = useRef<string[]>([]);
+  const toque = useRef<{ x: number; y: number } | null>(null);
+  const n = lista.length;
+  const f = lista[Math.min(i, n - 1)];
+  const antes = () => { setConfirmando(false); setI((k) => Math.max(0, k - 1)); };
+  const despues = () => { setConfirmando(false); setI((k) => Math.min(n - 1, k + 1)); };
+  // Al quitar la última foto del canal no queda nada que ver.
+  useEffect(() => { if (fotos.q.isSuccess && n === 0) onCerrar(); }, [n, fotos.q.isSuccess, onCerrar]);
+  const quitarEsta = async () => {
+    if (!f || quitando) return;
+    setQuitando(true);
+    const ok = await fotos.quitar(canal, f);
+    setQuitando(false);
+    setConfirmando(false);
+    // Se queda en el visor: la lista se refresca y en este lugar queda la siguiente foto.
+    if (ok && i >= n - 1) setI(Math.max(0, n - 2));
+  };
+
+  useEffect(() => {
+    if (!f || urls[f.archivo]) return;
+    let vivo = true;
+    void fetchAuthBlobUrl(fotos.urlArchivo(canal, f)).then((url) => {
+      if (!url) return;
+      creadas.current.push(url);
+      if (vivo) setUrls((u) => ({ ...u, [f.archivo]: url }));
+    });
+    return () => { vivo = false; };
+  }, [f, urls, fotos, canal]);
+
+  useEffect(() => () => creadas.current.forEach((u) => URL.revokeObjectURL(u)), []);
+
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCerrar();
+      if (e.key === "ArrowRight") { setConfirmando(false); setI((k) => Math.min(n - 1, k + 1)); }
+      if (e.key === "ArrowLeft") { setConfirmando(false); setI((k) => Math.max(0, k - 1)); }
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [n, onCerrar]);
+
+  if (!f) return null;
+  const url = urls[f.archivo];
+  const src = url ?? (f.miniatura ? `data:image/jpeg;base64,${f.miniatura}` : "");
+  return createPortal(
+    // stopPropagation: el portal sigue dentro de la <section> de la columna en el árbol de React,
+    // y su onKeyDown (Enter/Espacio) anularía los botones de aquí.
+    <div className="vf-visor" role="dialog" aria-modal="true" aria-label="Fotos del producto" onClick={onCerrar}
+      onKeyDown={(e) => e.stopPropagation()}>
+      <div className="vf-barra" onClick={(e) => e.stopPropagation()}>
+        <p className="vf-titulo">
+          {canal === "web" ? "Página web" : "Mercado Libre"} · {n > 1 ? `Foto ${i + 1} de ${n}` : "Foto"}
+          {i === 0 && n > 1 ? " · principal" : ""}
+          {f.ancho && f.alto ? ` · ${f.ancho}×${f.alto}` : ""}
+        </p>
+        {confirmando ? (
+          <>
+            <span className="text-[13px] font-bold">¿Quitar esta foto? Queda en una papelera.</span>
+            <button type="button" className="vf-boton" disabled={quitando} style={{ background: "#c0392b", borderColor: "#c0392b" }}
+              onClick={() => void quitarEsta()}>{quitando ? "Quitando…" : "Sí, quitar"}</button>
+            <button type="button" className="vf-boton" onClick={() => setConfirmando(false)}>No</button>
+          </>
+        ) : (
+          <>
+            {url && <a href={url} download={f.archivo} className="vf-boton">Descargar</a>}
+            <button type="button" className="vf-boton" onClick={() => setConfirmando(true)}>Quitar del producto</button>
+          </>
+        )}
+        <button type="button" onClick={onCerrar} className="vf-boton" aria-label="Cerrar">✕ Cerrar</button>
+      </div>
+      <div className="vf-escena"
+        onTouchStart={(e) => {
+          toque.current = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+        }}
+        onTouchEnd={(e) => {
+          const t = toque.current;
+          toque.current = null;
+          if (!t) return;
+          const dx = e.changedTouches[0].clientX - t.x;
+          const dy = e.changedTouches[0].clientY - t.y;
+          if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+          if (dx < 0) despues(); else antes();
+        }}>
+        {src && <img key={f.archivo} src={src} alt="" className="bg-white" onClick={(e) => e.stopPropagation()} />}
+        {n > 1 && (
+          <>
+            <button type="button" className="vf-flecha vf-izq" disabled={i === 0} aria-label="Foto anterior"
+              onClick={(e) => { e.stopPropagation(); antes(); }}>‹</button>
+            <button type="button" className="vf-flecha vf-der" disabled={i >= n - 1} aria-label="Foto siguiente"
+              onClick={(e) => { e.stopPropagation(); despues(); }}>›</button>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body,
   );
 }
